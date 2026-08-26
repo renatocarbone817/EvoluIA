@@ -12,6 +12,10 @@ import {
   TrendingUp,
   AlertCircle,
   Filter,
+  AlertTriangle,
+  Send,
+  MessageSquare,
+  Sparkles,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
@@ -21,28 +25,52 @@ import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import toast from "react-hot-toast"
-import type { FinancialRecord, Child } from "@/types/database"
+import type { FinancialRecord } from "@/types/database"
+import { ConfirmPaymentModal } from "./ConfirmPaymentModal"
 
-interface FinancialRecordWithChild extends FinancialRecord {
+interface FinancialRecordWithDetails extends FinancialRecord {
   child?: {
     id: string
     full_name: string
+    guardians?: {
+      relationship: string | null
+      is_primary: boolean
+      guardian: {
+        id: string
+        full_name: string
+        phone: string | null
+        whatsapp: string | null
+      } | null
+    }[]
   }
 }
+
+const MONTHS = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+]
 
 export function FinancialPage() {
   const navigate = useNavigate()
   const { user, professional } = useAuthStore()
-  const [records, setRecords] = useState<FinancialRecordWithChild[]>([])
+  const [records, setRecords] = useState<FinancialRecordWithDetails[]>([])
   const [children, setChildren] = useState<{ id: string; full_name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [saving, setSaving] = useState(false)
 
   const currentMonth = new Date().getMonth() + 1
   const currentYear = new Date().getFullYear()
+
+  // Period filter: "current_month" | "all" | "overdue" | "custom_month"
+  const [periodFilter, setPeriodFilter] = useState<string>("current_month")
+  const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth)
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear)
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [confirmingRecord, setConfirmingRecord] = useState<FinancialRecordWithDetails | null>(null)
+  const [saving, setSaving] = useState(false)
 
   const [form, setForm] = useState({
     child_id: "",
@@ -68,13 +96,24 @@ export function FinancialPage() {
     try {
       const { data } = await supabase
         .from("financial_records")
-        .select("*, child:children(id, full_name)")
+        .select(`
+          *,
+          child:children(
+            id,
+            full_name,
+            guardians:guardian_children(
+              relationship,
+              is_primary,
+              guardian:guardians(id, full_name, phone, whatsapp)
+            )
+          )
+        `)
         .eq("professional_id", profId)
         .order("year", { ascending: false })
         .order("month", { ascending: false })
         .order("created_at", { ascending: false })
 
-      setRecords((data || []) as FinancialRecordWithChild[])
+      setRecords((data || []) as FinancialRecordWithDetails[])
     } finally {
       setLoading(false)
     }
@@ -94,27 +133,21 @@ export function FinancialPage() {
     }
   }
 
-  async function toggleStatus(rec: FinancialRecordWithChild) {
-    const newStatus = rec.status === "paid" ? "pending" : "paid"
+  async function handleMarkPending(rec: FinancialRecordWithDetails) {
     try {
       const { error } = await supabase
         .from("financial_records")
         .update({
-          status: newStatus,
-          payment_date: newStatus === "paid" ? new Date().toISOString().split("T")[0] : null,
+          status: "pending",
+          payment_date: null,
         })
         .eq("id", rec.id)
 
       if (error) throw error
-
-      toast.success(
-        newStatus === "paid"
-          ? `Pagamento de ${rec.child?.full_name || "paciente"} confirmado!`
-          : "Marcado como pendente!"
-      )
+      toast.success("Lançamento marcado como pendente!")
       loadFinancials()
     } catch (err: any) {
-      toast.error("Erro ao atualizar status do pagamento")
+      toast.error("Erro ao atualizar status")
     }
   }
 
@@ -147,32 +180,78 @@ export function FinancialPage() {
     }
   }
 
-  // Monthly stats
+  // 1. Current Month Metrics
   const currentMonthRecords = records.filter(
     (r) => r.month === currentMonth && r.year === currentYear
   )
-  const totalReceived = currentMonthRecords
+  const currentMonthReceived = currentMonthRecords
     .filter((r) => r.status === "paid")
     .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
 
-  const totalPending = currentMonthRecords
+  const currentMonthPending = currentMonthRecords
     .filter((r) => r.status === "pending")
     .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
 
-  const totalExpected = totalReceived + totalPending
+  const currentMonthExpected = currentMonthReceived + currentMonthPending
 
-  const months = [
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-  ]
-
-  const filteredRecords = records.filter((r) => {
-    const matchName = (r.child?.full_name || "").toLowerCase().includes(search.toLowerCase())
-    const matchNotes = (r.notes || "").toLowerCase().includes(search.toLowerCase())
-    const matchSearch = matchName || matchNotes
-    const matchStatus = statusFilter === "all" || r.status === statusFilter
-    return matchSearch && matchStatus
+  // 2. Overdue / Late Records (from past months still pending)
+  const overdueRecords = records.filter((r) => {
+    if (r.status !== "pending") return false
+    if (r.year < currentYear) return true
+    if (r.year === currentYear && r.month < currentMonth) return true
+    return false
   })
+  const totalOverdueAmount = overdueRecords.reduce(
+    (acc, r) => acc + (Number(r.amount) || 0),
+    0
+  )
+
+  // 3. All-time total received
+  const allTimeReceived = records
+    .filter((r) => r.status === "paid")
+    .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+
+  // 4. Filter records based on selected period
+  const filteredRecords = records.filter((r) => {
+    // Period filter
+    if (periodFilter === "current_month") {
+      if (r.month !== currentMonth || r.year !== currentYear) return false
+    } else if (periodFilter === "overdue") {
+      const isLate =
+        r.status === "pending" &&
+        (r.year < currentYear || (r.year === currentYear && r.month < currentMonth))
+      if (!isLate) return false
+    } else if (periodFilter === "custom_month") {
+      if (r.month !== selectedMonth || r.year !== selectedYear) return false
+    }
+
+    // Status filter
+    if (statusFilter !== "all" && r.status !== statusFilter) return false
+
+    // Search query
+    const q = search.toLowerCase().trim()
+    if (!q) return true
+
+    const name = r.child?.full_name?.toLowerCase() || ""
+    const notes = r.notes?.toLowerCase() || ""
+    return name.includes(q) || notes.includes(q)
+  })
+
+  // Selected period metrics (for display when viewing a custom month)
+  const selectedPeriodRecords =
+    periodFilter === "custom_month"
+      ? records.filter((r) => r.month === selectedMonth && r.year === selectedYear)
+      : currentMonthRecords
+
+  const activePeriodReceived = selectedPeriodRecords
+    .filter((r) => r.status === "paid")
+    .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+
+  const activePeriodPending = selectedPeriodRecords
+    .filter((r) => r.status === "pending")
+    .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+
+  const activePeriodExpected = activePeriodReceived + activePeriodPending
 
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6">
@@ -183,7 +262,7 @@ export function FinancialPage() {
             Controle Financeiro
           </h1>
           <p className="text-xs font-semibold uppercase tracking-wider text-[#6B7C83] mt-1">
-            Acompanhe pagamentos, mensalidades e confirmações em tempo real
+            Gestão de mensalidades, cobranças, inadimplência e envio de recibos no WhatsApp
           </p>
         </div>
 
@@ -193,61 +272,172 @@ export function FinancialPage() {
         </Button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-5 rounded-2xl border-2 border-[#63C7B2]/40 bg-[#E8F8F5] shadow-xs">
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 1. Recebido no Mês */}
+        <div className="p-5 rounded-2xl border-2 border-[#63C7B2]/40 bg-[#E8F8F5] shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-xl bg-[#63C7B2] text-[#14282F] flex items-center justify-center font-black">
               <CheckCircle2 className="w-5 h-5" />
             </div>
-            <span className="text-[11px] font-black uppercase text-[#20836F] bg-white px-2 py-0.5 rounded-md border border-[#63C7B2]/30">
+            <span className="text-[10px] font-black uppercase text-[#20836F] bg-white px-2 py-0.5 rounded-md border border-[#63C7B2]/30">
               Recebido
             </span>
           </div>
-          <p className="text-3xl font-black text-[#14282F] tracking-tight">
-            {formatCurrency(totalReceived)}
-          </p>
-          <p className="text-xs font-bold text-[#20836F] mt-1">
-            Recebido em {months[currentMonth - 1]} / {currentYear}
-          </p>
+          <div>
+            <p className="text-2xl sm:text-3xl font-black text-[#14282F] tracking-tight">
+              {formatCurrency(currentMonthReceived)}
+            </p>
+            <p className="text-xs font-bold text-[#20836F] mt-1">
+              Recebido em {MONTHS[currentMonth - 1]} / {currentYear}
+            </p>
+          </div>
         </div>
 
-        <div className="p-5 rounded-2xl border-2 border-[#F4C95D]/60 bg-[#FEF8EC] shadow-xs">
+        {/* 2. Pendente no Mês */}
+        <div className="p-5 rounded-2xl border-2 border-[#F4C95D]/60 bg-[#FEF8EC] shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 rounded-xl bg-[#F4C95D] text-[#8B6514] flex items-center justify-center font-black">
               <Clock className="w-5 h-5" />
             </div>
-            <span className="text-[11px] font-black uppercase text-[#8B6514] bg-white px-2 py-0.5 rounded-md border border-[#F4C95D]/40">
-              Pendente
+            <span className="text-[10px] font-black uppercase text-[#8B6514] bg-white px-2 py-0.5 rounded-md border border-[#F4C95D]/40">
+              A Receber
             </span>
           </div>
-          <p className="text-3xl font-black text-[#8B6514] tracking-tight">
-            {formatCurrency(totalPending)}
-          </p>
-          <p className="text-xs font-bold text-[#8B6514] mt-1">
-            Pendente em {months[currentMonth - 1]} / {currentYear}
-          </p>
+          <div>
+            <p className="text-2xl sm:text-3xl font-black text-[#8B6514] tracking-tight">
+              {formatCurrency(currentMonthPending)}
+            </p>
+            <p className="text-xs font-bold text-[#8B6514] mt-1">
+              Pendente neste mês
+            </p>
+          </div>
         </div>
 
-        <div className="p-5 rounded-2xl border-2 border-[#D8E5E7] bg-white shadow-xs">
+        {/* 3. Atrasados de Outros Meses */}
+        <div
+          onClick={() => setPeriodFilter("overdue")}
+          className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+            totalOverdueAmount > 0
+              ? "border-[#D96C6C]/60 bg-[#FDF0F0] hover:border-[#D96C6C]"
+              : "border-[#D8E5E7] bg-white"
+          }`}
+        >
           <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-[#EEF5F6] text-[#245C6B] flex items-center justify-center font-black">
-              <DollarSign className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-[#FDF0F0] text-[#D96C6C] border border-[#D96C6C]/30 flex items-center justify-center font-black">
+              <AlertTriangle className="w-5 h-5" />
             </div>
-            <span className="text-[11px] font-black uppercase text-[#6B7C83] bg-[#EEF5F6] px-2 py-0.5 rounded-md">
-              Total Previsto
+            <span className="text-[10px] font-black uppercase text-[#D96C6C] bg-white px-2 py-0.5 rounded-md border border-[#D96C6C]/30">
+              {overdueRecords.length} em atraso
             </span>
           </div>
-          <p className="text-3xl font-black text-[#19323A] tracking-tight">
-            {formatCurrency(totalExpected)}
-          </p>
-          <p className="text-xs font-bold text-[#6B7C83] mt-1">
-            Faturamento total previsto no mês
-          </p>
+          <div>
+            <p className="text-2xl sm:text-3xl font-black text-[#8C2323] tracking-tight">
+              {formatCurrency(totalOverdueAmount)}
+            </p>
+            <p className="text-xs font-bold text-[#D96C6C] mt-1">
+              Atrasados meses anteriores
+            </p>
+          </div>
+        </div>
+
+        {/* 4. Total Acumulado Já Recebido */}
+        <div className="p-5 rounded-2xl border-2 border-[#D8E5E7] bg-white shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl bg-[#EEF5F6] text-[#245C6B] flex items-center justify-center font-black">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-black uppercase text-[#6B7C83] bg-[#EEF5F6] px-2 py-0.5 rounded-md">
+              Total Histórico
+            </span>
+          </div>
+          <div>
+            <p className="text-2xl sm:text-3xl font-black text-[#19323A] tracking-tight">
+              {formatCurrency(allTimeReceived)}
+            </p>
+            <p className="text-xs font-bold text-[#6B7C83] mt-1">
+              Total recebido na clínica
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Search & Filter Bar */}
+      {/* Period Filter Tabs */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border-2 border-[#D8E5E7] shadow-sm">
+        <div className="flex bg-[#EEF5F6] rounded-xl p-1 border-2 border-[#D8E5E7] flex-wrap gap-1">
+          <button
+            type="button"
+            onClick={() => setPeriodFilter("current_month")}
+            className={`px-3.5 py-1.5 text-xs font-black rounded-lg transition-all ${
+              periodFilter === "current_month"
+                ? "bg-[#245C6B] text-white shadow-xs"
+                : "text-[#19323A] hover:bg-white/60"
+            }`}
+          >
+            📅 Mês Atual ({MONTHS[currentMonth - 1]})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPeriodFilter("overdue")}
+            className={`px-3.5 py-1.5 text-xs font-black rounded-lg transition-all flex items-center gap-1.5 ${
+              periodFilter === "overdue"
+                ? "bg-[#D96C6C] text-white shadow-xs"
+                : "text-[#D96C6C] hover:bg-[#FDF0F0]"
+            }`}
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
+            🚨 Em Atraso ({overdueRecords.length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPeriodFilter("custom_month")}
+            className={`px-3.5 py-1.5 text-xs font-black rounded-lg transition-all ${
+              periodFilter === "custom_month"
+                ? "bg-[#245C6B] text-white shadow-xs"
+                : "text-[#19323A] hover:bg-white/60"
+            }`}
+          >
+            🗓️ Escolher Outro Mês
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPeriodFilter("all")}
+            className={`px-3.5 py-1.5 text-xs font-black rounded-lg transition-all ${
+              periodFilter === "all"
+                ? "bg-[#245C6B] text-white shadow-xs"
+                : "text-[#19323A] hover:bg-white/60"
+            }`}
+          >
+            🌐 Todos os Lançamentos
+          </button>
+        </div>
+
+        {/* Custom Month Selectors if custom_month is active */}
+        {periodFilter === "custom_month" && (
+          <div className="flex items-center gap-2 animate-in fade-in-50 duration-200">
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="h-9 px-3 rounded-lg border-2 border-[#245C6B] bg-white text-xs font-black text-[#245C6B]"
+            >
+              {MONTHS.map((m, idx) => (
+                <option key={idx} value={idx + 1}>{m}</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="h-9 w-20 px-2 rounded-lg border-2 border-[#245C6B] bg-white text-xs font-black text-[#245C6B]"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Search & Status Filter */}
       <div className="flex gap-3 flex-wrap bg-white p-3 rounded-2xl border-2 border-[#D8E5E7] shadow-sm">
         <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8DA3A8]" />
@@ -256,7 +446,7 @@ export function FinancialPage() {
             placeholder="Buscar por paciente ou observação..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 h-11 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-sm font-semibold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all"
+            className="w-full pl-10 pr-4 h-11 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-sm font-semibold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all placeholder:text-[#8DA3A8]"
           />
         </div>
 
@@ -274,7 +464,12 @@ export function FinancialPage() {
       {/* Records List */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-black text-lg text-[#19323A]">Histórico de Cobranças</h2>
+          <h2 className="font-black text-lg text-[#19323A]">
+            {periodFilter === "current_month" && `Cobranças de ${MONTHS[currentMonth - 1]} / ${currentYear}`}
+            {periodFilter === "overdue" && `🚨 Cobranças em Atraso (Meses Anteriores)`}
+            {periodFilter === "custom_month" && `Cobranças de ${MONTHS[selectedMonth - 1]} / ${selectedYear}`}
+            {periodFilter === "all" && "Histórico Completo de Cobranças"}
+          </h2>
           <span className="text-xs font-bold text-[#6B7C83]">
             {filteredRecords.length} lançamento{filteredRecords.length !== 1 ? "s" : ""}
           </span>
@@ -290,87 +485,130 @@ export function FinancialPage() {
           <Card className="border-2 border-dashed border-[#D8E5E7] py-12 text-center">
             <CardContent className="space-y-3">
               <DollarSign className="w-10 h-10 text-[#8DA3A8] mx-auto" />
-              <h3 className="font-black text-base text-[#19323A]">Nenhum lançamento encontrado</h3>
+              <h3 className="font-black text-base text-[#19323A]">
+                {periodFilter === "overdue"
+                  ? "🎉 Nenhuma cobrança em atraso! Parabéns!"
+                  : "Nenhum lançamento encontrado"}
+              </h3>
               <p className="text-xs text-[#6B7C83]">
-                Clique no botão abaixo para lançar uma mensalidade ou sessão.
+                {periodFilter === "overdue"
+                  ? "Todos os pagamentos de meses anteriores foram quitados."
+                  : "Clique no botão abaixo para lançar uma mensalidade ou sessão."}
               </p>
-              <Button onClick={() => setShowAddModal(true)} className="mt-2">
-                <Plus className="w-4 h-4 mr-1.5" />
-                Novo Lançamento
-              </Button>
+              {periodFilter !== "overdue" && (
+                <Button onClick={() => setShowAddModal(true)} className="mt-2">
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  Novo Lançamento
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-3">
-            {filteredRecords.map((r) => (
-              <div
-                key={r.id}
-                className="p-4 sm:p-5 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-              >
-                {/* Left: Child Name, Period, Notes */}
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <h3
-                      onClick={() => r.child_id && navigate(`/criancas/${r.child_id}`)}
-                      className="font-black text-base text-[#19323A] hover:text-[#245C6B] hover:underline cursor-pointer truncate"
-                    >
-                      {r.child?.full_name || "Paciente"}
-                    </h3>
+            {filteredRecords.map((r) => {
+              const isOverdue =
+                r.status === "pending" &&
+                (r.year < currentYear || (r.year === currentYear && r.month < currentMonth))
 
-                    <span
-                      className={`text-xs px-2.5 py-0.5 rounded-lg font-black uppercase ${
-                        r.status === "paid"
-                          ? "bg-[#E8F8F5] text-[#20836F] border border-[#63C7B2]/40"
-                          : "bg-[#FEF8EC] text-[#B8871E] border border-[#F4C95D]/50"
-                      }`}
-                    >
-                      {r.status === "paid" ? "Pago" : "Pendente"}
-                    </span>
-                  </div>
+              const primaryGuardian = r.child?.guardians?.[0]?.guardian
 
-                  <div className="flex items-center gap-2 text-xs font-semibold text-[#6B7C83] flex-wrap">
-                    <span>
-                      Referência: <strong>{months[r.month - 1]} / {r.year}</strong>
-                    </span>
-                    {r.payment_date && (
-                      <span>· Pago em {formatDate(r.payment_date)}</span>
+              return (
+                <div
+                  key={r.id}
+                  className={`p-4 sm:p-5 rounded-2xl border-2 bg-white transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                    isOverdue
+                      ? "border-[#D96C6C]/60 hover:border-[#D96C6C] shadow-xs"
+                      : "border-[#D8E5E7] hover:border-[#245C6B] hover:shadow-md"
+                  }`}
+                >
+                  {/* Left: Child Name, Period, Notes */}
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <h3
+                        onClick={() => r.child_id && navigate(`/criancas/${r.child_id}`)}
+                        className="font-black text-base text-[#19323A] hover:text-[#245C6B] hover:underline cursor-pointer truncate"
+                      >
+                        {r.child?.full_name || "Paciente"}
+                      </h3>
+
+                      <span
+                        className={`text-xs px-2.5 py-0.5 rounded-lg font-black uppercase ${
+                          r.status === "paid"
+                            ? "bg-[#E8F8F5] text-[#20836F] border border-[#63C7B2]/40"
+                            : isOverdue
+                            ? "bg-[#FDF0F0] text-[#D96C6C] border border-[#D96C6C]/40"
+                            : "bg-[#FEF8EC] text-[#B8871E] border border-[#F4C95D]/50"
+                        }`}
+                      >
+                        {r.status === "paid" ? "Pago" : isOverdue ? "Atrasado" : "Pendente"}
+                      </span>
+
+                      {primaryGuardian && (
+                        <span className="text-xs text-[#6B7C83] font-semibold bg-[#EEF5F6] px-2 py-0.5 rounded-md">
+                          👤 {primaryGuardian.full_name}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs font-semibold text-[#6B7C83] flex-wrap">
+                      <span>
+                        Referência: <strong>{MONTHS[r.month - 1]} / {r.year}</strong>
+                      </span>
+                      {r.payment_date && (
+                        <span>· Pago em {formatDate(r.payment_date)}</span>
+                      )}
+                    </div>
+
+                    {r.notes && (
+                      <p className="text-xs text-[#8DA3A8] italic line-clamp-1">
+                        "{r.notes}"
+                      </p>
                     )}
                   </div>
 
-                  {r.notes && (
-                    <p className="text-xs text-[#8DA3A8] italic line-clamp-1">
-                      "{r.notes}"
-                    </p>
-                  )}
-                </div>
+                  {/* Right: Value & Actions */}
+                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-[#EEF5F6]">
+                    <span className="font-black text-lg sm:text-xl text-[#19323A]">
+                      {formatCurrency(r.amount)}
+                    </span>
 
-                {/* Right: Value & Confirm Payment Button */}
-                <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-[#EEF5F6]">
-                  <span className="font-black text-lg sm:text-xl text-[#19323A]">
-                    {formatCurrency(r.amount)}
-                  </span>
-
-                  <Button
-                    size="sm"
-                    variant={r.status === "paid" ? "outline" : "default"}
-                    onClick={() => toggleStatus(r)}
-                    className="font-black text-xs min-w-[155px]"
-                  >
                     {r.status === "paid" ? (
-                      "Marcar Pendente"
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleMarkPending(r)}
+                        className="font-bold text-xs"
+                      >
+                        Marcar Pendente
+                      </Button>
                     ) : (
-                      <>
-                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                      <Button
+                        size="sm"
+                        onClick={() => setConfirmingRecord(r)}
+                        className="font-black text-xs bg-[#245C6B] hover:bg-[#1B4752] text-white gap-1.5"
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-[#63C7B2]" />
                         Confirmar Pagamento
-                      </>
+                      </Button>
                     )}
-                  </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
+
+      {/* Confirmation & WhatsApp Receipt Modal */}
+      <ConfirmPaymentModal
+        open={!!confirmingRecord}
+        record={confirmingRecord}
+        onClose={() => setConfirmingRecord(null)}
+        onSuccess={() => {
+          setConfirmingRecord(null)
+          loadFinancials()
+        }}
+      />
 
       {/* Add Modal */}
       {showAddModal && (
@@ -401,7 +639,7 @@ export function FinancialPage() {
                 label="Mês de Referência"
                 value={form.month}
                 onChange={(e) => setForm({ ...form, month: e.target.value })}
-                options={months.map((m, idx) => ({
+                options={MONTHS.map((m, idx) => ({
                   value: String(idx + 1),
                   label: m,
                 }))}
