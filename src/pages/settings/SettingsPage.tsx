@@ -35,6 +35,7 @@ export function SettingsPage() {
 
   const [form, setForm] = useState({
     full_name: professional?.full_name || "Priscila Carbone",
+    email: professional?.email || user?.email || "priscila@evolui.com.br",
     clinic_name: professional?.clinic_name || "",
     crp: professional?.crp || "",
     specialty: professional?.specialty || "Psicopedagogia",
@@ -233,11 +234,19 @@ export function SettingsPage() {
               <CardTitle className="text-base">Informações Profissionais</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Input
-                label="Nome Completo *"
-                value={form.full_name}
-                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="Nome Completo *"
+                  value={form.full_name}
+                  onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                />
+                <Input
+                  label="E-mail Profissional"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+              </div>
 
               <Input
                 label="Nome do Consultório / Espaço"
@@ -261,14 +270,22 @@ export function SettingsPage() {
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
+                <div className="col-span-1">
                   <Input
                     label="Telefone / WhatsApp"
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   />
                 </div>
-                <div>
+                <div className="col-span-1">
+                  <Input
+                    label="Cidade"
+                    placeholder="São Paulo"
+                    value={form.city}
+                    onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  />
+                </div>
+                <div className="col-span-1">
                   <Input
                     label="UF"
                     placeholder="SP"
