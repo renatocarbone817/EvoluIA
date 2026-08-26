@@ -11,8 +11,8 @@ export function Badge({ className, statusKey, variant = "default", children, ...
     return (
       <span
         className={cn(
-          "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
-          STATUS_COLORS[statusKey] || "bg-gray-100 text-gray-600 border-gray-200",
+          "inline-flex items-center rounded-xl border-2 px-3 py-1 text-xs font-black tracking-wide shadow-xs",
+          STATUS_COLORS[statusKey] || "bg-[#EEF5F6] text-[#4F6C74] border-[#D8E5E7]",
           className
         )}
         {...props}
@@ -23,15 +23,15 @@ export function Badge({ className, statusKey, variant = "default", children, ...
   }
 
   const variants = {
-    default: "bg-foreground text-background border-transparent",
-    outline: "border-border text-foreground",
-    secondary: "bg-secondary text-secondary-foreground border-transparent",
+    default: "bg-[#245C6B] text-white border-2 border-[#1E4E5B]",
+    outline: "border-2 border-[#D8E5E7] text-[#19323A] bg-white",
+    secondary: "bg-[#63C7B2] text-[#14282F] border-2 border-[#48A894]",
   }
 
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+        "inline-flex items-center rounded-xl border-2 px-3 py-1 text-xs font-black tracking-wide shadow-xs",
         variants[variant],
         className
       )}

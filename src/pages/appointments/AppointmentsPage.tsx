@@ -116,47 +116,53 @@ export function AppointmentsPage() {
       {/* Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Agenda de Atendimentos</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Visualize horários, gerencie sessões e sincronize com a agenda do seu celular.
+          <h1 className="text-2xl md:text-3xl font-black text-[#19323A] tracking-tight">
+            Agenda de Atendimentos
+          </h1>
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#6B7C83] mt-1">
+            Organização clínica e sincronização em tempo real
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => navigate("/configuracoes")} className="gap-1.5 text-xs">
-            <Smartphone className="w-4 h-4 text-emerald-600" />
-            Sincronizar com Google Agenda
+        <div className="flex items-center gap-3 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/configuracoes")}
+            className="gap-2 text-xs border-2"
+          >
+            <Smartphone className="w-4 h-4 text-[#20836F]" />
+            Sincronizar Celular
           </Button>
-          <Button onClick={() => setShowNewModal(true)}>
-            <Plus className="w-4 h-4 mr-1.5" />
+          <Button size="lg" onClick={() => setShowNewModal(true)} className="gap-2">
+            <Plus className="w-5 h-5" />
             Novo Agendamento
           </Button>
         </div>
       </div>
 
       {/* View & Navigation Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/40 p-3 rounded-xl border border-border">
-        {/* Navigation */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-3.5 rounded-2xl border-2 border-[#D8E5E7] shadow-sm">
+        {/* Date Navigation */}
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={handlePrev}>
-            <ChevronLeft className="w-4 h-4" />
+          <Button variant="outline" size="icon" onClick={handlePrev} className="h-10 w-10">
+            <ChevronLeft className="w-5 h-5" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
+          <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())} className="font-bold text-xs h-10 px-3">
             Hoje
           </Button>
-          <Button variant="outline" size="icon" onClick={handleNext}>
-            <ChevronRight className="w-4 h-4" />
+          <Button variant="outline" size="icon" onClick={handleNext} className="h-10 w-10">
+            <ChevronRight className="w-5 h-5" />
           </Button>
 
-          <span className="font-semibold text-sm sm:text-base capitalize ml-2">
+          <span className="font-black text-sm sm:text-base capitalize ml-2 text-[#19323A]">
             {format(currentDate, viewMode === "mes" ? "MMMM 'de' yyyy" : "dd 'de' MMMM 'de' yyyy", {
               locale: ptBR,
             })}
           </span>
         </div>
 
-        {/* View mode buttons */}
-        <div className="flex bg-background rounded-lg border border-border p-0.5">
+        {/* View mode switcher */}
+        <div className="flex bg-[#EEF5F6] rounded-xl p-1 border-2 border-[#D8E5E7]">
           {(
             [
               { id: "dia", label: "Dia" },
@@ -168,10 +174,10 @@ export function AppointmentsPage() {
             <button
               key={mode.id}
               onClick={() => setViewMode(mode.id)}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+              className={`px-3.5 py-1.5 text-xs font-black rounded-lg transition-all ${
                 viewMode === mode.id
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-[#245C6B] text-white shadow-xs"
+                  : "text-[#19323A] hover:bg-white/60"
               }`}
             >
               {mode.label}
@@ -180,19 +186,18 @@ export function AppointmentsPage() {
         </div>
       </div>
 
-      {/* 1. CELULAR VIEW (Matching the user's phone screenshot) */}
+      {/* 1. CELULAR VIEW */}
       {viewMode === "celular" && (
         <div className="max-w-md mx-auto space-y-4">
-          {/* Top Date strip */}
-          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm space-y-4">
-            <div className="text-center pb-2 border-b border-border">
-              <h2 className="text-xl font-bold">
+          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-5 shadow-sm space-y-4">
+            <div className="text-center pb-3 border-b-2 border-[#EEF5F6]">
+              <h2 className="text-lg font-black text-[#19323A] capitalize">
                 {format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}
               </h2>
             </div>
 
-            {/* 7-day mini bar */}
-            <div className="grid grid-cols-7 gap-1 text-center">
+            {/* 7-day strip */}
+            <div className="grid grid-cols-7 gap-1.5 text-center">
               {weekDays.map((day) => {
                 const isSelected = isSameDay(day, currentDate)
                 const isToday = isSameDay(day, new Date())
@@ -200,82 +205,72 @@ export function AppointmentsPage() {
                   <button
                     key={day.toISOString()}
                     onClick={() => setCurrentDate(day)}
-                    className={`py-2 rounded-xl transition-all ${
+                    className={`py-2.5 rounded-xl border-2 transition-all ${
                       isSelected
-                        ? "bg-blue-600 text-white font-bold shadow-sm"
+                        ? "bg-[#245C6B] text-white border-[#1E4E5B] shadow-sm font-black"
                         : isToday
-                        ? "bg-muted font-bold text-foreground"
-                        : "hover:bg-muted text-muted-foreground"
+                        ? "bg-[#EEF5F6] border-[#245C6B] font-bold text-[#19323A]"
+                        : "border-transparent hover:bg-[#EEF5F6] text-[#6B7C83]"
                     }`}
                   >
-                    <p className="text-[10px] uppercase font-semibold">
+                    <p className="text-[10px] uppercase font-extrabold">
                       {format(day, "EEE", { locale: ptBR }).substring(0, 3)}
                     </p>
-                    <p className="text-sm mt-0.5">{format(day, "dd")}</p>
+                    <p className="text-sm font-black mt-0.5">{format(day, "dd")}</p>
                   </button>
                 )
               })}
             </div>
           </div>
 
-          {/* List of events on this day */}
-          <div className="bg-card rounded-2xl border border-border p-5 shadow-sm space-y-4">
+          {/* List for today */}
+          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-5 shadow-sm space-y-3">
             {loading ? (
               <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-16 bg-muted animate-pulse rounded-xl" />
+                {[1, 2].map((i) => (
+                  <div key={i} className="h-20 bg-[#EEF5F6] animate-pulse rounded-2xl" />
                 ))}
               </div>
             ) : appointments.length === 0 ? (
-              <div className="py-10 text-center text-muted-foreground space-y-2">
-                <CalendarIcon className="w-8 h-8 mx-auto opacity-40" />
-                <p className="font-semibold text-sm">Nenhum atendimento para este dia</p>
-                <Button size="sm" variant="outline" onClick={() => setShowNewModal(true)}>
-                  + Adicionar agendamento
+              <div className="py-10 text-center text-[#6B7C83] space-y-3">
+                <CalendarIcon className="w-10 h-10 mx-auto text-[#8DA3A8]" />
+                <p className="font-bold text-sm text-[#19323A]">Nenhum atendimento neste dia</p>
+                <Button size="sm" onClick={() => setShowNewModal(true)}>
+                  + Novo Agendamento
                 </Button>
               </div>
             ) : (
-              <div className="divide-y divide-border/60">
+              <div className="space-y-3">
                 {appointments.map((appt) => {
                   const startTime = new Date(appt.start_time)
                   const endTime = new Date(appt.end_time)
                   return (
                     <div
                       key={appt.id}
-                      className="py-3.5 first:pt-0 last:pb-0 flex items-center justify-between group hover:bg-muted/20 px-2 rounded-lg transition-colors"
+                      className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] hover:border-[#245C6B] transition-all flex items-center justify-between gap-3"
                     >
-                      <div className="space-y-0.5 min-w-0 flex-1">
+                      <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-sm text-foreground truncate">
+                          <h3 className="font-black text-sm text-[#19323A] truncate">
                             {appt.child?.full_name}
                           </h3>
-                          {appt.type && (
-                            <span className="text-[10px] text-muted-foreground font-medium">
-                              ({appt.type})
-                            </span>
-                          )}
                         </div>
-                        <p className="text-xs text-muted-foreground font-medium">
+                        <p className="text-xs font-bold text-[#245C6B]">
                           {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
                         </p>
-                        {appt.notes && (
-                          <p className="text-[11px] text-muted-foreground/80 truncate italic">
-                            {appt.notes}
-                          </p>
-                        )}
+                        <p className="text-[11px] font-semibold text-[#6B7C83] truncate">
+                          {appt.type}
+                        </p>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0 ml-3">
-                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
-                        <Button
-                          size="sm"
-                          className="h-8 text-xs gap-1"
-                          onClick={() => navigate(`/atendimento/${appt.id}`)}
-                        >
-                          <Play className="w-3 h-3" />
-                          Iniciar
-                        </Button>
-                      </div>
+                      <Button
+                        size="sm"
+                        className="gap-1.5 text-xs font-bold"
+                        onClick={() => navigate(`/atendimento/${appt.id}`)}
+                      >
+                        <Play className="w-3 h-3 fill-current" />
+                        Iniciar
+                      </Button>
                     </div>
                   )
                 })}
@@ -295,18 +290,18 @@ export function AppointmentsPage() {
             return (
               <div
                 key={day.toISOString()}
-                className={`min-h-[360px] rounded-xl border p-3 flex flex-col gap-2 ${
+                className={`min-h-[380px] rounded-2xl border-2 p-3 flex flex-col gap-2 transition-all ${
                   isToday
-                    ? "border-foreground bg-foreground/[0.02]"
-                    : "border-border bg-card"
+                    ? "border-[#245C6B] bg-[#EAF3F5]/30 ring-4 ring-[#245C6B]/10 shadow-sm"
+                    : "border-[#D8E5E7] bg-white shadow-xs"
                 }`}
               >
                 {/* Day Header */}
-                <div className="pb-2 border-b border-border text-center">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">
+                <div className="pb-2 border-b-2 border-[#EEF5F6] text-center">
+                  <p className="text-[11px] font-extrabold text-[#6B7C83] uppercase">
                     {format(day, "EEE", { locale: ptBR })}
                   </p>
-                  <p className={`text-base font-bold ${isToday ? "text-foreground" : ""}`}>
+                  <p className={`text-base font-black ${isToday ? "text-[#245C6B]" : "text-[#19323A]"}`}>
                     {format(day, "dd")}
                   </p>
                 </div>
@@ -314,33 +309,33 @@ export function AppointmentsPage() {
                 {/* Day Appointments List */}
                 <div className="flex-1 space-y-2 overflow-y-auto">
                   {dayAppts.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground/60 text-center pt-8">
-                      Horários livres
+                    <p className="text-[11px] font-semibold text-[#8DA3A8] text-center pt-8 italic">
+                      Livre
                     </p>
                   ) : (
                     dayAppts.map((appt) => (
                       <div
                         key={appt.id}
-                        className="p-2.5 rounded-lg border border-border/80 bg-background hover:shadow-sm transition-all space-y-1.5 text-xs"
+                        className="p-2.5 rounded-xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] transition-all space-y-1.5 text-xs shadow-2xs"
                       >
-                        <div className="flex items-center justify-between font-bold">
+                        <div className="flex items-center justify-between font-black text-[#19323A]">
                           <span>{format(new Date(appt.start_time), "HH:mm")}</span>
                           <Badge statusKey={appt.status} className="text-[10px] px-1.5 py-0" />
                         </div>
-                        <p className="font-semibold text-foreground truncate">
+                        <p className="font-bold text-[#19323A] truncate">
                           {appt.child?.full_name}
                         </p>
-                        <p className="text-[11px] text-muted-foreground truncate">
+                        <p className="text-[11px] font-medium text-[#6B7C83] truncate">
                           {appt.type}
                         </p>
 
                         {(appt.status === "scheduled" || appt.status === "confirmed") && (
                           <Button
                             size="sm"
-                            className="w-full h-7 text-[11px] mt-1 gap-1"
+                            className="w-full h-8 text-[11px] mt-1 gap-1"
                             onClick={() => navigate(`/atendimento/${appt.id}`)}
                           >
-                            <Play className="w-3 h-3" />
+                            <Play className="w-3 h-3 fill-current" />
                             Iniciar
                           </Button>
                         )}
@@ -360,18 +355,16 @@ export function AppointmentsPage() {
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />
+                <div key={i} className="h-20 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-2xl" />
               ))}
             </div>
           ) : appointments.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <CalendarIcon className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                <p className="font-semibold text-base">Nenhum atendimento no período</p>
-                <p className="text-sm text-muted-foreground mt-1 mb-4">
-                  Clique abaixo para agendar um novo atendimento.
-                </p>
-                <Button onClick={() => setShowNewModal(true)}>
+            <Card className="border-2 border-dashed border-[#D8E5E7] py-12 text-center">
+              <CardContent className="space-y-3">
+                <CalendarIcon className="w-12 h-12 text-[#8DA3A8] mx-auto" />
+                <h3 className="font-black text-base text-[#19323A]">Nenhum atendimento no período</h3>
+                <p className="text-xs text-[#6B7C83]">Clique abaixo para agendar um novo atendimento.</p>
+                <Button onClick={() => setShowNewModal(true)} className="mt-2">
                   <Plus className="w-4 h-4 mr-1.5" />
                   Agendar Atendimento
                 </Button>
@@ -379,39 +372,40 @@ export function AppointmentsPage() {
             </Card>
           ) : (
             appointments.map((appt) => (
-              <Card key={appt.id} className="hover:border-foreground/30 transition-colors">
-                <CardContent className="p-4 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="text-center w-14 border-r pr-4">
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(appt.start_time), "dd/MM")}
-                      </p>
-                      <p className="text-base font-bold">
-                        {format(new Date(appt.start_time), "HH:mm")}
-                      </p>
-                    </div>
-
-                    <div>
-                      <h3 className="font-bold text-sm">{appt.child?.full_name}</h3>
-                      <p className="text-xs text-muted-foreground">{appt.type}</p>
-                    </div>
+              <div
+                key={appt.id}
+                className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:shadow-md transition-all flex items-center justify-between gap-4"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex flex-col items-center justify-center shrink-0">
+                    <p className="text-[10px] font-bold text-[#6B7C83] uppercase">
+                      {format(new Date(appt.start_time), "dd/MM")}
+                    </p>
+                    <p className="text-base font-black text-[#19323A]">
+                      {format(new Date(appt.start_time), "HH:mm")}
+                    </p>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <Badge statusKey={appt.status} />
-                    {(appt.status === "scheduled" || appt.status === "confirmed") && (
-                      <Button
-                        size="sm"
-                        onClick={() => navigate(`/atendimento/${appt.id}`)}
-                        className="gap-1.5"
-                      >
-                        <Play className="w-3 h-3" />
-                        Iniciar Atendimento
-                      </Button>
-                    )}
+                  <div>
+                    <h3 className="font-black text-base text-[#19323A]">{appt.child?.full_name}</h3>
+                    <p className="text-xs font-semibold text-[#6B7C83]">{appt.type}</p>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Badge statusKey={appt.status} />
+                  {(appt.status === "scheduled" || appt.status === "confirmed") && (
+                    <Button
+                      size="sm"
+                      onClick={() => navigate(`/atendimento/${appt.id}`)}
+                      className="gap-1.5"
+                    >
+                      <Play className="w-3 h-3 fill-current" />
+                      Iniciar
+                    </Button>
+                  )}
+                </div>
+              </div>
             ))
           )}
         </div>

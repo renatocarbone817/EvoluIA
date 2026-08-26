@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { Plus, Search, Filter, Users } from "lucide-react"
+import { Plus, Search, Filter, Users, ChevronRight, School, Calendar } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
 import { Card, CardContent } from "@/components/ui/Card"
@@ -22,23 +22,26 @@ const STATUS_OPTIONS = [
 export function ChildrenPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { professional } = useAuthStore()
+  const { user, professional } = useAuthStore()
   const [children, setChildren] = useState<Child[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
   const [showNewDialog, setShowNewDialog] = useState(searchParams.get("nova") === "true")
 
+  const profId = professional?.id || user?.id
+
   useEffect(() => {
-    if (professional) loadChildren()
-  }, [professional])
+    if (profId) loadChildren()
+  }, [profId])
 
   async function loadChildren() {
+    if (!profId) return
     setLoading(true)
     const { data } = await supabase
       .from("children")
       .select("*")
-      .eq("professional_id", professional!.id)
+      .eq("professional_id", profId)
       .order("full_name")
     setChildren(data || [])
     setLoading(false)
@@ -51,37 +54,39 @@ export function ChildrenPage() {
   })
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto">
+    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Crianças</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            {children.length} criança{children.length !== 1 ? "s" : ""} cadastrada{children.length !== 1 ? "s" : ""}
+          <h1 className="text-2xl md:text-3xl font-black text-[#19323A] tracking-tight">
+            Crianças & Pacientes
+          </h1>
+          <p className="text-[#6B7C83] text-xs font-semibold uppercase tracking-wider mt-1">
+            {children.length} paciente{children.length !== 1 ? "s" : ""} registrado{children.length !== 1 ? "s" : ""} no consultório
           </p>
         </div>
-        <Button onClick={() => setShowNewDialog(true)}>
-          <Plus className="w-4 h-4" />
-          Nova criança
+        <Button size="lg" onClick={() => setShowNewDialog(true)} className="gap-2">
+          <Plus className="w-5 h-5" />
+          Nova Criança
         </Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-3 mb-6 flex-wrap">
+      {/* Search & Filters */}
+      <div className="flex gap-3 flex-wrap bg-white p-3 rounded-2xl border-2 border-[#D8E5E7] shadow-sm">
         <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8DA3A8]" />
           <input
             type="text"
-            placeholder="Buscar criança..."
+            placeholder="Buscar paciente por nome..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 h-10 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full pl-10 pr-4 h-11 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-sm font-semibold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-10 px-3 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-11 px-4 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-sm font-bold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all"
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -89,75 +94,98 @@ export function ChildrenPage() {
         </select>
       </div>
 
-      {/* List */}
+      {/* List of Children */}
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />
+            <div key={i} className="h-24 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-2xl" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+        <Card className="border-2 border-dashed border-[#D8E5E7] text-center py-16">
+          <CardContent className="space-y-3">
+            <div className="w-16 h-16 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex items-center justify-center mx-auto text-[#245C6B]">
+              <Users className="w-8 h-8" />
+            </div>
             {children.length === 0 ? (
               <>
-                <p className="font-semibold text-lg">Nenhuma criança cadastrada</p>
-                <p className="text-sm text-muted-foreground mt-2 mb-6">
-                  Comece cadastrando a primeira criança para acompanhar.
+                <h3 className="font-black text-lg text-[#19323A]">Nenhuma criança cadastrada ainda</h3>
+                <p className="text-xs text-[#6B7C83] max-w-sm mx-auto">
+                  Cadastre o primeiro paciente para gerenciar anamnese, sessões e relatórios.
                 </p>
-                <Button onClick={() => setShowNewDialog(true)}>
-                  <Plus className="w-4 h-4" />
-                  Cadastrar primeira criança
+                <Button size="lg" onClick={() => setShowNewDialog(true)} className="mt-2">
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  Cadastrar Primeira Criança
                 </Button>
               </>
             ) : (
               <>
-                <p className="font-semibold">Nenhum resultado encontrado</p>
-                <p className="text-sm text-muted-foreground mt-1">Tente ajustar os filtros.</p>
+                <h3 className="font-bold text-base text-[#19323A]">Nenhum paciente encontrado</h3>
+                <p className="text-xs text-[#6B7C83]">Tente buscar com outro termo ou filtro.</p>
               </>
             )}
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((child) => (
-            <Card
-              key={child.id}
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => navigate(`/criancas/${child.id}`)}
-            >
-              <CardContent className="p-4 flex items-center gap-4">
-                {/* Avatar */}
-                <div className="w-11 h-11 bg-foreground/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-foreground/70">
+        <div className="grid gap-3">
+          {filtered.map((child) => {
+            const age = child.birth_date ? calculateAge(child.birth_date) : null
+            return (
+              <div
+                key={child.id}
+                onClick={() => navigate(`/criancas/${child.id}`)}
+                className="p-5 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:shadow-md cursor-pointer transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
+              >
+                {/* Left: Avatar + Info */}
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-13 h-13 w-12 h-12 rounded-2xl bg-[#245C6B] text-white font-black text-lg flex items-center justify-center shrink-0 border-2 border-[#63C7B2]/40 shadow-xs group-hover:scale-105 transition-transform">
                     {child.full_name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold">{child.full_name}</p>
-                    <Badge statusKey={child.status} />
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground flex-wrap">
-                    {child.birth_date && (
-                      <span>{calculateAge(child.birth_date)} anos</span>
+
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <h3 className="font-black text-base text-[#19323A] group-hover:text-[#245C6B] transition-colors truncate">
+                        {child.full_name}
+                      </h3>
+                      <Badge statusKey={child.status} />
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs font-semibold text-[#6B7C83] flex-wrap">
+                      {age !== null && (
+                        <span className="bg-[#EEF5F6] px-2 py-0.5 rounded-md text-[#19323A]">
+                          {age} anos
+                        </span>
+                      )}
+                      {child.school && (
+                        <span className="flex items-center gap-1">
+                          <School className="w-3.5 h-3.5 text-[#245C6B]" />
+                          {child.school}
+                        </span>
+                      )}
+                      {child.grade && <span>· {child.grade}</span>}
+                    </div>
+
+                    {child.main_complaint && (
+                      <p className="text-xs text-[#8DA3A8] line-clamp-1 italic">
+                        "{child.main_complaint}"
+                      </p>
                     )}
-                    {child.school && <span>· {child.school}</span>}
-                    {child.grade && <span>· {child.grade}</span>}
                   </div>
                 </div>
 
-                {/* Date */}
-                <div className="text-right hidden sm:block flex-shrink-0">
-                  <p className="text-xs text-muted-foreground">Cadastro</p>
-                  <p className="text-sm font-medium">{formatDate(child.created_at)}</p>
+                {/* Right: Date & Arrow */}
+                <div className="flex items-center gap-4 justify-between sm:justify-end shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-[#EEF5F6]">
+                  <div className="text-left sm:text-right">
+                    <p className="text-[10px] font-bold uppercase text-[#8DA3A8]">Cadastrado em</p>
+                    <p className="text-xs font-bold text-[#19323A]">{formatDate(child.created_at)}</p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-[#EEF5F6] group-hover:bg-[#245C6B] group-hover:text-white flex items-center justify-center text-[#19323A] transition-colors">
+                    <ChevronRight className="w-4 h-4" />
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            )
+          })}
         </div>
       )}
 

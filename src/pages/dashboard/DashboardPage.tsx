@@ -1,15 +1,26 @@
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import {
+  Users,
+  Clock,
+  Calendar,
+  DollarSign,
+  ChevronRight,
+  Play,
+  UserCheck,
+  Plus,
+  Sparkles,
+  ArrowUpRight,
+  BookOpen,
+} from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { Play, Calendar, Users, Clock, AlertCircle, ChevronRight, DollarSign } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
-import { Card, CardContent } from "@/components/ui/Card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
-import { formatTime } from "@/lib/utils"
-import type { AppointmentWithChild } from "@/types/database"
+import type { Child, Appointment, FinancialRecord } from "@/types/database"
 
 interface DashboardStats {
   childrenInProgress: number
@@ -20,84 +31,95 @@ interface DashboardStats {
 
 export function DashboardPage() {
   const navigate = useNavigate()
-  const { professional } = useAuthStore()
-  const [todayAppointments, setTodayAppointments] = useState<AppointmentWithChild[]>([])
-  const [upcomingAppointments, setUpcomingAppointments] = useState<AppointmentWithChild[]>([])
+  const { user, professional } = useAuthStore()
+
   const [stats, setStats] = useState<DashboardStats>({
     childrenInProgress: 0,
     childrenInAssessment: 0,
     todayAppointments: 0,
     pendingPayments: 0,
   })
+  const [todayAppointments, setTodayAppointments] = useState<any[]>([])
+  const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  const today = new Date()
-  const todayStr = format(today, "yyyy-MM-dd")
-  const greeting = today.getHours() < 12 ? "Bom dia" : today.getHours() < 18 ? "Boa tarde" : "Boa noite"
-  const firstName = professional?.full_name?.split(" ")[0] || "Profissional"
+  const profId = professional?.id || user?.id
 
   useEffect(() => {
-    if (!professional) return
-    loadDashboard()
-  }, [professional])
+    if (profId) loadDashboardData()
+  }, [profId])
 
-  async function loadDashboard() {
+  async function loadDashboardData() {
+    if (!profId) return
     setLoading(true)
     try {
-      const [todayRes, upcomingRes, childrenRes, financialRes] = await Promise.all([
-        // Today's appointments
-        supabase
-          .from("appointments")
-          .select("*, child:children(*)")
-          .eq("professional_id", professional!.id)
-          .gte("start_time", `${todayStr}T00:00:00`)
-          .lte("start_time", `${todayStr}T23:59:59`)
-          .order("start_time"),
+      const todayStr = format(new Date(), "yyyy-MM-dd")
 
-        // Upcoming (next 7 days, not today)
-        supabase
-          .from("appointments")
-          .select("*, child:children(*)")
-          .eq("professional_id", professional!.id)
-          .gt("start_time", `${todayStr}T23:59:59`)
-          .lte("start_time", `${format(new Date(today.getTime() + 7 * 86400000), "yyyy-MM-dd")}T23:59:59`)
-          .in("status", ["scheduled", "confirmed"])
-          .order("start_time")
-          .limit(5),
-
-        // Children stats
+      const [
+        { count: inProgressCount },
+        { count: inAssessmentCount },
+        { data: todayAppts },
+        { data: upcomingAppts },
+        { count: pendingFinCount },
+      ] = await Promise.all([
         supabase
           .from("children")
-          .select("status")
-          .eq("professional_id", professional!.id),
+          .select("*", { count: "exact", head: true })
+          .eq("professional_id", profId)
+          .eq("status", "in_progress"),
 
-        // Pending payments
+        supabase
+          .from("children")
+          .select("*", { count: "exact", head: true })
+          .eq("professional_id", profId)
+          .eq("status", "initial_assessment"),
+
+        supabase
+          .from("appointments")
+          .select("*, child:children(*)")
+          .eq("professional_id", profId)
+          .gte("start_time", `${todayStr}T00:00:00`)
+          .lte("start_time", `${todayStr}T23:59:59`)
+          .order("start_time", { ascending: true }),
+
+        supabase
+          .from("appointments")
+          .select("*, child:children(*)")
+          .eq("professional_id", profId)
+          .gt("start_time", `${todayStr}T23:59:59`)
+          .neq("status", "cancelled")
+          .order("start_time", { ascending: true })
+          .limit(4),
+
         supabase
           .from("financial_records")
-          .select("id")
-          .eq("professional_id", professional!.id)
+          .select("*", { count: "exact", head: true })
+          .eq("professional_id", profId)
           .eq("status", "pending"),
       ])
 
-      setTodayAppointments((todayRes.data || []) as AppointmentWithChild[])
-      setUpcomingAppointments((upcomingRes.data || []) as AppointmentWithChild[])
-
-      const children = childrenRes.data || []
       setStats({
-        childrenInProgress: children.filter((c) => c.status === "in_progress").length,
-        childrenInAssessment: children.filter((c) => c.status === "initial_assessment").length,
-        todayAppointments: todayRes.data?.length || 0,
-        pendingPayments: financialRes.data?.length || 0,
+        childrenInProgress: inProgressCount || 0,
+        childrenInAssessment: inAssessmentCount || 0,
+        todayAppointments: todayAppts?.length || 0,
+        pendingPayments: pendingFinCount || 0,
       })
-    } catch (err) {
-      console.error(err)
+
+      setTodayAppointments(todayAppts || [])
+      setUpcomingAppointments(upcomingAppts || [])
     } finally {
       setLoading(false)
     }
   }
 
-  async function handleStartSession(appointment: AppointmentWithChild) {
-    // Update appointment to in_progress
+  const today = new Date()
+  const hour = today.getHours()
+  const greeting =
+    hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite"
+
+  const firstName = professional?.full_name?.split(" ")[0] || "Priscila"
+
+  async function handleStartSession(appointment: any) {
     await supabase
       .from("appointments")
       .update({ status: "in_progress" })
@@ -109,93 +131,160 @@ export function DashboardPage() {
   const now = new Date()
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">
-          {greeting}, {firstName} 👋
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          {format(today, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-        </p>
+    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-8">
+      {/* 1. Top Hero Greeting Banner */}
+      <div className="bg-gradient-to-r from-[#19323A] to-[#245C6B] text-white p-6 md:p-8 rounded-3xl border-2 border-[#19323A] shadow-lg relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="space-y-2 relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#63C7B2]/20 border border-[#63C7B2]/40 text-[#63C7B2] text-xs font-black uppercase tracking-wider">
+            <Sparkles className="w-3.5 h-3.5" />
+            Painel do Consultório
+          </div>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight leading-tight">
+            {greeting}, {firstName}! 👋
+          </h1>
+          <p className="text-sm text-[#B8CBCF] font-medium max-w-xl">
+            Hoje é{" "}
+            <strong className="text-white capitalize">
+              {format(today, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            </strong>
+            . Veja seu resumo e próximos atendimentos:
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 relative z-10 flex-wrap">
+          <Button
+            size="lg"
+            variant="secondary"
+            onClick={() => navigate("/agenda?novo=true")}
+            className="gap-2 shadow-[0_4px_0_0_#388E7D]"
+          >
+            <Plus className="w-5 h-5" />
+            Novo Agendamento
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => navigate("/criancas?nova=true")}
+            className="bg-white/10 text-white border-white/20 hover:bg-white/20 hover:border-white shadow-none font-bold"
+          >
+            <Users className="w-4 h-4 mr-1.5" />
+            Nova Criança
+          </Button>
+        </div>
+
+        {/* Subtle background glow */}
+        <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-[#63C7B2]/10 rounded-full blur-3xl pointer-events-none" />
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      {/* 2. Bold Metric Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
         {[
           {
             label: "Em Acompanhamento",
             value: stats.childrenInProgress,
             icon: Users,
             color: "text-[#20836F]",
-            bg: "bg-[#E8F8F5] border border-[#63C7B2]/30",
+            bg: "bg-[#E8F8F5] border-2 border-[#63C7B2]/40",
+            sub: "Pacientes ativos",
           },
           {
             label: "Em Avaliação",
             value: stats.childrenInAssessment,
             icon: Clock,
             color: "text-[#B8871E]",
-            bg: "bg-[#FEF8EC] border border-[#F4C95D]/30",
+            bg: "bg-[#FEF8EC] border-2 border-[#F4C95D]/50",
+            sub: "Anamnese inicial",
           },
           {
             label: "Atendimentos Hoje",
             value: stats.todayAppointments,
             icon: Calendar,
             color: "text-[#245C6B]",
-            bg: "bg-[#EAF3F5] border border-[#245C6B]/20",
+            bg: "bg-[#EAF3F5] border-2 border-[#245C6B]/30",
+            sub: "Sessões agendadas",
           },
           {
             label: "Pgtos Pendentes",
             value: stats.pendingPayments,
             icon: DollarSign,
             color: "text-[#D96C6C]",
-            bg: "bg-[#FDF0F0] border border-[#D96C6C]/20",
+            bg: "bg-[#FDF0F0] border-2 border-[#D96C6C]/40",
+            sub: "Cobranças do mês",
           },
         ].map((stat) => (
-          <Card key={stat.label} className="border-[#D8E5E7] shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center mb-3 shadow-xs`}>
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+          <div
+            key={stat.label}
+            className="rounded-2xl border-2 border-[#D8E5E7] bg-white p-5 shadow-[0_4px_12px_rgba(25,50,58,0.03)] hover:border-[#245C6B] hover:shadow-md transition-all flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className={`w-12 h-12 ${stat.bg} rounded-2xl flex items-center justify-center shadow-xs`}>
+                <stat.icon className={`w-6 h-6 ${stat.color}`} />
               </div>
-              <p className="text-2xl font-bold text-[#19323A]">{loading ? "—" : stat.value}</p>
-              <p className="text-xs text-[#6B7C83] mt-0.5 font-medium">{stat.label}</p>
-            </CardContent>
-          </Card>
+              <span className="text-[11px] font-extrabold uppercase text-[#6B7C83] bg-[#EEF5F6] px-2.5 py-1 rounded-lg">
+                {stat.sub}
+              </span>
+            </div>
+            <div>
+              <p className="text-3xl md:text-4xl font-black text-[#19323A] tracking-tight">
+                {loading ? "—" : stat.value}
+              </p>
+              <p className="text-xs font-bold text-[#6B7C83] mt-1 uppercase tracking-wide">
+                {stat.label}
+              </p>
+            </div>
+          </div>
         ))}
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        {/* Today's schedule */}
-        <div className="md:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg">Agenda de Hoje</h2>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/agenda")}>
-              Ver agenda
+      {/* 3. Main Dashboard Grid */}
+      <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
+        {/* Left Column (2 Cols): Today's Schedule */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between pb-1">
+            <div>
+              <h2 className="text-xl font-black text-[#19323A] tracking-tight">
+                Agenda de Hoje
+              </h2>
+              <p className="text-xs font-medium text-[#6B7C83]">
+                Atendimentos previstos para o dia de hoje
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/agenda")}
+              className="gap-1 text-xs"
+            >
+              Ver agenda completa
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
 
           {loading ? (
             <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />
+              {[1, 2].map((i) => (
+                <div key={i} className="h-24 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-2xl" />
               ))}
             </div>
           ) : todayAppointments.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Calendar className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                <p className="font-medium">Nenhum atendimento hoje</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Aproveite para organizar suas anotações ou agendar novas sessões.
+            <Card className="border-2 border-dashed border-[#D8E5E7] bg-white text-center py-12">
+              <CardContent className="space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex items-center justify-center mx-auto text-[#245C6B]">
+                  <Calendar className="w-7 h-7" />
+                </div>
+                <h3 className="font-bold text-base text-[#19323A]">
+                  Nenhum atendimento para hoje
+                </h3>
+                <p className="text-xs text-[#6B7C83] max-w-sm mx-auto">
+                  Aproveite para organizar anotações, preencher fichas de anamnese ou agendar novos horários.
                 </p>
                 <Button
-                  variant="outline"
                   size="sm"
-                  className="mt-4"
-                  onClick={() => navigate("/agenda")}
+                  onClick={() => navigate("/agenda?novo=true")}
+                  className="mt-2"
                 >
-                  Abrir agenda
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  Agendar Atendimento
                 </Button>
               </CardContent>
             </Card>
@@ -203,123 +292,153 @@ export function DashboardPage() {
             <div className="space-y-3">
               {todayAppointments.map((appt) => {
                 const startTime = new Date(appt.start_time)
-                const isPast = startTime < now
                 const isCurrent =
                   startTime <= now && new Date(appt.end_time) >= now
                 const canStart =
                   appt.status === "scheduled" || appt.status === "confirmed"
-                const isStartable = canStart && (isCurrent || (startTime.getTime() - now.getTime() < 15 * 60 * 1000))
 
                 return (
-                  <Card
+                  <div
                     key={appt.id}
-                    className={`transition-shadow hover:shadow-md ${isCurrent ? "border-foreground" : ""}`}
+                    className={`p-4 rounded-2xl border-2 bg-white transition-all shadow-xs hover:shadow-md flex items-center justify-between gap-4 ${
+                      isCurrent
+                        ? "border-[#245C6B] bg-[#EAF3F5]/30 ring-4 ring-[#245C6B]/10"
+                        : "border-[#D8E5E7] hover:border-[#245C6B]"
+                    }`}
                   >
-                    <CardContent className="p-4 flex items-center gap-4">
-                      <div className="text-center w-14 flex-shrink-0">
-                        <p className={`text-sm font-bold ${isCurrent ? "text-foreground" : "text-muted-foreground"}`}>
+                    {/* Time Box */}
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-16 h-16 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex flex-col items-center justify-center shrink-0">
+                        <span className="text-base font-black text-[#19323A] leading-none">
                           {format(startTime, "HH:mm")}
+                        </span>
+                        <span className="text-[10px] font-bold text-[#6B7C83] uppercase mt-1">
+                          {format(new Date(appt.end_time), "HH:mm")}
+                        </span>
+                      </div>
+
+                      {/* Patient info */}
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3
+                            onClick={() => navigate(`/criancas/${appt.child_id}`)}
+                            className="font-black text-base text-[#19323A] hover:text-[#245C6B] hover:underline cursor-pointer truncate"
+                          >
+                            {appt.child?.full_name}
+                          </h3>
+                          {isCurrent && (
+                            <span className="bg-[#63C7B2] text-[#14282F] text-[10px] font-black uppercase px-2 py-0.5 rounded-md animate-pulse">
+                              Agora
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs font-semibold text-[#6B7C83] truncate">
+                          {appt.type}
                         </p>
-                        {isCurrent && (
-                          <span className="text-xs text-emerald-600 font-medium">Agora</span>
-                        )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{appt.child?.full_name}</p>
-                        <p className="text-sm text-muted-foreground">{appt.type}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge statusKey={appt.status} />
-                        {isStartable && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleStartSession(appt)}
-                            className="gap-1.5"
-                          >
-                            <Play className="w-3 h-3" />
-                            Iniciar
-                          </Button>
-                        )}
-                        {!isStartable && appt.status === "done" && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => navigate(`/criancas/${appt.child_id}`)}
-                          >
-                            Ver
-                          </Button>
-                        )}
-                        {!isStartable && canStart && !isCurrent && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigate(`/criancas/${appt.child_id}`)}
-                          >
-                            Ver criança
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+
+                    {/* Actions & Badge */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <Badge statusKey={appt.status} />
+
+                      {canStart && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleStartSession(appt)}
+                          className="gap-1.5"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                          <span>Iniciar</span>
+                        </Button>
+                      )}
+
+                      {appt.status === "done" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/criancas/${appt.child_id}`)}
+                        >
+                          Ficha
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 )
               })}
             </div>
           )}
         </div>
 
-        {/* Right column */}
+        {/* Right Column (1 Col): Next Appointments & Fast Shortcuts */}
         <div className="space-y-6">
-          {/* Upcoming */}
-          <div>
-            <h2 className="font-semibold mb-4">Próximos Atendimentos</h2>
+          {/* Upcoming Schedule */}
+          <div className="rounded-2xl border-2 border-[#D8E5E7] bg-white p-5 space-y-4 shadow-sm">
+            <div className="flex items-center justify-between border-b-2 border-[#EEF5F6] pb-3">
+              <h3 className="font-black text-sm uppercase tracking-wider text-[#19323A]">
+                Próximos Dias
+              </h3>
+              <Calendar className="w-4 h-4 text-[#6B7C83]" />
+            </div>
+
             {loading ? (
               <div className="space-y-2">
-                {[1, 2, 3].map((i) => <div key={i} className="h-14 bg-muted animate-pulse rounded-lg" />)}
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-12 bg-[#EEF5F6] animate-pulse rounded-xl" />
+                ))}
               </div>
             ) : upcomingAppointments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum agendamento nos próximos dias.</p>
+              <p className="text-xs text-[#6B7C83] italic py-2">
+                Nenhum agendamento futuro cadastrado.
+              </p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {upcomingAppointments.map((appt) => (
                   <div
                     key={appt.id}
-                    className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted cursor-pointer transition-colors"
                     onClick={() => navigate(`/criancas/${appt.child_id}`)}
+                    className="flex items-center gap-3 p-3 rounded-xl border-2 border-transparent hover:border-[#245C6B]/40 hover:bg-[#EEF5F6] cursor-pointer transition-all group"
                   >
-                    <div className="w-9 h-9 bg-background rounded-lg flex items-center justify-center flex-shrink-0 border border-border">
-                      <span className="text-xs font-bold">
-                        {format(new Date(appt.start_time), "dd")}
-                      </span>
+                    <div className="w-10 h-10 rounded-xl bg-[#245C6B] text-white flex flex-col items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                      <span>{format(new Date(appt.start_time), "dd")}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{appt.child?.full_name}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs font-bold text-[#19323A] group-hover:text-[#245C6B] truncate">
+                        {appt.child?.full_name}
+                      </p>
+                      <p className="text-[11px] font-semibold text-[#6B7C83]">
                         {format(new Date(appt.start_time), "EEE, HH:mm", { locale: ptBR })}
                       </p>
                     </div>
+                    <ChevronRight className="w-4 h-4 text-[#8DA3A8] group-hover:text-[#245C6B] transition-colors" />
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Quick access */}
-          <div>
-            <h2 className="font-semibold mb-4">Acesso Rápido</h2>
+          {/* Quick Shortcuts */}
+          <div className="rounded-2xl border-2 border-[#D8E5E7] bg-white p-5 space-y-3 shadow-sm">
+            <h3 className="font-black text-sm uppercase tracking-wider text-[#19323A] border-b-2 border-[#EEF5F6] pb-3">
+              Acesso Rápido
+            </h3>
             <div className="space-y-2">
               {[
-                { label: "Nova criança", to: "/criancas?nova=true", icon: Users },
-                { label: "Novo agendamento", to: "/agenda?novo=true", icon: Calendar },
-                { label: "Financeiro", to: "/financeiro", icon: DollarSign },
+                { label: "Nova Criança", to: "/criancas?nova=true", icon: Users },
+                { label: "Novo Agendamento", to: "/agenda?novo=true", icon: Calendar },
+                { label: "Painel Financeiro", to: "/financeiro", icon: DollarSign },
+                { label: "Emitir Relatório", to: "/relatorios", icon: BookOpen },
               ].map((item) => (
                 <button
                   key={item.to}
-                  className="w-full flex items-center gap-3 p-3 bg-muted/50 hover:bg-muted rounded-lg transition-colors text-left"
                   onClick={() => navigate(item.to)}
+                  className="w-full flex items-center justify-between p-3 rounded-xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:bg-[#EEF5F6] font-bold text-xs text-[#19323A] transition-all active:scale-[0.98] shadow-2xs"
                 >
-                  <item.icon className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">{item.label}</span>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto" />
+                  <div className="flex items-center gap-2.5">
+                    <item.icon className="w-4 h-4 text-[#245C6B]" />
+                    <span>{item.label}</span>
+                  </div>
+                  <ArrowUpRight className="w-4 h-4 text-[#8DA3A8]" />
                 </button>
               ))}
             </div>

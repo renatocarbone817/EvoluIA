@@ -8,19 +8,25 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const variantStyles = {
-  default: "bg-foreground text-background hover:bg-foreground/90",
-  outline: "border border-border bg-background hover:bg-accent hover:text-accent-foreground",
-  ghost: "hover:bg-accent hover:text-accent-foreground",
-  destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-  secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-  link: "text-foreground underline-offset-4 hover:underline",
+  default:
+    "bg-[#245C6B] text-white border-2 border-[#1E4E5B] hover:bg-[#1E4E5B] shadow-[0_3px_0_0_#143741] active:translate-y-0.5 active:shadow-none font-bold",
+  outline:
+    "border-2 border-[#D8E5E7] bg-white text-[#19323A] hover:bg-[#EEF5F6] hover:border-[#245C6B] shadow-[0_2px_0_0_#D8E5E7] active:translate-y-0.5 active:shadow-none font-bold",
+  ghost:
+    "border-2 border-transparent text-[#19323A] hover:bg-[#EEF5F6] font-bold",
+  destructive:
+    "bg-[#D96C6C] text-white border-2 border-[#B84E4E] hover:bg-[#C85B5B] shadow-[0_3px_0_0_#A03E3E] active:translate-y-0.5 active:shadow-none font-bold",
+  secondary:
+    "bg-[#63C7B2] text-[#14282F] border-2 border-[#48A894] hover:bg-[#52BCA6] shadow-[0_3px_0_0_#388E7D] active:translate-y-0.5 active:shadow-none font-bold",
+  link:
+    "text-[#245C6B] underline-offset-4 hover:underline font-bold border-none",
 }
 
 const sizeStyles = {
-  default: "h-10 px-4 py-2 text-sm",
-  sm: "h-8 px-3 text-xs",
-  lg: "h-11 px-6 text-base",
-  icon: "h-10 w-10",
+  default: "h-11 px-5 py-2.5 text-sm rounded-xl",
+  sm: "h-9 px-3.5 text-xs rounded-lg",
+  lg: "h-12 px-7 text-base rounded-2xl",
+  icon: "h-10 w-10 rounded-xl",
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -30,9 +36,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          "disabled:pointer-events-none disabled:opacity-50",
+          "inline-flex items-center justify-center gap-2 transition-all select-none cursor-pointer",
+          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#245C6B]/20",
+          "disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none",
           variantStyles[variant],
           sizeStyles[size],
           className
