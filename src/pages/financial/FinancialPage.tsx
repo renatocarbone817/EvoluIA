@@ -24,7 +24,9 @@ import {
   Megaphone,
   Zap,
   Tag,
-  Check,
+  Repeat,
+  Layers,
+  Trash2,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
@@ -60,12 +62,12 @@ const MONTHS = [
 ]
 
 const EXPENSE_CATEGORIES = [
-  { value: "Aluguel & Condomínio", label: "🏢 Aluguel & Condomínio", icon: Building2 },
-  { value: "Materiais, Jogos & Folhas", label: "📚 Materiais, Jogos & Folhas", icon: ShoppingBag },
-  { value: "Marketing & Anúncios", label: "📢 Marketing & Anúncios", icon: Megaphone },
-  { value: "Luz, Água & Internet", label: "💡 Luz, Água & Internet", icon: Zap },
-  { value: "Software, Sistemas & Cursos", label: "💻 Software, Sistemas & Cursos", icon: Tag },
-  { value: "Outras Despesas", label: "🏷️ Outras Despesas", icon: DollarSign },
+  { value: "Aluguel & Condomínio", label: "🏢 Aluguel & Condomínio" },
+  { value: "Materiais, Jogos & Folhas", label: "📚 Materiais, Jogos & Folhas" },
+  { value: "Marketing & Anúncios", label: "📢 Marketing & Anúncios" },
+  { value: "Luz, Água & Internet", label: "💡 Luz, Água & Internet" },
+  { value: "Software, Sistemas & Cursos", label: "💻 Software, Sistemas & Cursos" },
+  { value: "Outras Despesas", label: "🏷️ Outras Despesas" },
 ]
 
 export function FinancialPage() {
@@ -92,6 +94,11 @@ export function FinancialPage() {
   const [entryType, setEntryType] = useState<"income" | "expense">("income")
   const [confirmingRecord, setConfirmingRecord] = useState<FinancialRecordWithDetails | null>(null)
   const [saving, setSaving] = useState(false)
+
+  // Recurrence for Expense: "single" (avulsa) | "recurring" (aluguel/conta fixa) | "installments" (parcelada)
+  const [expenseRepetition, setExpenseRepetition] = useState<"single" | "recurring" | "installments">("single")
+  const [recurringMonthsCount, setRecurringMonthsCount] = useState<number>(12) // 12 months default for rent
+  const [installmentsCount, setInstallmentsCount] = useState<number>(6) // 6x default for purchases
 
   // Form for new entries
   const [form, setForm] = useState({
@@ -194,6 +201,22 @@ export function FinancialPage() {
     }
   }
 
+  async function handleDeleteRecord(rec: FinancialRecordWithDetails) {
+    const isExp = isExpense(rec)
+    const title = isExp ? getExpenseInfo(rec).desc : rec.child?.full_name || "Lançamento"
+
+    if (!confirm(`Deseja realmente excluir o lançamento de "${title}"?`)) return
+
+    try {
+      const { error } = await supabase.from("financial_records").delete().eq("id", rec.id)
+      if (error) throw error
+      toast.success("Lançamento excluído com sucesso!")
+      loadFinancials()
+    } catch (err: any) {
+      toast.error("Erro ao excluir lançamento")
+    }
+  }
+
   async function handleAddRecord() {
     if (!profId) return
     setSaving(true)
@@ -218,32 +241,99 @@ export function FinancialPage() {
           category: "Mensalidade / Atendimento",
         })
         if (error) throw error
-        toast.success("Receita de atendimento lançada com sucesso!")
+        toast.success("Receita lançada com sucesso!")
       } else {
-        // Expense entry
+        // Expense entry (Support Single, Recurring, Installments!)
         if (!form.expense_description.trim()) {
-          toast.error("Digite o nome ou descrição da despesa (ex: Aluguel)")
+          toast.error("Digite o nome da despesa (ex: Aluguel da sala)")
           setSaving(false)
           return
         }
 
-        const formattedNotes = `[DESPESA: ${form.expense_category}] ${form.expense_description}${form.notes ? ` - ${form.notes}` : ""}`
+        const startMonth = Number(form.month)
+        const startYear = Number(form.year)
+        const amountPerMonth = Number(form.amount) || 0
 
-        const { error } = await supabase.from("financial_records").insert({
-          professional_id: profId,
-          child_id: null,
-          month: Number(form.month),
-          year: Number(form.year),
-          amount: Number(form.amount) || 0,
-          status: form.status as any,
-          payment_date: form.status === "paid" ? new Date().toISOString().split("T")[0] : null,
-          notes: formattedNotes,
-          record_type: "expense",
-          category: form.expense_category,
-          description: form.expense_description,
-        })
+        const recordsToInsert: any[] = []
+
+        if (expenseRepetition === "single") {
+          const formattedNotes = `[DESPESA: ${form.expense_category}] ${form.expense_description}${form.notes ? ` - ${form.notes}` : ""}`
+          recordsToInsert.push({
+            professional_id: profId,
+            child_id: null,
+            month: startMonth,
+            year: startYear,
+            amount: amountPerMonth,
+            status: form.status as any,
+            payment_date: form.status === "paid" ? new Date().toISOString().split("T")[0] : null,
+            notes: formattedNotes,
+            record_type: "expense",
+            category: form.expense_category,
+            description: form.expense_description,
+          })
+        } else if (expenseRepetition === "recurring") {
+          // Recurring fixed expense for N months (e.g. Rent 12 months)
+          for (let i = 0; i < recurringMonthsCount; i++) {
+            let m = startMonth + i
+            let y = startYear
+            while (m > 12) {
+              m -= 12
+              y += 1
+            }
+
+            const formattedNotes = `[DESPESA: ${form.expense_category}] ${form.expense_description}${form.notes ? ` - ${form.notes}` : ""}`
+            recordsToInsert.push({
+              professional_id: profId,
+              child_id: null,
+              month: m,
+              year: y,
+              amount: amountPerMonth,
+              // Only first month takes initial status, upcoming months are scheduled pending
+              status: i === 0 ? (form.status as any) : "pending",
+              payment_date: i === 0 && form.status === "paid" ? new Date().toISOString().split("T")[0] : null,
+              notes: formattedNotes,
+              record_type: "expense",
+              category: form.expense_category,
+              description: `${form.expense_description}`,
+            })
+          }
+        } else if (expenseRepetition === "installments") {
+          // Installments purchase (e.g. Bebedouro 6x)
+          for (let i = 0; i < installmentsCount; i++) {
+            let m = startMonth + i
+            let y = startYear
+            while (m > 12) {
+              m -= 12
+              y += 1
+            }
+
+            const installmentDesc = `${form.expense_description} (Parcela ${i + 1}/${installmentsCount})`
+            const formattedNotes = `[DESPESA: ${form.expense_category}] ${installmentDesc}${form.notes ? ` - ${form.notes}` : ""}`
+
+            recordsToInsert.push({
+              professional_id: profId,
+              child_id: null,
+              month: m,
+              year: y,
+              amount: amountPerMonth,
+              status: i === 0 ? (form.status as any) : "pending",
+              payment_date: i === 0 && form.status === "paid" ? new Date().toISOString().split("T")[0] : null,
+              notes: formattedNotes,
+              record_type: "expense",
+              category: form.expense_category,
+              description: installmentDesc,
+            })
+          }
+        }
+
+        const { error } = await supabase.from("financial_records").insert(recordsToInsert)
         if (error) throw error
-        toast.success("Conta / Despesa registrada no fluxo de caixa!")
+
+        toast.success(
+          recordsToInsert.length > 1
+            ? `🎉 ${recordsToInsert.length} meses de despesa lançados com sucesso no fluxo de caixa!`
+            : "Despesa registrada no fluxo de caixa!"
+        )
       }
 
       setShowAddModal(false)
@@ -295,20 +385,13 @@ export function FinancialPage() {
     .filter((r) => !isExpense(r) && r.status === "pending")
     .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
 
-  const currentMonthPendingExpenses = currentMonthRecords
-    .filter((r) => isExpense(r) && r.status === "pending")
-    .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
-
-  // Overdue / Late Records
+  // Overdue Records
   const overdueRecords = records.filter((r) => {
     if (r.status !== "pending") return false
     if (r.year < currentYear) return true
     if (r.year === currentYear && r.month < currentMonth) return true
     return false
   })
-  const overdueIncome = overdueRecords
-    .filter((r) => !isExpense(r))
-    .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
 
   // Filter records based on selected period & type
   const filteredRecords = records.filter((r) => {
@@ -352,7 +435,7 @@ export function FinancialPage() {
             Controle Financeiro & Fluxo de Caixa
           </h1>
           <p className="text-xs font-semibold uppercase tracking-wider text-[#6B7C83] mt-1">
-            Receitas de atendimentos, despesas da clínica, lucro líquido real e recibos no WhatsApp
+            Receitas de atendimentos, despesas fixas, compras parceladas e lucro líquido
           </p>
         </div>
 
@@ -362,7 +445,7 @@ export function FinancialPage() {
         </Button>
       </div>
 
-      {/* KPI Cards Grid - Full Cash Flow Overview */}
+      {/* KPI Cards Grid - Cash Flow Overview */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* 1. Receitas Realizadas (Entradas) */}
         <div className="p-5 rounded-2xl border-2 border-[#63C7B2]/40 bg-[#E8F8F5] shadow-xs flex flex-col justify-between">
@@ -545,13 +628,13 @@ export function FinancialPage() {
         )}
       </div>
 
-      {/* Filter Bar: Search + Type Selector (Receitas vs Despesas) */}
+      {/* Filter Bar: Search + Type Selector */}
       <div className="flex gap-3 flex-wrap bg-white p-3 rounded-2xl border-2 border-[#D8E5E7] shadow-sm">
         <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8DA3A8]" />
           <input
             type="text"
-            placeholder="Buscar por paciente, aluguel, fornecedor ou observação..."
+            placeholder="Buscar por paciente, aluguel, bebedouro, observação..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 h-11 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-sm font-semibold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all placeholder:text-[#8DA3A8]"
@@ -565,7 +648,7 @@ export function FinancialPage() {
         >
           <option value="all">Todas as Movimentações</option>
           <option value="income">🟢 Apenas Receitas (Entradas)</option>
-          <option value="expense">🔴 Apenas Despesas (Saídas)</option>
+          <option value="expense">🔴 Apenas Despesas (Saídas / Contas)</option>
           <option value="pending">⏳ Apenas Pendentes / A Pagar</option>
           <option value="paid">✓ Apenas Quitados</option>
         </select>
@@ -702,7 +785,7 @@ export function FinancialPage() {
                   </div>
 
                   {/* Right: Amount & Actions */}
-                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-[#EEF5F6]">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-[#EEF5F6]">
                     <span
                       className={`font-black text-lg sm:text-xl ${
                         expense ? "text-[#D96C6C]" : "text-[#20836F]"
@@ -712,36 +795,69 @@ export function FinancialPage() {
                     </span>
 
                     {expense ? (
-                      <Button
-                        size="sm"
-                        variant={r.status === "paid" ? "outline" : "default"}
-                        onClick={() => handleToggleExpenseStatus(r)}
-                        className={`font-black text-xs ${
-                          r.status === "paid"
-                            ? ""
-                            : "bg-[#D96C6C] hover:bg-[#C25858] text-white"
-                        }`}
-                      >
-                        {r.status === "paid" ? "Marcar a Pagar" : "Dar Baixa na Conta"}
-                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          variant={r.status === "paid" ? "outline" : "default"}
+                          onClick={() => handleToggleExpenseStatus(r)}
+                          className={`font-black text-xs ${
+                            r.status === "paid"
+                              ? ""
+                              : "bg-[#D96C6C] hover:bg-[#C25858] text-white"
+                          }`}
+                        >
+                          {r.status === "paid" ? "Marcar a Pagar" : "Dar Baixa"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteRecord(r)}
+                          className="text-[#D96C6C] hover:bg-[#FDF0F0] px-2"
+                          title="Excluir despesa"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     ) : r.status === "paid" ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleMarkPending(r)}
-                        className="font-bold text-xs"
-                      >
-                        Marcar Pendente
-                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkPending(r)}
+                          className="font-bold text-xs"
+                        >
+                          Marcar Pendente
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteRecord(r)}
+                          className="text-[#8DA3A8] hover:text-[#D96C6C] hover:bg-[#FDF0F0] px-2"
+                          title="Excluir lançamento"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     ) : (
-                      <Button
-                        size="sm"
-                        onClick={() => setConfirmingRecord(r)}
-                        className="font-black text-xs bg-[#245C6B] hover:bg-[#1B4752] text-white gap-1.5"
-                      >
-                        <CheckCircle2 className="w-4 h-4 text-[#63C7B2]" />
-                        Confirmar Pagamento
-                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          onClick={() => setConfirmingRecord(r)}
+                          className="font-black text-xs bg-[#245C6B] hover:bg-[#1B4752] text-white gap-1.5"
+                        >
+                          <CheckCircle2 className="w-4 h-4 text-[#63C7B2]" />
+                          Confirmar Pagamento
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteRecord(r)}
+                          className="text-[#8DA3A8] hover:text-[#D96C6C] hover:bg-[#FDF0F0] px-2"
+                          title="Excluir lançamento"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -762,10 +878,10 @@ export function FinancialPage() {
         }}
       />
 
-      {/* Unified Add Modal (Receita vs Despesa) */}
+      {/* Unified Add Modal (Receita vs Despesas com Recorrência e Parcelamento) */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-md w-full p-6 space-y-4 shadow-xl animate-in fade-in-50 duration-200">
+          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-lg w-full p-6 space-y-4 shadow-xl animate-in fade-in-50 duration-200 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-black text-[#19323A]">Novo Lançamento Financeiro</h3>
             </div>
@@ -795,7 +911,7 @@ export function FinancialPage() {
                 }`}
               >
                 <ArrowUpRight className="w-4 h-4" />
-                <span>Despesa (Saída)</span>
+                <span>Despesa (Saída / Contas)</span>
               </button>
             </div>
 
@@ -865,9 +981,9 @@ export function FinancialPage() {
               </div>
             )}
 
-            {/* Form Fields: Expense (Despesa / Contas da Clínica) */}
+            {/* Form Fields: Expense (Despesa / Aluguel / Bebedouro / Contas) */}
             {entryType === "expense" && (
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 <Select
                   label="Categoria da Despesa *"
                   value={form.expense_category}
@@ -879,15 +995,117 @@ export function FinancialPage() {
                 />
 
                 <Input
-                  label="Descrição da Conta / Gasto *"
-                  placeholder="Ex: Aluguel da sala, Compra de jogos de alfabetização..."
+                  label="Descrição da Conta ou Compra *"
+                  placeholder="Ex: Aluguel da sala, Bebedouro elétrico, Folhas sulfite..."
                   value={form.expense_description}
                   onChange={(e) => setForm({ ...form, expense_description: e.target.value })}
                 />
 
+                {/* Repetition Selector: Única vs Fixa Mensal (Aluguel) vs Parcelada (Bebedouro) */}
+                <div className="p-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] space-y-2.5">
+                  <label className="text-xs font-black uppercase tracking-wider text-[#19323A] block">
+                    Frequência / Tipo de Pagamento:
+                  </label>
+
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setExpenseRepetition("single")}
+                      className={`py-2 px-2 rounded-xl text-xs font-black border-2 transition-all text-center leading-tight ${
+                        expenseRepetition === "single"
+                          ? "bg-[#245C6B] text-white border-[#19323A] shadow-xs"
+                          : "bg-white text-[#19323A] border-[#D8E5E7] hover:border-[#245C6B]"
+                      }`}
+                    >
+                      Apenas este Mês
+                      <span className="block text-[10px] font-normal opacity-80 mt-0.5">(Gasto Único)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setExpenseRepetition("recurring")}
+                      className={`py-2 px-2 rounded-xl text-xs font-black border-2 transition-all text-center leading-tight ${
+                        expenseRepetition === "recurring"
+                          ? "bg-[#245C6B] text-white border-[#19323A] shadow-xs"
+                          : "bg-white text-[#19323A] border-[#D8E5E7] hover:border-[#245C6B]"
+                      }`}
+                    >
+                      🔁 Conta Fixa
+                      <span className="block text-[10px] font-normal opacity-80 mt-0.5">(Aluguel/Todo mês)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setExpenseRepetition("installments")}
+                      className={`py-2 px-2 rounded-xl text-xs font-black border-2 transition-all text-center leading-tight ${
+                        expenseRepetition === "installments"
+                          ? "bg-[#245C6B] text-white border-[#19323A] shadow-xs"
+                          : "bg-white text-[#19323A] border-[#D8E5E7] hover:border-[#245C6B]"
+                      }`}
+                    >
+                      💳 Parcelado
+                      <span className="block text-[10px] font-normal opacity-80 mt-0.5">(Ex: em 6x, 10x)</span>
+                    </button>
+                  </div>
+
+                  {/* Sub-options for Recurring (Aluguel) */}
+                  {expenseRepetition === "recurring" && (
+                    <div className="pt-2 border-t border-[#D8E5E7] space-y-1.5 animate-in fade-in-50 duration-200">
+                      <label className="text-xs font-bold text-[#6B7C83]">
+                        Lançar automaticamente para os próximos:
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { count: 12, label: "12 meses (1 ano)" },
+                          { count: 24, label: "24 meses (2 anos)" },
+                          { count: 6, label: "6 meses" },
+                        ].map((item) => (
+                          <button
+                            key={item.count}
+                            type="button"
+                            onClick={() => setRecurringMonthsCount(item.count)}
+                            className={`py-1.5 px-2 rounded-lg text-xs font-bold border-2 transition-all ${
+                              recurringMonthsCount === item.count
+                                ? "bg-[#63C7B2] text-[#14282F] border-[#48A894] font-black shadow-xs"
+                                : "bg-white text-[#6B7C83] border-[#D8E5E7]"
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sub-options for Installments (Bebedouro em 6x) */}
+                  {expenseRepetition === "installments" && (
+                    <div className="pt-2 border-t border-[#D8E5E7] space-y-1.5 animate-in fade-in-50 duration-200">
+                      <label className="text-xs font-bold text-[#6B7C83]">
+                        Quantidade de parcelas da compra:
+                      </label>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[2, 3, 4, 6, 8, 10, 12, 18].map((num) => (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => setInstallmentsCount(num)}
+                            className={`py-1.5 rounded-lg text-xs font-bold border-2 transition-all ${
+                              installmentsCount === num
+                                ? "bg-[#63C7B2] text-[#14282F] border-[#48A894] font-black shadow-xs"
+                                : "bg-white text-[#6B7C83] border-[#D8E5E7]"
+                            }`}
+                          >
+                            {num}x parcelas
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <Select
-                    label="Mês de Referência"
+                    label="Mês de Início"
                     value={form.month}
                     onChange={(e) => setForm({ ...form, month: e.target.value })}
                     options={MONTHS.map((m, idx) => ({
@@ -905,17 +1123,17 @@ export function FinancialPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <Input
-                    label="Valor da Conta (R$)"
+                    label={expenseRepetition === "installments" ? "Valor de Cada Parcela (R$)" : "Valor Mensal (R$)"}
                     type="number"
                     value={form.amount}
                     onChange={(e) => setForm({ ...form, amount: e.target.value })}
                   />
                   <Select
-                    label="Status da Despesa"
+                    label="Status da 1ª Parcela / Mês"
                     value={form.status}
                     onChange={(e) => setForm({ ...form, status: e.target.value })}
                     options={[
-                      { value: "paid", label: "Pago (Já Quitado)" },
+                      { value: "paid", label: "Pago (Já Quitado Hoje)" },
                       { value: "pending", label: "A Pagar (Pendente)" },
                     ]}
                   />
@@ -923,7 +1141,7 @@ export function FinancialPage() {
 
                 <Input
                   label="Observações Adicionais (Opcional)"
-                  placeholder="Ex: Pago via PIX pelo banco Inter..."
+                  placeholder="Ex: Pago via PIX, parcelado no cartão Nubank..."
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 />
@@ -939,7 +1157,13 @@ export function FinancialPage() {
                 onClick={handleAddRecord}
                 className={entryType === "expense" ? "bg-[#D96C6C] hover:bg-[#C25858] text-white" : ""}
               >
-                {entryType === "income" ? "Salvar Receita" : "Registrar Despesa"}
+                {entryType === "income"
+                  ? "Salvar Receita"
+                  : expenseRepetition === "recurring"
+                  ? `Registrar Despesa (${recurringMonthsCount} meses)`
+                  : expenseRepetition === "installments"
+                  ? `Registrar Despesa (${installmentsCount}x parcelas)`
+                  : "Registrar Despesa"}
               </Button>
             </div>
           </div>
