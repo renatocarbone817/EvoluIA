@@ -21,6 +21,7 @@ import { GuardiansPage } from "@/pages/guardians/GuardiansPage"
 import { FinancialPage } from "@/pages/financial/FinancialPage"
 import { ReportsPage } from "@/pages/reports/ReportsPage"
 import { SettingsPage } from "@/pages/settings/SettingsPage"
+import { PublicReceiptPage } from "@/pages/financial/PublicReceiptPage"
 
 const queryClient = new QueryClient()
 
@@ -66,6 +67,8 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/cadastro" element={<RegisterPage />} />
           <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+          <Route path="/recibo/:id" element={<PublicReceiptPage />} />
+          <Route path="/comprovante/:id" element={<PublicReceiptPage />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>

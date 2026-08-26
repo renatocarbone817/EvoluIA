@@ -326,7 +326,21 @@ export function ConfirmPaymentModal({
       }
 
       // Open WhatsApp conversation
-      const captionText = `Olá, ${guardianName}! Segue o comprovante de pagamento de ${childName} referente a ${refMonth}/${refYear}. Muito obrigado!`
+      const receiptUrl = `${window.location.origin}/recibo/${record.id}`
+      const captionText = `🧾 *COMPROVANTE DE PAGAMENTO*
+*Clínica:* ${clinicName}
+*Profissional:* ${profName}
+
+Olá, *${guardianName}*! Confirmamos com sucesso o recebimento do pagamento referente ao paciente *${childName}* (${refMonth}/${refYear}).
+
+💰 *Valor:* ${amountFormatted} • ${paymentMethod}
+🗓️ *Data da Confirmação:* ${formatDate(paymentDate)}
+
+🔗 *Acesse seu comprovante oficial e autenticado aqui:*
+${receiptUrl}
+
+Agradecemos a parceria e a confiança no desenvolvimento do seu filho! ✨`
+
       const waUrl = cleanPhone
         ? `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(captionText)}`
         : `https://wa.me/?text=${encodeURIComponent(captionText)}`
