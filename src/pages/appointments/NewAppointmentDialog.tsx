@@ -23,6 +23,7 @@ import {
   Repeat,
   CalendarDays,
   CheckCircle2,
+  HelpCircle,
 } from "lucide-react"
 import toast from "react-hot-toast"
 import type { Child } from "@/types/database"
@@ -34,12 +35,12 @@ interface NewAppointmentDialogProps {
 }
 
 const WEEK_DAYS = [
-  { id: 1, label: "Seg" },
-  { id: 2, label: "Ter" },
-  { id: 3, label: "Qua" },
-  { id: 4, label: "Qui" },
-  { id: 5, label: "Sex" },
-  { id: 6, label: "Sáb" },
+  { id: 1, label: "Seg", name: "Segunda" },
+  { id: 2, label: "Ter", name: "Terça" },
+  { id: 3, label: "Qua", name: "Quarta" },
+  { id: 4, label: "Qui", name: "Quinta" },
+  { id: 5, label: "Sex", name: "Sexta" },
+  { id: 6, label: "Sáb", name: "Sábado" },
 ]
 
 export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmentDialogProps) {
@@ -51,9 +52,10 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
   // Mode: "existing" = select child from list | "new" = quick new assessment without friction
   const [mode, setMode] = useState<"existing" | "new">("existing")
 
-  // Recurrence state
+  // Recurrence controls
   const [isRecurring, setIsRecurring] = useState(false)
-  const [sessionCount, setSessionCount] = useState<number>(4) // default 4 sessions (1 month)
+  const [frequency, setFrequency] = useState<"semanal" | "quinzenal">("semanal")
+  const [durationMonths, setDurationMonths] = useState<number>(1) // 1, 2, 3, 6 months
   const [selectedDays, setSelectedDays] = useState<number[]>([])
 
   const [form, setForm] = useState({
@@ -74,7 +76,8 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
       loadChildren()
       setConflictWarning(null)
       setIsRecurring(false)
-      setSessionCount(4)
+      setFrequency("semanal")
+      setDurationMonths(1)
     }
   }, [open, professional, user])
 
@@ -89,36 +92,43 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
     }
   }, [form.date])
 
-  // Calculate list of dates for multiple sessions
+  // Intelligent date generator covering ANY frequency:
+  // - 1x, 2x, 3x, 5x per week
+  // - Every 15 days (quinzenal)
+  // - For 1, 2, 3 or 6 months
   const scheduledDates = useMemo(() => {
     if (!form.date || !form.start_time) return []
     const dates: Date[] = []
 
-    if (!isRecurring || sessionCount <= 1) {
-      dates.push(new Date(`${form.date}T${form.start_time}:00`))
+    const baseDate = new Date(`${form.date}T${form.start_time}:00`)
+
+    if (!isRecurring) {
+      dates.push(baseDate)
       return dates
     }
 
-    const baseDate = new Date(`${form.date}T${form.start_time}:00`)
-    let current = new Date(baseDate)
-    let count = 0
-    let safetyCounter = 0
-
-    // If specific days selected
+    const totalWeeks = durationMonths * 4
     const activeDays = selectedDays.length > 0 ? selectedDays : [getDay(baseDate)]
+    const weekStep = frequency === "quinzenal" ? 2 : 1
 
-    while (count < sessionCount && safetyCounter < 100) {
-      const dayOfWeek = getDay(current)
-      if (activeDays.includes(dayOfWeek)) {
-        dates.push(new Date(current))
-        count++
+    let currentWeekStart = addDays(baseDate, 0)
+
+    for (let w = 0; w < totalWeeks; w += weekStep) {
+      for (const dayId of activeDays) {
+        // Find the date for this dayId in week `w`
+        const dayDiff = dayId - getDay(currentWeekStart)
+        let sessionDate = addDays(currentWeekStart, w * 7 + dayDiff)
+
+        // Don't add dates before the starting baseDate
+        if (sessionDate >= baseDate || isSameDay(sessionDate, baseDate)) {
+          dates.push(sessionDate)
+        }
       }
-      current = addDays(current, 1)
-      safetyCounter++
     }
 
-    return dates
-  }, [form.date, form.start_time, isRecurring, sessionCount, selectedDays])
+    // Sort chronologically and remove duplicates
+    return dates.sort((a, b) => a.getTime() - b.getTime())
+  }, [form.date, form.start_time, isRecurring, frequency, durationMonths, selectedDays])
 
   // Check for conflicts
   useEffect(() => {
@@ -292,7 +302,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
 
       toast.success(
         appointmentsToInsert.length > 1
-          ? `🎉 ${appointmentsToInsert.length} sessões agendadas com sucesso!`
+          ? `🎉 ${appointmentsToInsert.length} sessões agendadas com sucesso na agenda!`
           : "Atendimento agendado com sucesso!"
       )
       onSuccess()
@@ -302,6 +312,29 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
       setLoading(false)
     }
   }
+
+  // Text summary of recurrence
+  const recurrenceSummary = useMemo(() => {
+    if (!isRecurring) return ""
+    const dayNames = selectedDays
+      .map((id) => WEEK_DAYS.find((w) => w.id === id)?.name)
+      .filter(Boolean)
+      .join(", ")
+
+    const freqText =
+      frequency === "quinzenal"
+        ? `Quinzenal (${dayNames})`
+        : `${selectedDays.length}x por semana (${dayNames})`
+
+    const durText =
+      durationMonths === 1
+        ? "1 mês"
+        : durationMonths === 2
+        ? "2 meses"
+        : `${durationMonths} meses`
+
+    return `${freqText} durante ${durText} • Total de ${scheduledDates.length} sessões`
+  }, [isRecurring, frequency, selectedDays, durationMonths, scheduledDates])
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -461,62 +494,73 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
             )}
           </div>
 
-          {/* RECURRENCE / MULTIPLE SESSIONS SECTION (Only for Paciente Cadastrado) */}
+          {/* RECURRENCE / MULTIPLE SESSIONS SECTION (100% Flexible!) */}
           {mode === "existing" && (
             <div className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={isRecurring}
-                    onChange={(e) => setIsRecurring(e.target.checked)}
-                    className="w-4 h-4 rounded border-2 border-[#245C6B] text-[#245C6B] focus:ring-[#245C6B]"
-                  />
-                  <span className="text-xs font-black uppercase tracking-wide text-[#19323A] flex items-center gap-1.5">
-                    <Repeat className="w-3.5 h-3.5 text-[#245C6B]" />
-                    Agendar Múltiplos Dias de Uma Vez (Recorrência)
-                  </span>
-                </label>
-              </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  className="w-4 h-4 rounded border-2 border-[#245C6B] text-[#245C6B] focus:ring-[#245C6B]"
+                />
+                <span className="text-xs font-black uppercase tracking-wide text-[#19323A] flex items-center gap-1.5">
+                  <Repeat className="w-3.5 h-3.5 text-[#245C6B]" />
+                  Agendar Múltiplos Dias / Recorrência (1x, 2x, 3x na semana ou Quinzenal)
+                </span>
+              </label>
 
               {isRecurring && (
-                <div className="space-y-3 pt-2 border-t-2 border-[#D8E5E7] animate-in fade-in-50 duration-200">
-                  {/* Select number of sessions */}
+                <div className="space-y-3.5 pt-3 border-t-2 border-[#D8E5E7] animate-in fade-in-50 duration-200">
+                  {/* 1. Frequency (Toda Semana vs A cada 15 dias) */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-[#6B7C83]">
-                      Quantidade de sessões para agendar:
+                      Frequência do atendimento:
                     </label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {[
-                        { count: 4, label: "4 sessões (1 mês)" },
-                        { count: 8, label: "8 sessões (2 meses)" },
-                        { count: 12, label: "12 sessões (3 meses)" },
-                        { count: 16, label: "16 sessões (4 meses)" },
-                      ].map((item) => (
-                        <button
-                          key={item.count}
-                          type="button"
-                          onClick={() => setSessionCount(item.count)}
-                          className={`py-2 px-2 rounded-xl text-xs font-black border-2 transition-all text-center leading-tight ${
-                            sessionCount === item.count
-                              ? "bg-[#245C6B] text-white border-[#1E4E5B] shadow-xs"
-                              : "bg-white text-[#19323A] border-[#D8E5E7] hover:border-[#245C6B]"
-                          }`}
-                        >
-                          {item.count}x
-                          <span className="block text-[10px] opacity-80 font-normal mt-0.5">
-                            {item.count === 4 ? "1 mês" : item.count === 8 ? "2 meses" : `${item.count / 4} meses`}
-                          </span>
-                        </button>
-                      ))}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFrequency("semanal")}
+                        className={`py-2 px-3 rounded-xl text-xs font-black border-2 transition-all text-center ${
+                          frequency === "semanal"
+                            ? "bg-[#245C6B] text-white border-[#1E4E5B] shadow-xs"
+                            : "bg-white text-[#19323A] border-[#D8E5E7] hover:border-[#245C6B]"
+                        }`}
+                      >
+                        📅 Toda Semana
+                        <span className="block text-[10px] opacity-80 font-normal mt-0.5">
+                          (1x, 2x, 3x ou mais na semana)
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setFrequency("quinzenal")}
+                        className={`py-2 px-3 rounded-xl text-xs font-black border-2 transition-all text-center ${
+                          frequency === "quinzenal"
+                            ? "bg-[#245C6B] text-white border-[#1E4E5B] shadow-xs"
+                            : "bg-white text-[#19323A] border-[#D8E5E7] hover:border-[#245C6B]"
+                        }`}
+                      >
+                        🗓️ Quinzenal
+                        <span className="block text-[10px] opacity-80 font-normal mt-0.5">
+                          (A cada 15 dias)
+                        </span>
+                      </button>
                     </div>
                   </div>
 
-                  {/* Day of Week Selector */}
+                  {/* 2. Days of Week Selector (Can pick 1, 2, 3, 5 days!) */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#6B7C83]">
-                      Dias da semana do atendimento:
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-[#6B7C83]">
+                        Dias da semana combinados com os pais:
+                      </label>
+                      <span className="text-[11px] font-bold text-[#20836F]">
+                        {selectedDays.length} {selectedDays.length === 1 ? "dia" : "dias"} por semana
+                      </span>
+                    </div>
+
                     <div className="flex gap-1.5">
                       {WEEK_DAYS.map((day) => {
                         const isSelected = selectedDays.includes(day.id)
@@ -525,9 +569,9 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
                             key={day.id}
                             type="button"
                             onClick={() => toggleDay(day.id)}
-                            className={`flex-1 py-1.5 rounded-lg text-xs font-black border-2 transition-all ${
+                            className={`flex-1 py-2 rounded-xl text-xs font-black border-2 transition-all ${
                               isSelected
-                                ? "bg-[#63C7B2] text-[#14282F] border-[#48A894] shadow-xs"
+                                ? "bg-[#63C7B2] text-[#14282F] border-[#48A894] shadow-xs scale-[1.02]"
                                 : "bg-white text-[#6B7C83] border-[#D8E5E7] hover:border-[#63C7B2]"
                             }`}
                           >
@@ -538,11 +582,45 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
                     </div>
                   </div>
 
+                  {/* 3. Duration Period (1 mês, 2 meses, 3 meses, 6 meses) */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#6B7C83]">
+                      Período de acompanhamento:
+                    </label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { months: 1, label: "1 Mês" },
+                        { months: 2, label: "2 Meses" },
+                        { months: 3, label: "3 Meses" },
+                        { months: 6, label: "6 Meses" },
+                      ].map((item) => (
+                        <button
+                          key={item.months}
+                          type="button"
+                          onClick={() => setDurationMonths(item.months)}
+                          className={`py-2 px-1 rounded-xl text-xs font-black border-2 transition-all text-center ${
+                            durationMonths === item.months
+                              ? "bg-[#245C6B] text-white border-[#1E4E5B] shadow-xs"
+                              : "bg-white text-[#19323A] border-[#D8E5E7] hover:border-[#245C6B]"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Summary Banner in Natural Language */}
+                  <div className="p-3 rounded-xl bg-[#E8F8F5] border-2 border-[#63C7B2]/40 text-xs font-bold text-[#20836F] flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 shrink-0" />
+                    <span>{recurrenceSummary}</span>
+                  </div>
+
                   {/* Live preview of scheduled dates */}
                   <div className="p-3 rounded-xl bg-white border-2 border-[#D8E5E7] space-y-1.5 max-h-36 overflow-y-auto">
                     <p className="text-[11px] font-black uppercase tracking-wider text-[#245C6B] flex items-center gap-1">
                       <CalendarDays className="w-3.5 h-3.5" />
-                      Datas que serão criadas ({scheduledDates.length}):
+                      Datas geradas ({scheduledDates.length}):
                     </p>
                     <div className="grid grid-cols-2 gap-1 text-xs text-[#19323A] font-semibold">
                       {scheduledDates.map((d, i) => (
