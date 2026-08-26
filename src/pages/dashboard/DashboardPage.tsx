@@ -127,38 +127,38 @@ export function DashboardPage() {
             label: "Em Acompanhamento",
             value: stats.childrenInProgress,
             icon: Users,
-            color: "text-emerald-600",
-            bg: "bg-emerald-50",
+            color: "text-[#20836F]",
+            bg: "bg-[#E8F8F5] border border-[#63C7B2]/30",
           },
           {
             label: "Em Avaliação",
             value: stats.childrenInAssessment,
             icon: Clock,
-            color: "text-amber-600",
-            bg: "bg-amber-50",
+            color: "text-[#B8871E]",
+            bg: "bg-[#FEF8EC] border border-[#F4C95D]/30",
           },
           {
             label: "Atendimentos Hoje",
             value: stats.todayAppointments,
             icon: Calendar,
-            color: "text-blue-600",
-            bg: "bg-blue-50",
+            color: "text-[#245C6B]",
+            bg: "bg-[#EAF3F5] border border-[#245C6B]/20",
           },
           {
             label: "Pgtos Pendentes",
             value: stats.pendingPayments,
             icon: DollarSign,
-            color: "text-red-600",
-            bg: "bg-red-50",
+            color: "text-[#D96C6C]",
+            bg: "bg-[#FDF0F0] border border-[#D96C6C]/20",
           },
         ].map((stat) => (
-          <Card key={stat.label}>
+          <Card key={stat.label} className="border-[#D8E5E7] shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-4">
-              <div className={`w-9 h-9 ${stat.bg} rounded-lg flex items-center justify-center mb-3`}>
-                <stat.icon className={`w-4.5 h-4.5 ${stat.color}`} />
+              <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center mb-3 shadow-xs`}>
+                <stat.icon className={`w-5 h-5 ${stat.color}`} />
               </div>
-              <p className="text-2xl font-bold">{loading ? "—" : stat.value}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+              <p className="text-2xl font-bold text-[#19323A]">{loading ? "—" : stat.value}</p>
+              <p className="text-xs text-[#6B7C83] mt-0.5 font-medium">{stat.label}</p>
             </CardContent>
           </Card>
         ))}

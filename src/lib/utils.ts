@@ -16,7 +16,6 @@ export function formatDateTime(date: string | Date) {
 }
 
 export function formatTime(time: string) {
-  // time is "HH:mm:ss" from postgres
   return time.substring(0, 5)
 }
 
@@ -68,18 +67,34 @@ export const STATUS_LABELS: Record<string, string> = {
   cancelled: "Cancelado",
   missed: "Faltou",
   rescheduled: "Reagendado",
+  paid: "Pago",
+  pending: "Pendente",
+  overdue: "Atrasado",
 }
 
 export const STATUS_COLORS: Record<string, string> = {
-  initial_assessment: "bg-amber-100 text-amber-700 border-amber-200",
-  in_progress: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  paused: "bg-slate-100 text-slate-600 border-slate-200",
-  closed: "bg-zinc-100 text-zinc-600 border-zinc-200",
-  archived: "bg-zinc-100 text-zinc-500 border-zinc-200",
-  scheduled: "bg-blue-100 text-blue-700 border-blue-200",
-  confirmed: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  done: "bg-slate-100 text-slate-600 border-slate-200",
-  cancelled: "bg-red-100 text-red-600 border-red-200",
-  missed: "bg-orange-100 text-orange-700 border-orange-200",
-  rescheduled: "bg-purple-100 text-purple-700 border-purple-200",
+  // Verde Menta para crescimento e sucesso
+  in_progress: "bg-[#E8F8F5] text-[#20836F] border-[#63C7B2]/40 font-semibold",
+  confirmed: "bg-[#E8F8F5] text-[#20836F] border-[#63C7B2]/40 font-semibold",
+  paid: "bg-[#E8F8F5] text-[#20836F] border-[#63C7B2]/40 font-semibold",
+
+  // Amarelo Suave para atenção e avaliações em andamento
+  initial_assessment: "bg-[#FEF8EC] text-[#B8871E] border-[#F4C95D]/40 font-semibold",
+  pending: "bg-[#FEF8EC] text-[#B8871E] border-[#F4C95D]/40 font-semibold",
+
+  // Azul Petróleo para agendamentos
+  scheduled: "bg-[#EAF3F5] text-[#245C6B] border-[#245C6B]/30 font-semibold",
+  in_progress_appt: "bg-[#245C6B] text-white border-transparent font-semibold",
+
+  // Tons neutros
+  done: "bg-[#EEF5F6] text-[#4F6C74] border-[#D8E5E7]",
+  paused: "bg-[#EEF5F6] text-[#6B7C83] border-[#D8E5E7]",
+  closed: "bg-[#EEF5F6] text-[#6B7C83] border-[#D8E5E7]",
+  archived: "bg-[#EEF5F6] text-[#6B7C83] border-[#D8E5E7]",
+
+  // Vermelho Suave para cancelamentos / alertas
+  cancelled: "bg-[#FDF0F0] text-[#D96C6C] border-[#D96C6C]/30 font-semibold",
+  overdue: "bg-[#FDF0F0] text-[#D96C6C] border-[#D96C6C]/30 font-semibold",
+  missed: "bg-[#FEF4E8] text-[#C06A1C] border-[#F4A75D]/40 font-semibold",
+  rescheduled: "bg-[#F0EFFB] text-[#5D55A6] border-[#A89FE2]/40 font-semibold",
 }

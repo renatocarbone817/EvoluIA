@@ -5,26 +5,43 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    /* Fundo Off-white e Texto Azul Quase Preto */
+    --background: 180 20% 98%;       /* #F7FAFA */
+    --foreground: 193 40% 16%;       /* #19323A */
+
+    /* Cards e Superfícies em Branco Puro */
+    --card: 0 0% 100%;               /* #FFFFFF */
+    --card-foreground: 193 40% 16%;  /* #19323A */
+
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.5rem;
+    --popover-foreground: 193 40% 16%;
+
+    /* Cor Primária: Azul Petróleo (#245C6B) */
+    --primary: 192 49% 28%;          /* #245C6B */
+    --primary-foreground: 0 0% 100%;
+
+    /* Cor Secundária: Verde Menta (#63C7B2) */
+    --secondary: 168 47% 58%;        /* #63C7B2 */
+    --secondary-foreground: 193 40% 16%;
+
+    /* Elementos Suaves / Muted */
+    --muted: 186 25% 94%;            /* #EEF5F6 */
+    --muted-foreground: 197 10% 47%; /* #6B7C83 (Cinza azulado) */
+
+    /* Destaque / Accent */
+    --accent: 168 50% 94%;           /* #E8F8F5 (Menta suave) */
+    --accent-foreground: 192 49% 28%;
+
+    /* Erro / Destructive: Vermelho Suave (#D96C6C) */
+    --destructive: 0 57% 64%;        /* #D96C6C */
+    --destructive-foreground: 0 0% 100%;
+
+    /* Bordas e Inputs suaves */
+    --border: 186 20% 89%;           /* #D8E5E7 */
+    --input: 186 20% 89%;
+    --ring: 192 49% 28%;             /* #245C6B */
+
+    --radius: 0.75rem;
   }
 
   * {
