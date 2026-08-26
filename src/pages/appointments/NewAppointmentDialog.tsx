@@ -23,7 +23,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
   const [loading, setLoading] = useState(false)
   const [conflictWarning, setConflictWarning] = useState<string | null>(null)
 
-  // Mode: "existing" = select child from list | "new" = type new child/prospect name
+  // Mode: "existing" = select child from list | "new" = quick new assessment without friction
   const [mode, setMode] = useState<"existing" | "new">("existing")
 
   const [form, setForm] = useState({
@@ -68,7 +68,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
       setForm((f) => ({ ...f, child_id: data[0].id }))
       setMode("existing")
     } else {
-      // If no children exist yet, default directly to new child/evaluation mode!
+      // If no children exist yet, default directly to new assessment mode
       setMode("new")
     }
   }
@@ -111,17 +111,9 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
 
     let targetChildId = form.child_id
 
-    // If in new child mode, validate child name
-    if (mode === "new") {
-      if (!form.new_child_name.trim()) {
-        toast.error("Por favor, digite o nome da criança para a avaliação.")
-        return
-      }
-    } else {
-      if (!targetChildId) {
-        toast.error("Selecione um paciente cadastrado ou clique em 'Nova Avaliação'.")
-        return
-      }
+    if (mode === "existing" && !targetChildId) {
+      toast.error("Selecione um paciente cadastrado ou clique em '+ Nova Avaliação'.")
+      return
     }
 
     setLoading(true)
@@ -144,15 +136,27 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
         await fetchProfessional(profId)
       }
 
-      // 2. If creating a new child on the fly for this evaluation:
+      // 2. If creating a new assessment on the fly (Zero friction!):
       if (mode === "new") {
+        // Resolve friendly name even if user left everything empty
+        let resolvedName = form.new_child_name.trim()
+        if (!resolvedName) {
+          if (form.new_guardian_name.trim()) {
+            resolvedName = `Avaliação (${form.new_guardian_name.trim()})`
+          } else if (form.notes.trim()) {
+            resolvedName = `Avaliação: ${form.notes.trim().substring(0, 20)}`
+          } else {
+            resolvedName = `Nova Avaliação (${form.start_time})`
+          }
+        }
+
         const { data: newChild, error: childError } = await supabase
           .from("children")
           .insert({
             professional_id: profId,
-            full_name: form.new_child_name.trim(),
+            full_name: resolvedName,
             status: "initial_assessment",
-            main_complaint: form.type === "Avaliação Inicial" ? "Primeira Avaliação Clínica" : null,
+            main_complaint: form.notes.trim() || "Primeira Avaliação Clínica",
           })
           .select()
           .single()
@@ -160,13 +164,13 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
         if (childError) throw childError
         targetChildId = newChild.id
 
-        // If guardian name/phone provided, create and link
+        // If guardian name/phone was provided, link it
         if (form.new_guardian_name.trim() || form.new_guardian_phone.trim()) {
           const { data: newGuardian, error: gError } = await supabase
             .from("guardians")
             .insert({
               professional_id: profId,
-              full_name: form.new_guardian_name.trim() || `Responsável de ${form.new_child_name}`,
+              full_name: form.new_guardian_name.trim() || `Contato de ${resolvedName}`,
               phone: form.new_guardian_phone || null,
               whatsapp: form.new_guardian_phone || null,
             })
@@ -177,7 +181,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
             await supabase.from("guardian_children").insert({
               child_id: newChild.id,
               guardian_id: newGuardian.id,
-              relationship: "Responsável",
+              relationship: "Responsável / Contato",
               is_primary: true,
             })
           }
@@ -194,18 +198,14 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
         child_id: targetChildId,
         start_time: start.toISOString(),
         end_time: end.toISOString(),
-        type: form.type,
+        type: mode === "new" ? "Avaliação Inicial" : form.type,
         status: form.status as any,
         notes: form.notes || null,
       })
 
       if (apptError) throw apptError
 
-      toast.success(
-        mode === "new"
-          ? "Nova avaliação agendada e paciente cadastrado com sucesso!"
-          : "Atendimento agendado com sucesso!"
-      )
+      toast.success("Avaliação agendada com sucesso!")
       onSuccess()
     } catch (err: any) {
       toast.error(err.message || "Erro ao agendar")
@@ -221,7 +221,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
           <DialogTitle>Novo Agendamento na Agenda</DialogTitle>
         </DialogHeader>
         <DialogBody className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
-          {/* Mode Switcher: Paciente Cadastrado vs Nova Avaliação */}
+          {/* Mode Switcher */}
           <div className="flex bg-[#EEF5F6] p-1 rounded-2xl border-2 border-[#D8E5E7] gap-1">
             <button
               type="button"
@@ -249,7 +249,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
               }`}
             >
               <UserPlus className="w-3.5 h-3.5" />
-              <span>+ Nova Avaliação / Novo Paciente</span>
+              <span>+ Nova Avaliação</span>
             </button>
           </div>
 
@@ -268,33 +268,38 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
                 />
               ) : (
                 <div className="p-4 bg-[#FEF8EC] border-2 border-[#F4C95D]/50 rounded-2xl text-xs text-[#B8871E] font-bold">
-                  Nenhuma criança cadastrada ainda. Use a opção "+ Nova Avaliação / Novo Paciente" acima para agendar direto!
+                  Nenhuma criança cadastrada ainda. Use a opção "+ Nova Avaliação" acima para agendar direto!
                 </div>
               )}
             </div>
           )}
 
-          {/* Option B: New Child Quick Form for Initial Assessment */}
+          {/* Option B: New Assessment Mode (Completamente livre e sem campos obrigatórios) */}
           {mode === "new" && (
             <div className="p-4 rounded-2xl bg-[#E8F8F5]/60 border-2 border-[#63C7B2]/40 space-y-3">
-              <div className="flex items-center gap-2 text-[#20836F]">
-                <Sparkles className="w-4 h-4" />
-                <p className="text-xs font-black uppercase tracking-wider">
-                  Agendar Avaliação sem Cadastro Prévio
-                </p>
+              <div className="flex items-center justify-between text-[#20836F]">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  <p className="text-xs font-black uppercase tracking-wider">
+                    Agendamento Rápido de Avaliação
+                  </p>
+                </div>
+                <span className="text-[10px] bg-white px-2 py-0.5 rounded-md border border-[#63C7B2]/30 font-bold">
+                  Sem campos obrigatórios
+                </span>
               </div>
 
               <Input
-                label="Nome da Criança para Avaliação *"
-                placeholder="Ex: Arthur Souza"
+                label="Nome da Criança ou Identificação (Opcional)"
+                placeholder="Ex: Arthur, Amiga da Carla, Novo Contato..."
                 value={form.new_child_name}
                 onChange={(e) => setForm({ ...form, new_child_name: e.target.value })}
               />
 
               <div className="grid grid-cols-2 gap-3">
                 <Input
-                  label="Nome da Mãe/Pai (Opcional)"
-                  placeholder="Ex: Mariana Souza"
+                  label="Nome da Mãe/Contato (Opcional)"
+                  placeholder="Ex: Mariana"
                   value={form.new_guardian_name}
                   onChange={(e) => setForm({ ...form, new_guardian_name: e.target.value })}
                 />
@@ -375,7 +380,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
 
           <Input
             label="Observações / Anotações"
-            placeholder="Ex: Queixa informada por telefone..."
+            placeholder="Ex: Amiga fulana ligou para agendar às 18h..."
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
           />
