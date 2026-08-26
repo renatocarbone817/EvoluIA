@@ -92,7 +92,7 @@ export function SettingsPage() {
         .upsert({
           id: profId,
           full_name: form.full_name,
-          email: user?.email || professional?.email || "",
+          email: form.email || user?.email || professional?.email || "",
           clinic_name: form.clinic_name || null,
           crp: form.crp || null,
           specialty: form.specialty || null,
