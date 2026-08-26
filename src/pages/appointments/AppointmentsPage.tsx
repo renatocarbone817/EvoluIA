@@ -106,6 +106,18 @@ export function AppointmentsPage() {
     else setCurrentDate(addMonths(currentDate, 1))
   }
 
+  function handleStartAppointment(appt: AppointmentWithChild) {
+    const isEvaluation =
+      appt.type === "Avaliação Inicial" ||
+      appt.type?.toLowerCase().includes("avaliação")
+
+    if (isEvaluation) {
+      navigate(`/criancas/${appt.child_id}?editar=true`)
+    } else {
+      navigate(`/atendimento/${appt.id}`)
+    }
+  }
+
   const weekDays = eachDayOfInterval({
     start: startOfWeek(currentDate, { weekStartsOn: 1 }),
     end: endOfWeek(currentDate, { weekStartsOn: 1 }),
@@ -266,7 +278,7 @@ export function AppointmentsPage() {
                       <Button
                         size="sm"
                         className="gap-1.5 text-xs font-bold"
-                        onClick={() => navigate(`/atendimento/${appt.id}`)}
+                        onClick={() => handleStartAppointment(appt)}
                       >
                         <Play className="w-3 h-3 fill-current" />
                         Iniciar
@@ -333,7 +345,7 @@ export function AppointmentsPage() {
                           <Button
                             size="sm"
                             className="w-full h-8 text-[11px] mt-1 gap-1"
-                            onClick={() => navigate(`/atendimento/${appt.id}`)}
+                            onClick={() => handleStartAppointment(appt)}
                           >
                             <Play className="w-3 h-3 fill-current" />
                             Iniciar
@@ -397,7 +409,7 @@ export function AppointmentsPage() {
                   {(appt.status === "scheduled" || appt.status === "confirmed") && (
                     <Button
                       size="sm"
-                      onClick={() => navigate(`/atendimento/${appt.id}`)}
+                      onClick={() => handleStartAppointment(appt)}
                       className="gap-1.5"
                     >
                       <Play className="w-3 h-3 fill-current" />

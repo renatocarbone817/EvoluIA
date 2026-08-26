@@ -120,12 +120,20 @@ export function DashboardPage() {
   const firstName = professional?.full_name?.split(" ")[0] || "Priscila"
 
   async function handleStartSession(appointment: any) {
-    await supabase
-      .from("appointments")
-      .update({ status: "in_progress" })
-      .eq("id", appointment.id)
+    const isEvaluation =
+      appointment.type === "Avaliação Inicial" ||
+      appointment.type?.toLowerCase().includes("avaliação")
 
-    navigate(`/atendimento/${appointment.id}`)
+    if (isEvaluation) {
+      navigate(`/criancas/${appointment.child_id}?editar=true`)
+    } else {
+      await supabase
+        .from("appointments")
+        .update({ status: "in_progress" })
+        .eq("id", appointment.id)
+
+      navigate(`/atendimento/${appointment.id}`)
+    }
   }
 
   const now = new Date()

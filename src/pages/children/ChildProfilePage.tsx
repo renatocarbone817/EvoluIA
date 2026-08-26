@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { ArrowLeft, Edit, Calendar, FileText, Activity, Clock, Users, BookOpen, DollarSign, Play } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
@@ -31,6 +31,7 @@ const TABS: { id: Tab; label: string; icon: typeof Calendar }[] = [
 export function ChildProfilePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { professional } = useAuthStore()
   const [child, setChild] = useState<Child | null>(null)
   const [guardians, setGuardians] = useState<Guardian[]>([])
@@ -43,6 +44,13 @@ export function ChildProfilePage() {
   useEffect(() => {
     if (id && professional) loadChild()
   }, [id, professional])
+
+  useEffect(() => {
+    // Open edit dialog automatically if requested via URL query param (e.g. ?editar=true)
+    if (searchParams.get("editar") === "true") {
+      setShowEditDialog(true)
+    }
+  }, [searchParams])
 
   async function loadChild() {
     setLoading(true)
@@ -78,8 +86,19 @@ export function ChildProfilePage() {
 
   async function handleStartSession() {
     if (!nextAppointment) return
-    await supabase.from("appointments").update({ status: "in_progress" }).eq("id", nextAppointment.id)
-    navigate(`/atendimento/${nextAppointment.id}`)
+    const isEvaluation =
+      nextAppointment.type === "Avaliação Inicial" ||
+      nextAppointment.type?.toLowerCase().includes("avaliação")
+
+    if (isEvaluation) {
+      setShowEditDialog(true)
+    } else {
+      await supabase
+        .from("appointments")
+        .update({ status: "in_progress" })
+        .eq("id", nextAppointment.id)
+      navigate(`/atendimento/${nextAppointment.id}`)
+    }
   }
 
   if (loading) {
