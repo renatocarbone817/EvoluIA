@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
 import {
-  addWeeks,
   addDays,
   format,
   getDay,
@@ -23,7 +22,6 @@ import {
   Repeat,
   CalendarDays,
   CheckCircle2,
-  HelpCircle,
 } from "lucide-react"
 import toast from "react-hot-toast"
 import type { Child } from "@/types/database"
@@ -54,7 +52,6 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
 
   // Recurrence controls
   const [isRecurring, setIsRecurring] = useState(false)
-  const [frequency, setFrequency] = useState<"semanal" | "quinzenal">("semanal")
   const [durationMonths, setDurationMonths] = useState<number>(1) // 1, 2, 3, 6 months
   const [selectedDays, setSelectedDays] = useState<number[]>([])
 
@@ -76,7 +73,6 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
       loadChildren()
       setConflictWarning(null)
       setIsRecurring(false)
-      setFrequency("semanal")
       setDurationMonths(1)
     }
   }, [open, professional, user])
@@ -92,10 +88,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
     }
   }, [form.date])
 
-  // Intelligent date generator covering ANY frequency:
-  // - 1x, 2x, 3x, 5x per week
-  // - Every 15 days (quinzenal)
-  // - For 1, 2, 3 or 6 months
+  // Calculate list of dates for multiple sessions
   const scheduledDates = useMemo(() => {
     if (!form.date || !form.start_time) return []
     const dates: Date[] = []
@@ -109,26 +102,21 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
 
     const totalWeeks = durationMonths * 4
     const activeDays = selectedDays.length > 0 ? selectedDays : [getDay(baseDate)]
-    const weekStep = frequency === "quinzenal" ? 2 : 1
-
     let currentWeekStart = addDays(baseDate, 0)
 
-    for (let w = 0; w < totalWeeks; w += weekStep) {
+    for (let w = 0; w < totalWeeks; w++) {
       for (const dayId of activeDays) {
-        // Find the date for this dayId in week `w`
         const dayDiff = dayId - getDay(currentWeekStart)
         let sessionDate = addDays(currentWeekStart, w * 7 + dayDiff)
 
-        // Don't add dates before the starting baseDate
         if (sessionDate >= baseDate || isSameDay(sessionDate, baseDate)) {
           dates.push(sessionDate)
         }
       }
     }
 
-    // Sort chronologically and remove duplicates
     return dates.sort((a, b) => a.getTime() - b.getTime())
-  }, [form.date, form.start_time, isRecurring, frequency, durationMonths, selectedDays])
+  }, [form.date, form.start_time, isRecurring, durationMonths, selectedDays])
 
   // Check for conflicts
   useEffect(() => {
@@ -321,11 +309,6 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
       .filter(Boolean)
       .join(", ")
 
-    const freqText =
-      frequency === "quinzenal"
-        ? `Quinzenal (${dayNames})`
-        : `${selectedDays.length}x por semana (${dayNames})`
-
     const durText =
       durationMonths === 1
         ? "1 mês"
@@ -333,8 +316,8 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
         ? "2 meses"
         : `${durationMonths} meses`
 
-    return `${freqText} durante ${durText} • Total de ${scheduledDates.length} sessões`
-  }, [isRecurring, frequency, selectedDays, durationMonths, scheduledDates])
+    return `${selectedDays.length}x por semana (${dayNames}) durante ${durText} • Total de ${scheduledDates.length} sessões`
+  }, [isRecurring, selectedDays, durationMonths, scheduledDates])
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -494,7 +477,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
             )}
           </div>
 
-          {/* RECURRENCE / MULTIPLE SESSIONS SECTION (100% Flexible!) */}
+          {/* RECURRENCE / MULTIPLE SESSIONS (Clean & Direct) */}
           {mode === "existing" && (
             <div className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] space-y-3">
               <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -506,58 +489,20 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
                 />
                 <span className="text-xs font-black uppercase tracking-wide text-[#19323A] flex items-center gap-1.5">
                   <Repeat className="w-3.5 h-3.5 text-[#245C6B]" />
-                  Agendar Múltiplos Dias / Recorrência (1x, 2x, 3x na semana ou Quinzenal)
+                  Agendar Múltiplos Dias de Uma Vez
                 </span>
               </label>
 
               {isRecurring && (
                 <div className="space-y-3.5 pt-3 border-t-2 border-[#D8E5E7] animate-in fade-in-50 duration-200">
-                  {/* 1. Frequency (Toda Semana vs A cada 15 dias) */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#6B7C83]">
-                      Frequência do atendimento:
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setFrequency("semanal")}
-                        className={`py-2 px-3 rounded-xl text-xs font-black border-2 transition-all text-center ${
-                          frequency === "semanal"
-                            ? "bg-[#245C6B] text-white border-[#1E4E5B] shadow-xs"
-                            : "bg-white text-[#19323A] border-[#D8E5E7] hover:border-[#245C6B]"
-                        }`}
-                      >
-                        📅 Toda Semana
-                        <span className="block text-[10px] opacity-80 font-normal mt-0.5">
-                          (1x, 2x, 3x ou mais na semana)
-                        </span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setFrequency("quinzenal")}
-                        className={`py-2 px-3 rounded-xl text-xs font-black border-2 transition-all text-center ${
-                          frequency === "quinzenal"
-                            ? "bg-[#245C6B] text-white border-[#1E4E5B] shadow-xs"
-                            : "bg-white text-[#19323A] border-[#D8E5E7] hover:border-[#245C6B]"
-                        }`}
-                      >
-                        🗓️ Quinzenal
-                        <span className="block text-[10px] opacity-80 font-normal mt-0.5">
-                          (A cada 15 dias)
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 2. Days of Week Selector (Can pick 1, 2, 3, 5 days!) */}
+                  {/* 1. Days of Week Selector (Can pick 1, 2, 3, 5 days!) */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-[#6B7C83]">
                         Dias da semana combinados com os pais:
                       </label>
                       <span className="text-[11px] font-bold text-[#20836F]">
-                        {selectedDays.length} {selectedDays.length === 1 ? "dia" : "dias"} por semana
+                        {selectedDays.length} {selectedDays.length === 1 ? "dia" : "dias"} na semana
                       </span>
                     </div>
 
@@ -582,10 +527,10 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
                     </div>
                   </div>
 
-                  {/* 3. Duration Period (1 mês, 2 meses, 3 meses, 6 meses) */}
+                  {/* 2. Duration Period (1 mês, 2 meses, 3 meses, 6 meses) */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-[#6B7C83]">
-                      Período de acompanhamento:
+                      Repetir por quanto tempo:
                     </label>
                     <div className="grid grid-cols-4 gap-2">
                       {[
