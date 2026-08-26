@@ -294,11 +294,15 @@ export interface CarePlan {
 }
 
 export type FinancialStatus = 'pending' | 'paid' | 'cancelled'
+export type FinancialRecordType = 'income' | 'expense'
 
 export interface FinancialRecord {
   id: string
   professional_id: string
-  child_id: string
+  child_id: string | null
+  record_type?: FinancialRecordType | null
+  category?: string | null
+  description?: string | null
   month: number
   year: number
   amount: number
