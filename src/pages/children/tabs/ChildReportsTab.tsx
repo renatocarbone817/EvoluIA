@@ -485,8 +485,8 @@ export function ChildReportsTab({ childId, childName }: ChildReportsTabProps) {
 
       {/* Modal Visualizar Relatório com Anexos e Evidências */}
       {selectedReport && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 print:p-0 print:bg-white">
-          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl print:border-none print:shadow-none">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 print:p-0 print:bg-white print:static print:block print:inset-auto print:z-auto print:overflow-visible">
+          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl print:border-none print:shadow-none print:max-h-none print:h-auto print:w-full print:block print:overflow-visible">
             <div className="p-6 border-b-2 border-[#EEF5F6] flex items-center justify-between print:hidden">
               <div className="flex items-center gap-2 text-[#245C6B]">
                 <FileText className="w-5 h-5" />
@@ -503,7 +503,7 @@ export function ChildReportsTab({ childId, childName }: ChildReportsTabProps) {
               </div>
             </div>
 
-            <div className="p-8 sm:p-10 overflow-y-auto space-y-6 text-sm">
+            <div className="p-8 sm:p-10 overflow-y-auto space-y-6 text-sm print:overflow-visible print:p-0 print:h-auto print:max-h-none print:block">
               {/* Header */}
               <div className="text-center border-b-2 border-[#19323A] pb-6 space-y-1.5">
                 <h1 className="text-2xl font-black uppercase tracking-wide text-[#19323A]">

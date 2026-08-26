@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -71,5 +71,67 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: hsl(var(--border));
     border-radius: 2px;
+  }
+}
+
+/* =========================================================================
+   ESTILOS GLOBAIS DE IMPRESSÃO A4 (MULTI-PÁGINAS SEM CORTAR CONTEÚDO)
+   ========================================================================= */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 15mm 12mm 15mm 12mm;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #19323A !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    font-size: 11pt !important;
+  }
+
+  /* Ocultar elementos desnecessários de interface na impressão */
+  aside, nav, header, button, [class*="print:hidden"], [role="dialog"] > div:first-child {
+    display: none !important;
+  }
+
+  /* Desbloquear containers modais e rolagem para fluir entre todas as páginas */
+  .fixed, .absolute {
+    position: static !important;
+  }
+
+  div, main, section {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  /* Quebra de página inteligente */
+  .print-page-break {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+
+  .print-avoid-break, p, h1, h2, h3, h4, .report-section, .report-attachment {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Garantir que cores de fundo e bordas saiam nítidas no PDF */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Ajuste de imagens para não estourarem a folha A4 */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }
