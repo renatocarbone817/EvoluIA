@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { calculateAge, formatDate, formatDateTime } from "@/lib/utils"
 import type { Child, Guardian, Session, Appointment, InitialAssessment } from "@/types/database"
 import { ChildSummaryTab } from "./tabs/ChildSummaryTab"
@@ -15,6 +14,7 @@ import { ChildTimelineTab } from "./tabs/ChildTimelineTab"
 import { ChildDocumentsTab } from "./tabs/ChildDocumentsTab"
 import { ChildFinancialTab } from "./tabs/ChildFinancialTab"
 import { ChildReportsTab } from "./tabs/ChildReportsTab"
+import { EditChildDialog } from "./EditChildDialog"
 
 type Tab = "resumo" | "avaliacao" | "sessoes" | "linha-do-tempo" | "documentos" | "financeiro" | "relatorios"
 
@@ -38,6 +38,7 @@ export function ChildProfilePage() {
   const [sessionCount, setSessionCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>("resumo")
+  const [showEditDialog, setShowEditDialog] = useState(false)
 
   useEffect(() => {
     if (id && professional) loadChild()
@@ -104,7 +105,7 @@ export function ChildProfilePage() {
   return (
     <div className="min-h-full">
       {/* Header */}
-      <div className="border-b border-border bg-background sticky top-0 z-10">
+      <div className="border-b border-[#D8E5E7] bg-white sticky top-0 z-10 shadow-xs">
         <div className="px-6 md:px-8 max-w-5xl mx-auto">
           <div className="py-4 flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate("/criancas")}>
@@ -113,39 +114,45 @@ export function ChildProfilePage() {
 
             <div className="flex-1">
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-xl font-bold">{child.full_name}</h1>
+                <h1 className="text-xl font-black text-[#19323A]">{child.full_name}</h1>
                 <Badge statusKey={child.status} />
               </div>
-              <div className="flex items-center gap-3 mt-0.5 text-sm text-muted-foreground flex-wrap">
-                {child.birth_date && <span>{calculateAge(child.birth_date)} anos</span>}
-                {child.school && <span>· {child.school}</span>}
-                {child.grade && <span>· {child.grade}</span>}
+              <div className="flex items-center gap-3 mt-0.5 text-xs font-bold text-[#6B7C83] flex-wrap">
+                {child.birth_date && <span>🎂 {calculateAge(child.birth_date)} anos</span>}
+                {child.school && <span>🏫 {child.school}</span>}
+                {child.grade && <span>📚 {child.grade}</span>}
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               {nextAppointment && (
-                <Button size="sm" onClick={handleStartSession} className="gap-1.5">
-                  <Play className="w-3.5 h-3.5" />
+                <Button size="sm" onClick={handleStartSession} className="gap-1.5 font-bold">
+                  <Play className="w-3.5 h-3.5 fill-current" />
                   Iniciar sessão
                 </Button>
               )}
-              <Button variant="outline" size="icon">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowEditDialog(true)}
+                title="Editar dados da criança"
+                className="hover:border-[#245C6B] hover:text-[#245C6B]"
+              >
                 <Edit className="w-4 h-4" />
               </Button>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-0 overflow-x-auto scrollbar-thin -mb-px">
+          <div className="flex gap-1 overflow-x-auto scrollbar-thin -mb-px">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                className={`px-4 py-3 text-xs font-black whitespace-nowrap border-b-2 transition-all ${
                   activeTab === tab.id
-                    ? "border-foreground text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
+                    ? "border-[#245C6B] text-[#245C6B] bg-[#EEF5F6]/40"
+                    : "border-transparent text-[#6B7C83] hover:text-[#19323A] hover:bg-[#EEF5F6]/20"
                 }`}
               >
                 {tab.label}
@@ -173,6 +180,17 @@ export function ChildProfilePage() {
         {activeTab === "financeiro" && <ChildFinancialTab childId={child.id} />}
         {activeTab === "relatorios" && <ChildReportsTab childId={child.id} childName={child.full_name} />}
       </div>
+
+      {/* Edit Child Dialog */}
+      <EditChildDialog
+        open={showEditDialog}
+        child={child}
+        onClose={() => setShowEditDialog(false)}
+        onSuccess={() => {
+          setShowEditDialog(false)
+          loadChild()
+        }}
+      />
     </div>
   )
 }
