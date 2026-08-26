@@ -75,7 +75,7 @@
 }
 
 /* =========================================================================
-   ESTILOS GLOBAIS DE IMPRESSÃO A4 (MULTI-PÁGINAS SEM CORTAR CONTEÚDO)
+   ESTILOS GLOBAIS DE IMPRESSÃO A4 (ISOLA EXCLUSIVAMENTE O DOCUMENTO)
    ========================================================================= */
 @media print {
   @page {
@@ -90,36 +90,51 @@
     min-height: auto !important;
     overflow: visible !important;
     font-size: 11pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
-  /* Ocultar elementos desnecessários de interface na impressão */
-  aside, nav, header, button, [class*="print:hidden"], [role="dialog"] > div:first-child {
-    display: none !important;
+  /* 1. Ocultar absolutamente tudo do sistema na hora da impressão */
+  body * {
+    visibility: hidden !important;
   }
 
-  /* Desbloquear containers modais e rolagem para fluir entre todas as páginas */
-  .fixed, .absolute {
-    position: static !important;
+  /* 2. Tornar visível APENAS o documento/relatório a ser impresso */
+  .printable-report, .printable-report * {
+    visibility: visible !important;
   }
 
-  div, main, section {
+  /* 3. Posicionar o documento no topo absoluto da folha de papel */
+  .printable-report {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
     overflow: visible !important;
     max-height: none !important;
     height: auto !important;
+    display: block !important;
+    z-index: 999999 !important;
   }
 
-  /* Quebra de página inteligente */
-  .print-page-break {
-    page-break-before: always !important;
-    break-before: page !important;
+  /* Elementos explicitamente ocultos */
+  button, [class*="print:hidden"] {
+    display: none !important;
+    visibility: hidden !important;
   }
 
-  .print-avoid-break, p, h1, h2, h3, h4, .report-section, .report-attachment {
+  /* Quebra de página e fluxo A4 */
+  .print-avoid-break, p, h1, h2, h3, h4, .report-section {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 
-  /* Garantir que cores de fundo e bordas saiam nítidas no PDF */
+  /* Cores nítidas e sem sombras */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -127,7 +142,6 @@
     text-shadow: none !important;
   }
 
-  /* Ajuste de imagens para não estourarem a folha A4 */
   img {
     max-width: 100% !important;
     height: auto !important;

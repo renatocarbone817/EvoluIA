@@ -166,7 +166,7 @@ export function ReportsPage() {
               </div>
             </div>
 
-            <div className="p-8 sm:p-10 overflow-y-auto space-y-6 text-sm print:overflow-visible print:p-0 print:h-auto print:max-h-none print:block">
+            <div className="p-8 sm:p-10 overflow-y-auto space-y-6 text-sm printable-report print:overflow-visible print:p-0 print:h-auto print:max-h-none print:block">
               {/* Header */}
               <div className="text-center border-b-2 border-[#19323A] pb-6 space-y-1.5">
                 <h1 className="text-2xl font-black uppercase tracking-wide text-[#19323A]">

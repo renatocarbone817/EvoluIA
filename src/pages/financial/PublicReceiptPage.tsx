@@ -299,7 +299,7 @@ export function PublicReceiptPage() {
         </div>
 
         {/* The Official Receipt Paper Card */}
-        <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-xl overflow-hidden print:border-none print:shadow-none">
+        <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-xl overflow-hidden print:border-none print:shadow-none printable-report">
           {/* Header Banner */}
           <div className="bg-gradient-to-r from-[#19323A] to-[#245C6B] text-white p-6 sm:p-8 space-y-3 relative overflow-hidden">
             <div className="flex items-start justify-between gap-4 relative z-10">
