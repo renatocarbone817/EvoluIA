@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuthStore } from "@/store/authStore"
@@ -37,41 +38,58 @@ export function Sidebar() {
     <aside
       className={cn(
         "hidden md:flex flex-col h-screen bg-foreground text-background transition-all duration-300 relative select-none",
-        collapsed ? "w-16" : "w-60"
+        collapsed ? "w-16" : "w-64"
       )}
     >
-      {/* Logo */}
+      {/* 1. TOP: Psicopedagoga & Consultório (O espaço é dela!) */}
       <div
-        onClick={() => navigate("/dashboard")}
+        onClick={() => navigate("/configuracoes")}
+        title="Clique para editar as configurações do seu consultório"
         className={cn(
-          "flex items-center gap-3 px-4 py-5 border-b border-white/10 cursor-pointer hover:bg-white/5 transition-colors",
-          collapsed && "justify-center px-2"
+          "flex items-center gap-3 px-4 py-4 border-b border-white/10 cursor-pointer hover:bg-white/5 transition-all group",
+          collapsed && "justify-center px-2",
+          location.pathname === "/configuracoes" && "bg-white/10"
         )}
       >
-        <div className="flex-shrink-0 w-8 h-8 bg-background rounded-lg flex items-center justify-center shadow-sm">
-          <Brain className="w-5 h-5 text-foreground" />
+        <div className="w-10 h-10 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center flex-shrink-0 overflow-hidden group-hover:scale-105 transition-transform shadow-sm">
+          {professional?.logo_url ? (
+            <img
+              src={professional.logo_url}
+              alt="Logo"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-sm font-bold text-background">
+              {professional?.full_name ? getInitials(professional.full_name) : "P"}
+            </span>
+          )}
         </div>
+
         {!collapsed && (
-          <div>
-            <p className="text-sm font-bold leading-tight">EvoluIA</p>
-            <p className="text-xs text-white/50 leading-tight">Gestão Psicopedagógica</p>
+          <div className="flex-1 min-w-0 text-left">
+            <p className="text-sm font-bold text-background truncate group-hover:underline leading-tight">
+              {professional?.full_name || "Priscila Carbone"}
+            </p>
+            <p className="text-xs text-white/60 truncate leading-tight mt-0.5">
+              {professional?.clinic_name || (professional?.crp ? `CRP ${professional.crp}` : "Psicopedagoga")}
+            </p>
           </div>
         )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 py-4 space-y-1 px-2 overflow-y-auto scrollbar-thin">
+      {/* 2. Navigation Menu */}
+      <nav className="flex-1 py-4 space-y-1 px-2.5 overflow-y-auto scrollbar-thin">
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all",
                 collapsed && "justify-center px-2",
                 isActive
-                  ? "bg-white/15 text-background font-medium"
-                  : "text-white/60 hover:bg-white/10 hover:text-background"
+                  ? "bg-white/15 text-background font-semibold shadow-sm"
+                  : "text-white/70 hover:bg-white/10 hover:text-background"
               )
             }
           >
@@ -81,52 +99,44 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* User profile area — Clickable to open Settings/Clinic Profile */}
-      <div className="border-t border-white/10 p-2">
-        <div
-          onClick={() => navigate("/configuracoes")}
-          title="Clique para abrir as configurações do consultório"
-          className={cn(
-            "flex items-center gap-3 p-2 rounded-xl cursor-pointer hover:bg-white/10 transition-all group",
-            collapsed && "justify-center p-1.5",
-            location.pathname === "/configuracoes" && "bg-white/15"
-          )}
-        >
-          {/* Avatar / Logo */}
-          <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 overflow-hidden border border-white/20 group-hover:scale-105 transition-transform">
-            {professional?.logo_url ? (
-              <img src={professional.logo_url} alt="logo" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-xs font-bold text-background">
-                {professional?.full_name ? getInitials(professional.full_name) : "P"}
-              </span>
-            )}
-          </div>
-
-          {!collapsed && (
-            <div className="flex-1 min-w-0 text-left">
-              <p className="text-xs font-bold text-background truncate group-hover:underline">
-                {professional?.full_name || "Priscila Carbone"}
-              </p>
-              <p className="text-[11px] text-white/60 truncate flex items-center gap-1">
-                <span>{professional?.crp ? `CRP ${professional.crp}` : "Configurações"}</span>
-              </p>
+      {/* 3. BOTTOM: Marca da Plataforma (EvoluIA) + Botão Sair */}
+      <div className="border-t border-white/10 p-3 bg-black/20">
+        {!collapsed ? (
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 bg-white/10 rounded-lg flex items-center justify-center shrink-0">
+                <Brain className="w-4 h-4 text-white/80" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold leading-tight text-white/90">EvoluIA</p>
+                <p className="text-[10px] text-white/40 leading-tight truncate">
+                  Gestão Psicopedagógica
+                </p>
+              </div>
             </div>
-          )}
 
-          {!collapsed && (
             <button
-              onClick={(e) => {
-                e.stopPropagation()
-                signOut()
-              }}
-              className="text-white/40 hover:text-red-400 p-1 rounded hover:bg-white/10 transition-colors shrink-0"
+              onClick={signOut}
+              className="text-white/40 hover:text-red-400 p-1.5 rounded-lg hover:bg-white/10 transition-colors shrink-0"
               title="Sair da Conta"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-7 h-7 bg-white/10 rounded-lg flex items-center justify-center" title="EvoluIA">
+              <Brain className="w-4 h-4 text-white/80" />
+            </div>
+            <button
+              onClick={signOut}
+              className="text-white/40 hover:text-red-400 p-1 rounded transition-colors"
+              title="Sair"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Collapse toggle button */}
