@@ -337,18 +337,33 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
                 { value: "90", label: "90 minutos (1h30)" },
               ]}
             />
-            <Select
-              label="Tipo de Atendimento"
-              value={form.type}
-              onChange={(e) => setForm({ ...form, type: e.target.value })}
-              options={[
-                { value: "Avaliação Inicial", label: "Avaliação Inicial" },
-                { value: "Sessão Psicopedagógica", label: "Sessão Psicopedagógica" },
-                { value: "Devolutiva com Pais", label: "Devolutiva com Pais" },
-                { value: "Reunião Escolar", label: "Reunião Escolar" },
-                { value: "Outro", label: "Outro" },
-              ]}
-            />
+
+            {mode === "new" ? (
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-wider text-[#19323A]">
+                  Tipo de Atendimento
+                </label>
+                <div className="h-11 rounded-xl border-2 border-[#63C7B2]/50 bg-[#E8F8F5] px-3.5 flex items-center justify-between text-xs font-black text-[#20836F]">
+                  <span>Avaliação Inicial</span>
+                  <span className="text-[10px] bg-white px-2 py-0.5 rounded-md border border-[#63C7B2]/30 uppercase">
+                    1ª Consulta
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <Select
+                label="Tipo de Atendimento"
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value })}
+                options={[
+                  { value: "Sessão Psicopedagógica", label: "Sessão Psicopedagógica" },
+                  { value: "Avaliação Inicial", label: "Avaliação Inicial" },
+                  { value: "Devolutiva com Pais", label: "Devolutiva com Pais" },
+                  { value: "Reunião Escolar", label: "Reunião Escolar" },
+                  { value: "Outro", label: "Outro" },
+                ]}
+              />
+            )}
           </div>
 
           {conflictWarning && (
