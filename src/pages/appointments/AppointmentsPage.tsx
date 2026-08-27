@@ -346,7 +346,7 @@ export function AppointmentsPage() {
 
       {/* 2. WEEK VIEW */}
       {viewMode === "semana" && (
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
+        <div className="max-w-[90%] mx-auto grid grid-cols-1 md:grid-cols-7 gap-3">
           {weekDays.map((day) => {
             const isToday = isSameDay(day, new Date())
             const dayAppts = appointments.filter((a) => isSameDay(new Date(a.start_time), day))
@@ -441,86 +441,92 @@ export function AppointmentsPage() {
 
       {/* 3. DAY & MONTH LIST VIEW */}
       {(viewMode === "dia" || viewMode === "mes") && (
-        <div className="space-y-3">
+        <div className="max-w-2xl mx-auto space-y-2">
           {loading ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="h-20 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-2xl" />
               ))}
             </div>
           ) : appointments.length === 0 ? (
-            <Card className="border-2 border-dashed border-[#D8E5E7] py-12 text-center">
-              <CardContent className="space-y-3">
-                <CalendarIcon className="w-12 h-12 text-[#8DA3A8] mx-auto" />
-                <h3 className="font-black text-base text-[#19323A]">Nenhum atendimento no período</h3>
-                <p className="text-xs text-[#6B7C83]">Clique abaixo para agendar um novo atendimento.</p>
-                <Button onClick={() => setShowNewModal(true)} className="mt-2">
-                  <Plus className="w-4 h-4 mr-1.5" />
-                  Agendar Atendimento
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] py-12 text-center shadow-sm">
+              <CalendarIcon className="w-10 h-10 text-[#8DA3A8] mx-auto mb-3" />
+              <h3 className="font-black text-base text-[#19323A]">Nenhum atendimento no período</h3>
+              <p className="text-xs text-[#6B7C83] mt-1 mb-4">Clique abaixo para agendar um novo atendimento.</p>
+              <Button onClick={() => setShowNewModal(true)} size="sm">
+                <Plus className="w-4 h-4 mr-1.5" />
+                Agendar Atendimento
+              </Button>
+            </div>
           ) : (
-            appointments.map((appt) => {
-              const rawName = appt.child?.full_name || "Criança"
-              const displayName = rawName.startsWith("Avaliação")
-                ? rawName.replace(/^Avaliação/i, "Entrevista")
-                : rawName
-              const displayType =
-                appt.type === "Avaliação Inicial" ? "Entrevista Inicial" : appt.type
+            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-sm overflow-hidden">
+              {appointments.map((appt, idx) => {
+                const rawName = appt.child?.full_name || "Criança"
+                const displayName = rawName.startsWith("Avaliação")
+                  ? rawName.replace(/^Avaliação/i, "Entrevista")
+                  : rawName
+                const displayType =
+                  appt.type === "Avaliação Inicial" ? "Entrevista Inicial" : appt.type
 
-              return (
-                <div
-                  key={appt.id}
-                  className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:shadow-md transition-all flex items-center justify-between gap-4 group"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-14 h-14 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex flex-col items-center justify-center shrink-0">
+                return (
+                  <div
+                    key={appt.id}
+                    className={`flex items-center gap-4 px-5 py-3.5 group hover:bg-[#F7FAFA] transition-colors ${
+                      idx < appointments.length - 1 ? "border-b border-[#EEF5F6]" : ""
+                    }`}
+                  >
+                    {/* Time block */}
+                    <div className="shrink-0 text-center w-12">
                       <p className="text-[10px] font-bold text-[#6B7C83] uppercase">
                         {format(new Date(appt.start_time), "dd/MM")}
                       </p>
-                      <p className="text-base font-black text-[#19323A]">
+                      <p className="text-sm font-black text-[#19323A]">
                         {format(new Date(appt.start_time), "HH:mm")}
                       </p>
                     </div>
 
-                    {/* Child Avatar */}
+                    {/* Divider line */}
+                    <div className="w-px h-10 bg-[#D8E5E7] shrink-0" />
+
+                    {/* Avatar */}
                     <ChildAvatar
                       photoUrl={appt.child?.photo_url}
                       name={displayName}
-                      size="md"
+                      size="sm"
                     />
 
-                    <div className="min-w-0">
-                      <h3 className="font-black text-base text-[#19323A] truncate">{displayName}</h3>
-                      <p className="text-xs font-semibold text-[#6B7C83] truncate">{displayType}</p>
+                    {/* Name & type */}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-black text-sm text-[#19323A] truncate">{displayName}</h3>
+                      <p className="text-[11px] font-semibold text-[#6B7C83] truncate">{displayType}</p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge statusKey={appt.status} />
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteAppointment(e, appt.id)}
+                        className="p-1.5 text-[#8DA3A8] hover:text-[#D96C6C] hover:bg-[#FDF0F0] rounded-lg transition-colors"
+                        title="Excluir agendamento"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      {(appt.status === "scheduled" || appt.status === "confirmed") && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleStartAppointment(appt)}
+                          className="gap-1.5 text-xs"
+                        >
+                          <Play className="w-3 h-3 fill-current" />
+                          Iniciar
+                        </Button>
+                      )}
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <Badge statusKey={appt.status} />
-                    <button
-                      type="button"
-                      onClick={(e) => handleDeleteAppointment(e, appt.id)}
-                      className="p-2 text-[#8DA3A8] hover:text-[#D96C6C] hover:bg-[#FDF0F0] rounded-lg transition-colors"
-                      title="Excluir agendamento"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    {(appt.status === "scheduled" || appt.status === "confirmed") && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleStartAppointment(appt)}
-                        className="gap-1.5"
-                      >
-                        <Play className="w-3 h-3 fill-current" />
-                        Iniciar
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )
-            })
+                )
+              })}
+            </div>
           )}
         </div>
       )}
