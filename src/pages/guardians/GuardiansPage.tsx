@@ -35,18 +35,19 @@ export function GuardiansPage() {
   const [guardians, setGuardians] = useState<GuardianWithChildren[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [sortBy, setSortBy] = useState<"recent" | "az">("recent")
 
   const profId = professional?.id || user?.id
 
   useEffect(() => {
     if (profId) loadGuardians()
-  }, [profId])
+  }, [profId, sortBy])
 
   async function loadGuardians() {
     if (!profId) return
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      const query = supabase
         .from("guardians")
         .select(`
           *,
@@ -57,17 +58,24 @@ export function GuardiansPage() {
           )
         `)
         .eq("professional_id", profId)
-        .order("full_name")
+
+      const { data, error } = sortBy === "recent"
+        ? await query.order("created_at", { ascending: false })
+        : await query.order("full_name", { ascending: true })
 
       if (!error && data) {
         setGuardians(data as any)
       } else {
         // Fallback simple query
-        const { data: simpleData } = await supabase
+        const fallbackQuery = supabase
           .from("guardians")
           .select("*")
           .eq("professional_id", profId)
-          .order("full_name")
+
+        const { data: simpleData } = sortBy === "recent"
+          ? await fallbackQuery.order("created_at", { ascending: false })
+          : await fallbackQuery.order("full_name", { ascending: true })
+
         setGuardians(simpleData || [])
       }
     } finally {
@@ -108,25 +116,34 @@ export function GuardiansPage() {
         <Button
           size="lg"
           onClick={() => navigate("/criancas?nova=true")}
-          className="gap-2"
+          className="gap-2 shadow-[0_4px_0_0_#143741]"
         >
           <Plus className="w-5 h-5" />
-          Cadastrar com Criança
+          Novo Responsável
         </Button>
       </div>
 
-      {/* Smart Search Bar */}
-      <div className="bg-white p-3 rounded-2xl border-2 border-[#D8E5E7] shadow-sm">
-        <div className="relative">
+      {/* Search & Sort Bar */}
+      <div className="flex gap-3 flex-wrap bg-white p-3 rounded-2xl border-2 border-[#D8E5E7] shadow-sm">
+        <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8DA3A8]" />
           <input
             type="text"
-            placeholder="Buscar por nome do pai/mãe, telefone OU pelo nome do filho(a)..."
+            placeholder="Buscar por nome do responsável, telefone, CPF ou nome do filho..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 h-11 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-sm font-semibold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all placeholder:text-[#8DA3A8] placeholder:font-normal"
+            className="w-full pl-10 pr-4 h-11 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-sm font-semibold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all placeholder:text-[#8DA3A8]"
           />
         </div>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as any)}
+          className="h-11 px-4 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-sm font-bold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all"
+        >
+          <option value="recent">⏱️ Mais Recentes Primeiro</option>
+          <option value="az">🔤 Ordem Alfabética (A - Z)</option>
+        </select>
       </div>
 
       {/* List */}

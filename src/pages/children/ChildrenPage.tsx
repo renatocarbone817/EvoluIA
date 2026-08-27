@@ -50,17 +50,19 @@ export function ChildrenPage() {
   const [statusFilter, setStatusFilter] = useState("")
   const [showNewDialog, setShowNewDialog] = useState(searchParams.get("nova") === "true")
 
+  const [sortBy, setSortBy] = useState<"recent" | "az">("recent")
+
   const profId = professional?.id || user?.id
 
   useEffect(() => {
     if (profId) loadChildren()
-  }, [profId])
+  }, [profId, sortBy])
 
   async function loadChildren() {
     if (!profId) return
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      const query = supabase
         .from("children")
         .select(`
           *,
@@ -71,16 +73,23 @@ export function ChildrenPage() {
           )
         `)
         .eq("professional_id", profId)
-        .order("full_name")
+
+      const { data, error } = sortBy === "recent"
+        ? await query.order("created_at", { ascending: false })
+        : await query.order("full_name", { ascending: true })
 
       if (!error && data) {
         setChildren(data as any)
       } else {
-        const { data: fallback } = await supabase
+        const fallbackQuery = supabase
           .from("children")
           .select("*")
           .eq("professional_id", profId)
-          .order("full_name")
+
+        const { data: fallback } = sortBy === "recent"
+          ? await fallbackQuery.order("created_at", { ascending: false })
+          : await fallbackQuery.order("full_name", { ascending: true })
+
         setChildren(fallback || [])
       }
     } finally {
@@ -120,7 +129,7 @@ export function ChildrenPage() {
             {children.length} paciente{children.length !== 1 ? "s" : ""} cadastrado{children.length !== 1 ? "s" : ""} no consultório
           </p>
         </div>
-        <Button size="lg" onClick={() => setShowNewDialog(true)} className="gap-2">
+        <Button size="lg" onClick={() => setShowNewDialog(true)} className="gap-2 shadow-[0_4px_0_0_#143741]">
           <Plus className="w-5 h-5" />
           Nova Criança
         </Button>
@@ -138,6 +147,16 @@ export function ChildrenPage() {
             className="w-full pl-10 pr-4 h-11 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-sm font-semibold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all placeholder:text-[#8DA3A8] placeholder:font-normal"
           />
         </div>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as any)}
+          className="h-11 px-4 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-sm font-bold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all"
+        >
+          <option value="recent">⏱️ Mais Recentes Primeiro</option>
+          <option value="az">🔤 Ordem Alfabética (A - Z)</option>
+        </select>
+
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
