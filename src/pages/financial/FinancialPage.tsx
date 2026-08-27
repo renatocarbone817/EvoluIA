@@ -603,6 +603,21 @@ export function FinancialPage() {
     return { total, incomes, expenses, pendings, paids, overdueCount }
   }, [scopedRecords, records, currentMonth, currentYear])
 
+  // Available Years: Only Current Year (2026), and future years only if they have scheduled records
+  const availableYears = useMemo(() => {
+    const yearsSet = new Set<number>()
+    yearsSet.add(currentYear)
+
+    records.forEach((r) => {
+      const y = Number(r.year) || (r.created_at ? new Date(r.created_at).getFullYear() : null)
+      if (y && y >= currentYear) {
+        yearsSet.add(y)
+      }
+    })
+
+    return Array.from(yearsSet).sort((a, b) => a - b)
+  }, [records, currentYear])
+
   // 3. Unique categories available in scoped records
   const availableCategories = useMemo(() => {
     const set = new Set<string>()
@@ -689,7 +704,7 @@ export function FinancialPage() {
               onChange={(e) => setSelectedYear(Number(e.target.value))}
               className="text-xs font-black bg-transparent text-[#0D2329] px-1 py-1 focus:outline-none cursor-pointer border-l border-[#EEF5F6]"
             >
-              {[2024, 2025, 2026, 2027].map((y) => (
+              {availableYears.map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
