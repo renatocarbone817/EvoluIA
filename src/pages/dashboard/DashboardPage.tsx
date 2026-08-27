@@ -228,7 +228,12 @@ export function DashboardPage() {
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
       {/* 1. Compact Smart Header Banner */}
-      <div className="bg-gradient-to-r from-[#19323A] via-[#1E4E5B] to-[#245C6B] text-white p-5 sm:p-6 rounded-3xl border-2 border-[#19323A] shadow-md relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-[#19323A] via-[#1E4E5B] to-[#245C6B] text-white p-5 sm:p-6 rounded-3xl border-2 border-[#19323A] shadow-md relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4 z-30">
+        {/* Encapsulated background glow with overflow-hidden */}
+        <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+          <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-[#63C7B2]/10 rounded-full blur-2xl" />
+        </div>
+
         <div className="space-y-1.5 relative z-10">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl sm:text-2xl font-black tracking-tight">
@@ -254,8 +259,8 @@ export function DashboardPage() {
         </div>
 
         {/* Global Patient Search Bar + Action Buttons */}
-        <div className="flex items-center gap-2.5 relative z-10 w-full md:w-auto flex-wrap sm:flex-nowrap">
-          <div className="relative flex-1 sm:w-60">
+        <div className="flex items-center gap-2.5 relative z-20 w-full md:w-auto flex-wrap sm:flex-nowrap">
+          <div className="relative flex-1 sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8DA3A8]" />
             <input
               type="text"
@@ -278,8 +283,8 @@ export function DashboardPage() {
 
             {/* Live Search Results Dropdown */}
             {searchResults.length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl border-2 border-[#D8E5E7] shadow-xl p-2 z-50 space-y-1">
-                <p className="text-[10px] font-extrabold text-[#6B7C83] uppercase px-2 py-1">
+              <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl border-2 border-[#245C6B]/20 shadow-2xl p-2 z-50 space-y-1 min-w-[280px]">
+                <p className="text-[10px] font-extrabold text-[#6B7C83] uppercase px-2 py-1 border-b border-[#EEF5F6]">
                   Pacientes encontrados:
                 </p>
                 {searchResults.map((c) => (
@@ -290,7 +295,7 @@ export function DashboardPage() {
                       setSearchQuery("")
                       setSearchResults([])
                     }}
-                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-[#EEF5F6] cursor-pointer transition-colors"
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-[#EAF3F5] cursor-pointer transition-colors"
                   >
                     <ChildAvatar photoUrl={c.photo_url} name={c.full_name} size="xs" />
                     <div className="min-w-0 flex-1">
@@ -299,7 +304,7 @@ export function DashboardPage() {
                         {c.school ? `🏫 ${c.school}` : "Ficha cadastrada"}
                       </p>
                     </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-[#8DA3A8]" />
+                    <ChevronRight className="w-3.5 h-3.5 text-[#245C6B]" />
                   </div>
                 ))}
               </div>
@@ -316,9 +321,6 @@ export function DashboardPage() {
             Novo Agendamento
           </Button>
         </div>
-
-        {/* Subtle background glow */}
-        <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-[#63C7B2]/10 rounded-full blur-2xl pointer-events-none" />
       </div>
 
       {/* 2. Highlight: Next Appointment of the Day (if available) */}
