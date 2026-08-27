@@ -38,16 +38,11 @@ interface FinancialRecordWithDetails {
   id: string
   professional_id: string
   child_id: string | null
-  record_type?: "income" | "expense" | null
-  category?: string | null
-  description?: string | null
-  month?: number
-  year?: number
+  month: number
+  year: number
   amount: number
   status: "pending" | "paid" | "cancelled"
   payment_date?: string | null
-  payment_method?: string | null
-  due_date?: string | null
   notes?: string | null
   discount?: number | null
   created_at: string
@@ -118,7 +113,7 @@ export function FinancialPage() {
     amount: "",
     month: currentMonth,
     year: currentYear,
-    category: "Aluguel & Condomínio",
+    category: "Sessões",
     firstMonthStatus: "pending" as "pending" | "paid",
     payment_method: "pix",
     notes: "",
@@ -139,6 +134,9 @@ export function FinancialPage() {
       .eq("professional_id", profId)
       .order("full_name")
     setChildren(data || [])
+    if (data && data.length > 0 && !formData.child_id) {
+      setFormData((prev) => ({ ...prev, child_id: data[0].id }))
+    }
   }
 
   async function loadData() {
@@ -160,6 +158,8 @@ export function FinancialPage() {
           )
         `)
         .eq("professional_id", profId)
+        .order("year", { ascending: false })
+        .order("month", { ascending: false })
         .order("created_at", { ascending: false })
 
       if (error) throw error
@@ -172,6 +172,52 @@ export function FinancialPage() {
     }
   }
 
+  // =========================================================================
+  // HELPER: PARSE RECORD DETAILS (INCOME VS EXPENSE, CATEGORY & DESCRIPTION)
+  // =========================================================================
+  function getRecordInfo(r: FinancialRecordWithDetails) {
+    const rawNotes = r.notes || ""
+
+    // Check if expense
+    if (rawNotes.includes("[DESPESA:") || (!r.child_id && !r.child)) {
+      const match = rawNotes.match(/\[DESPESA:\s*([^\]]+)\]\s*(.*)/)
+      if (match) {
+        return {
+          isExpense: true,
+          category: match[1].trim(),
+          description: match[2].trim() || "Despesa Operacional",
+        }
+      }
+      return {
+        isExpense: true,
+        category: "Despesas",
+        description: rawNotes || "Despesa Operacional",
+      }
+    }
+
+    // Check if explicit income note
+    if (rawNotes.includes("[RECEITA:")) {
+      const match = rawNotes.match(/\[RECEITA:\s*([^\]]+)\]\s*(.*)/)
+      if (match) {
+        return {
+          isExpense: false,
+          category: match[1].trim(),
+          description: match[2].trim() || (r.child?.full_name ? `Sessão - ${r.child.full_name}` : "Atendimento"),
+        }
+      }
+    }
+
+    // Default child session income
+    return {
+      isExpense: false,
+      category: "Sessões",
+      description: r.child?.full_name ? `Sessão - ${r.child.full_name}` : rawNotes || "Sessão Psicopedagógica",
+    }
+  }
+
+  // =========================================================================
+  // HANDLE CREATE RECORD (COMPATIBLE WITH SUPABASE DATABASE SCHEMA)
+  // =========================================================================
   async function handleCreateRecord(e: React.FormEvent) {
     e.preventDefault()
     if (!profId || !formData.amount) return
@@ -179,47 +225,52 @@ export function FinancialPage() {
     setSaving(true)
     try {
       const rawAmount = parseFloat(formData.amount.replace(",", "."))
+      if (isNaN(rawAmount) || rawAmount <= 0) {
+        toast.error("Por favor, digite um valor válido.")
+        setSaving(false)
+        return
+      }
+
       const isIncome = entryType === "income"
       const startMonth = Number(formData.month)
       const startYear = Number(formData.year)
 
       if (isIncome) {
         // Income entry (Single)
-        const dateStr = `${startYear}-${String(startMonth).padStart(2, "0")}-10T12:00:00.000Z`
+        const noteTag = formData.description
+          ? `[RECEITA: ${formData.category || "Sessões"}] ${formData.description}${formData.notes ? ` - ${formData.notes}` : ""}`
+          : (formData.notes || null)
+
         const { error } = await supabase.from("financial_records").insert({
           professional_id: profId,
           child_id: formData.child_id || null,
-          description: formData.description || "Sessão Psicopedagógica",
-          amount: rawAmount,
           month: startMonth,
           year: startYear,
-          record_type: "income",
-          category: formData.category || "Sessões",
-          payment_method: formData.payment_method,
+          amount: rawAmount,
           status: formData.firstMonthStatus,
-          notes: formData.notes,
-          created_at: dateStr,
+          payment_date: formData.firstMonthStatus === "paid" ? new Date().toISOString().split("T")[0] : null,
+          notes: noteTag,
         })
+
         if (error) throw error
         toast.success("Receita lançada com sucesso!")
       } else {
         // Expense entry (Single, Recurring or Installments)
         const recordsToInsert: any[] = []
+        const expCategory = formData.category || "Aluguel & Condomínio"
+        const expDesc = formData.description.trim() || "Despesa Operacional"
 
         if (expenseRepetition === "single") {
-          const dateStr = `${startYear}-${String(startMonth).padStart(2, "0")}-10T12:00:00.000Z`
+          const noteTag = `[DESPESA: ${expCategory}] ${expDesc}${formData.notes ? ` - ${formData.notes}` : ""}`
           recordsToInsert.push({
             professional_id: profId,
-            description: formData.description || "Despesa Operacional",
-            amount: rawAmount,
+            child_id: null,
             month: startMonth,
             year: startYear,
-            record_type: "expense",
-            category: formData.category,
-            payment_method: formData.payment_method,
+            amount: rawAmount,
             status: formData.firstMonthStatus,
-            notes: formData.notes,
-            created_at: dateStr,
+            payment_date: formData.firstMonthStatus === "paid" ? new Date().toISOString().split("T")[0] : null,
+            notes: noteTag,
           })
         } else if (expenseRepetition === "recurring") {
           // Generates 1 record for each recurring month
@@ -230,19 +281,16 @@ export function FinancialPage() {
               m -= 12
               y += 1
             }
-            const dateStr = `${y}-${String(m).padStart(2, "0")}-10T12:00:00.000Z`
+            const noteTag = `[DESPESA: ${expCategory}] ${expDesc} (${i + 1}/${recurringMonthsCount} meses)${formData.notes ? ` - ${formData.notes}` : ""}`
             recordsToInsert.push({
               professional_id: profId,
-              description: formData.description || "Conta Fixa",
-              amount: rawAmount,
+              child_id: null,
               month: m,
               year: y,
-              record_type: "expense",
-              category: formData.category,
-              payment_method: formData.payment_method,
+              amount: rawAmount,
               status: i === 0 ? formData.firstMonthStatus : "pending",
-              notes: `Conta Fixa (${i + 1}/${recurringMonthsCount} meses) - ${formData.notes || ""}`.trim(),
-              created_at: dateStr,
+              payment_date: i === 0 && formData.firstMonthStatus === "paid" ? new Date().toISOString().split("T")[0] : null,
+              notes: noteTag,
             })
           }
         } else if (expenseRepetition === "installments") {
@@ -255,19 +303,17 @@ export function FinancialPage() {
               m -= 12
               y += 1
             }
-            const dateStr = `${y}-${String(m).padStart(2, "0")}-10T12:00:00.000Z`
+            const installmentDesc = `${expDesc} (Parcela ${i + 1}/${installmentsCount})`
+            const noteTag = `[DESPESA: ${expCategory}] ${installmentDesc}${formData.notes ? ` - ${formData.notes}` : ""}`
             recordsToInsert.push({
               professional_id: profId,
-              description: `${formData.description || "Compra Parcelada"} (${i + 1}/${installmentsCount})`,
-              amount: installmentVal,
+              child_id: null,
               month: m,
               year: y,
-              record_type: "expense",
-              category: formData.category,
-              payment_method: formData.payment_method,
+              amount: installmentVal,
               status: i === 0 ? formData.firstMonthStatus : "pending",
-              notes: `Parcela ${i + 1}/${installmentsCount} - ${formData.notes || ""}`.trim(),
-              created_at: dateStr,
+              payment_date: i === 0 && formData.firstMonthStatus === "paid" ? new Date().toISOString().split("T")[0] : null,
+              notes: noteTag,
             })
           }
         }
@@ -276,9 +322,9 @@ export function FinancialPage() {
         if (error) throw error
 
         if (expenseRepetition === "recurring") {
-          toast.success(`Conta fixa programada para os próximos ${recurringMonthsCount} meses!`)
+          toast.success(`🎉 ${recurringMonthsCount} meses de conta fixa programados com sucesso!`)
         } else if (expenseRepetition === "installments") {
-          toast.success(`Despesa parcelada em ${installmentsCount}x com sucesso!`)
+          toast.success(`🎉 Despesa parcelada em ${installmentsCount}x com sucesso!`)
         } else {
           toast.success("Despesa registrada com sucesso!")
         }
@@ -288,20 +334,20 @@ export function FinancialPage() {
       setSelectedMonth(startMonth)
       setSelectedYear(startYear)
       setFormData({
-        child_id: "",
+        child_id: children[0]?.id || "",
         description: "",
         amount: "",
-        month: currentMonth,
-        year: currentYear,
-        category: "Aluguel & Condomínio",
+        month: startMonth,
+        year: startYear,
+        category: entryType === "income" ? "Sessões" : "Aluguel & Condomínio",
         firstMonthStatus: "pending",
         payment_method: "pix",
         notes: "",
       })
       loadData()
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      toast.error("Erro ao salvar lançamento financeiro")
+      toast.error(err?.message || "Erro ao salvar lançamento financeiro")
     } finally {
       setSaving(false)
     }
@@ -344,25 +390,15 @@ export function FinancialPage() {
     window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(finalMsg)}`, "_blank")
   }
 
-  // Helper to extract record's month & year
-  function getRecordMonthYear(r: FinancialRecordWithDetails) {
-    if (r.month && r.year) {
-      return { m: r.month, y: r.year }
-    }
-    const d = new Date(r.created_at || r.payment_date || new Date())
-    return { m: d.getMonth() + 1, y: d.getFullYear() }
-  }
-
-  // Helper to extract record's day of month (1-31)
-  function getRecordDay(r: FinancialRecordWithDetails) {
-    const d = new Date(r.created_at || r.payment_date || new Date())
-    return d.getDate()
-  }
+  // =========================================================================
+  // REAL REACTIVE CALCULATIONS FOR SELECTED MONTH & YEAR
+  // =========================================================================
 
   // Records for current selected month
   const monthRecords = useMemo(() => {
     return records.filter((r) => {
-      const { m, y } = getRecordMonthYear(r)
+      const m = Number(r.month) || (new Date(r.created_at).getMonth() + 1)
+      const y = Number(r.year) || new Date(r.created_at).getFullYear()
       return m === selectedMonth && y === selectedYear
     })
   }, [records, selectedMonth, selectedYear])
@@ -372,7 +408,8 @@ export function FinancialPage() {
   const prevYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear
   const prevMonthRecords = useMemo(() => {
     return records.filter((r) => {
-      const { m, y } = getRecordMonthYear(r)
+      const m = Number(r.month) || (new Date(r.created_at).getMonth() + 1)
+      const y = Number(r.year) || new Date(r.created_at).getFullYear()
       return m === prevMonth && y === prevYear
     })
   }, [records, prevMonth, prevYear])
@@ -380,25 +417,25 @@ export function FinancialPage() {
   // Current Month Totals
   const realTotalIncome = useMemo(() => {
     return monthRecords
-      .filter((r) => r.record_type !== "expense" && r.status !== "cancelled")
+      .filter((r) => !getRecordInfo(r).isExpense && r.status !== "cancelled")
       .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
   }, [monthRecords])
 
   const realReceivedIncome = useMemo(() => {
     return monthRecords
-      .filter((r) => r.record_type !== "expense" && r.status === "paid")
+      .filter((r) => !getRecordInfo(r).isExpense && r.status === "paid")
       .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
   }, [monthRecords])
 
   const realPendingIncome = useMemo(() => {
     return monthRecords
-      .filter((r) => r.record_type !== "expense" && r.status === "pending")
+      .filter((r) => !getRecordInfo(r).isExpense && r.status === "pending")
       .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
   }, [monthRecords])
 
   const realTotalExpense = useMemo(() => {
     return monthRecords
-      .filter((r) => r.record_type === "expense" && r.status !== "cancelled")
+      .filter((r) => getRecordInfo(r).isExpense && r.status !== "cancelled")
       .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
   }, [monthRecords])
 
@@ -407,25 +444,25 @@ export function FinancialPage() {
   // Previous Month Totals
   const prevTotalIncome = useMemo(() => {
     return prevMonthRecords
-      .filter((r) => r.record_type !== "expense" && r.status !== "cancelled")
+      .filter((r) => !getRecordInfo(r).isExpense && r.status !== "cancelled")
       .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
   }, [prevMonthRecords])
 
   const prevReceivedIncome = useMemo(() => {
     return prevMonthRecords
-      .filter((r) => r.record_type !== "expense" && r.status === "paid")
+      .filter((r) => !getRecordInfo(r).isExpense && r.status === "paid")
       .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
   }, [prevMonthRecords])
 
   const prevPendingIncome = useMemo(() => {
     return prevMonthRecords
-      .filter((r) => r.record_type !== "expense" && r.status === "pending")
+      .filter((r) => !getRecordInfo(r).isExpense && r.status === "pending")
       .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
   }, [prevMonthRecords])
 
   const prevTotalExpense = useMemo(() => {
     return prevMonthRecords
-      .filter((r) => r.record_type === "expense" && r.status !== "cancelled")
+      .filter((r) => getRecordInfo(r).isExpense && r.status !== "cancelled")
       .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
   }, [prevMonthRecords])
 
@@ -453,10 +490,12 @@ export function FinancialPage() {
     ]
 
     monthRecords.forEach((r) => {
-      const day = getRecordDay(r)
+      const d = new Date(r.created_at || r.payment_date || new Date())
+      const day = d.getDate()
       const amt = Number(r.amount) || 0
+      const isExp = getRecordInfo(r).isExpense
       const targetWeek = weeks.find((w) => day >= w.range[0] && day <= w.range[1]) || weeks[4]
-      if (r.record_type === "expense") {
+      if (isExp) {
         targetWeek.exp += amt
       } else {
         targetWeek.inc += amt
@@ -486,17 +525,17 @@ export function FinancialPage() {
 
   // 5. Contas a Receber (Pending Incomes for selected month)
   const pendingIncomesList = useMemo(() => {
-    return monthRecords.filter((r) => r.record_type !== "expense" && r.status === "pending")
+    return monthRecords.filter((r) => !getRecordInfo(r).isExpense && r.status === "pending")
   }, [monthRecords])
 
   // 6. Contas a Pagar (Expenses for selected month)
   const payablesList = useMemo(() => {
-    return monthRecords.filter((r) => r.record_type === "expense")
+    return monthRecords.filter((r) => getRecordInfo(r).isExpense)
   }, [monthRecords])
 
   // 7. Formas de Pagamento Breakdown
   const paymentMethodsBreakdown = useMemo(() => {
-    const paidRecords = monthRecords.filter((r) => r.record_type !== "expense" && r.status === "paid")
+    const paidRecords = monthRecords.filter((r) => !getRecordInfo(r).isExpense && r.status === "paid")
     const totalPaid = paidRecords.reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
 
     let credit = 0
@@ -505,10 +544,10 @@ export function FinancialPage() {
 
     paidRecords.forEach((r) => {
       const amt = Number(r.amount) || 0
-      const method = (r.payment_method || r.notes || "").toLowerCase()
-      if (method.includes("cart") || method.includes("credit")) credit += amt
-      else if (method.includes("transf") || method.includes("ted") || method.includes("doc") || method.includes("boleto")) transfer += amt
-      else pix += amt // default to PIX
+      const notesLower = (r.notes || "").toLowerCase()
+      if (notesLower.includes("cart") || notesLower.includes("credit")) credit += amt
+      else if (notesLower.includes("transf") || notesLower.includes("ted") || notesLower.includes("doc") || notesLower.includes("boleto")) transfer += amt
+      else pix += amt // default PIX
     })
 
     return {
@@ -521,18 +560,16 @@ export function FinancialPage() {
   // 8. Filtered Recent Entries for Table
   const filteredRecords = useMemo(() => {
     return monthRecords.filter((r) => {
-      const desc = r.description || ""
+      const info = getRecordInfo(r)
       const childName = r.child?.full_name || ""
-      const cat = r.category || ""
       const matchSearch =
-        desc.toLowerCase().includes(search.toLowerCase()) ||
+        info.description.toLowerCase().includes(search.toLowerCase()) ||
         childName.toLowerCase().includes(search.toLowerCase()) ||
-        cat.toLowerCase().includes(search.toLowerCase())
+        info.category.toLowerCase().includes(search.toLowerCase())
 
       if (!matchSearch) return false
-      const isIncome = r.record_type !== "expense"
-      if (typeFilter === "income") return isIncome
-      if (typeFilter === "expense") return !isIncome
+      if (typeFilter === "income") return !info.isExpense
+      if (typeFilter === "expense") return info.isExpense
       if (typeFilter === "pending") return r.status === "pending"
       return true
     })
@@ -583,7 +620,13 @@ export function FinancialPage() {
           <button
             onClick={() => {
               setEntryType("income")
-              setFormData((prev) => ({ ...prev, month: selectedMonth, year: selectedYear, category: "Sessões" }))
+              setFormData((prev) => ({
+                ...prev,
+                month: selectedMonth,
+                year: selectedYear,
+                category: "Sessões",
+                child_id: children[0]?.id || "",
+              }))
               setShowAddModal(true)
             }}
             className="h-9 px-4 rounded-xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
@@ -595,7 +638,12 @@ export function FinancialPage() {
           <button
             onClick={() => {
               setEntryType("expense")
-              setFormData((prev) => ({ ...prev, month: selectedMonth, year: selectedYear, category: "Aluguel & Condomínio" }))
+              setFormData((prev) => ({
+                ...prev,
+                month: selectedMonth,
+                year: selectedYear,
+                category: "Aluguel & Condomínio",
+              }))
               setShowAddModal(true)
             }}
             className="h-9 px-4 rounded-xl bg-gradient-to-r from-[#EF4444] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] text-white text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
@@ -920,10 +968,10 @@ export function FinancialPage() {
             ) : (
               <div className="space-y-2">
                 {pendingIncomesList.slice(0, 3).map((item) => {
-                  const d = new Date(item.created_at || item.due_date || new Date())
+                  const d = new Date(item.created_at || item.payment_date || new Date())
                   const day = d.getDate().toString().padStart(2, "0")
                   const month = MONTHS[d.getMonth()].slice(0, 3).toUpperCase()
-                  const name = item.child?.full_name || item.description || "Atendimento"
+                  const info = getRecordInfo(item)
 
                   return (
                     <div key={item.id} className="flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-[#F7FAFA] transition-colors">
@@ -933,8 +981,8 @@ export function FinancialPage() {
                           <span className="text-[7px] uppercase">{month}</span>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-black text-[#0D2329] truncate">{name}</p>
-                          <p className="text-[9px] text-[#8CAAB1] truncate">{item.category || "Sessão"}</p>
+                          <p className="text-xs font-black text-[#0D2329] truncate">{info.description}</p>
+                          <p className="text-[9px] text-[#8CAAB1] truncate">{info.category}</p>
                         </div>
                       </div>
                       <div className="text-right shrink-0">
@@ -973,10 +1021,11 @@ export function FinancialPage() {
             ) : (
               <div className="space-y-2">
                 {payablesList.slice(0, 3).map((item) => {
-                  const d = new Date(item.created_at || item.due_date || new Date())
+                  const d = new Date(item.created_at || item.payment_date || new Date())
                   const day = d.getDate().toString().padStart(2, "0")
                   const month = MONTHS[d.getMonth()].slice(0, 3).toUpperCase()
                   const isPaid = item.status === "paid"
+                  const info = getRecordInfo(item)
 
                   return (
                     <div key={item.id} className="flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-[#F7FAFA] transition-colors">
@@ -986,8 +1035,8 @@ export function FinancialPage() {
                           <span className="text-[7px] uppercase">{month}</span>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-black text-[#0D2329] truncate">{item.description}</p>
-                          <p className="text-[9px] text-[#8CAAB1] truncate">{item.category || "Despesa"}</p>
+                          <p className="text-xs font-black text-[#0D2329] truncate">{info.description}</p>
+                          <p className="text-[9px] text-[#8CAAB1] truncate">{info.category}</p>
                         </div>
                       </div>
                       <div className="text-right shrink-0">
@@ -1125,11 +1174,8 @@ export function FinancialPage() {
                   </tr>
                 ) : (
                   filteredRecords.map((record) => {
-                    const isIncome = record.record_type !== "expense"
+                    const info = getRecordInfo(record)
                     const isPaid = record.status === "paid"
-                    const desc = record.child?.full_name
-                      ? `${record.description || "Atendimento"} - ${record.child.full_name}`
-                      : record.description || "Lançamento Geral"
 
                     return (
                       <tr key={record.id} className="hover:bg-[#F7FAFA] transition-colors group">
@@ -1137,15 +1183,15 @@ export function FinancialPage() {
                           {formatDate(record.created_at)}
                         </td>
                         <td className="py-3 font-bold text-[#0D2329] max-w-[200px] truncate">
-                          {desc}
+                          {info.description}
                         </td>
                         <td className="py-3">
                           <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#EAF8FC] text-[#00B4D8]">
-                            {record.category || "Geral"}
+                            {info.category}
                           </span>
                         </td>
                         <td className="py-3 font-bold">
-                          {isIncome ? (
+                          {!info.isExpense ? (
                             <span className="text-[#10B981] flex items-center gap-0.5">Receita ↑</span>
                           ) : (
                             <span className="text-[#EF4444] flex items-center gap-0.5">Despesa ↓</span>
@@ -1160,13 +1206,13 @@ export function FinancialPage() {
                               ? "bg-[#E8F8F5] text-[#10B981]"
                               : "bg-[#FEF8EC] text-[#F59E0B]"
                           }`}>
-                            {isPaid ? (isIncome ? "Recebido" : "Pago") : "Pendente"}
+                            {isPaid ? (!info.isExpense ? "Recebido" : "Pago") : "Pendente"}
                           </span>
                         </td>
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             {/* WhatsApp button if income & has phone */}
-                            {isIncome && !isPaid && record.child && (
+                            {!info.isExpense && !isPaid && record.child && (
                               <button
                                 onClick={() => handleSendWhatsApp(record)}
                                 className="p-1 text-[#10B981] hover:bg-[#E8F8F5] rounded-lg transition-colors"
