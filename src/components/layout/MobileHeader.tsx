@@ -19,6 +19,7 @@ import {
 import { useAuthStore } from "@/store/authStore"
 import { getInitials, cn } from "@/lib/utils"
 import { Button } from "@/components/ui/Button"
+import { NotificationCenter } from "./NotificationCenter"
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Início / Dashboard" },
@@ -66,17 +67,20 @@ export function MobileHeader() {
 
         {/* Right action / profile */}
         <div className="flex items-center gap-2">
+          {/* Notification Center */}
+          <NotificationCenter />
+
           <button
             onClick={() => navigate("/agenda?novo=true")}
-            className="h-8 px-3 bg-[#245C6B] text-white text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm hover:bg-[#1E4E5B] transition-colors active:scale-95"
+            className="h-8 px-2.5 bg-[#245C6B] text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-sm hover:bg-[#1E4E5B] transition-colors active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Agendar</span>
+            <span className="hidden sm:inline">Agendar</span>
           </button>
 
           <button
             onClick={() => navigate("/configuracoes")}
-            className="w-8 h-8 rounded-full bg-[#EEF5F6] border border-[#D8E5E7] overflow-hidden flex items-center justify-center shrink-0"
+            className="w-8 h-8 rounded-full bg-[#EEF5F6] border-2 border-[#D8E5E7] overflow-hidden flex items-center justify-center shrink-0 shadow-2xs"
           >
             {professional?.logo_url ? (
               <img src={professional.logo_url} alt="Logo" className="w-full h-full object-cover" />

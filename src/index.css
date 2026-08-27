@@ -5,8 +5,8 @@
 
 @layer base {
   :root {
-    /* Fundo Off-white e Texto Azul Quase Preto */
-    --background: 180 20% 98%;       /* #F7FAFA */
+    /* Fundo suave com contraste perfeito para cartões brancos */
+    --background: 195 22% 95.5%;     /* #EFF4F6 */
     --foreground: 193 40% 16%;       /* #19323A */
 
     /* Cards e Superfícies em Branco Puro */

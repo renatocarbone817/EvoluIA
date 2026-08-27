@@ -62,7 +62,34 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Toaster position="top-right" />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3500,
+            style: {
+              background: "#19323A",
+              color: "#FFFFFF",
+              borderRadius: "14px",
+              fontSize: "13px",
+              fontWeight: "700",
+              padding: "12px 18px",
+              border: "1.5px solid #245C6B",
+              boxShadow: "0 10px 30px -5px rgba(25, 50, 58, 0.25)",
+            },
+            success: {
+              iconTheme: {
+                primary: "#63C7B2",
+                secondary: "#19323A",
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: "#D96C6C",
+                secondary: "#19323A",
+              },
+            },
+          }}
+        />
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
