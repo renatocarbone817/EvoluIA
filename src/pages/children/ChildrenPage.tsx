@@ -185,7 +185,7 @@ export function ChildrenPage() {
   ).length
 
   return (
-    <div className="p-4 md:p-8 max-w-[80%] mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-[92%] mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -298,9 +298,9 @@ export function ChildrenPage() {
 
       {/* Main Content: Loading, Empty or List/Grid View */}
       {loading ? (
-        <div className={viewType === "cards" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5" : "space-y-2"}>
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-44 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-2xl" />
+        <div className={viewType === "cards" ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4" : "space-y-2"}>
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="h-48 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-2xl" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -350,7 +350,7 @@ export function ChildrenPage() {
                 <div
                   key={child.id}
                   onClick={() => navigate(`/criancas/${child.id}`)}
-                  className="p-3 sm:p-4 hover:bg-[#F7FAFA] transition-colors cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-3 group"
+                  className="p-3.5 sm:p-4 hover:bg-[#F7FAFA] transition-colors cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-3 group"
                 >
                   {/* Child Info */}
                   <div className="flex items-center gap-3 min-w-0 md:w-1/3">
@@ -361,12 +361,12 @@ export function ChildrenPage() {
                           {displayName}
                         </h3>
                         {age !== null && (
-                          <span className="text-[10px] font-bold text-[#6B7C83] bg-[#EEF5F6] px-1.5 py-0.2 rounded-md">
+                          <span className="text-xs font-bold text-[#6B7C83] bg-[#EEF5F6] px-2 py-0.5 rounded-md">
                             {age} anos
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-[#6B7C83] truncate">
+                      <p className="text-xs text-[#6B7C83] truncate mt-0.5">
                         {child.school ? `🏫 ${child.school}` : "Escola não informada"}
                       </p>
                     </div>
@@ -379,37 +379,37 @@ export function ChildrenPage() {
                         <p className="font-bold text-[#19323A] truncate flex items-center gap-1">
                           <span>👤 {primaryGuardian.full_name}</span>
                           {linkedGuardians[0]?.relationship && (
-                            <span className="text-[10px] text-[#6B7C83] font-normal">
+                            <span className="text-[11px] text-[#6B7C83] font-normal">
                               ({linkedGuardians[0].relationship})
                             </span>
                           )}
                         </p>
                         {primaryGuardian.phone && (
-                          <p className="text-[11px] text-[#6B7C83] font-medium">
+                          <p className="text-xs text-[#6B7C83] font-medium">
                             {formatPhone(primaryGuardian.phone)}
                           </p>
                         )}
                       </div>
                     ) : (
-                      <span className="text-[11px] text-[#8DA3A8] italic">Sem responsável</span>
+                      <span className="text-xs text-[#8DA3A8] italic">Sem responsável</span>
                     )}
                   </div>
 
                   {/* Status & Next Session */}
                   <div className="min-w-0 md:w-1/4 space-y-1">
-                    <Badge statusKey={child.status} className="text-[10px] px-2 py-0.5" />
+                    <Badge statusKey={child.status} type="child" className="text-xs px-2.5 py-0.5" />
                     {child.nextAppointment ? (
-                      <p className="text-[11px] font-bold text-[#20836F] flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
+                      <p className="text-xs font-bold text-[#20836F] flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5" />
                         Próx: {format(new Date(child.nextAppointment.start_time), "dd/MM 'às' HH:mm")}
                       </p>
                     ) : child.lastAppointment ? (
-                      <p className="text-[10px] text-[#6B7C83] flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                      <p className="text-xs text-[#6B7C83] flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" />
                         Último: {format(new Date(child.lastAppointment.start_time), "dd/MM/yy")}
                       </p>
                     ) : (
-                      <p className="text-[10px] text-[#8DA3A8] italic">Sem agendamento</p>
+                      <p className="text-xs text-[#8DA3A8] italic">Sem agendamento</p>
                     )}
                   </div>
 
@@ -421,11 +421,11 @@ export function ChildrenPage() {
                         target="_blank"
                         rel="noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="p-2 text-[#20836F] bg-[#E8F8F5] hover:bg-[#20836F] hover:text-white rounded-xl border border-[#63C7B2]/40 transition-all text-xs font-bold flex items-center gap-1 shadow-2xs"
+                        className="px-2.5 py-1.5 text-[#20836F] bg-[#E8F8F5] hover:bg-[#20836F] hover:text-white rounded-xl border border-[#63C7B2]/40 transition-all text-xs font-bold flex items-center gap-1.5 shadow-2xs"
                         title="Abrir WhatsApp"
                       >
                         <MessageSquare className="w-3.5 h-3.5 fill-current" />
-                        <span className="hidden lg:inline text-[11px]">WhatsApp</span>
+                        <span className="text-xs">WhatsApp</span>
                       </a>
                     )}
 
@@ -435,10 +435,10 @@ export function ChildrenPage() {
                         e.stopPropagation()
                         setScheduleForChildId(child.id)
                       }}
-                      className="px-2.5 py-1.5 text-[#245C6B] bg-[#EAF3F5] hover:bg-[#245C6B] hover:text-white rounded-xl border border-[#245C6B]/30 transition-all text-[11px] font-black flex items-center gap-1 shadow-2xs"
+                      className="px-3 py-1.5 text-[#245C6B] bg-[#EAF3F5] hover:bg-[#245C6B] hover:text-white rounded-xl border border-[#245C6B]/30 transition-all text-xs font-black flex items-center gap-1.5 shadow-2xs"
                       title="Agendar nova sessão"
                     >
-                      <Calendar className="w-3 h-3" />
+                      <Calendar className="w-3.5 h-3.5" />
                       <span>Agendar</span>
                     </button>
 
@@ -450,8 +450,8 @@ export function ChildrenPage() {
           </div>
         </div>
       ) : (
-        /* 2. CARD VIEW (3 Columns - Compact, rich & sleek) */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        /* 2. CARD VIEW (4 Columns on XL - Spacious, readable & balanced typography) */
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((child) => {
             const age = child.birth_date ? calculateAge(child.birth_date) : null
             const linkedGuardians = child.guardians?.filter((g) => g.guardian) || []
@@ -470,23 +470,23 @@ export function ChildrenPage() {
               <div
                 key={child.id}
                 onClick={() => navigate(`/criancas/${child.id}`)}
-                className="p-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:shadow-md cursor-pointer transition-all space-y-2.5 flex flex-col justify-between group"
+                className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:shadow-md cursor-pointer transition-all space-y-3 flex flex-col justify-between group"
               >
                 {/* 1. Header: Avatar + Name + Status + WhatsApp */}
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="group-hover:scale-105 transition-transform shrink-0">
                         <ChildAvatar photoUrl={child.photo_url} name={displayName} size="sm" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="font-black text-sm text-[#19323A] group-hover:text-[#245C6B] transition-colors truncate leading-snug">
+                        <h3 className="font-black text-sm sm:text-base text-[#19323A] group-hover:text-[#245C6B] transition-colors truncate leading-tight">
                           {displayName}
                         </h3>
-                        <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
-                          <Badge statusKey={child.status} className="text-[9px] px-1.5 py-0" />
+                        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                          <Badge statusKey={child.status} type="child" className="text-[10px] px-2 py-0.5" />
                           {age !== null && (
-                            <span className="text-[10px] font-bold text-[#6B7C83] bg-[#EEF5F6] px-1.5 py-0.2 rounded">
+                            <span className="text-[11px] font-bold text-[#6B7C83] bg-[#EEF5F6] px-2 py-0.5 rounded-md">
                               {age} anos
                             </span>
                           )}
@@ -501,44 +501,44 @@ export function ChildrenPage() {
                         target="_blank"
                         rel="noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="p-1.5 bg-[#E8F8F5] text-[#20836F] border border-[#63C7B2]/40 hover:bg-[#63C7B2] hover:text-white rounded-lg transition-all shadow-2xs shrink-0"
+                        className="p-2 bg-[#E8F8F5] text-[#20836F] border border-[#63C7B2]/40 hover:bg-[#63C7B2] hover:text-white rounded-xl transition-all shadow-2xs shrink-0"
                         title="Enviar WhatsApp para o responsável"
                       >
-                        <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                        <MessageSquare className="w-4 h-4 fill-current" />
                       </a>
                     )}
                   </div>
 
                   {/* Next / Last Session Badge Banner */}
                   {child.nextAppointment ? (
-                    <div className="px-2 py-1 bg-[#E8F8F5] border border-[#63C7B2]/30 rounded-lg text-[11px] flex items-center justify-between text-[#20836F]">
-                      <span className="flex items-center gap-1 font-bold truncate">
-                        <Calendar className="w-3 h-3 shrink-0" />
+                    <div className="px-2.5 py-1.5 bg-[#E8F8F5] border border-[#63C7B2]/40 rounded-xl text-xs flex items-center justify-between text-[#20836F]">
+                      <span className="flex items-center gap-1.5 font-bold truncate">
+                        <Calendar className="w-3.5 h-3.5 shrink-0" />
                         Próx: {format(new Date(child.nextAppointment.start_time), "dd/MM 'às' HH:mm", { locale: ptBR })}
                       </span>
-                      <span className="text-[9px] font-black uppercase opacity-75 truncate max-w-[90px]">
+                      <span className="text-[10px] font-black uppercase opacity-75 truncate max-w-[85px]">
                         {child.nextAppointment.type}
                       </span>
                     </div>
                   ) : child.lastAppointment ? (
-                    <div className="px-2 py-1 bg-[#EEF5F6] border border-[#D8E5E7] rounded-lg text-[10px] text-[#6B7C83] flex items-center gap-1">
-                      <Clock className="w-3 h-3 shrink-0" />
-                      <span>Último: {format(new Date(child.lastAppointment.start_time), "dd/MM/yyyy")}</span>
+                    <div className="px-2.5 py-1.5 bg-[#EEF5F6] border border-[#D8E5E7] rounded-xl text-xs text-[#6B7C83] flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 shrink-0" />
+                      <span className="font-medium">Último: {format(new Date(child.lastAppointment.start_time), "dd/MM/yyyy")}</span>
                     </div>
                   ) : null}
 
                   {/* School & Grade info */}
                   {(child.school || child.grade) && (
-                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-[#6B7C83] flex-wrap">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-[#6B7C83] flex-wrap">
                       {child.school && (
-                        <span className="inline-flex items-center gap-1 bg-[#EEF5F6] px-1.5 py-0.5 rounded truncate max-w-[170px]">
-                          <School className="w-3 h-3 text-[#245C6B] shrink-0" />
+                        <span className="inline-flex items-center gap-1 bg-[#EEF5F6] px-2 py-0.5 rounded-md truncate max-w-[160px]">
+                          <School className="w-3.5 h-3.5 text-[#245C6B] shrink-0" />
                           <span className="truncate">{child.school}</span>
                         </span>
                       )}
                       {child.grade && (
-                        <span className="inline-flex items-center gap-1 bg-[#EEF5F6] px-1.5 py-0.5 rounded">
-                          <BookOpen className="w-3 h-3 text-[#245C6B]" />
+                        <span className="inline-flex items-center gap-1 bg-[#EEF5F6] px-2 py-0.5 rounded-md">
+                          <BookOpen className="w-3.5 h-3.5 text-[#245C6B]" />
                           {child.grade}
                         </span>
                       )}
@@ -547,10 +547,10 @@ export function ChildrenPage() {
 
                   {/* Primary Guardian info */}
                   {primaryGuardian && (
-                    <p className="text-[10px] text-[#6B7C83] font-medium truncate flex items-center gap-1">
+                    <p className="text-xs text-[#6B7C83] font-medium truncate flex items-center gap-1 pt-0.5">
                       <span>👤 {primaryGuardian.full_name}</span>
                       {linkedGuardians[0]?.relationship && (
-                        <span className="text-[9px] opacity-75">
+                        <span className="text-[11px] opacity-75">
                           ({linkedGuardians[0].relationship})
                         </span>
                       )}
@@ -559,14 +559,14 @@ export function ChildrenPage() {
 
                   {/* Clinical Complaint snippet */}
                   {child.main_complaint && (
-                    <div className="px-2 py-1 bg-[#FEF8EC]/70 border border-[#F4C95D]/30 rounded-lg text-[10px] text-[#8B6514] font-medium italic truncate">
+                    <div className="px-2.5 py-1.5 bg-[#FEF8EC]/80 border border-[#F4C95D]/40 rounded-xl text-xs text-[#8B6514] font-medium italic truncate">
                       💬 "{child.main_complaint}"
                     </div>
                   )}
                 </div>
 
                 {/* Bottom: Fast Schedule + View Profile */}
-                <div className="flex items-center justify-between pt-2 border-t border-[#EEF5F6] text-[11px] font-bold">
+                <div className="flex items-center justify-between pt-2.5 border-t border-[#EEF5F6] text-xs font-bold">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -575,13 +575,13 @@ export function ChildrenPage() {
                     }}
                     className="text-[#245C6B] hover:underline flex items-center gap-1 font-black"
                   >
-                    <Calendar className="w-3 h-3" />
+                    <Calendar className="w-3.5 h-3.5" />
                     Agendar
                   </button>
 
                   <span className="inline-flex items-center gap-0.5 text-[#245C6B] group-hover:underline font-black">
                     Ver ficha
-                    <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                   </span>
                 </div>
               </div>
