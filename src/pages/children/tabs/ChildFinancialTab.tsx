@@ -43,7 +43,7 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
   const [form, setForm] = useState({
     month: String(new Date().getMonth() + 1),
     year: String(new Date().getFullYear()),
-    amount: "0",
+    amount: localStorage.getItem("evoluia_default_price") || (professional as any)?.default_price || "180",
     status: "pending",
     notes: "",
   })

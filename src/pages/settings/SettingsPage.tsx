@@ -236,6 +236,7 @@ export function SettingsPage() {
 
       if (error) throw error
 
+      localStorage.setItem("evoluia_default_price", form.default_price || "180")
       localStorage.setItem("evoluia_task_categories", JSON.stringify(categories))
       localStorage.setItem("evoluia_working_hours", JSON.stringify(schedule))
       localStorage.setItem("evoluia_session_duration", String(sessionDuration))
@@ -959,12 +960,12 @@ export function SettingsPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-black text-[#0D2329]">Registro Profissional / ABPp / CBO</label>
+                    <label className="text-xs font-black text-[#0D2329]">CBO</label>
                     <input
                       type="text"
                       value={form.crp}
                       onChange={(e) => setForm({ ...form, crp: e.target.value })}
-                      placeholder="Ex: 06/12345-SP"
+                      placeholder="Ex: 2394-25"
                       className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
                     />
                   </div>

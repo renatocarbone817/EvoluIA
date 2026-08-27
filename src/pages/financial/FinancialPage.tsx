@@ -118,7 +118,7 @@ export function FinancialPage() {
   const [formData, setFormData] = useState({
     child_id: "",
     description: "",
-    amount: "",
+    amount: localStorage.getItem("evoluia_default_price") || (professional as any)?.default_price || "180",
     day: String(currentDay),
     month: currentMonth,
     year: currentYear,
@@ -1453,7 +1453,7 @@ export function FinancialPage() {
                 type="button"
                 onClick={() => {
                   setEntryType("income")
-                  setFormData((prev) => ({ ...prev, category: "Sessões" }))
+                  setFormData((prev) => ({ ...prev, category: "Sessões", amount: prev.amount || localStorage.getItem("evoluia_default_price") || (professional as any)?.default_price || "180" }))
                 }}
                 className={`py-2.5 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all ${
                   entryType === "income"
