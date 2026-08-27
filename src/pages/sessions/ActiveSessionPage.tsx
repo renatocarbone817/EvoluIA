@@ -208,7 +208,64 @@ export function ActiveSessionPage() {
           .eq("id", appointment.id)
       }
 
-      toast.success(`Sessão #${sessionNumber} registrada e finalizada com sucesso!`)
+      // 4. AUTO-CREATE FINANCIAL RECORD based on care_plan
+      const { data: carePlan } = await supabase
+        .from("care_plans")
+        .select("*")
+        .eq("child_id", child.id)
+        .single()
+
+      if (carePlan && carePlan.price_per_session > 0) {
+        const sessionDate = new Date(form.date + "T12:00:00")
+        const sessionMonth = sessionDate.getMonth() + 1
+        const sessionYear = sessionDate.getFullYear()
+
+        if (carePlan.payment_type === "por_sessao") {
+          // Per session: create one financial record per session
+          await supabase.from("financial_records").insert({
+            professional_id: profId,
+            child_id: child.id,
+            month: sessionMonth,
+            year: sessionYear,
+            amount: carePlan.price_per_session,
+            status: "pending",
+            payment_date: null,
+            notes: `Sessão #${sessionNumber} — ${child.full_name} (${form.date})`,
+          })
+          toast.success(`✅ Sessão #${sessionNumber} registrada! Lançamento de R$ ${carePlan.price_per_session.toFixed(2)} criado no Financeiro.`)
+        } else if (carePlan.payment_type === "mensal") {
+          // Monthly: check if a monthly record already exists for that month
+          const { data: existing } = await supabase
+            .from("financial_records")
+            .select("id")
+            .eq("professional_id", profId)
+            .eq("child_id", child.id)
+            .eq("month", sessionMonth)
+            .eq("year", sessionYear)
+            .maybeSingle()
+
+          if (!existing) {
+            await supabase.from("financial_records").insert({
+              professional_id: profId,
+              child_id: child.id,
+              month: sessionMonth,
+              year: sessionYear,
+              amount: carePlan.price_per_session,
+              status: "pending",
+              payment_date: null,
+              notes: `Mensalidade ${sessionMonth}/${sessionYear} — ${child.full_name}`,
+            })
+            toast.success(`✅ Sessão #${sessionNumber} registrada! Mensalidade de R$ ${carePlan.price_per_session.toFixed(2)} criada no Financeiro.`)
+          } else {
+            toast.success(`Sessão #${sessionNumber} registrada com sucesso!`)
+          }
+        } else {
+          toast.success(`Sessão #${sessionNumber} registrada com sucesso!`)
+        }
+      } else {
+        toast.success(`Sessão #${sessionNumber} registrada e finalizada com sucesso!`)
+      }
+
       navigate(`/criancas/${child.id}`)
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar sessão")

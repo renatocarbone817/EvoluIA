@@ -195,6 +195,7 @@ export function ChildSummaryTab({
       <CarePlanDialog
         open={showCarePlan}
         childId={child.id}
+        childName={child.full_name}
         onClose={() => setShowCarePlan(false)}
         onSuccess={() => {
           setShowCarePlan(false)
