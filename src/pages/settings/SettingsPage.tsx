@@ -49,25 +49,7 @@ import type { AppointmentWithChild } from "@/types/database"
 import { ImageCropperModal } from "@/components/ui/ImageCropperModal"
 import toast from "react-hot-toast"
 
-type SettingsTab = "geral" | "consultorio" | "agenda" | "notificacoes" | "integracoes"
-
-interface TaskCategory {
-  id: string
-  name: string
-  color: string
-  colorDot: string
-  bg: string
-  border: string
-  count: number
-}
-
-const DEFAULT_CATEGORIES: TaskCategory[] = [
-  { id: "1", name: "Sessões Clínicas", color: "text-[#166534]", colorDot: "bg-[#10B981]", bg: "bg-[#DCFCE7]/60", border: "border-[#86EFAC]", count: 12 },
-  { id: "2", name: "Avaliações & Testes", color: "text-[#6B21A8]", colorDot: "bg-[#7C3AED]", bg: "bg-[#F3E8FF]/60", border: "border-[#DDD6FE]", count: 8 },
-  { id: "3", name: "Estudos & Materiais", color: "text-[#075985]", colorDot: "bg-[#0284C7]", bg: "bg-[#E0F2FE]/60", border: "border-[#BAE6FD]", count: 5 },
-  { id: "4", name: "Administrativo & Contas", color: "text-[#9A3412]", colorDot: "bg-[#EA580C]", bg: "bg-[#FFEDD5]/60", border: "border-[#FED7AA]", count: 7 },
-  { id: "5", name: "Lembretes Pessoais", color: "text-[#374151]", colorDot: "bg-[#6B7280]", bg: "bg-[#F3F4F6]", border: "border-[#D1D5DB]", count: 3 },
-]
+type SettingsTab = "consultorio" | "geral" | "agenda" | "notificacoes" | "integracoes"
 
 interface DaySchedule {
   day: string
@@ -113,26 +95,6 @@ export function SettingsPage() {
     pix_type: (professional as any)?.pix_type || localStorage.getItem("evoluia_pix_type") || "Celular",
     pix_key: (professional as any)?.pix_key || localStorage.getItem("evoluia_pix_key") || "17 99758-0663",
   })
-
-  // Task Categories State
-  const [categories, setCategories] = useState<TaskCategory[]>(() => {
-    const saved = localStorage.getItem("evoluia_task_categories")
-    return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES
-  })
-  const [newCatName, setNewCatName] = useState("")
-  const [showNewCatInput, setShowNewCatInput] = useState(false)
-  const [editingCatId, setEditingCatId] = useState<string | null>(null)
-  const [editingCatName, setEditingCatName] = useState("")
-
-  // Notification Preferences State (Toggles)
-  const [notifAgenda, setNotifAgenda] = useState(true)
-  const [notifPendingTasks, setNotifPendingTasks] = useState(true)
-  const [notifNewEvals, setNotifNewEvals] = useState(false)
-  const [notifWeeklyReports, setNotifWeeklyReports] = useState(true)
-
-  // Date and Time Format State
-  const [dateFormat, setDateFormat] = useState("DD/MM/AAAA")
-  const [timeFormat, setTimeFormat] = useState("24 horas (14:30)")
 
   // Working Hours State
   const [schedule, setSchedule] = useState<DaySchedule[]>(() => {
@@ -240,7 +202,6 @@ export function SettingsPage() {
 
       localStorage.setItem("evoluia_pix_type", form.pix_type)
       localStorage.setItem("evoluia_pix_key", form.pix_key)
-      localStorage.setItem("evoluia_task_categories", JSON.stringify(categories))
       localStorage.setItem("evoluia_working_hours", JSON.stringify(schedule))
       localStorage.setItem("evoluia_session_duration", String(sessionDuration))
       localStorage.setItem("evoluia_reminder_template", reminderTemplate)
@@ -259,50 +220,6 @@ export function SettingsPage() {
     } finally {
       setSaving(false)
     }
-  }
-
-  // Category Actions
-  function handleAddCategory() {
-    if (!newCatName.trim()) return
-    const styles = [
-      { color: "text-[#166534]", colorDot: "bg-[#10B981]", bg: "bg-[#DCFCE7]/60", border: "border-[#86EFAC]" },
-      { color: "text-[#6B21A8]", colorDot: "bg-[#7C3AED]", bg: "bg-[#F3E8FF]/60", border: "border-[#DDD6FE]" },
-      { color: "text-[#075985]", colorDot: "bg-[#0284C7]", bg: "bg-[#E0F2FE]/60", border: "border-[#BAE6FD]" },
-      { color: "text-[#9A3412]", colorDot: "bg-[#EA580C]", bg: "bg-[#FFEDD5]/60", border: "border-[#FED7AA]" },
-      { color: "text-[#9D174D]", colorDot: "bg-[#DB2777]", bg: "bg-[#FCE7F3]/60", border: "border-[#FBCFE8]" },
-    ]
-    const chosen = styles[categories.length % styles.length]
-    const newCat: TaskCategory = {
-      id: Date.now().toString(),
-      name: newCatName.trim(),
-      color: chosen.color,
-      colorDot: chosen.colorDot,
-      bg: chosen.bg,
-      border: chosen.border,
-      count: 0,
-    }
-    const updated = [...categories, newCat]
-    setCategories(updated)
-    localStorage.setItem("evoluia_task_categories", JSON.stringify(updated))
-    setNewCatName("")
-    setShowNewCatInput(false)
-    toast.success("Categoria criada!")
-  }
-
-  function handleSaveEditCategory(id: string) {
-    if (!editingCatName.trim()) return
-    const updated = categories.map((c) => (c.id === id ? { ...c, name: editingCatName.trim() } : c))
-    setCategories(updated)
-    localStorage.setItem("evoluia_task_categories", JSON.stringify(updated))
-    setEditingCatId(null)
-    toast.success("Categoria renomeada!")
-  }
-
-  function handleDeleteCategory(id: string) {
-    const updated = categories.filter((c) => c.id !== id)
-    setCategories(updated)
-    localStorage.setItem("evoluia_task_categories", JSON.stringify(updated))
-    toast.success("Categoria excluída!")
   }
 
   function handleCopyCalendarUrl() {
@@ -356,7 +273,7 @@ export function SettingsPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
-      {/* 1. TOP TITLE HEADER (High Contrast & Clean) */}
+      {/* 1. TOP TITLE HEADER */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
@@ -409,6 +326,329 @@ export function SettingsPage() {
           )
         })}
       </div>
+
+      {/* =========================================================================
+          TAB 1: CONSULTÓRIO, PERFIL & PIX (ENQUADRAMENTO EQUILIBRADO E PERFEITO)
+          ========================================================================= */}
+      {activeTab === "consultorio" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-in fade-in">
+          {/* Main Form (8 Cols) */}
+          <div className="lg:col-span-8 space-y-6">
+            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold shadow-2xs">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-[#0D2329]">Perfil Profissional & Consultório</h2>
+                    <p className="text-xs font-semibold text-[#6B7C83]">
+                      Suas informações pessoais, dados da clínica, endereço completo e chave PIX.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* SEÇÃO 1: FOTO & DADOS DA PROFISSIONAL */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black uppercase tracking-wider text-[#0D2329] flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#7C3AED]" />
+                  <span>1. Identificação da Profissional</span>
+                </h3>
+
+                {/* Avatar Row */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl bg-[#F7FAFA] border-2 border-[#D8E5E7]">
+                  <div className="relative group shrink-0 w-16 h-16 rounded-full bg-[#EDE9FE] text-[#7C3AED] font-black text-xl flex items-center justify-center overflow-hidden border-2 border-[#7C3AED]/40 shadow-sm">
+                    {professional?.logo_url ? (
+                      <img src={professional.logo_url} alt="Foto" className="w-full h-full object-cover" />
+                    ) : (
+                      form.full_name.charAt(0).toUpperCase()
+                    )}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Alterar foto"
+                    >
+                      <Camera className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-black text-[#0D2329]">Foto de Perfil ou Logo</p>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-2.5 py-1 text-[11px] font-bold text-[#7C3AED] bg-white border border-[#DDD6FE] hover:bg-[#EDE9FE] rounded-lg transition-colors"
+                      >
+                        Trocar Foto
+                      </button>
+                    </div>
+                    <p className="text-[11px] font-medium text-[#6B7C83]">
+                      Formatos JPG ou PNG. Usado em relatórios clínicos e cabeçalhos.
+                    </p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleLogoSelect}
+                    />
+                  </div>
+                </div>
+
+                {/* Inputs da Profissional */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">Nome Completo *</label>
+                    <input
+                      type="text"
+                      value={form.full_name}
+                      onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                      placeholder="Ex: Priscila Carbone"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">E-mail de Contato *</label>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      placeholder="priscila@evolui.com.br"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">Telefone / WhatsApp *</label>
+                    <input
+                      type="text"
+                      value={form.phone}
+                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      placeholder="17 99758-0663"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">CBO</label>
+                    <input
+                      type="text"
+                      value={form.crp}
+                      onChange={(e) => setForm({ ...form, crp: e.target.value })}
+                      placeholder="Ex: 2394-25"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-[#0D2329]">Especialidade Principal</label>
+                  <input
+                    type="text"
+                    value={form.specialty}
+                    onChange={(e) => setForm({ ...form, specialty: e.target.value })}
+                    placeholder="Psicopedagogia Clínica & Neuroaprendizagem"
+                    className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                  />
+                </div>
+              </div>
+
+              {/* SEÇÃO 2: DADOS DO CONSULTÓRIO & ENDEREÇO */}
+              <div className="space-y-4 pt-2 border-t border-[#EEF5F6]">
+                <h3 className="text-xs font-black uppercase tracking-wider text-[#0D2329] flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#0284C7]" />
+                  <span>2. Espaço Clínico & Endereço</span>
+                </h3>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-[#0D2329]">Nome do Consultório / Espaço Clínico *</label>
+                  <input
+                    type="text"
+                    value={form.clinic_name}
+                    onChange={(e) => setForm({ ...form, clinic_name: e.target.value })}
+                    placeholder="Ex: Aprender Ensinando - Espaço Psicopedagógico"
+                    className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-[#0D2329]">Endereço Completo (Rua, Número, Sala/Andar)</label>
+                  <input
+                    type="text"
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    placeholder="Ex: Av. Principal, 1000 - Sala 04"
+                    className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">Cidade</label>
+                    <input
+                      type="text"
+                      value={form.city}
+                      onChange={(e) => setForm({ ...form, city: e.target.value })}
+                      placeholder="São José do Rio Preto"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">Estado (UF)</label>
+                    <input
+                      type="text"
+                      value={form.state}
+                      onChange={(e) => setForm({ ...form, state: e.target.value })}
+                      placeholder="SP"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SEÇÃO 3: CHAVE PIX COM FUNDO DESTACADO */}
+              <div className="p-5 rounded-2xl bg-[#FEF8EC] border-2 border-[#F4C95D]/60 space-y-3.5 shadow-2xs">
+                <div className="flex items-center gap-2 text-[#8B6514]">
+                  <DollarSign className="w-4 h-4 font-black" />
+                  <h3 className="text-xs font-black uppercase tracking-wider">
+                    3. Dados Financeiros & Chave PIX para os Pais
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                  <div className="sm:col-span-4 space-y-1.5">
+                    <label className="text-xs font-black text-[#8B6514]">Tipo da Chave *</label>
+                    <select
+                      value={form.pix_type}
+                      onChange={(e) => setForm({ ...form, pix_type: e.target.value })}
+                      className="w-full px-3 py-3 text-xs font-bold rounded-2xl border-2 border-[#F4C95D] bg-white text-[#0D2329] focus:outline-none focus:ring-2 focus:ring-[#8B6514]/20"
+                    >
+                      <option value="Celular">📱 Celular / Telefone</option>
+                      <option value="E-mail">✉️ E-mail</option>
+                      <option value="CPF">🆔 CPF</option>
+                      <option value="CNPJ">🏢 CNPJ</option>
+                      <option value="Chave Aleatória">🔑 Chave Aleatória</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-8 space-y-1.5">
+                    <label className="text-xs font-black text-[#8B6514]">Chave PIX *</label>
+                    <input
+                      type="text"
+                      value={form.pix_key}
+                      onChange={(e) => setForm({ ...form, pix_key: e.target.value })}
+                      placeholder="Digite sua chave PIX..."
+                      className="w-full px-4 py-3 text-xs font-black rounded-2xl border-2 border-[#F4C95D] bg-white focus:outline-none focus:ring-2 focus:ring-[#8B6514]/20 text-[#0D2329]"
+                    />
+                  </div>
+                </div>
+
+                <p className="text-[11px] font-semibold text-[#8B6514]/80 pt-0.5">
+                  Nas mensagens de cobrança e recibos constará: <strong>Chave PIX ({form.pix_type}): {form.pix_key}</strong>
+                </p>
+              </div>
+
+              {/* Save Button inside card */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="w-full py-3 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Salvar Dados da Profissional & Consultório</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar Live Preview (4 Cols - Enquadramento Perfeito & Equilibrado) */}
+          <div className="lg:col-span-4 space-y-5">
+            <div className="rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm overflow-hidden space-y-4">
+              <div className="bg-gradient-to-r from-[#00B4D8] to-[#0096C7] p-5 text-white flex items-center gap-3.5">
+                <div className="w-14 h-14 rounded-2xl bg-white/20 border-2 border-white/40 flex items-center justify-center font-black text-xl overflow-hidden shrink-0 shadow-xs">
+                  {professional?.logo_url ? (
+                    <img src={professional.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    form.full_name.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-black text-base truncate leading-tight">{form.clinic_name}</h3>
+                  <p className="text-xs text-white/95 font-bold truncate mt-0.5">{form.full_name}</p>
+                  <p className="text-[10px] text-white/80 truncate">CBO {form.crp}</p>
+                </div>
+              </div>
+
+              <div className="p-5 pt-0 space-y-3">
+                <div className="p-4 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7] space-y-3.5 text-xs">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0">
+                      <User className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold uppercase text-[#8CAAB1] tracking-wider leading-none mb-1">Profissional</p>
+                      <p className="text-xs font-black text-[#0D2329] leading-snug">{form.full_name || "Não informado"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-xl bg-[#E8F8F5] text-[#10B981] flex items-center justify-center shrink-0">
+                      <Phone className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold uppercase text-[#8CAAB1] tracking-wider leading-none mb-1">WhatsApp / Telefone</p>
+                      <p className="text-xs font-black text-[#0D2329] leading-snug">{form.phone || "Não informado"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center shrink-0">
+                      <Mail className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold uppercase text-[#8CAAB1] tracking-wider leading-none mb-1">E-mail de Contato</p>
+                      <p className="text-xs font-black text-[#0D2329] break-all leading-snug">{form.email || "Não informado"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-xl bg-[#FEF8EC] text-[#8B6514] flex items-center justify-center shrink-0">
+                      <DollarSign className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold uppercase text-[#8CAAB1] tracking-wider leading-none mb-1">Chave PIX ({form.pix_type})</p>
+                      <p className="text-xs font-black text-[#0284C7] break-all leading-snug">{form.pix_key || "Não configurada"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-xl bg-[#FCE7F3] text-[#DB2777] flex items-center justify-center shrink-0">
+                      <MapPin className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold uppercase text-[#8CAAB1] tracking-wider leading-none mb-1">Endereço do Consultório</p>
+                      <p className="text-xs font-black text-[#0D2329] leading-snug">
+                        {form.address ? `${form.address}, ${form.city} - ${form.state}` : `${form.city}, ${form.state}`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-[#E8F8F5] border border-[#10B981]/30 flex items-center gap-2 text-[#065F46] text-xs font-bold">
+                  <CheckCircle2 className="w-4 h-4 text-[#10B981] shrink-0" />
+                  <span>Dados sincronizados em relatórios e WhatsApp</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* =========================================================================
           TAB 2: GERAL (ESPAÇO RESERVADO LIMPO)
@@ -619,7 +859,7 @@ export function SettingsPage() {
                 billingTemplate
                   .replace("{nome_crianca}", "Maria Eduarda")
                   .replace("{mes}", "Agosto")
-                  .replace("{chave_pix}", form.pix_key)
+                  .replace("{chave_pix}", `(${form.pix_type}) ${form.pix_key}`)
               )}`}
               target="_blank"
               rel="noreferrer"
