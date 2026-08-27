@@ -21,7 +21,6 @@ import {
   Play,
   MessageCircle,
   GripVertical,
-  Palette,
 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -119,7 +118,7 @@ export function DashboardPage() {
   const [draggedTaskIndex, setDraggedTaskIndex] = useState<number | null>(null)
   const [dragOverTaskIndex, setDragOverTaskIndex] = useState<number | null>(null)
 
-  // Interactive Notes (persisted with multi-colors)
+  // Interactive Notes (persisted with clean popover color picker)
   const [notes, setNotes] = useState<NoteItem[]>(() => {
     const saved = localStorage.getItem("evoluia_dashboard_notes")
     if (saved) {
@@ -136,7 +135,7 @@ export function DashboardPage() {
     return []
   })
   const [newNoteText, setNewNoteText] = useState("")
-  const [selectedNoteColor, setSelectedNoteColor] = useState<NoteColor>("yellow")
+  const [colorPickerOpenForId, setColorPickerOpenForId] = useState<string | null>(null)
 
   // Drag and drop state for notes
   const [draggedNoteIndex, setDraggedNoteIndex] = useState<number | null>(null)
@@ -463,7 +462,7 @@ export function DashboardPage() {
   }
 
   // =========================================================================
-  // NOTE DRAG AND DROP & COLOR SELECTION HANDLERS
+  // NOTE DRAG AND DROP & POPUP COLOR PICKER
   // =========================================================================
   function handleNoteDragStart(index: number) {
     setDraggedNoteIndex(index)
@@ -490,7 +489,7 @@ export function DashboardPage() {
     const newNote: NoteItem = {
       id: Date.now().toString(),
       text: newNoteText.trim(),
-      color: selectedNoteColor,
+      color: "yellow", // Sempre vem amarelo como padrão
       starred: true,
     }
     const updated = [newNote, ...notes]
@@ -1230,7 +1229,6 @@ export function DashboardPage() {
                           : "border-[#EEF5F6] hover:border-[#D8E5E7] bg-white hover:bg-[#F7FAFA]"
                       }`}
                     >
-                      {/* Drag Handle Grip Icon */}
                       <GripVertical className="w-3.5 h-3.5 text-[#C4D5D8] group-hover:text-[#7C3AED] shrink-0 transition-colors" />
 
                       <div
@@ -1274,7 +1272,7 @@ export function DashboardPage() {
             )}
           </div>
 
-          {/* Anotações Rápidas (COM SELETOR DE CORES DE POST-IT) */}
+          {/* Anotações Rápidas (COM DESIGN LIMPO E POPUP DE CORES) */}
           <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
@@ -1283,56 +1281,35 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* Input & Color Selector */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="text"
-                  value={newNoteText}
-                  onChange={(e) => setNewNoteText(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddNote()}
-                  placeholder="Escreva sua anotação..."
-                  className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all"
-                />
-                <button
-                  onClick={handleAddNote}
-                  className="px-3 py-1.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black rounded-xl shadow-xs active:scale-95 transition-all"
-                >
-                  Salvar
-                </button>
-              </div>
-
-              {/* Color Palette Selector */}
-              <div className="flex items-center justify-between px-1">
-                <span className="text-[10px] font-bold text-[#6B7C83]">Cor do Post-it:</span>
-                <div className="flex items-center gap-1.5">
-                  {NOTE_COLORS.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setSelectedNoteColor(c.id)}
-                      className={`w-4 h-4 rounded-full ${c.dot} transition-all ${
-                        selectedNoteColor === c.id
-                          ? "ring-2 ring-offset-1 ring-[#7C3AED] scale-125"
-                          : "hover:scale-110 opacity-70 hover:opacity-100"
-                      }`}
-                      title={c.label}
-                    />
-                  ))}
-                </div>
-              </div>
+            {/* Input Simples e Limpo */}
+            <div className="flex items-center gap-1.5">
+              <input
+                type="text"
+                value={newNoteText}
+                onChange={(e) => setNewNoteText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddNote()}
+                placeholder="Escreva sua anotação..."
+                className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all"
+              />
+              <button
+                onClick={handleAddNote}
+                className="px-3.5 py-1.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black rounded-xl shadow-xs active:scale-95 transition-all"
+              >
+                Salvar
+              </button>
             </div>
 
             {notes.length === 0 ? (
               <div className="py-4 text-center text-xs text-[#8CAAB1]">
-                Nenhuma anotação salva. Escolha a cor, digite e clique em Salvar.
+                Nenhuma anotação salva. Digite acima e clique em Salvar.
               </div>
             ) : (
-              <div className="space-y-2 pt-1">
+              <div className="space-y-2 pt-0.5">
                 {notes.map((note, idx) => {
                   const isDragging = draggedNoteIndex === idx
                   const isDragOver = dragOverNoteIndex === idx && draggedNoteIndex !== idx
                   const colorConfig = NOTE_COLORS.find((c) => c.id === note.color) || NOTE_COLORS[0]
+                  const isColorPickerOpen = colorPickerOpenForId === note.id
 
                   return (
                     <div
@@ -1342,7 +1319,7 @@ export function DashboardPage() {
                       onDragEnter={() => handleNoteDragEnter(idx)}
                       onDragEnd={handleNoteDragEnd}
                       onDragOver={(e) => e.preventDefault()}
-                      className={`p-3 rounded-2xl border text-xs font-semibold space-y-2 relative transition-all shadow-2xs cursor-grab active:cursor-grabbing group ${
+                      className={`p-2.5 rounded-2xl border text-xs font-semibold relative transition-all shadow-2xs cursor-grab active:cursor-grabbing group ${
                         isDragging
                           ? "opacity-40 scale-95 border-dashed border-[#7C3AED]"
                           : isDragOver
@@ -1350,36 +1327,57 @@ export function DashboardPage() {
                           : `${colorConfig.bg} ${colorConfig.border} ${colorConfig.text}`
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-1.5">
-                        <GripVertical className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 shrink-0 mt-0.5 transition-opacity" />
-                        <p className="leading-snug pr-2 flex-1">{note.text}</p>
-                        <button
-                          onClick={() => handleDeleteNote(note.id)}
-                          className="text-current opacity-60 hover:opacity-100 hover:text-[#EF4444] p-1 rounded hover:bg-white/60 transition-all shrink-0"
-                          title="Excluir anotação"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <GripVertical className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 shrink-0 transition-opacity" />
+                        <p className="leading-snug flex-1 truncate">{note.text}</p>
 
-                      {/* Mini Color Switcher on hover/card footer */}
-                      <div className="flex items-center justify-between pt-1 border-t border-black/5">
-                        <span className="text-[9px] opacity-60 font-bold">Mudar cor:</span>
-                        <div className="flex items-center gap-1">
-                          {NOTE_COLORS.map((c) => (
+                        <div className="flex items-center gap-1.5 shrink-0 relative">
+                          {/* Single Color Dot Picker */}
+                          <div className="relative">
                             <button
-                              key={c.id}
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                handleUpdateNoteColor(note.id, c.id)
+                                setColorPickerOpenForId(isColorPickerOpen ? null : note.id)
                               }}
-                              className={`w-2.5 h-2.5 rounded-full ${c.dot} transition-all ${
-                                note.color === c.id ? "ring-1 ring-black/40 scale-125" : "opacity-60 hover:opacity-100 hover:scale-125"
-                              }`}
-                              title={`Mudar para ${c.label}`}
+                              className={`w-3.5 h-3.5 rounded-full ${colorConfig.dot} ring-1 ring-black/15 shadow-2xs hover:scale-125 transition-transform`}
+                              title="Clique para mudar a cor do post-it"
                             />
-                          ))}
+
+                            {/* Floating Popover when clicked */}
+                            {isColorPickerOpen && (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="absolute right-0 top-6 z-30 flex items-center gap-1.5 p-1.5 rounded-2xl bg-white shadow-xl border-2 border-[#D8E5E7] animate-in fade-in zoom-in-95"
+                              >
+                                {NOTE_COLORS.map((c) => (
+                                  <button
+                                    key={c.id}
+                                    type="button"
+                                    onClick={() => {
+                                      handleUpdateNoteColor(note.id, c.id)
+                                      setColorPickerOpenForId(null)
+                                    }}
+                                    className={`w-4 h-4 rounded-full ${c.dot} transition-transform ${
+                                      note.color === c.id
+                                        ? "ring-2 ring-offset-1 ring-[#7C3AED] scale-110"
+                                        : "opacity-80 hover:opacity-100 hover:scale-125"
+                                    }`}
+                                    title={c.label}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Delete button */}
+                          <button
+                            onClick={() => handleDeleteNote(note.id)}
+                            className="text-current opacity-50 hover:opacity-100 hover:text-[#EF4444] p-0.5 rounded hover:bg-black/5 transition-all"
+                            title="Excluir anotação"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     </div>
