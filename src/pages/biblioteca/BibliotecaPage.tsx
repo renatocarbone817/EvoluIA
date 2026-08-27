@@ -87,20 +87,30 @@ export function BibliotecaPage() {
     if (!profId) return
     setLoading(true)
     try {
-      const [foldersRes, filesRes] = await Promise.all([
-        supabase
-          .from("library_folders")
-          .select("*")
-          .eq("professional_id", profId)
-          .is(folderId ? "parent_id" : "parent_id", folderId)
-          .order("name"),
-        supabase
-          .from("library_files")
-          .select("*")
-          .eq("professional_id", profId)
-          .is("folder_id", folderId)
-          .order("file_name"),
-      ])
+      // Build queries differently for root (null) vs subfolder (UUID)
+      const foldersQuery = supabase
+        .from("library_folders")
+        .select("*")
+        .eq("professional_id", profId)
+        .order("name")
+
+      const filesQuery = supabase
+        .from("library_files")
+        .select("*")
+        .eq("professional_id", profId)
+        .order("file_name")
+
+      // For root: filter where parent_id IS NULL
+      // For subfolder: filter where parent_id = folderId (UUID)
+      if (folderId === null) {
+        foldersQuery.is("parent_id", null)
+        filesQuery.is("folder_id", null)
+      } else {
+        foldersQuery.eq("parent_id", folderId)
+        filesQuery.eq("folder_id", folderId)
+      }
+
+      const [foldersRes, filesRes] = await Promise.all([foldersQuery, filesQuery])
       setFolders(foldersRes.data || [])
       setFiles(filesRes.data || [])
     } finally {
