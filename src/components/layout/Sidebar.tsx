@@ -12,6 +12,7 @@ import {
   ChevronRight,
   LogOut,
   Sparkles,
+  FolderOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuthStore } from "@/store/authStore"
@@ -25,6 +26,7 @@ const navItems = [
   { to: "/responsaveis", icon: UserCheck, label: "Responsáveis" },
   { to: "/financeiro", icon: DollarSign, label: "Financeiro" },
   { to: "/relatorios", icon: FileText, label: "Relatórios" },
+  { to: "/biblioteca", icon: FolderOpen, label: "Biblioteca" },
   { to: "/configuracoes", icon: Settings, label: "Configurações" },
 ]
 

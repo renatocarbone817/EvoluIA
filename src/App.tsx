@@ -22,6 +22,7 @@ import { FinancialPage } from "@/pages/financial/FinancialPage"
 import { ReportsPage } from "@/pages/reports/ReportsPage"
 import { SettingsPage } from "@/pages/settings/SettingsPage"
 import { PublicReceiptPage } from "@/pages/financial/PublicReceiptPage"
+import { BibliotecaPage } from "@/pages/biblioteca/BibliotecaPage"
 
 const queryClient = new QueryClient()
 
@@ -82,6 +83,7 @@ export function App() {
               <Route path="/responsaveis" element={<GuardiansPage />} />
               <Route path="/financeiro" element={<FinancialPage />} />
               <Route path="/relatorios" element={<ReportsPage />} />
+              <Route path="/biblioteca" element={<BibliotecaPage />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
             </Route>
           </Route>
