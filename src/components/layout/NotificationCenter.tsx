@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Bell,
@@ -235,9 +235,9 @@ export function NotificationCenter() {
 
       {/* Popover Menu Suspenso */}
       {open && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-xl z-50 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white border-2 border-[#B8CBD1] shadow-2xl z-[999] overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150">
           {/* Header */}
-          <div className="p-3.5 bg-gradient-to-r from-[#FAFCFC] to-[#EEF5F6] border-b border-[#D8E5E7] flex items-center justify-between">
+          <div className="p-3.5 bg-gradient-to-r from-[#FAFCFC] to-[#EEF5F6] border-b-2 border-[#B8CBD1] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-[#245C6B] text-white flex items-center justify-center font-bold">
                 <Bell className="w-3.5 h-3.5" />

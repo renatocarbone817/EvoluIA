@@ -249,7 +249,7 @@ export function DashboardPage() {
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
       {/* 1. Compact Smart Header Banner */}
-      <div className="bg-gradient-to-r from-[#19323A] via-[#1E4E5B] to-[#245C6B] text-white p-5 sm:p-6 rounded-3xl border-2 border-[#19323A] shadow-md relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4 z-30">
+      <div className="bg-gradient-to-r from-[#19323A] via-[#1E4E5B] to-[#245C6B] text-white p-5 sm:p-6 rounded-3xl border-2 border-[#19323A] shadow-md relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4 z-10">
         {/* Encapsulated background glow with overflow-hidden */}
         <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
           <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-[#63C7B2]/10 rounded-full blur-2xl" />
