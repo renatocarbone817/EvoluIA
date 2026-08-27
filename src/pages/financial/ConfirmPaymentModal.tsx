@@ -12,10 +12,8 @@ import {
   CheckCircle2,
   Download,
   Copy,
-  Share2,
   ImageIcon,
   Sparkles,
-  ExternalLink,
 } from "lucide-react"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import toast from "react-hot-toast"
@@ -51,16 +49,41 @@ export function ConfirmPaymentModal({
 
   useEffect(() => {
     if (open && record) {
-      const primaryGuardian = record.child?.guardians?.[0]?.guardian
-      const gName = primaryGuardian?.full_name || "Responsável"
-      const rawPhone = primaryGuardian?.whatsapp || primaryGuardian?.phone || ""
-      const cleanPhone = rawPhone.replace(/\D/g, "")
-
-      setGuardianName(gName)
-      setGuardianPhone(cleanPhone)
       setPaymentDate(new Date().toISOString().split("T")[0])
       setPaymentMethod("PIX")
       setNotes(record.notes || "")
+
+      // Initial check from record object
+      const primaryGuardian = record.child?.guardians?.[0]?.guardian
+      const initialName = primaryGuardian?.full_name || ""
+      const rawPhone = primaryGuardian?.whatsapp || primaryGuardian?.phone || ""
+
+      setGuardianName(initialName || "Responsável")
+      setGuardianPhone(rawPhone ? rawPhone.replace(/\D/g, "") : "")
+
+      // Always fetch fresh guardian details from database to guarantee phone number is populated
+      const cId = record.child_id || record.child?.id
+      if (cId) {
+        supabase
+          .from("guardian_children")
+          .select("is_primary, guardian:guardians(id, full_name, phone, whatsapp)")
+          .eq("child_id", cId)
+          .then(({ data }) => {
+            const list = (data || []) as any[]
+            if (list.length > 0) {
+              const primaryRecord = list.find((g: any) => g.is_primary) || list[0]
+              const primary = Array.isArray(primaryRecord?.guardian)
+                ? primaryRecord.guardian[0]
+                : primaryRecord?.guardian
+
+              if (primary) {
+                if (primary.full_name) setGuardianName(primary.full_name)
+                const phone = primary.whatsapp || primary.phone || ""
+                if (phone) setGuardianPhone(String(phone).replace(/\D/g, ""))
+              }
+            }
+          })
+      }
     }
   }, [open, record])
 
@@ -269,7 +292,7 @@ export function ConfirmPaymentModal({
       } else {
         handleDownloadImage()
       }
-    } catch (err) {
+    } catch {
       handleDownloadImage()
     }
   }
@@ -291,59 +314,34 @@ export function ConfirmPaymentModal({
 
       toast.success(`Pagamento de ${childName} confirmado!`)
 
-      // 2. Try native file sharing if available on Mobile
+      // 2. Automatically copy high resolution image to clipboard
       const blob = await getCanvasBlob()
-      const cleanPhone = guardianPhone.replace(/\D/g, "")
-
-      if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob], "comprovante.png", { type: "image/png" })] })) {
-        try {
-          const file = new File([blob], `comprovante_${childName}.png`, { type: "image/png" })
-          await navigator.share({
-            title: `Comprovante de Pagamento - ${childName}`,
-            text: `Olá, segue o comprovante de pagamento de ${childName} (${refMonth}/${refYear}).`,
-            files: [file],
-          })
-          onSuccess()
-          return
-        } catch (e) {
-          // Fallback to clipboard & WhatsApp web
-        }
-      }
-
-      // 3. Desktop / Fallback flow:
-      // Copy image to clipboard so user can press Ctrl+V directly on WhatsApp
       if (blob && navigator.clipboard && (window as any).ClipboardItem) {
         try {
           await navigator.clipboard.write([
             new (window as any).ClipboardItem({ "image/png": blob }),
           ])
-          toast.success("Comprovante copiado! Dê Ctrl+V no WhatsApp para colar a imagem.")
-        } catch (e) {
+          toast.success("📋 Foto do comprovante copiada! Dê Ctrl+V no WhatsApp.", { duration: 6000 })
+        } catch {
           handleDownloadImage()
         }
       } else {
         handleDownloadImage()
       }
 
-      // Open WhatsApp conversation
-      const receiptUrl = `${window.location.origin}/recibo/${record.id}`
-      const captionText = `🧾 *COMPROVANTE DE PAGAMENTO*
-*Clínica:* ${clinicName}
-*Profissional:* ${profName}
+      // 3. Format Phone
+      let cleanPhone = guardianPhone.replace(/\D/g, "")
+      if (cleanPhone && !cleanPhone.startsWith("55") && cleanPhone.length <= 11) {
+        cleanPhone = `55${cleanPhone}`
+      }
 
-Olá, *${guardianName}*! Confirmamos com sucesso o recebimento do pagamento referente ao paciente *${childName}* (${refMonth}/${refYear}).
+      // 4. Short, pleasant greeting phrase for WhatsApp
+      const shortGreeting = `Olá, ${guardianName || "tudo bem"}! Segue o comprovante de pagamento de ${childName} (${refMonth}/${refYear}) no valor de ${amountFormatted}. ✨`
 
-💰 *Valor:* ${amountFormatted} • ${paymentMethod}
-🗓️ *Data da Confirmação:* ${formatDate(paymentDate)}
-
-🔗 *Acesse seu comprovante oficial e autenticado aqui:*
-${receiptUrl}
-
-Agradecemos a parceria e a confiança no desenvolvimento do seu filho! ✨`
-
+      // 5. Open WhatsApp
       const waUrl = cleanPhone
-        ? `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(captionText)}`
-        : `https://wa.me/?text=${encodeURIComponent(captionText)}`
+        ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(shortGreeting)}`
+        : `https://wa.me/?text=${encodeURIComponent(shortGreeting)}`
 
       window.open(waUrl, "_blank")
       onSuccess()
@@ -423,7 +421,7 @@ Agradecemos a parceria e a confiança no desenvolvimento do seu filho! ✨`
             />
 
             <Input
-              label="WhatsApp do Responsável"
+              label="WhatsApp do Responsável (com DDD)"
               placeholder="Ex: 11999999999"
               value={guardianPhone}
               onChange={(e) => setGuardianPhone(e.target.value)}
@@ -453,7 +451,7 @@ Agradecemos a parceria e a confiança no desenvolvimento do seu filho! ✨`
                   title="Copiar imagem para colar no WhatsApp"
                 >
                   <Copy className="w-3.5 h-3.5" />
-                  Copiar
+                  Copiar Imagem
                 </button>
                 <span>•</span>
                 <button
@@ -478,6 +476,14 @@ Agradecemos a parceria e a confiança no desenvolvimento do seu filho! ✨`
               </div>
             )}
           </div>
+
+          {/* Helpful instruction box */}
+          <div className="bg-[#E8F8F5] border border-[#63C7B2]/40 rounded-xl p-3 text-xs text-[#1B6354] flex items-center gap-2">
+            <Sparkles className="w-4 h-4 shrink-0 text-[#20836F]" />
+            <p>
+              Ao clicar no botão verde, o sistema <strong>copia a imagem automaticamente</strong> e abre a conversa do WhatsApp com uma mensagem curta. Basta apertar <strong>Ctrl + V</strong> para colar a foto!
+            </p>
+          </div>
         </DialogBody>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -500,7 +506,7 @@ Agradecemos a parceria e a confiança no desenvolvimento do seu filho! ✨`
             className="w-full sm:w-auto bg-[#20836F] hover:bg-[#186857] text-white gap-2 font-black shadow-[0_4px_0_0_#145245]"
           >
             <MessageSquare className="w-4 h-4 fill-current" />
-            Enviar Imagem no WhatsApp
+            Enviar no WhatsApp (Ctrl+V a foto)
           </Button>
         </DialogFooter>
       </DialogContent>
