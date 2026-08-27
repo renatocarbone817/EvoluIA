@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
+import { ChildAvatar } from "@/components/ui/ChildAvatar"
 import { calculateAge, formatDate, formatDateTime } from "@/lib/utils"
 import type { Child, Guardian, Session, Appointment, InitialAssessment } from "@/types/database"
 import { ChildSummaryTab } from "./tabs/ChildSummaryTab"
@@ -131,14 +132,12 @@ export function ChildProfilePage() {
               <ArrowLeft className="w-4 h-4" />
             </Button>
 
-            {/* Avatar with photo */}
-            <div className="w-12 h-12 rounded-2xl bg-[#245C6B] text-white font-black text-xl flex items-center justify-center shrink-0 border-2 border-[#63C7B2]/40 shadow-md overflow-hidden">
-              {child.photo_url ? (
-                <img src={child.photo_url} alt={child.full_name} className="w-full h-full object-cover" />
-              ) : (
-                child.full_name.charAt(0).toUpperCase()
-              )}
-            </div>
+            {/* Avatar with photo or cute illustration */}
+            <ChildAvatar
+              photoUrl={child.photo_url}
+              name={child.full_name}
+              size="md"
+            />
 
             <div className="flex-1">
               <div className="flex items-center gap-3 flex-wrap">

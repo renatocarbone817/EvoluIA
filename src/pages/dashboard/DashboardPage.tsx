@@ -17,10 +17,12 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
+import { Card, CardContent } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
-import type { Child, Appointment, FinancialRecord } from "@/types/database"
+import { ChildAvatar } from "@/components/ui/ChildAvatar"
+import { formatCurrency } from "@/lib/utils"
+import type { Appointment, Child } from "@/types/database"
 
 interface DashboardStats {
   childrenInProgress: number
@@ -325,21 +327,16 @@ export function DashboardPage() {
                         </span>
                       </div>
 
-                      {/* Patient Avatar Photo */}
+                      {/* Patient Avatar Photo / Cute Child Avatar */}
                       <div
                         onClick={() => navigate(`/criancas/${appt.child_id}`)}
-                        className="w-12 h-12 rounded-2xl bg-[#245C6B] text-white font-black text-base flex items-center justify-center shrink-0 border-2 border-[#63C7B2]/40 shadow-xs overflow-hidden cursor-pointer hover:scale-105 transition-transform"
-                        title={appt.child?.full_name}
+                        className="cursor-pointer hover:scale-105 transition-transform"
                       >
-                        {appt.child?.photo_url ? (
-                          <img
-                            src={appt.child.photo_url}
-                            alt={appt.child.full_name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          appt.child?.full_name ? appt.child.full_name.charAt(0).toUpperCase() : "?"
-                        )}
+                        <ChildAvatar
+                          photoUrl={appt.child?.photo_url}
+                          name={appt.child?.full_name}
+                          size="md"
+                        />
                       </div>
 
                       {/* Patient info */}
@@ -429,14 +426,12 @@ export function DashboardPage() {
                       <span>{format(new Date(appt.start_time), "dd")}</span>
                     </div>
 
-                    {/* Child Photo */}
-                    <div className="w-9 h-9 rounded-xl bg-[#245C6B] text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs overflow-hidden border border-[#63C7B2]/40">
-                      {appt.child?.photo_url ? (
-                        <img src={appt.child.photo_url} alt={appt.child.full_name} className="w-full h-full object-cover" />
-                      ) : (
-                        appt.child?.full_name ? appt.child.full_name.charAt(0).toUpperCase() : "?"
-                      )}
-                    </div>
+                    {/* Child Photo / Cute Avatar */}
+                    <ChildAvatar
+                      photoUrl={appt.child?.photo_url}
+                      name={appt.child?.full_name}
+                      size="sm"
+                    />
 
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-[#19323A] group-hover:text-[#245C6B] truncate">

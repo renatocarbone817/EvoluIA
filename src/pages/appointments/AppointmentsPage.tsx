@@ -32,6 +32,7 @@ import { useAuthStore } from "@/store/authStore"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
+import { ChildAvatar } from "@/components/ui/ChildAvatar"
 import { formatTime, formatDate } from "@/lib/utils"
 import type { AppointmentWithChild } from "@/types/database"
 import { NewAppointmentDialog } from "./NewAppointmentDialog"
@@ -262,14 +263,12 @@ export function AppointmentsPage() {
                       className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] hover:border-[#245C6B] transition-all flex items-center justify-between gap-3"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        {/* Child photo */}
-                        <div className="w-11 h-11 rounded-2xl bg-[#245C6B] text-white font-black text-sm flex items-center justify-center shrink-0 border-2 border-[#63C7B2]/40 shadow-xs overflow-hidden">
-                          {appt.child?.photo_url ? (
-                            <img src={appt.child.photo_url} alt={appt.child.full_name} className="w-full h-full object-cover" />
-                          ) : (
-                            appt.child?.full_name ? appt.child.full_name.charAt(0).toUpperCase() : "?"
-                          )}
-                        </div>
+                        {/* Child Avatar */}
+                        <ChildAvatar
+                          photoUrl={appt.child?.photo_url}
+                          name={appt.child?.full_name}
+                          size="sm"
+                        />
 
                         <div className="space-y-0.5 min-w-0 flex-1">
                           <h3 className="font-black text-sm text-[#19323A] truncate">
@@ -344,13 +343,11 @@ export function AppointmentsPage() {
                           <Badge statusKey={appt.status} className="text-[10px] px-1.5 py-0" />
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-lg bg-[#245C6B] text-white flex items-center justify-center font-black text-[10px] shrink-0 overflow-hidden">
-                            {appt.child?.photo_url ? (
-                              <img src={appt.child.photo_url} alt={appt.child.full_name} className="w-full h-full object-cover" />
-                            ) : (
-                              appt.child?.full_name ? appt.child.full_name.charAt(0).toUpperCase() : "?"
-                            )}
-                          </div>
+                          <ChildAvatar
+                            photoUrl={appt.child?.photo_url}
+                            name={appt.child?.full_name}
+                            size="xs"
+                          />
                           <p className="font-bold text-[#19323A] truncate flex-1">
                             {appt.child?.full_name}
                           </p>
@@ -416,14 +413,12 @@ export function AppointmentsPage() {
                     </p>
                   </div>
 
-                  {/* Child photo */}
-                  <div className="w-12 h-12 rounded-2xl bg-[#245C6B] text-white font-black text-base flex items-center justify-center shrink-0 border-2 border-[#63C7B2]/40 shadow-xs overflow-hidden">
-                    {appt.child?.photo_url ? (
-                      <img src={appt.child.photo_url} alt={appt.child.full_name} className="w-full h-full object-cover" />
-                    ) : (
-                      appt.child?.full_name ? appt.child.full_name.charAt(0).toUpperCase() : "?"
-                    )}
-                  </div>
+                  {/* Child Avatar */}
+                  <ChildAvatar
+                    photoUrl={appt.child?.photo_url}
+                    name={appt.child?.full_name}
+                    size="md"
+                  />
 
                   <div className="min-w-0">
                     <h3 className="font-black text-base text-[#19323A] truncate">{appt.child?.full_name}</h3>
