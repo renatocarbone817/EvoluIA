@@ -26,7 +26,9 @@ import {
   Smartphone,
   CheckCircle2,
   ExternalLink,
+  Trash2,
 } from "lucide-react"
+import toast from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
 import { Card, CardContent } from "@/components/ui/Card"
@@ -90,6 +92,14 @@ export function AppointmentsPage() {
         .order("start_time", { ascending: true })
 
       setAppointments((data || []) as AppointmentWithChild[])
+
+      // Auto-migrate legacy type "Avaliação Inicial" to "Entrevista Inicial" in background
+      supabase
+        .from("appointments")
+        .update({ type: "Entrevista Inicial" })
+        .eq("professional_id", profId)
+        .eq("type", "Avaliação Inicial")
+        .then(() => {})
     } finally {
       setLoading(false)
     }
@@ -105,6 +115,20 @@ export function AppointmentsPage() {
     if (viewMode === "dia" || viewMode === "celular") setCurrentDate(addDays(currentDate, 1))
     else if (viewMode === "semana") setCurrentDate(addWeeks(currentDate, 1))
     else setCurrentDate(addMonths(currentDate, 1))
+  }
+
+  async function handleDeleteAppointment(e: React.MouseEvent, apptId: string) {
+    e.stopPropagation()
+    if (!confirm("Deseja realmente excluir este agendamento da agenda?")) return
+
+    try {
+      const { error } = await supabase.from("appointments").delete().eq("id", apptId)
+      if (error) throw error
+      toast.success("Agendamento excluído da agenda!")
+      loadAppointments()
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir agendamento")
+    }
   }
 
   function handleStartAppointment(appt: AppointmentWithChild) {
@@ -259,40 +283,57 @@ export function AppointmentsPage() {
                 {appointments.map((appt) => {
                   const startTime = new Date(appt.start_time)
                   const endTime = new Date(appt.end_time)
+                  const rawName = appt.child?.full_name || "Criança"
+                  const displayName = rawName.startsWith("Avaliação")
+                    ? rawName.replace(/^Avaliação/i, "Entrevista")
+                    : rawName
+                  const displayType =
+                    appt.type === "Avaliação Inicial" ? "Entrevista Inicial" : appt.type
+
                   return (
                     <div
                       key={appt.id}
-                      className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] hover:border-[#245C6B] transition-all flex items-center justify-between gap-3"
+                      className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] hover:border-[#245C6B] transition-all flex items-center justify-between gap-3 group"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         {/* Child Avatar */}
                         <ChildAvatar
                           photoUrl={appt.child?.photo_url}
-                          name={appt.child?.full_name}
+                          name={displayName}
                           size="sm"
                         />
 
                         <div className="space-y-0.5 min-w-0 flex-1">
                           <h3 className="font-black text-sm text-[#19323A] truncate">
-                            {appt.child?.full_name}
+                            {displayName}
                           </h3>
                           <p className="text-xs font-bold text-[#245C6B]">
                             {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
                           </p>
                           <p className="text-[11px] font-semibold text-[#6B7C83] truncate">
-                            {appt.type}
+                            {displayType}
                           </p>
                         </div>
                       </div>
 
-                      <Button
-                        size="sm"
-                        className="gap-1.5 text-xs font-bold shrink-0"
-                        onClick={() => handleStartAppointment(appt)}
-                      >
-                        <Play className="w-3 h-3 fill-current" />
-                        Iniciar
-                      </Button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteAppointment(e, appt.id)}
+                          className="p-2 text-[#8DA3A8] hover:text-[#D96C6C] hover:bg-[#FDF0F0] rounded-lg transition-colors"
+                          title="Excluir agendamento"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <Button
+                          size="sm"
+                          className="gap-1.5 text-xs font-bold"
+                          onClick={() => handleStartAppointment(appt)}
+                        >
+                          <Play className="w-3 h-3 fill-current" />
+                          Iniciar
+                        </Button>
+                      </div>
                     </div>
                   )
                 })}
@@ -335,41 +376,60 @@ export function AppointmentsPage() {
                       Livre
                     </p>
                   ) : (
-                    dayAppts.map((appt) => (
-                      <div
-                        key={appt.id}
-                        className="p-2.5 rounded-xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] transition-all space-y-1.5 text-xs shadow-2xs"
-                      >
-                        <div className="flex items-center justify-between font-black text-[#19323A]">
-                          <span>{format(new Date(appt.start_time), "HH:mm")}</span>
-                          <Badge statusKey={appt.status} className="text-[10px] px-1.5 py-0" />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <ChildAvatar
-                            photoUrl={appt.child?.photo_url}
-                            name={appt.child?.full_name}
-                            size="xs"
-                          />
-                          <p className="font-bold text-[#19323A] truncate flex-1">
-                            {appt.child?.full_name}
-                          </p>
-                        </div>
-                        <p className="text-[11px] font-medium text-[#6B7C83] truncate">
-                          {appt.type}
-                        </p>
+                    dayAppts.map((appt) => {
+                      const rawName = appt.child?.full_name || "Criança"
+                      const displayName = rawName.startsWith("Avaliação")
+                        ? rawName.replace(/^Avaliação/i, "Entrevista")
+                        : rawName
+                      const displayType =
+                        appt.type === "Avaliação Inicial" ? "Entrevista Inicial" : appt.type
 
-                        {(appt.status === "scheduled" || appt.status === "confirmed") && (
-                          <Button
-                            size="sm"
-                            className="w-full h-8 text-[11px] mt-1 gap-1"
-                            onClick={() => handleStartAppointment(appt)}
-                          >
-                            <Play className="w-3 h-3 fill-current" />
-                            Iniciar
-                          </Button>
-                        )}
-                      </div>
-                    ))
+                      return (
+                        <div
+                          key={appt.id}
+                          className="p-2.5 rounded-xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] transition-all space-y-1.5 text-xs shadow-2xs group relative"
+                        >
+                          <div className="flex items-center justify-between font-black text-[#19323A]">
+                            <span>{format(new Date(appt.start_time), "HH:mm")}</span>
+                            <div className="flex items-center gap-1">
+                              <Badge statusKey={appt.status} className="text-[10px] px-1.5 py-0" />
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteAppointment(e, appt.id)}
+                                className="opacity-0 group-hover:opacity-100 text-[#8DA3A8] hover:text-[#D96C6C] p-0.5 rounded transition-all"
+                                title="Excluir"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <ChildAvatar
+                              photoUrl={appt.child?.photo_url}
+                              name={displayName}
+                              size="xs"
+                            />
+                            <p className="font-bold text-[#19323A] truncate flex-1" title={displayName}>
+                              {displayName}
+                            </p>
+                          </div>
+                          <p className="text-[11px] font-medium text-[#6B7C83] truncate" title={displayType}>
+                            {displayType}
+                          </p>
+
+                          {(appt.status === "scheduled" || appt.status === "confirmed") && (
+                            <Button
+                              size="sm"
+                              className="w-full h-8 text-[11px] mt-1 gap-1"
+                              onClick={() => handleStartAppointment(appt)}
+                            >
+                              <Play className="w-3 h-3 fill-current" />
+                              Iniciar
+                            </Button>
+                          )}
+                        </div>
+                      )
+                    })
                   )}
                 </div>
               </div>
@@ -400,49 +460,66 @@ export function AppointmentsPage() {
               </CardContent>
             </Card>
           ) : (
-            appointments.map((appt) => (
-              <div
-                key={appt.id}
-                className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:shadow-md transition-all flex items-center justify-between gap-4"
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-14 h-14 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex flex-col items-center justify-center shrink-0">
-                    <p className="text-[10px] font-bold text-[#6B7C83] uppercase">
-                      {format(new Date(appt.start_time), "dd/MM")}
-                    </p>
-                    <p className="text-base font-black text-[#19323A]">
-                      {format(new Date(appt.start_time), "HH:mm")}
-                    </p>
+            appointments.map((appt) => {
+              const rawName = appt.child?.full_name || "Criança"
+              const displayName = rawName.startsWith("Avaliação")
+                ? rawName.replace(/^Avaliação/i, "Entrevista")
+                : rawName
+              const displayType =
+                appt.type === "Avaliação Inicial" ? "Entrevista Inicial" : appt.type
+
+              return (
+                <div
+                  key={appt.id}
+                  className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:shadow-md transition-all flex items-center justify-between gap-4 group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-14 h-14 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex flex-col items-center justify-center shrink-0">
+                      <p className="text-[10px] font-bold text-[#6B7C83] uppercase">
+                        {format(new Date(appt.start_time), "dd/MM")}
+                      </p>
+                      <p className="text-base font-black text-[#19323A]">
+                        {format(new Date(appt.start_time), "HH:mm")}
+                      </p>
+                    </div>
+
+                    {/* Child Avatar */}
+                    <ChildAvatar
+                      photoUrl={appt.child?.photo_url}
+                      name={displayName}
+                      size="md"
+                    />
+
+                    <div className="min-w-0">
+                      <h3 className="font-black text-base text-[#19323A] truncate">{displayName}</h3>
+                      <p className="text-xs font-semibold text-[#6B7C83] truncate">{displayType}</p>
+                    </div>
                   </div>
 
-                  {/* Child Avatar */}
-                  <ChildAvatar
-                    photoUrl={appt.child?.photo_url}
-                    name={appt.child?.full_name}
-                    size="md"
-                  />
-
-                  <div className="min-w-0">
-                    <h3 className="font-black text-base text-[#19323A] truncate">{appt.child?.full_name}</h3>
-                    <p className="text-xs font-semibold text-[#6B7C83] truncate">{appt.type}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Badge statusKey={appt.status} />
-                  {(appt.status === "scheduled" || appt.status === "confirmed") && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleStartAppointment(appt)}
-                      className="gap-1.5"
+                  <div className="flex items-center gap-2">
+                    <Badge statusKey={appt.status} />
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteAppointment(e, appt.id)}
+                      className="p-2 text-[#8DA3A8] hover:text-[#D96C6C] hover:bg-[#FDF0F0] rounded-lg transition-colors"
+                      title="Excluir agendamento"
                     >
-                      <Play className="w-3 h-3 fill-current" />
-                      Iniciar
-                    </Button>
-                  )}
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    {(appt.status === "scheduled" || appt.status === "confirmed") && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleStartAppointment(appt)}
+                        className="gap-1.5"
+                      >
+                        <Play className="w-3 h-3 fill-current" />
+                        Iniciar
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
       )}
