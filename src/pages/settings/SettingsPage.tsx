@@ -570,8 +570,8 @@ export function SettingsPage() {
           {/* Sidebar Live Preview (4 Cols - Enquadramento Perfeito & Equilibrado) */}
           <div className="lg:col-span-4 space-y-5">
             <div className="rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm overflow-hidden space-y-4">
-              <div className="bg-gradient-to-r from-[#00B4D8] to-[#0096C7] p-5 text-white flex items-center gap-3.5">
-                <div className="w-14 h-14 rounded-2xl bg-white/20 border-2 border-white/40 flex items-center justify-center font-black text-xl overflow-hidden shrink-0 shadow-xs">
+              <div className="bg-white p-5 border-b-2 border-[#D8E5E7] flex items-center gap-3.5">
+                <div className="w-14 h-14 rounded-2xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center font-black text-xl overflow-hidden shrink-0 shadow-xs">
                   {professional?.logo_url ? (
                     <img src={professional.logo_url} alt="Logo" className="w-full h-full object-cover" />
                   ) : (
@@ -579,9 +579,9 @@ export function SettingsPage() {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-black text-base truncate leading-tight">{form.clinic_name}</h3>
-                  <p className="text-xs text-white/95 font-bold truncate mt-0.5">{form.full_name}</p>
-                  <p className="text-[10px] text-white/80 truncate">CBO {form.crp}</p>
+                  <h3 className="font-black text-base text-[#0D2329] truncate leading-tight">{form.clinic_name || "Nome do Consultório"}</h3>
+                  <p className="text-xs text-[#7C3AED] font-black truncate mt-0.5">{form.full_name || "Nome da Profissional"}</p>
+                  <p className="text-[11px] text-[#6B7C83] font-bold truncate">CBO: {form.crp || "Não informado"}</p>
                 </div>
               </div>
 
