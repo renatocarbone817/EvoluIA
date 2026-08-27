@@ -525,16 +525,18 @@ export function AppointmentsPage() {
           <div className="flex bg-[#F7FAFA] rounded-2xl p-1 border-2 border-[#D8E5E7] shadow-2xs">
             {(
               [
-                { id: "dia", label: "Dia" },
-                { id: "semana", label: "Semana" },
-                { id: "mes", label: "Mês" },
-                { id: "celular", label: "📱 Celular" },
-              ] as { id: ViewMode; label: string }[]
+                { id: "dia", label: "Dia", mobileOnly: false },
+                { id: "semana", label: "Semana", mobileOnly: false },
+                { id: "mes", label: "Mês", mobileOnly: false },
+                { id: "celular", label: "📱 Celular", mobileOnly: true },
+              ] as { id: ViewMode; label: string; mobileOnly: boolean }[]
             ).map((mode) => (
               <button
                 key={mode.id}
                 onClick={() => setViewMode(mode.id)}
                 className={`px-3.5 py-1.5 text-xs font-black rounded-xl transition-all ${
+                  mode.mobileOnly ? "block md:hidden" : ""
+                } ${
                   viewMode === mode.id
                     ? "bg-[#7C3AED] text-white shadow-xs"
                     : "text-[#6B7C83] hover:text-[#0D2329] hover:bg-white"
@@ -1208,11 +1210,11 @@ export function AppointmentsPage() {
 
               <button
                 type="button"
-                onClick={() => setViewMode("celular")}
+                onClick={() => navigate("/configuracoes")}
                 className="w-full p-2.5 rounded-xl hover:bg-[#F7FAFA] text-xs font-bold text-[#0D2329] flex items-center gap-2.5 transition-all text-left group"
               >
                 <Smartphone className="w-4 h-4 text-[#10B981] group-hover:scale-110 transition-transform" />
-                <span>Ver agenda no celular</span>
+                <span>Sincronizar com Celular / Google Agenda</span>
               </button>
 
               <button
