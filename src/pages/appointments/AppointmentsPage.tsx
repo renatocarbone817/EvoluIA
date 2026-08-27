@@ -261,23 +261,32 @@ export function AppointmentsPage() {
                       key={appt.id}
                       className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] hover:border-[#245C6B] transition-all flex items-center justify-between gap-3"
                     >
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {/* Child photo */}
+                        <div className="w-11 h-11 rounded-2xl bg-[#245C6B] text-white font-black text-sm flex items-center justify-center shrink-0 border-2 border-[#63C7B2]/40 shadow-xs overflow-hidden">
+                          {appt.child?.photo_url ? (
+                            <img src={appt.child.photo_url} alt={appt.child.full_name} className="w-full h-full object-cover" />
+                          ) : (
+                            appt.child?.full_name ? appt.child.full_name.charAt(0).toUpperCase() : "?"
+                          )}
+                        </div>
+
+                        <div className="space-y-0.5 min-w-0 flex-1">
                           <h3 className="font-black text-sm text-[#19323A] truncate">
                             {appt.child?.full_name}
                           </h3>
+                          <p className="text-xs font-bold text-[#245C6B]">
+                            {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
+                          </p>
+                          <p className="text-[11px] font-semibold text-[#6B7C83] truncate">
+                            {appt.type}
+                          </p>
                         </div>
-                        <p className="text-xs font-bold text-[#245C6B]">
-                          {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
-                        </p>
-                        <p className="text-[11px] font-semibold text-[#6B7C83] truncate">
-                          {appt.type}
-                        </p>
                       </div>
 
                       <Button
                         size="sm"
-                        className="gap-1.5 text-xs font-bold"
+                        className="gap-1.5 text-xs font-bold shrink-0"
                         onClick={() => handleStartAppointment(appt)}
                       >
                         <Play className="w-3 h-3 fill-current" />
@@ -334,9 +343,18 @@ export function AppointmentsPage() {
                           <span>{format(new Date(appt.start_time), "HH:mm")}</span>
                           <Badge statusKey={appt.status} className="text-[10px] px-1.5 py-0" />
                         </div>
-                        <p className="font-bold text-[#19323A] truncate">
-                          {appt.child?.full_name}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-[#245C6B] text-white flex items-center justify-center font-black text-[10px] shrink-0 overflow-hidden">
+                            {appt.child?.photo_url ? (
+                              <img src={appt.child.photo_url} alt={appt.child.full_name} className="w-full h-full object-cover" />
+                            ) : (
+                              appt.child?.full_name ? appt.child.full_name.charAt(0).toUpperCase() : "?"
+                            )}
+                          </div>
+                          <p className="font-bold text-[#19323A] truncate flex-1">
+                            {appt.child?.full_name}
+                          </p>
+                        </div>
                         <p className="text-[11px] font-medium text-[#6B7C83] truncate">
                           {appt.type}
                         </p>
@@ -388,8 +406,8 @@ export function AppointmentsPage() {
                 key={appt.id}
                 className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:shadow-md transition-all flex items-center justify-between gap-4"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex flex-col items-center justify-center shrink-0">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-14 h-14 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex flex-col items-center justify-center shrink-0">
                     <p className="text-[10px] font-bold text-[#6B7C83] uppercase">
                       {format(new Date(appt.start_time), "dd/MM")}
                     </p>
@@ -398,9 +416,18 @@ export function AppointmentsPage() {
                     </p>
                   </div>
 
-                  <div>
-                    <h3 className="font-black text-base text-[#19323A]">{appt.child?.full_name}</h3>
-                    <p className="text-xs font-semibold text-[#6B7C83]">{appt.type}</p>
+                  {/* Child photo */}
+                  <div className="w-12 h-12 rounded-2xl bg-[#245C6B] text-white font-black text-base flex items-center justify-center shrink-0 border-2 border-[#63C7B2]/40 shadow-xs overflow-hidden">
+                    {appt.child?.photo_url ? (
+                      <img src={appt.child.photo_url} alt={appt.child.full_name} className="w-full h-full object-cover" />
+                    ) : (
+                      appt.child?.full_name ? appt.child.full_name.charAt(0).toUpperCase() : "?"
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <h3 className="font-black text-base text-[#19323A] truncate">{appt.child?.full_name}</h3>
+                    <p className="text-xs font-semibold text-[#6B7C83] truncate">{appt.type}</p>
                   </div>
                 </div>
 

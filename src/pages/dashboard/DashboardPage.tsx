@@ -315,14 +315,31 @@ export function DashboardPage() {
                     }`}
                   >
                     {/* Time Box */}
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-16 h-16 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex flex-col items-center justify-center shrink-0">
-                        <span className="text-base font-black text-[#19323A] leading-none">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="w-14 h-14 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex flex-col items-center justify-center shrink-0">
+                        <span className="text-sm font-black text-[#19323A] leading-none">
                           {format(startTime, "HH:mm")}
                         </span>
                         <span className="text-[10px] font-bold text-[#6B7C83] uppercase mt-1">
                           {format(new Date(appt.end_time), "HH:mm")}
                         </span>
+                      </div>
+
+                      {/* Patient Avatar Photo */}
+                      <div
+                        onClick={() => navigate(`/criancas/${appt.child_id}`)}
+                        className="w-12 h-12 rounded-2xl bg-[#245C6B] text-white font-black text-base flex items-center justify-center shrink-0 border-2 border-[#63C7B2]/40 shadow-xs overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                        title={appt.child?.full_name}
+                      >
+                        {appt.child?.photo_url ? (
+                          <img
+                            src={appt.child.photo_url}
+                            alt={appt.child.full_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          appt.child?.full_name ? appt.child.full_name.charAt(0).toUpperCase() : "?"
+                        )}
                       </div>
 
                       {/* Patient info */}
@@ -407,9 +424,20 @@ export function DashboardPage() {
                     onClick={() => navigate(`/criancas/${appt.child_id}`)}
                     className="flex items-center gap-3 p-3 rounded-xl border-2 border-transparent hover:border-[#245C6B]/40 hover:bg-[#EEF5F6] cursor-pointer transition-all group"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-[#245C6B] text-white flex flex-col items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                    {/* Day Badge */}
+                    <div className="w-9 h-9 rounded-xl bg-[#EEF5F6] text-[#19323A] border border-[#D8E5E7] flex flex-col items-center justify-center font-black text-xs shrink-0 shadow-2xs">
                       <span>{format(new Date(appt.start_time), "dd")}</span>
                     </div>
+
+                    {/* Child Photo */}
+                    <div className="w-9 h-9 rounded-xl bg-[#245C6B] text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs overflow-hidden border border-[#63C7B2]/40">
+                      {appt.child?.photo_url ? (
+                        <img src={appt.child.photo_url} alt={appt.child.full_name} className="w-full h-full object-cover" />
+                      ) : (
+                        appt.child?.full_name ? appt.child.full_name.charAt(0).toUpperCase() : "?"
+                      )}
+                    </div>
+
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-[#19323A] group-hover:text-[#245C6B] truncate">
                         {appt.child?.full_name}
