@@ -95,39 +95,66 @@ export const DEFAULT_ASSESSMENT_QUESTIONS = [
   },
 ]
 
+function parseInlineMarkdown(text: string) {
+  // Matches **bold** or *italic*
+  const tokens = text.split(/(\*\*.*?\*\*|\*[^*]+?\*)/g)
+  return tokens.map((token, idx) => {
+    if (token.startsWith("**") && token.endsWith("**")) {
+      return (
+        <strong key={idx} className="font-black text-[#19323A]">
+          {token.slice(2, -2)}
+        </strong>
+      )
+    }
+    if (token.startsWith("*") && token.endsWith("*") && token.length > 2) {
+      return (
+        <span key={idx} className="font-bold text-[#1E4E5B] bg-[#245C6B]/10 px-1 py-0.5 rounded text-[13px]">
+          {token.slice(1, -1)}
+        </span>
+      )
+    }
+    return token
+  })
+}
+
 function renderFormattedMarkdown(text: string) {
   const lines = text.split("\n")
   return lines.map((line, lineIdx) => {
     const trimmed = line.trim()
     if (!trimmed || trimmed === "---") return null
 
-    const isBullet = trimmed.startsWith("* ") || trimmed.startsWith("- ")
-    const cleanLine = isBullet ? trimmed.substring(2) : trimmed
+    // Subheaders (e.g. ### Abordagem 1: ...)
+    if (trimmed.startsWith("### ")) {
+      return (
+        <h5 key={lineIdx} className="font-black text-sm text-[#19323A] mt-3 mb-1.5">
+          {parseInlineMarkdown(trimmed.replace(/^###\s*/, ""))}
+        </h5>
+      )
+    }
 
-    // Split on **bold text**
-    const parts = cleanLine.split(/(\*\*.*?\*\*)/g)
-    const content = parts.map((part, partIdx) => {
-      if (part.startsWith("**") && part.endsWith("**")) {
-        return (
-          <strong key={partIdx} className="font-black text-[#19323A]">
-            {part.slice(2, -2)}
-          </strong>
-        )
-      }
-      return part
-    })
+    const isBullet = trimmed.startsWith("* ") || trimmed.startsWith("- ")
+    const isNumbered = /^\d+\.\s/.test(trimmed)
+    const cleanLine = isBullet ? trimmed.substring(2) : trimmed
 
     if (isBullet) {
       return (
-        <li key={lineIdx} className="ml-5 list-disc text-sm text-[#2E4A52] leading-relaxed my-1 pl-1">
-          {content}
+        <li key={lineIdx} className="ml-5 list-disc text-sm text-[#2E4A52] leading-relaxed my-1.5 pl-1">
+          {parseInlineMarkdown(cleanLine)}
         </li>
+      )
+    }
+
+    if (isNumbered) {
+      return (
+        <div key={lineIdx} className="text-sm text-[#2E4A52] leading-relaxed my-2 font-medium">
+          {parseInlineMarkdown(cleanLine)}
+        </div>
       )
     }
 
     return (
       <p key={lineIdx} className="text-sm text-[#2E4A52] leading-relaxed my-2">
-        {content}
+        {parseInlineMarkdown(cleanLine)}
       </p>
     )
   })
