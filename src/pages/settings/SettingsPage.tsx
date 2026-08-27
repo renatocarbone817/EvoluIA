@@ -628,40 +628,120 @@ export function SettingsPage() {
             <Card className="border-2 border-[#D8E5E7] shadow-sm rounded-2xl">
               <CardHeader className="pb-3 border-b border-[#EEF5F6]">
                 <CardTitle className="text-base font-black text-[#19323A]">
-                  Lembretes e Avisos aos Responsáveis
+                  Lembretes e Mensagens WhatsApp
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Modelos de mensagens automáticas via WhatsApp para confirmação de sessões.
+                  Personalize os modelos de mensagens que o EvoluIA preenche automaticamente para enviar aos pais.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-5 space-y-4">
-                <div className="p-4 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7] space-y-2">
+              <CardContent className="p-5 space-y-5">
+                {/* 1. Lembrete de Atendimento */}
+                <div className="p-4 rounded-2xl bg-[#F7FAFA] border-2 border-[#D8E5E7] space-y-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-black text-[#19323A] flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-[#20836F]" />
-                      Mensagem Matinal de Confirmação (08:00)
-                    </p>
-                    <span className="text-[10px] bg-[#E8F8F5] text-[#20836F] font-black px-2 py-0.5 rounded-md border border-[#63C7B2]/40">
-                      Disponível
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-[#E8F8F5] text-[#20836F] flex items-center justify-center font-bold">
+                        <MessageSquare className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-[#19323A]">
+                          1. Lembrete Matinal de Confirmação de Sessão
+                        </p>
+                        <p className="text-[11px] text-[#6B7C83]">
+                          Usado na <strong>Agenda</strong> e no <strong>Dashboard</strong> para confirmar atendimentos do dia.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] bg-[#E8F8F5] text-[#20836F] font-black px-2.5 py-1 rounded-md border border-[#63C7B2]/40">
+                      Disponível na Agenda
                     </span>
                   </div>
-                  <p className="text-xs text-[#6B7C83] bg-white p-3 rounded-xl border border-[#D8E5E7] leading-relaxed italic">
-                    "Olá, tudo bem? 🌟 Passando para confirmar a sessão de <strong>[Nome da Criança]</strong> hoje às <strong>[Horário]</strong> no consultório. Qualquer imprevisto, por favor nos avise. Até breve!"
-                  </p>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-[#6B7C83]">
+                      Texto da Mensagem (com tags automáticas):
+                    </label>
+                    <textarea
+                      rows={3}
+                      defaultValue="Olá, tudo bem? 🌟 Passando para confirmar a nossa sessão psicopedagógica hoje às {horario} no consultório. Qualquer imprevisto, por favor nos avise. Até logo!"
+                      className="w-full px-3 py-2 text-xs font-medium rounded-xl border border-[#D8E5E7] bg-white text-[#19323A] focus:outline-none focus:border-[#245C6B]"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <p className="text-[11px] text-[#8DA3A8]">
+                      Tags disponíveis: <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{horario}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{nome_crianca}"}</code>
+                    </p>
+
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(
+                        "Olá, tudo bem? 🌟 Passando para confirmar a nossa sessão psicopedagógica hoje às 14:00 no consultório. Qualquer imprevisto, por favor nos avise. Até logo!"
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 bg-[#E8F8F5] hover:bg-[#20836F] hover:text-white text-[#20836F] rounded-xl text-xs font-black flex items-center gap-1.5 border border-[#63C7B2]/40 transition-all shadow-2xs"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                      <span>Testar Envio no WhatsApp</span>
+                    </a>
+                  </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7] space-y-2">
+                {/* 2. Mensagem de Cobrança */}
+                <div className="p-4 rounded-2xl bg-[#F7FAFA] border-2 border-[#D8E5E7] space-y-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-black text-[#19323A] flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-[#F4C95D]" />
-                      Mensagem de Cobrança / Mensalidade
-                    </p>
-                    <span className="text-[10px] bg-[#FEF8EC] text-[#8B6514] font-black px-2 py-0.5 rounded-md border border-[#F4C95D]/40">
-                      Ativo
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-[#FEF8EC] text-[#8B6514] flex items-center justify-center font-bold">
+                        <DollarSign className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-[#19323A]">
+                          2. Mensagem de Cobrança / Mensalidade com PIX
+                        </p>
+                        <p className="text-[11px] text-[#6B7C83]">
+                          Usado no botão <strong>"Cobrar"</strong> da tela de <strong>Financeiro</strong>.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] bg-[#FEF8EC] text-[#8B6514] font-black px-2.5 py-1 rounded-md border border-[#F4C95D]/40">
+                      Disponível no Financeiro
                     </span>
                   </div>
-                  <p className="text-xs text-[#6B7C83] bg-white p-3 rounded-xl border border-[#D8E5E7] leading-relaxed italic">
-                    "Olá! Segue a cobrança da mensalidade de <strong>[Nome da Criança]</strong> referente ao mês de <strong>[Mês]</strong> no valor de <strong>[Valor]</strong>. Segue nossa chave PIX: <strong>{form.pix_key}</strong>. Muito obrigado!"
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-[#6B7C83]">
+                      Texto da Mensagem:
+                    </label>
+                    <textarea
+                      rows={3}
+                      defaultValue={`Olá! Segue a mensalidade psicopedagógica referente ao mês de {mes} no valor de {valor}. Segue nossa chave PIX: ${form.pix_key}. Qualquer dúvida estou à disposição!`}
+                      className="w-full px-3 py-2 text-xs font-medium rounded-xl border border-[#D8E5E7] bg-white text-[#19323A] focus:outline-none focus:border-[#245C6B]"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <p className="text-[11px] text-[#8DA3A8]">
+                      Tags disponíveis: <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{mes}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{valor}"}</code>
+                    </p>
+
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(
+                        `Olá! Segue a mensalidade psicopedagógica referente a Agosto no valor de R$ 350,00. Segue nossa chave PIX: ${form.pix_key}. Qualquer dúvida estou à disposição!`
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 bg-[#FEF8EC] hover:bg-[#F4C95D] hover:text-[#19323A] text-[#8B6514] rounded-xl text-xs font-black flex items-center gap-1.5 border border-[#F4C95D]/40 transition-all shadow-2xs"
+                    >
+                      <DollarSign className="w-3.5 h-3.5" />
+                      <span>Testar Cobrança</span>
+                    </a>
+                  </div>
+                </div>
+
+                {/* Info Guide */}
+                <div className="p-3.5 rounded-xl bg-[#EAF3F5] border border-[#245C6B]/20 flex items-start gap-2.5 text-xs text-[#245C6B]">
+                  <span className="text-base">💡</span>
+                  <p className="leading-relaxed">
+                    <strong>Como usar no dia a dia:</strong> Ao clicar no botão de WhatsApp na <strong>Agenda</strong>, nos <strong>Responsáveis</strong> ou no <strong>Financeiro</strong>, o EvoluIA abre diretamente o WhatsApp do pai/mãe com essa mensagem já preenchida com o nome do filho, horário ou valor certinho, sem você precisar digitar nada!
                   </p>
                 </div>
               </CardContent>
