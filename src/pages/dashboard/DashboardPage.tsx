@@ -46,6 +46,17 @@ interface NoteItem {
   starred: boolean
 }
 
+interface HoveredPointInfo {
+  label: string
+  weekName: string
+  count: number
+  color: string
+  bg: string
+  border: string
+  x: number
+  y: number
+}
+
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
@@ -68,6 +79,9 @@ export function DashboardPage() {
   const currentMonthNum = new Date().getMonth() + 1
   const currentYearNum = new Date().getFullYear()
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonthNum)
+
+  // Interactive Hover Tooltip for Chart Nodes
+  const [hoveredPoint, setHoveredPoint] = useState<HoveredPointInfo | null>(null)
 
   // Interactive Tasks (persisted)
   const [tasks, setTasks] = useState<TaskItem[]>(() => {
@@ -660,7 +674,7 @@ export function DashboardPage() {
         </div>
 
         {/* ========================================================
-            COLUMN 2: RESUMO DO MÊS (COMPARATIVO MULTI-LINHAS) (5 COLS)
+            COLUMN 2: RESUMO DO MÊS (COMPARATIVO MULTI-LINHAS + TOOLTIPS) (5 COLS)
             ======================================================== */}
         <div className="lg:col-span-5 space-y-5">
           <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
@@ -694,9 +708,24 @@ export function DashboardPage() {
               </span>
             </div>
 
-            {/* Multi-Series Smooth Line Chart */}
+            {/* Multi-Series Smooth Line Chart with Interactive Tooltips */}
             <div className="relative pt-2">
               <div className="h-44 w-full relative">
+                {/* Floating Interactive Tooltip */}
+                {hoveredPoint && (
+                  <div
+                    style={{
+                      left: `${(hoveredPoint.x / 400) * 100}%`,
+                      top: `${(hoveredPoint.y / 150) * 100}%`,
+                      transform: "translate(-50%, -125%)",
+                    }}
+                    className={`absolute pointer-events-none z-30 px-3 py-1.5 rounded-2xl border-2 shadow-lg text-xs font-black whitespace-nowrap animate-in fade-in zoom-in-95 backdrop-blur-xs ${hoveredPoint.bg} ${hoveredPoint.border} ${hoveredPoint.color}`}
+                  >
+                    <p className="text-[9px] uppercase tracking-wider opacity-80 font-extrabold">{hoveredPoint.weekName}</p>
+                    <p className="text-xs font-black mt-0.5">{hoveredPoint.label}</p>
+                  </div>
+                )}
+
                 <svg className="w-full h-full overflow-visible" viewBox="0 0 400 150">
                   <defs>
                     <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
@@ -721,37 +750,97 @@ export function DashboardPage() {
                   {/* 1. Curva Aulas (Verde) */}
                   <path d={monthlyChartData.curveAulas.path} fill="none" stroke="#10B981" strokeWidth="2.5" />
                   {monthlyChartData.curveAulas.pts.map((pt, i) => (
-                    <circle
-                      key={`aulas-${i}`}
-                      cx={pt.x}
-                      cy={pt.y}
-                      r="4"
-                      className="fill-white stroke-[#10B981] stroke-2 shadow-xs cursor-pointer"
-                    />
+                    <g key={`aulas-${i}`} className="cursor-pointer">
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        r="4.5"
+                        className="fill-white stroke-[#10B981] stroke-2 shadow-xs transition-all"
+                      />
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        r="14"
+                        fill="transparent"
+                        onMouseEnter={() => setHoveredPoint({
+                          label: `${pt.val} Aulas`,
+                          weekName: monthlyChartData.weeks[i].label,
+                          count: pt.val,
+                          color: "text-[#065F46]",
+                          bg: "bg-[#E8F8F5]",
+                          border: "border-[#A7F3D0]",
+                          x: pt.x,
+                          y: pt.y,
+                        })}
+                        onMouseLeave={() => setHoveredPoint(null)}
+                      >
+                        <title>{`${monthlyChartData.weeks[i].label}: ${pt.val} Aulas`}</title>
+                      </circle>
+                    </g>
                   ))}
 
                   {/* 2. Curva Entrevistas (Roxa) */}
                   <path d={monthlyChartData.curveEvals.path} fill="none" stroke="#7C3AED" strokeWidth="2.5" />
                   {monthlyChartData.curveEvals.pts.map((pt, i) => (
-                    <circle
-                      key={`evals-${i}`}
-                      cx={pt.x}
-                      cy={pt.y}
-                      r="4"
-                      className="fill-white stroke-[#7C3AED] stroke-2 shadow-xs cursor-pointer"
-                    />
+                    <g key={`evals-${i}`} className="cursor-pointer">
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        r="4.5"
+                        className="fill-white stroke-[#7C3AED] stroke-2 shadow-xs transition-all"
+                      />
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        r="14"
+                        fill="transparent"
+                        onMouseEnter={() => setHoveredPoint({
+                          label: `${pt.val} Entrevistas`,
+                          weekName: monthlyChartData.weeks[i].label,
+                          count: pt.val,
+                          color: "text-[#6B21A8]",
+                          bg: "bg-[#F3E8FF]",
+                          border: "border-[#DDD6FE]",
+                          x: pt.x,
+                          y: pt.y,
+                        })}
+                        onMouseLeave={() => setHoveredPoint(null)}
+                      >
+                        <title>{`${monthlyChartData.weeks[i].label}: ${pt.val} Entrevistas`}</title>
+                      </circle>
+                    </g>
                   ))}
 
                   {/* 3. Curva Novos Pacientes (Azul) */}
                   <path d={monthlyChartData.curveNovos.path} fill="none" stroke="#0284C7" strokeWidth="2" strokeDasharray="4 3" />
                   {monthlyChartData.curveNovos.pts.map((pt, i) => (
-                    <circle
-                      key={`novos-${i}`}
-                      cx={pt.x}
-                      cy={pt.y}
-                      r="3.5"
-                      className="fill-white stroke-[#0284C7] stroke-2 shadow-xs cursor-pointer"
-                    />
+                    <g key={`novos-${i}`} className="cursor-pointer">
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        r="4"
+                        className="fill-white stroke-[#0284C7] stroke-2 shadow-xs transition-all"
+                      />
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        r="14"
+                        fill="transparent"
+                        onMouseEnter={() => setHoveredPoint({
+                          label: `${pt.val} Novos Pacientes`,
+                          weekName: monthlyChartData.weeks[i].label,
+                          count: pt.val,
+                          color: "text-[#0369A1]",
+                          bg: "bg-[#E0F2FE]",
+                          border: "border-[#BAE6FD]",
+                          x: pt.x,
+                          y: pt.y,
+                        })}
+                        onMouseLeave={() => setHoveredPoint(null)}
+                      >
+                        <title>{`${monthlyChartData.weeks[i].label}: ${pt.val} Novos Pacientes`}</title>
+                      </circle>
+                    </g>
                   ))}
                 </svg>
               </div>
