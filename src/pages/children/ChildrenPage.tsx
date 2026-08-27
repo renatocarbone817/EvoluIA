@@ -298,9 +298,9 @@ export function ChildrenPage() {
 
       {/* Main Content: Loading, Empty or List/Grid View */}
       {loading ? (
-        <div className={viewType === "cards" ? "grid sm:grid-cols-2 gap-4" : "space-y-2"}>
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-40 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-2xl" />
+        <div className={viewType === "cards" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5" : "space-y-2"}>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-44 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-2xl" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -339,6 +339,13 @@ export function ChildrenPage() {
               const rawPhone = primaryGuardian?.whatsapp || primaryGuardian?.phone || ""
               const cleanPhone = rawPhone.replace(/\D/g, "")
 
+              const rawName = child.full_name || "Criança"
+              const displayName = rawName.startsWith("Avaliação (") && rawName.endsWith(")")
+                ? rawName.replace(/^Avaliação \((.*)\)$/i, "$1")
+                : rawName.startsWith("Avaliação ")
+                ? rawName.replace(/^Avaliação /i, "")
+                : rawName
+
               return (
                 <div
                   key={child.id}
@@ -347,11 +354,11 @@ export function ChildrenPage() {
                 >
                   {/* Child Info */}
                   <div className="flex items-center gap-3 min-w-0 md:w-1/3">
-                    <ChildAvatar photoUrl={child.photo_url} name={child.full_name} size="md" />
+                    <ChildAvatar photoUrl={child.photo_url} name={displayName} size="md" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="font-black text-sm text-[#19323A] group-hover:text-[#245C6B] truncate">
-                          {child.full_name}
+                          {displayName}
                         </h3>
                         {age !== null && (
                           <span className="text-[10px] font-bold text-[#6B7C83] bg-[#EEF5F6] px-1.5 py-0.2 rounded-md">
@@ -443,8 +450,8 @@ export function ChildrenPage() {
           </div>
         </div>
       ) : (
-        /* 2. CARD VIEW (Rich context with next appointment, age & complaint) */
-        <div className="grid sm:grid-cols-2 gap-4">
+        /* 2. CARD VIEW (3 Columns - Compact, rich & sleek) */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {filtered.map((child) => {
             const age = child.birth_date ? calculateAge(child.birth_date) : null
             const linkedGuardians = child.guardians?.filter((g) => g.guardian) || []
@@ -452,27 +459,34 @@ export function ChildrenPage() {
             const rawPhone = primaryGuardian?.whatsapp || primaryGuardian?.phone || ""
             const cleanPhone = rawPhone.replace(/\D/g, "")
 
+            const rawName = child.full_name || "Criança"
+            const displayName = rawName.startsWith("Avaliação (") && rawName.endsWith(")")
+              ? rawName.replace(/^Avaliação \((.*)\)$/i, "$1")
+              : rawName.startsWith("Avaliação ")
+              ? rawName.replace(/^Avaliação /i, "")
+              : rawName
+
             return (
               <div
                 key={child.id}
                 onClick={() => navigate(`/criancas/${child.id}`)}
-                className="p-4 sm:p-5 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:shadow-md cursor-pointer transition-all space-y-3.5 flex flex-col justify-between group"
+                className="p-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:shadow-md cursor-pointer transition-all space-y-2.5 flex flex-col justify-between group"
               >
                 {/* 1. Header: Avatar + Name + Status + WhatsApp */}
-                <div className="space-y-2.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="group-hover:scale-105 transition-transform">
-                        <ChildAvatar photoUrl={child.photo_url} name={child.full_name} size="md" />
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="group-hover:scale-105 transition-transform shrink-0">
+                        <ChildAvatar photoUrl={child.photo_url} name={displayName} size="sm" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="font-black text-base text-[#19323A] group-hover:text-[#245C6B] transition-colors truncate leading-tight">
-                          {child.full_name}
+                        <h3 className="font-black text-sm text-[#19323A] group-hover:text-[#245C6B] transition-colors truncate leading-snug">
+                          {displayName}
                         </h3>
-                        <div className="mt-1 flex items-center gap-2 flex-wrap">
-                          <Badge statusKey={child.status} className="text-[10px] px-2 py-0.5" />
+                        <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+                          <Badge statusKey={child.status} className="text-[9px] px-1.5 py-0" />
                           {age !== null && (
-                            <span className="text-[11px] font-bold text-[#6B7C83] bg-[#EEF5F6] px-2 py-0.5 rounded-md">
+                            <span className="text-[10px] font-bold text-[#6B7C83] bg-[#EEF5F6] px-1.5 py-0.2 rounded">
                               {age} anos
                             </span>
                           )}
@@ -487,46 +501,43 @@ export function ChildrenPage() {
                         target="_blank"
                         rel="noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="text-xs bg-[#E8F8F5] text-[#20836F] border border-[#63C7B2]/40 hover:bg-[#63C7B2] hover:text-white px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shadow-2xs shrink-0"
+                        className="p-1.5 bg-[#E8F8F5] text-[#20836F] border border-[#63C7B2]/40 hover:bg-[#63C7B2] hover:text-white rounded-lg transition-all shadow-2xs shrink-0"
                         title="Enviar WhatsApp para o responsável"
                       >
                         <MessageSquare className="w-3.5 h-3.5 fill-current" />
-                        <span className="text-[11px]">WhatsApp</span>
                       </a>
                     )}
                   </div>
 
                   {/* Next / Last Session Badge Banner */}
                   {child.nextAppointment ? (
-                    <div className="p-2 bg-[#E8F8F5] border border-[#63C7B2]/40 rounded-xl text-xs flex items-center justify-between text-[#20836F]">
-                      <span className="flex items-center gap-1.5 font-bold">
-                        <Calendar className="w-3.5 h-3.5" />
+                    <div className="px-2 py-1 bg-[#E8F8F5] border border-[#63C7B2]/30 rounded-lg text-[11px] flex items-center justify-between text-[#20836F]">
+                      <span className="flex items-center gap-1 font-bold truncate">
+                        <Calendar className="w-3 h-3 shrink-0" />
                         Próx: {format(new Date(child.nextAppointment.start_time), "dd/MM 'às' HH:mm", { locale: ptBR })}
                       </span>
-                      <span className="text-[10px] font-extrabold uppercase opacity-80">
+                      <span className="text-[9px] font-black uppercase opacity-75 truncate max-w-[90px]">
                         {child.nextAppointment.type}
                       </span>
                     </div>
                   ) : child.lastAppointment ? (
-                    <div className="p-2 bg-[#EEF5F6] border border-[#D8E5E7] rounded-xl text-xs flex items-center justify-between text-[#6B7C83]">
-                      <span className="flex items-center gap-1.5 font-semibold text-[11px]">
-                        <Clock className="w-3 h-3" />
-                        Último atendimento: {format(new Date(child.lastAppointment.start_time), "dd/MM/yyyy")}
-                      </span>
+                    <div className="px-2 py-1 bg-[#EEF5F6] border border-[#D8E5E7] rounded-lg text-[10px] text-[#6B7C83] flex items-center gap-1">
+                      <Clock className="w-3 h-3 shrink-0" />
+                      <span>Último: {format(new Date(child.lastAppointment.start_time), "dd/MM/yyyy")}</span>
                     </div>
                   ) : null}
 
                   {/* School & Grade info */}
                   {(child.school || child.grade) && (
-                    <div className="flex items-center gap-2 text-xs font-semibold text-[#6B7C83] flex-wrap">
+                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-[#6B7C83] flex-wrap">
                       {child.school && (
-                        <span className="inline-flex items-center gap-1 bg-[#EEF5F6] px-2 py-0.5 rounded-md truncate max-w-[220px]">
+                        <span className="inline-flex items-center gap-1 bg-[#EEF5F6] px-1.5 py-0.5 rounded truncate max-w-[170px]">
                           <School className="w-3 h-3 text-[#245C6B] shrink-0" />
                           <span className="truncate">{child.school}</span>
                         </span>
                       )}
                       {child.grade && (
-                        <span className="inline-flex items-center gap-1 bg-[#EEF5F6] px-2 py-0.5 rounded-md">
+                        <span className="inline-flex items-center gap-1 bg-[#EEF5F6] px-1.5 py-0.5 rounded">
                           <BookOpen className="w-3 h-3 text-[#245C6B]" />
                           {child.grade}
                         </span>
@@ -536,44 +547,41 @@ export function ChildrenPage() {
 
                   {/* Primary Guardian info */}
                   {primaryGuardian && (
-                    <div className="pt-2 border-t border-[#EEF5F6] flex items-center justify-between text-xs font-bold text-[#19323A]">
-                      <span className="text-[#6B7C83] font-medium truncate flex items-center gap-1">
-                        👤 {primaryGuardian.full_name}{" "}
-                        {linkedGuardians[0]?.relationship ? `(${linkedGuardians[0].relationship})` : ""}
-                      </span>
-                      {primaryGuardian.phone && (
-                        <span className="text-[11px] text-[#6B7C83]">
-                          {formatPhone(primaryGuardian.phone)}
+                    <p className="text-[10px] text-[#6B7C83] font-medium truncate flex items-center gap-1">
+                      <span>👤 {primaryGuardian.full_name}</span>
+                      {linkedGuardians[0]?.relationship && (
+                        <span className="text-[9px] opacity-75">
+                          ({linkedGuardians[0].relationship})
                         </span>
                       )}
-                    </div>
+                    </p>
                   )}
 
                   {/* Clinical Complaint snippet */}
                   {child.main_complaint && (
-                    <div className="p-2.5 bg-[#FEF8EC]/60 border border-[#F4C95D]/40 rounded-xl text-xs text-[#8B6514] font-medium leading-relaxed italic truncate">
+                    <div className="px-2 py-1 bg-[#FEF8EC]/70 border border-[#F4C95D]/30 rounded-lg text-[10px] text-[#8B6514] font-medium italic truncate">
                       💬 "{child.main_complaint}"
                     </div>
                   )}
                 </div>
 
                 {/* Bottom: Fast Schedule + View Profile */}
-                <div className="flex items-center justify-between pt-2.5 border-t border-[#EEF5F6] text-xs font-bold">
+                <div className="flex items-center justify-between pt-2 border-t border-[#EEF5F6] text-[11px] font-bold">
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation()
                       setScheduleForChildId(child.id)
                     }}
-                    className="text-[#245C6B] hover:underline flex items-center gap-1 font-black text-xs"
+                    className="text-[#245C6B] hover:underline flex items-center gap-1 font-black"
                   >
-                    <Calendar className="w-3.5 h-3.5" />
-                    Agendar Sessão
+                    <Calendar className="w-3 h-3" />
+                    Agendar
                   </button>
 
-                  <span className="inline-flex items-center gap-1 text-[#245C6B] group-hover:underline font-black">
+                  <span className="inline-flex items-center gap-0.5 text-[#245C6B] group-hover:underline font-black">
                     Ver ficha
-                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                   </span>
                 </div>
               </div>
