@@ -73,6 +73,19 @@ export function SettingsPage() {
   })
   const [sessionDuration, setSessionDuration] = useState<number>(50)
 
+  // WhatsApp Message Templates State
+  const DEFAULT_REMINDER_TEMPLATE =
+    "Olá, tudo bem? 🌟 Passando para confirmar a nossa sessão psicopedagógica de {nome_crianca} hoje às {horario} no consultório. Qualquer imprevisto, por favor nos avise. Até logo!"
+  const DEFAULT_BILLING_TEMPLATE =
+    "Olá! Segue a mensalidade psicopedagógica de {nome_crianca} referente ao mês de {mes} no valor de {valor}. Segue nossa chave PIX: {chave_pix}. Qualquer dúvida estou à disposição!"
+
+  const [reminderTemplate, setReminderTemplate] = useState<string>(() => {
+    return localStorage.getItem("evoluia_reminder_template") || DEFAULT_REMINDER_TEMPLATE
+  })
+  const [billingTemplate, setBillingTemplate] = useState<string>(() => {
+    return localStorage.getItem("evoluia_billing_template") || DEFAULT_BILLING_TEMPLATE
+  })
+
   // Cropper state
   const [cropperOpen, setCropperOpen] = useState(false)
   const [imageToCrop, setImageToCrop] = useState<string | null>(null)
@@ -200,6 +213,8 @@ export function SettingsPage() {
 
       localStorage.setItem("evoluia_working_hours", JSON.stringify(schedule))
       localStorage.setItem("evoluia_session_duration", String(sessionDuration))
+      localStorage.setItem("evoluia_reminder_template", reminderTemplate)
+      localStorage.setItem("evoluia_billing_template", billingTemplate)
 
       setProfessional({
         ...(professional || {}),
@@ -662,8 +677,10 @@ export function SettingsPage() {
                     </label>
                     <textarea
                       rows={3}
-                      defaultValue="Olá, tudo bem? 🌟 Passando para confirmar a nossa sessão psicopedagógica hoje às {horario} no consultório. Qualquer imprevisto, por favor nos avise. Até logo!"
-                      className="w-full px-3 py-2 text-xs font-medium rounded-xl border border-[#D8E5E7] bg-white text-[#19323A] focus:outline-none focus:border-[#245C6B]"
+                      value={reminderTemplate}
+                      onChange={(e) => setReminderTemplate(e.target.value)}
+                      placeholder="Digite o modelo de mensagem de confirmação..."
+                      className="w-full px-3 py-2 text-xs font-medium rounded-xl border-2 border-[#D8E5E7] bg-white text-[#19323A] focus:outline-none focus:border-[#245C6B]"
                     />
                   </div>
 
@@ -674,7 +691,9 @@ export function SettingsPage() {
 
                     <a
                       href={`https://wa.me/?text=${encodeURIComponent(
-                        "Olá, tudo bem? 🌟 Passando para confirmar a nossa sessão psicopedagógica hoje às 14:00 no consultório. Qualquer imprevisto, por favor nos avise. Até logo!"
+                        reminderTemplate
+                          .replace("{horario}", "14:00")
+                          .replace("{nome_crianca}", "Maria Eduarda")
                       )}`}
                       target="_blank"
                       rel="noreferrer"
@@ -713,19 +732,25 @@ export function SettingsPage() {
                     </label>
                     <textarea
                       rows={3}
-                      defaultValue={`Olá! Segue a mensalidade psicopedagógica referente ao mês de {mes} no valor de {valor}. Segue nossa chave PIX: ${form.pix_key}. Qualquer dúvida estou à disposição!`}
-                      className="w-full px-3 py-2 text-xs font-medium rounded-xl border border-[#D8E5E7] bg-white text-[#19323A] focus:outline-none focus:border-[#245C6B]"
+                      value={billingTemplate}
+                      onChange={(e) => setBillingTemplate(e.target.value)}
+                      placeholder="Digite o modelo de cobrança..."
+                      className="w-full px-3 py-2 text-xs font-medium rounded-xl border-2 border-[#D8E5E7] bg-white text-[#19323A] focus:outline-none focus:border-[#245C6B]"
                     />
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
                     <p className="text-[11px] text-[#8DA3A8]">
-                      Tags disponíveis: <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{mes}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{valor}"}</code>
+                      Tags disponíveis: <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{nome_crianca}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{mes}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{valor}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{chave_pix}"}</code>
                     </p>
 
                     <a
                       href={`https://wa.me/?text=${encodeURIComponent(
-                        `Olá! Segue a mensalidade psicopedagógica referente a Agosto no valor de R$ 350,00. Segue nossa chave PIX: ${form.pix_key}. Qualquer dúvida estou à disposição!`
+                        billingTemplate
+                          .replace("{nome_crianca}", "Maria Eduarda")
+                          .replace("{mes}", "Agosto")
+                          .replace("{valor}", "R$ 350,00")
+                          .replace("{chave_pix}", form.pix_key)
                       )}`}
                       target="_blank"
                       rel="noreferrer"

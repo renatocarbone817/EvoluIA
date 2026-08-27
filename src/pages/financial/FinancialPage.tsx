@@ -946,9 +946,18 @@ export function FinancialPage() {
               const rawPhone = primaryGuardian?.whatsapp || primaryGuardian?.phone || ""
               const cleanPhone = rawPhone.replace(/\D/g, "")
 
-              const whatsappMessage = encodeURIComponent(
-                `Olá, ${primaryGuardian?.full_name || "tudo bem"}! Passando para lembrar da mensalidade psicopedagógica de ${r.child?.full_name || "seu filho(a)"} referente a ${MONTHS[r.month - 1]}/${r.year} no valor de ${formatCurrency(r.amount)}. Segue nossa chave PIX para pagamento. Qualquer dúvida, estou à disposição!`
-              )
+              const defaultBillingTpl =
+                "Olá! Segue a mensalidade psicopedagógica de {nome_crianca} referente ao mês de {mes} no valor de {valor}. Segue nossa chave PIX: {chave_pix}. Qualquer dúvida estou à disposição!"
+              const savedBillingTpl =
+                localStorage.getItem("evoluia_billing_template") || defaultBillingTpl
+
+              const finalBillingMsg = savedBillingTpl
+                .replace("{nome_crianca}", r.child?.full_name || "seu filho(a)")
+                .replace("{mes}", `${MONTHS[r.month - 1]}/${r.year}`)
+                .replace("{valor}", formatCurrency(r.amount))
+                .replace("{chave_pix}", (professional as any)?.pix_key || "nossa chave PIX")
+
+              const whatsappMessage = encodeURIComponent(finalBillingMsg)
 
               return (
                 <div

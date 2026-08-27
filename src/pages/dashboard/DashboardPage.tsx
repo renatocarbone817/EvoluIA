@@ -581,15 +581,14 @@ export function DashboardPage() {
                         const rawPhone = guardian?.whatsapp || guardian?.phone
                         if (!rawPhone || appt.status === "done" || appt.status === "cancelled") return null
                         const cleanPhone = rawPhone.replace(/\D/g, "")
-                        const msg = encodeURIComponent(
-                          `Olá, tudo bem? 🌟 Passando para confirmar a nossa sessão psicopedagógica de ${displayName} hoje às ${format(
-                            startTime,
-                            "HH:mm"
-                          )} no consultório. Qualquer imprevisto, por favor nos avise. Até logo!`
-                        )
+                        const defaultTpl = "Olá, tudo bem? 🌟 Passando para confirmar a nossa sessão psicopedagógica de {nome_crianca} hoje às {horario} no consultório. Qualquer imprevisto, por favor nos avise. Até logo!"
+                        const savedTpl = localStorage.getItem("evoluia_reminder_template") || defaultTpl
+                        const finalMsg = savedTpl
+                          .replace("{nome_crianca}", displayName)
+                          .replace("{horario}", format(startTime, "HH:mm"))
                         return (
                           <a
-                            href={`https://wa.me/55${cleanPhone}?text=${msg}`}
+                            href={`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(finalMsg)}`}
                             target="_blank"
                             rel="noreferrer"
                             className="px-2.5 py-1.5 bg-[#E8F8F5] text-[#20836F] hover:bg-[#20836F] hover:text-white rounded-xl text-xs font-bold flex items-center gap-1 border border-[#63C7B2]/40 transition-all shadow-2xs"
