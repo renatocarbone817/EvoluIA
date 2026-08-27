@@ -33,8 +33,9 @@ import toast from "react-hot-toast"
 interface TaskItem {
   id: string
   text: string
-  dueText: string
-  dueColor: "red" | "orange" | "gray" | "green"
+  dueDate?: string // YYYY-MM-DD
+  dueText?: string
+  dueColor?: "red" | "orange" | "gray" | "green"
   completed: boolean
 }
 
@@ -93,7 +94,7 @@ export function DashboardPage() {
   // Unified Hover Tooltip for Chart
   const [hoveredWeek, setHoveredWeek] = useState<HoveredWeekData | null>(null)
 
-  // Interactive Tasks (persisted - clean of mock items)
+  // Interactive Tasks (persisted - clean of mock items with specific date support)
   const [tasks, setTasks] = useState<TaskItem[]>(() => {
     const saved = localStorage.getItem("evoluia_dashboard_tasks")
     if (saved) {
@@ -113,7 +114,8 @@ export function DashboardPage() {
   })
   const [showNewTaskInput, setShowNewTaskInput] = useState(false)
   const [newTaskText, setNewTaskText] = useState("")
-  const [newTaskDue, setNewTaskDue] = useState<"hoje" | "amanha" | "semana" | "sem_prazo">("hoje")
+  const [newTaskDueOption, setNewTaskDueOption] = useState<"hoje" | "amanha" | "data" | "sem_prazo">("hoje")
+  const [newTaskSpecificDate, setNewTaskSpecificDate] = useState<string>(() => format(new Date(), "yyyy-MM-dd"))
 
   // Drag and drop state for tasks
   const [draggedTaskIndex, setDraggedTaskIndex] = useState<number | null>(null)
@@ -399,8 +401,36 @@ export function DashboardPage() {
   }
 
   // =========================================================================
-  // TASK DRAG AND DROP HANDLERS (TRELLO STYLE)
+  // TASK DRAG AND DROP & DYNAMIC DEADLINE BADGE CALCULATION
   // =========================================================================
+  function getTaskBadge(task: TaskItem) {
+    if (task.completed) {
+      return { text: "Concluído", color: "green" as const }
+    }
+    if (!task.dueDate) {
+      return { text: task.dueText || "Pendente", color: (task.dueColor || "gray") as "red" | "orange" | "gray" | "green" }
+    }
+
+    const todayStr = format(new Date(), "yyyy-MM-dd")
+    const tomorrowDate = new Date()
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1)
+    const tomorrowStr = format(tomorrowDate, "yyyy-MM-dd")
+
+    if (task.dueDate === todayStr) {
+      return { text: "Hoje", color: "red" as const }
+    }
+    if (task.dueDate === tomorrowStr) {
+      return { text: "Amanhã", color: "orange" as const }
+    }
+    if (task.dueDate < todayStr) {
+      const d = new Date(task.dueDate + "T12:00:00")
+      return { text: `Atrasada (${format(d, "dd/MM")})`, color: "red" as const }
+    }
+
+    const d = new Date(task.dueDate + "T12:00:00")
+    return { text: `Venc. ${format(d, "dd/MM")}`, color: "gray" as const }
+  }
+
   function handleTaskDragStart(index: number) {
     setDraggedTaskIndex(index)
   }
@@ -430,26 +460,29 @@ export function DashboardPage() {
   function handleAddTask() {
     if (!newTaskText.trim()) return
 
-    let dueText = "Hoje"
-    let dueColor: TaskItem["dueColor"] = "red"
-    if (newTaskDue === "amanha") {
-      dueText = "Amanhã"
-      dueColor = "orange"
-    } else if (newTaskDue === "semana") {
-      dueText = "Esta semana"
-      dueColor = "gray"
-    } else if (newTaskDue === "sem_prazo") {
-      dueText = "Pendente"
-      dueColor = "gray"
+    const todayStr = format(new Date(), "yyyy-MM-dd")
+    const tomorrowDate = new Date()
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1)
+    const tomorrowStr = format(tomorrowDate, "yyyy-MM-dd")
+
+    let dueDate: string | undefined = undefined
+    if (newTaskDueOption === "hoje") {
+      dueDate = todayStr
+    } else if (newTaskDueOption === "amanha") {
+      dueDate = tomorrowStr
+    } else if (newTaskDueOption === "data") {
+      dueDate = newTaskSpecificDate || todayStr
+    } else if (newTaskDueOption === "sem_prazo") {
+      dueDate = undefined
     }
 
     const newTask: TaskItem = {
       id: Date.now().toString(),
       text: newTaskText.trim(),
-      dueText,
-      dueColor,
+      dueDate,
       completed: false,
     }
+
     const updated = [newTask, ...tasks]
     setTasks(updated)
     localStorage.setItem("evoluia_dashboard_tasks", JSON.stringify(updated))
@@ -1172,7 +1205,7 @@ export function DashboardPage() {
             </div>
           </div>
 
-          {/* Tarefas Pendentes Card (TRELLO STYLE DRAG AND DROP) */}
+          {/* Tarefas Pendentes Card (SELEÇÃO DE DATA ESPECÍFICA & TRELLO DRAG AND DROP) */}
           <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
@@ -1188,30 +1221,40 @@ export function DashboardPage() {
             </div>
 
             {showNewTaskInput && (
-              <div className="p-2.5 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7] space-y-2">
+              <div className="p-2.5 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7] space-y-2.5">
                 <input
                   type="text"
                   value={newTaskText}
                   onChange={(e) => setNewTaskText(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAddTask()}
-                  placeholder="Nome da tarefa (ex: Ligar para mãe do Pedro)..."
+                  placeholder="Nome da tarefa (ex: Entrar em contato com a escola)..."
                   className="w-full px-3 py-1.5 text-xs rounded-xl border border-[#D8E5E7] bg-white focus:outline-none focus:border-[#7C3AED]"
                   autoFocus
                 />
                 
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1 text-[10px] font-bold">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold">
                     <span className="text-[#6B7C83]">Prazo:</span>
                     <select
-                      value={newTaskDue}
-                      onChange={(e: any) => setNewTaskDue(e.target.value)}
-                      className="px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] bg-white text-[#0D2329]"
+                      value={newTaskDueOption}
+                      onChange={(e: any) => setNewTaskDueOption(e.target.value)}
+                      className="px-2 py-1 rounded-lg border border-[#D8E5E7] bg-white text-[#0D2329] text-xs font-semibold focus:outline-none"
                     >
                       <option value="hoje">Hoje</option>
                       <option value="amanha">Amanhã</option>
-                      <option value="semana">Esta semana</option>
+                      <option value="data">Data específica...</option>
                       <option value="sem_prazo">Sem prazo</option>
                     </select>
+
+                    {/* Date Input if 'data' is selected */}
+                    {newTaskDueOption === "data" && (
+                      <input
+                        type="date"
+                        value={newTaskSpecificDate}
+                        onChange={(e) => setNewTaskSpecificDate(e.target.value)}
+                        className="px-2 py-0.5 rounded-lg border border-[#7C3AED] bg-white text-[#0D2329] text-xs font-semibold focus:outline-none"
+                      />
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1">
@@ -1223,7 +1266,7 @@ export function DashboardPage() {
                     </button>
                     <button
                       onClick={handleAddTask}
-                      className="px-3 py-1 bg-[#7C3AED] text-white text-[10px] font-black rounded-lg shadow-xs"
+                      className="px-3.5 py-1 bg-[#7C3AED] text-white text-xs font-black rounded-lg shadow-xs active:scale-95 transition-all"
                     >
                       Salvar
                     </button>
@@ -1241,6 +1284,7 @@ export function DashboardPage() {
                 {tasks.map((task, idx) => {
                   const isDragging = draggedTaskIndex === idx
                   const isDragOver = dragOverTaskIndex === idx && draggedTaskIndex !== idx
+                  const badge = getTaskBadge(task)
 
                   return (
                     <div
@@ -1276,15 +1320,15 @@ export function DashboardPage() {
 
                       <div className="flex items-center gap-1 shrink-0">
                         <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
-                          task.dueColor === "red"
+                          badge.color === "red"
                             ? "bg-[#FDF0F0] text-[#EF4444]"
-                            : task.dueColor === "orange"
+                            : badge.color === "orange"
                             ? "bg-[#FEF8EC] text-[#F59E0B]"
-                            : task.dueColor === "green"
+                            : badge.color === "green"
                             ? "bg-[#E8F8F5] text-[#10B981]"
                             : "bg-[#EEF5F6] text-[#6B7C83]"
                         }`}>
-                          {task.dueText}
+                          {badge.text}
                         </span>
                         <button
                           onClick={() => handleDeleteTask(task.id)}
