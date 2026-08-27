@@ -1203,7 +1203,7 @@ export function FinancialPage() {
               }`}
             >
               <Globe className="w-3.5 h-3.5" />
-              <span>Todo o Histórico</span>
+              <span>Todo o Histórico ({records.length})</span>
             </button>
           </div>
 
