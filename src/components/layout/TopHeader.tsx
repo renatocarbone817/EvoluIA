@@ -1,4 +1,4 @@
-﻿import { useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { Plus, Sparkles } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { getInitials } from "@/lib/utils"
@@ -11,7 +11,7 @@ export function TopHeader() {
   const navigate = useNavigate()
 
   return (
-    <header className="hidden md:flex sticky top-0 z-30 h-14 bg-white/90 backdrop-blur-md border-b-2 border-[#D8E5E7] px-6 items-center justify-between shadow-2xs">
+    <header className="hidden md:flex sticky top-0 z-30 h-14 bg-white/95 backdrop-blur-md border-b-2 border-[#B8CBD1] px-6 items-center justify-between shadow-2xs">
       {/* Left: Breadcrumb Navigation */}
       <div className="flex items-center gap-3">
         <Breadcrumb />
@@ -32,13 +32,13 @@ export function TopHeader() {
         {/* Central de Notificações (Sino) */}
         <NotificationCenter />
 
-        <div className="w-px h-6 bg-[#D8E5E7]" />
+        <div className="w-px h-6 bg-[#B8CBD1]" />
 
         {/* User Pill / Consultório */}
         <div
           onClick={() => navigate("/configuracoes")}
           title="Ver perfil e configurações"
-          className="flex items-center gap-2 px-2.5 py-1 rounded-xl hover:bg-[#EEF5F6] border border-transparent hover:border-[#D8E5E7] transition-all cursor-pointer group"
+          className="flex items-center gap-2 px-2.5 py-1 rounded-xl hover:bg-[#EEF5F6] border border-transparent hover:border-[#B8CBD1] transition-all cursor-pointer group"
         >
           <div className="w-7 h-7 rounded-lg bg-[#245C6B] text-white overflow-hidden flex items-center justify-center font-black text-xs shrink-0 border border-[#63C7B2]/40 shadow-2xs">
             {professional?.logo_url ? (

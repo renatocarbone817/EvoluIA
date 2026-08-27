@@ -5,8 +5,8 @@
 
 @layer base {
   :root {
-    /* Fundo suave com contraste perfeito para cartões brancos */
-    --background: 195 22% 95.5%;     /* #EFF4F6 */
+    /* Fundo da tela: cinza-azulado moderno e confortável (#E5EEF1), nítido contra o branco */
+    --background: 195 24% 92.5%;     /* #E5EEF1 */
     --foreground: 193 40% 16%;       /* #19323A */
 
     /* Cards e Superfícies em Branco Puro */
@@ -25,20 +25,20 @@
     --secondary-foreground: 193 40% 16%;
 
     /* Elementos Suaves / Muted */
-    --muted: 186 25% 94%;            /* #EEF5F6 */
-    --muted-foreground: 197 10% 47%; /* #6B7C83 (Cinza azulado) */
+    --muted: 195 22% 88%;            /* #D6E4E8 */
+    --muted-foreground: 197 12% 40%; /* #556A72 */
 
     /* Destaque / Accent */
-    --accent: 168 50% 94%;           /* #E8F8F5 (Menta suave) */
+    --accent: 168 45% 92%;           /* #E0F4F0 */
     --accent-foreground: 192 49% 28%;
 
     /* Erro / Destructive: Vermelho Suave (#D96C6C) */
     --destructive: 0 57% 64%;        /* #D96C6C */
     --destructive-foreground: 0 0% 100%;
 
-    /* Bordas e Inputs suaves */
-    --border: 186 20% 89%;           /* #D8E5E7 */
-    --input: 186 20% 89%;
+    /* Bordas e Inputs definidos e nítidos */
+    --border: 192 18% 76%;           /* #B2C7CD */
+    --input: 192 18% 76%;
     --ring: 192 49% 28%;             /* #245C6B */
 
     --radius: 0.75rem;
