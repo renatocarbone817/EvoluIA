@@ -26,6 +26,7 @@ import {
   ArrowDownLeft,
   X,
   Wallet,
+  Repeat,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
@@ -72,10 +73,11 @@ const MONTHS = [
 ]
 
 const EXPENSE_CATEGORIES = [
-  { value: "Despesas Fixas", label: "🏢 Despesas Fixas (Aluguel, Luz, Internet)" },
-  { value: "Materiais", label: "📚 Materiais Didáticos & Jogos" },
-  { value: "Assinaturas & Software", label: "💻 Software & Ferramentas" },
-  { value: "Marketing", label: "📢 Marketing & Divulgação" },
+  { value: "Aluguel & Condomínio", label: "🏢 Aluguel & Condomínio" },
+  { value: "Materiais, Jogos & Folhas", label: "📚 Materiais, Jogos & Folhas" },
+  { value: "Luz, Água & Internet", label: "💡 Luz, Água & Internet" },
+  { value: "Marketing & Anúncios", label: "📢 Marketing & Anúncios" },
+  { value: "Software, Sistemas & Cursos", label: "💻 Software, Sistemas & Cursos" },
   { value: "Outras Despesas", label: "🏷️ Outras Despesas" },
 ]
 
@@ -104,13 +106,20 @@ export function FinancialPage() {
   const [confirmingRecord, setConfirmingRecord] = useState<FinancialRecordWithDetails | null>(null)
   const [saving, setSaving] = useState(false)
 
+  // Advanced Expense Frequency Form State
+  const [expenseRepetition, setExpenseRepetition] = useState<"single" | "recurring" | "installments">("single")
+  const [recurringMonthsCount, setRecurringMonthsCount] = useState<number>(12)
+  const [installmentsCount, setInstallmentsCount] = useState<number>(6)
+
   // Form state
   const [formData, setFormData] = useState({
     child_id: "",
     description: "",
     amount: "",
-    due_date: new Date().toISOString().split("T")[0],
-    category: "Sessões",
+    month: currentMonth,
+    year: currentYear,
+    category: "Aluguel & Condomínio",
+    firstMonthStatus: "pending" as "pending" | "paid",
     payment_method: "pix",
     notes: "",
   })
@@ -169,38 +178,123 @@ export function FinancialPage() {
 
     setSaving(true)
     try {
+      const rawAmount = parseFloat(formData.amount.replace(",", "."))
       const isIncome = entryType === "income"
-      const parsedDate = new Date(formData.due_date)
-      const rMonth = parsedDate.getMonth() + 1
-      const rYear = parsedDate.getFullYear()
+      const startMonth = Number(formData.month)
+      const startYear = Number(formData.year)
 
-      const { error } = await supabase.from("financial_records").insert({
-        professional_id: profId,
-        child_id: isIncome && formData.child_id ? formData.child_id : null,
-        description: formData.description || (isIncome ? "Sessão Psicopedagógica" : "Despesa Operacional"),
-        amount: parseFloat(formData.amount.replace(",", ".")),
-        month: rMonth,
-        year: rYear,
-        record_type: entryType,
-        category: formData.category,
-        payment_method: formData.payment_method,
-        status: "pending",
-        notes: formData.notes,
-        created_at: new Date(formData.due_date).toISOString(),
-      })
+      if (isIncome) {
+        // Income entry (Single)
+        const dateStr = `${startYear}-${String(startMonth).padStart(2, "0")}-10T12:00:00.000Z`
+        const { error } = await supabase.from("financial_records").insert({
+          professional_id: profId,
+          child_id: formData.child_id || null,
+          description: formData.description || "Sessão Psicopedagógica",
+          amount: rawAmount,
+          month: startMonth,
+          year: startYear,
+          record_type: "income",
+          category: formData.category || "Sessões",
+          payment_method: formData.payment_method,
+          status: formData.firstMonthStatus,
+          notes: formData.notes,
+          created_at: dateStr,
+        })
+        if (error) throw error
+        toast.success("Receita lançada com sucesso!")
+      } else {
+        // Expense entry (Single, Recurring or Installments)
+        const recordsToInsert: any[] = []
 
-      if (error) throw error
-      toast.success(isIncome ? "Receita lançada com sucesso!" : "Despesa lançada com sucesso!")
+        if (expenseRepetition === "single") {
+          const dateStr = `${startYear}-${String(startMonth).padStart(2, "0")}-10T12:00:00.000Z`
+          recordsToInsert.push({
+            professional_id: profId,
+            description: formData.description || "Despesa Operacional",
+            amount: rawAmount,
+            month: startMonth,
+            year: startYear,
+            record_type: "expense",
+            category: formData.category,
+            payment_method: formData.payment_method,
+            status: formData.firstMonthStatus,
+            notes: formData.notes,
+            created_at: dateStr,
+          })
+        } else if (expenseRepetition === "recurring") {
+          // Generates 1 record for each recurring month
+          for (let i = 0; i < recurringMonthsCount; i++) {
+            let m = startMonth + i
+            let y = startYear
+            while (m > 12) {
+              m -= 12
+              y += 1
+            }
+            const dateStr = `${y}-${String(m).padStart(2, "0")}-10T12:00:00.000Z`
+            recordsToInsert.push({
+              professional_id: profId,
+              description: formData.description || "Conta Fixa",
+              amount: rawAmount,
+              month: m,
+              year: y,
+              record_type: "expense",
+              category: formData.category,
+              payment_method: formData.payment_method,
+              status: i === 0 ? formData.firstMonthStatus : "pending",
+              notes: `Conta Fixa (${i + 1}/${recurringMonthsCount} meses) - ${formData.notes || ""}`.trim(),
+              created_at: dateStr,
+            })
+          }
+        } else if (expenseRepetition === "installments") {
+          // Generates 1 record for each installment
+          const installmentVal = Number((rawAmount / installmentsCount).toFixed(2))
+          for (let i = 0; i < installmentsCount; i++) {
+            let m = startMonth + i
+            let y = startYear
+            while (m > 12) {
+              m -= 12
+              y += 1
+            }
+            const dateStr = `${y}-${String(m).padStart(2, "0")}-10T12:00:00.000Z`
+            recordsToInsert.push({
+              professional_id: profId,
+              description: `${formData.description || "Compra Parcelada"} (${i + 1}/${installmentsCount})`,
+              amount: installmentVal,
+              month: m,
+              year: y,
+              record_type: "expense",
+              category: formData.category,
+              payment_method: formData.payment_method,
+              status: i === 0 ? formData.firstMonthStatus : "pending",
+              notes: `Parcela ${i + 1}/${installmentsCount} - ${formData.notes || ""}`.trim(),
+              created_at: dateStr,
+            })
+          }
+        }
+
+        const { error } = await supabase.from("financial_records").insert(recordsToInsert)
+        if (error) throw error
+
+        if (expenseRepetition === "recurring") {
+          toast.success(`Conta fixa programada para os próximos ${recurringMonthsCount} meses!`)
+        } else if (expenseRepetition === "installments") {
+          toast.success(`Despesa parcelada em ${installmentsCount}x com sucesso!`)
+        } else {
+          toast.success("Despesa registrada com sucesso!")
+        }
+      }
+
       setShowAddModal(false)
-      // Switch view to the month of the new record
-      setSelectedMonth(rMonth)
-      setSelectedYear(rYear)
+      setSelectedMonth(startMonth)
+      setSelectedYear(startYear)
       setFormData({
         child_id: "",
         description: "",
         amount: "",
-        due_date: new Date().toISOString().split("T")[0],
-        category: "Sessões",
+        month: currentMonth,
+        year: currentYear,
+        category: "Aluguel & Condomínio",
+        firstMonthStatus: "pending",
         payment_method: "pix",
         notes: "",
       })
@@ -250,10 +344,6 @@ export function FinancialPage() {
     window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(finalMsg)}`, "_blank")
   }
 
-  // =========================================================================
-  // REAL REACTIVE CALCULATIONS FOR SELECTED MONTH & YEAR
-  // =========================================================================
-
   // Helper to extract record's month & year
   function getRecordMonthYear(r: FinancialRecordWithDetails) {
     if (r.month && r.year) {
@@ -269,7 +359,7 @@ export function FinancialPage() {
     return d.getDate()
   }
 
-  // 1. Records for current selected month
+  // Records for current selected month
   const monthRecords = useMemo(() => {
     return records.filter((r) => {
       const { m, y } = getRecordMonthYear(r)
@@ -277,7 +367,7 @@ export function FinancialPage() {
     })
   }, [records, selectedMonth, selectedYear])
 
-  // 2. Records for previous month (to compute real growth/variation %)
+  // Records for previous month
   const prevMonth = selectedMonth === 1 ? 12 : selectedMonth - 1
   const prevYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear
   const prevMonthRecords = useMemo(() => {
@@ -493,6 +583,7 @@ export function FinancialPage() {
           <button
             onClick={() => {
               setEntryType("income")
+              setFormData((prev) => ({ ...prev, month: selectedMonth, year: selectedYear, category: "Sessões" }))
               setShowAddModal(true)
             }}
             className="h-9 px-4 rounded-xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
@@ -504,6 +595,7 @@ export function FinancialPage() {
           <button
             onClick={() => {
               setEntryType("expense")
+              setFormData((prev) => ({ ...prev, month: selectedMonth, year: selectedYear, category: "Aluguel & Condomínio" }))
               setShowAddModal(true)
             }}
             className="h-9 px-4 rounded-xl bg-gradient-to-r from-[#EF4444] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] text-white text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
@@ -1138,30 +1230,69 @@ export function FinancialPage() {
         </div>
       </div>
 
-      {/* 5. MODAL: NOVO LANÇAMENTO (RECEITA / DESPESA) */}
+      {/* =========================================================================
+          5. COMPLETE ADVANCED MODAL: NOVO LANÇAMENTO (RECEITA & DESPESA COM RECORRÊNCIA / PARCELAS)
+          ========================================================================= */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in-50 zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-2xl max-w-lg w-full p-6 space-y-5 animate-in fade-in-50 zoom-in-95 my-8">
+            {/* Header */}
             <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-3">
-              <h3 className="text-sm font-black text-[#0D2329]">
-                {entryType === "income" ? "+ Novo Recebimento" : "+ Nova Despesa"}
+              <h3 className="text-base font-black text-[#0D2329]">
+                Novo Lançamento Financeiro
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="text-[#8CAAB1] hover:text-[#0D2329]"
+                className="text-[#8CAAB1] hover:text-[#0D2329] p-1 rounded-lg"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateRecord} className="space-y-3.5 text-xs">
+            {/* Type Switcher Tabs (Receita vs Despesa) */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-[#F7FAFA] rounded-2xl border border-[#D8E5E7]">
+              <button
+                type="button"
+                onClick={() => {
+                  setEntryType("income")
+                  setFormData((prev) => ({ ...prev, category: "Sessões" }))
+                }}
+                className={`py-2.5 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all ${
+                  entryType === "income"
+                    ? "bg-[#00A896] text-white shadow-xs"
+                    : "text-[#6B7C83] hover:text-[#0D2329]"
+                }`}
+              >
+                <ArrowDownLeft className="w-4 h-4" />
+                <span>↙ Receita (Entrada)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEntryType("expense")
+                  setFormData((prev) => ({ ...prev, category: "Aluguel & Condomínio" }))
+                }}
+                className={`py-2.5 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all ${
+                  entryType === "expense"
+                    ? "bg-[#D96C6C] text-white shadow-xs"
+                    : "text-[#6B7C83] hover:text-[#0D2329]"
+                }`}
+              >
+                <ArrowUpRight className="w-4 h-4" />
+                <span>↗ Despesa (Saída / Contas)</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateRecord} className="space-y-4 text-xs">
+              {/* If Income: Paciente */}
               {entryType === "income" ? (
                 <div>
-                  <label className="font-bold text-[#0D2329] block mb-1">Paciente (Opcional)</label>
+                  <label className="font-bold text-[#0D2329] block mb-1">Paciente / Criança (Opcional)</label>
                   <select
                     value={formData.child_id}
                     onChange={(e) => setFormData({ ...formData, child_id: e.target.value })}
-                    className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none"
+                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none focus:border-[#00A896]"
                   >
                     <option value="">Selecione um paciente...</option>
                     {children.map((c) => (
@@ -1169,23 +1300,159 @@ export function FinancialPage() {
                     ))}
                   </select>
                 </div>
-              ) : null}
+              ) : (
+                /* If Expense: Categoria da Despesa */
+                <div>
+                  <label className="font-bold text-[#0D2329] block mb-1">Categoria da Despesa *</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none focus:border-[#D96C6C]"
+                  >
+                    {EXPENSE_CATEGORIES.map((c) => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
+              {/* Descrição */}
               <div>
-                <label className="font-bold text-[#0D2329] block mb-1">Descrição</label>
+                <label className="font-bold text-[#0D2329] block mb-1">
+                  {entryType === "income" ? "Descrição da Receita *" : "DESCRIÇÃO DA CONTA OU COMPRA *"}
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder={entryType === "income" ? "Ex: Sessão de Intervenção" : "Ex: Aluguel da Sala"}
+                  placeholder={entryType === "income" ? "Ex: Sessão Psicopedagógica, Avaliação..." : "Ex: Aluguel da sala, Bebedouro elétrico, Folhas sulfite..."}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none"
+                  className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none focus:bg-white"
                 />
               </div>
 
+              {/* FREQUÊNCIA / TIPO DE PAGAMENTO (Para Despesas) */}
+              {entryType === "expense" && (
+                <div className="p-3 bg-[#F7FAFA] rounded-2xl border border-[#D8E5E7] space-y-2.5">
+                  <label className="font-black text-[11px] uppercase tracking-wide text-[#0D2329] block">
+                    FREQUÊNCIA / TIPO DE PAGAMENTO:
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setExpenseRepetition("single")}
+                      className={`p-2 rounded-xl text-center font-bold text-[10px] transition-all border ${
+                        expenseRepetition === "single"
+                          ? "bg-[#19323A] text-white border-[#19323A] shadow-xs"
+                          : "bg-white text-[#6B7C83] border-[#D8E5E7] hover:border-[#19323A]"
+                      }`}
+                    >
+                      <p className="font-black text-xs leading-tight">Apenas este Mês</p>
+                      <p className="text-[9px] opacity-80 mt-0.5">(Gasto Único)</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setExpenseRepetition("recurring")}
+                      className={`p-2 rounded-xl text-center font-bold text-[10px] transition-all border ${
+                        expenseRepetition === "recurring"
+                          ? "bg-[#00B4D8] text-white border-[#00B4D8] shadow-xs"
+                          : "bg-white text-[#6B7C83] border-[#D8E5E7] hover:border-[#00B4D8]"
+                      }`}
+                    >
+                      <p className="font-black text-xs leading-tight flex items-center justify-center gap-1">
+                        <Repeat className="w-3 h-3" /> Conta Fixa
+                      </p>
+                      <p className="text-[9px] opacity-80 mt-0.5">(Aluguel/Todo mês)</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setExpenseRepetition("installments")}
+                      className={`p-2 rounded-xl text-center font-bold text-[10px] transition-all border ${
+                        expenseRepetition === "installments"
+                          ? "bg-[#7C3AED] text-white border-[#7C3AED] shadow-xs"
+                          : "bg-white text-[#6B7C83] border-[#D8E5E7] hover:border-[#7C3AED]"
+                      }`}
+                    >
+                      <p className="font-black text-xs leading-tight flex items-center justify-center gap-1">
+                        <CreditCard className="w-3 h-3" /> Parcelado
+                      </p>
+                      <p className="text-[9px] opacity-80 mt-0.5">(Ex: em 6x, 10x)</p>
+                    </button>
+                  </div>
+
+                  {/* Frequency Option Sub-Selectors */}
+                  {expenseRepetition === "recurring" && (
+                    <div className="pt-1 flex items-center justify-between gap-2 text-xs">
+                      <span className="font-bold text-[#0D2329]">Repetir por quantos meses?</span>
+                      <select
+                        value={recurringMonthsCount}
+                        onChange={(e) => setRecurringMonthsCount(Number(e.target.value))}
+                        className="p-1.5 bg-white border border-[#D8E5E7] rounded-xl font-bold text-xs"
+                      >
+                        <option value={3}>3 meses</option>
+                        <option value={6}>6 meses</option>
+                        <option value={12}>12 meses (1 ano)</option>
+                        <option value={24}>24 meses (2 anos)</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {expenseRepetition === "installments" && (
+                    <div className="pt-1 flex items-center justify-between gap-2 text-xs">
+                      <span className="font-bold text-[#0D2329]">Número de Parcelas:</span>
+                      <select
+                        value={installmentsCount}
+                        onChange={(e) => setInstallmentsCount(Number(e.target.value))}
+                        className="p-1.5 bg-white border border-[#D8E5E7] rounded-xl font-bold text-xs"
+                      >
+                        {[2, 3, 4, 5, 6, 8, 10, 12, 18, 24].map((num) => (
+                          <option key={num} value={num}>{num}x</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Mês de Início & Ano */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-[#0D2329] block mb-1">Valor (R$)</label>
+                  <label className="font-bold text-[#0D2329] block mb-1">Mês de Início</label>
+                  <select
+                    value={formData.month}
+                    onChange={(e) => setFormData({ ...formData, month: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none"
+                  >
+                    {MONTHS.map((m, idx) => (
+                      <option key={m} value={idx + 1}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#0D2329] block mb-1">ANO</label>
+                  <input
+                    type="number"
+                    required
+                    value={formData.year}
+                    onChange={(e) => setFormData({ ...formData, year: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Valor & Status da 1ª Parcela */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-[#0D2329] block mb-1">
+                    {entryType === "expense" && expenseRepetition === "recurring"
+                      ? "VALOR MENSAL (R$)"
+                      : entryType === "expense" && expenseRepetition === "installments"
+                      ? "VALOR TOTAL DA COMPRA (R$)"
+                      : "VALOR (R$)"}
+                  </label>
                   <input
                     type="number"
                     step="0.01"
@@ -1193,58 +1460,63 @@ export function FinancialPage() {
                     placeholder="0,00"
                     value={formData.amount}
                     onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none"
+                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-black text-sm focus:outline-none"
                   />
+                  {entryType === "expense" && expenseRepetition === "installments" && formData.amount && (
+                    <p className="text-[10px] text-[#7C3AED] font-bold mt-1">
+                      = {installmentsCount}x de {formatCurrency(Number(formData.amount) / installmentsCount)}
+                    </p>
+                  )}
                 </div>
 
                 <div>
-                  <label className="font-bold text-[#0D2329] block mb-1">Vencimento</label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.due_date}
-                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                    className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none"
-                  />
+                  <label className="font-bold text-[#0D2329] block mb-1">
+                    {entryType === "income" ? "Status do Pagamento" : "Status da 1ª Parcela / Mês"}
+                  </label>
+                  <select
+                    value={formData.firstMonthStatus}
+                    onChange={(e) => setFormData({ ...formData, firstMonthStatus: e.target.value as any })}
+                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none"
+                  >
+                    <option value="pending">A Pagar / Receber (Pendente)</option>
+                    <option value="paid">Já Pago / Recebido</option>
+                  </select>
                 </div>
               </div>
 
+              {/* Observações Adicionais */}
               <div>
-                <label className="font-bold text-[#0D2329] block mb-1">Categoria</label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none"
-                >
-                  {entryType === "income" ? (
-                    <>
-                      <option value="Sessões">Sessões</option>
-                      <option value="Avaliações">Avaliações</option>
-                      <option value="Devolutivas">Devolutivas</option>
-                      <option value="Outros">Outros Recebimentos</option>
-                    </>
-                  ) : (
-                    EXPENSE_CATEGORIES.map((c) => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
-                    ))
-                  )}
-                </select>
+                <label className="font-bold text-[#0D2329] block mb-1">
+                  OBSERVAÇÕES ADICIONAIS (OPCIONAL)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Pago via PIX, parcelado no cartão Nubank..."
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none"
+                />
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
+              {/* Botões do Rodapé */}
+              <div className="pt-3 border-t border-[#EEF5F6] flex justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-3 py-2 rounded-xl border border-[#D8E5E7] text-[#6B7C83] font-bold"
+                  className="px-4 py-2.5 rounded-xl border border-[#D8E5E7] text-[#6B7C83] font-bold hover:bg-[#F7FAFA]"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2 rounded-xl bg-[#00A896] hover:bg-[#008f7f] text-white font-black shadow-xs"
+                  className={`px-5 py-2.5 rounded-xl text-white font-black shadow-sm active:scale-95 transition-all ${
+                    entryType === "income"
+                      ? "bg-[#00A896] hover:bg-[#008f7f]"
+                      : "bg-[#D96C6C] hover:bg-[#c05858]"
+                  }`}
                 >
-                  {saving ? "Salvando..." : "Salvar Lançamento"}
+                  {saving ? "Registrando..." : entryType === "income" ? "Registrar Receita" : "Registrar Despesa"}
                 </button>
               </div>
             </form>
