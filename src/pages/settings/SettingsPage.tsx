@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/Button"
 import { Input, Textarea } from "@/components/ui/Input"
 import { generateICalFeed } from "@/lib/calendarSync"
 import type { AppointmentWithChild } from "@/types/database"
+import { ImageCropperModal } from "@/components/ui/ImageCropperModal"
 import toast from "react-hot-toast"
 
 export function SettingsPage() {
@@ -30,6 +31,10 @@ export function SettingsPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [copied, setCopied] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Cropper state
+  const [cropperOpen, setCropperOpen] = useState(false)
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null)
 
   const profId = professional?.id || user?.id
 
@@ -48,18 +53,41 @@ export function SettingsPage() {
   // Simulated live calendar sync feed URL (standard iCal link)
   const calendarFeedUrl = `${window.location.origin}/api/calendar/feed/${profId}.ics`
 
-  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  // When user selects a file, open the interactive cropper
+  function handleLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !profId) return
 
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Foto muito grande! Máximo de 10MB.")
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setImageToCrop(reader.result as string)
+      setCropperOpen(true)
+    }
+    reader.readAsDataURL(file)
+
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
+  // When crop is confirmed in the cropper modal
+  async function handleCropComplete(croppedBlob: Blob) {
+    setCropperOpen(false)
+    if (!profId) return
+
     setUploadingLogo(true)
     try {
-      const ext = file.name.split(".").pop()
-      const path = `${profId}/logo_${Date.now()}.${ext}`
+      const path = `${profId}/logo_${Date.now()}.jpg`
 
       const { error: uploadError } = await supabase.storage
         .from("professionals")
-        .upload(path, file, { upsert: true })
+        .upload(path, croppedBlob, {
+          contentType: "image/jpeg",
+          upsert: true,
+        })
 
       if (uploadError) throw uploadError
 
@@ -75,7 +103,7 @@ export function SettingsPage() {
       if (updateError) throw updateError
 
       setProfessional({ ...(professional || {}), id: profId, logo_url: urlData.publicUrl } as any)
-      toast.success("Logo atualizado com sucesso!")
+      toast.success("Logo recortado e atualizado com sucesso!")
     } catch (err: any) {
       toast.error(err.message || "Erro no upload do logo")
     } finally {
@@ -210,7 +238,7 @@ export function SettingsPage() {
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={handleLogoUpload}
+                onChange={handleLogoSelect}
               />
 
               <Button
@@ -439,6 +467,14 @@ export function SettingsPage() {
           </Card>
         </div>
       )}
+
+      {/* Interactive Crop & Reframe Modal for Logo */}
+      <ImageCropperModal
+        open={cropperOpen}
+        imageSrc={imageToCrop}
+        onClose={() => setCropperOpen(false)}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   )
 }
