@@ -33,6 +33,10 @@ import {
   FileText,
   Lock,
   ChevronRight,
+  CreditCard,
+  QrCode,
+  Globe,
+  Sliders,
 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -43,22 +47,24 @@ import type { AppointmentWithChild } from "@/types/database"
 import { ImageCropperModal } from "@/components/ui/ImageCropperModal"
 import toast from "react-hot-toast"
 
-type SettingsTab = "geral" | "agenda" | "notificacoes" | "conta" | "integracoes"
+type SettingsTab = "geral" | "consultorio" | "agenda" | "notificacoes" | "integracoes"
 
 interface TaskCategory {
   id: string
   name: string
   color: string
   colorDot: string
+  bg: string
+  border: string
   count: number
 }
 
 const DEFAULT_CATEGORIES: TaskCategory[] = [
-  { id: "1", name: "Sessões", color: "text-[#10B981]", colorDot: "bg-[#10B981]", count: 12 },
-  { id: "2", name: "Avaliações", color: "text-[#7C3AED]", colorDot: "bg-[#7C3AED]", count: 8 },
-  { id: "3", name: "Estudos e Leituras", color: "text-[#0284C7]", colorDot: "bg-[#0284C7]", count: 5 },
-  { id: "4", name: "Administrativo", color: "text-[#EA580C]", colorDot: "bg-[#EA580C]", count: 7 },
-  { id: "5", name: "Pessoal", color: "text-[#6B7280]", colorDot: "bg-[#6B7280]", count: 3 },
+  { id: "1", name: "Sessões Clínicas", color: "text-[#166534]", colorDot: "bg-[#10B981]", bg: "bg-[#DCFCE7]/60", border: "border-[#86EFAC]", count: 12 },
+  { id: "2", name: "Avaliações & Testes", color: "text-[#6B21A8]", colorDot: "bg-[#7C3AED]", bg: "bg-[#F3E8FF]/60", border: "border-[#DDD6FE]", count: 8 },
+  { id: "3", name: "Estudos & Materiais", color: "text-[#075985]", colorDot: "bg-[#0284C7]", bg: "bg-[#E0F2FE]/60", border: "border-[#BAE6FD]", count: 5 },
+  { id: "4", name: "Administrativo & Contas", color: "text-[#9A3412]", colorDot: "bg-[#EA580C]", bg: "bg-[#FFEDD5]/60", border: "border-[#FED7AA]", count: 7 },
+  { id: "5", name: "Lembretes Pessoais", color: "text-[#374151]", colorDot: "bg-[#6B7280]", bg: "bg-[#F3F4F6]", border: "border-[#D1D5DB]", count: 3 },
 ]
 
 interface DaySchedule {
@@ -95,11 +101,12 @@ export function SettingsPage() {
     full_name: professional?.full_name || "Priscila Souza",
     email: professional?.email || user?.email || "priscila@evoluia.com",
     phone: professional?.phone || "(11) 98765-4321",
-    clinic_name: professional?.clinic_name || "Espaço EvoluIA Psicopedagogia",
-    crp: professional?.crp || "ABPp 12.345",
+    clinic_name: professional?.clinic_name || "Aprender Ensinando - Espaço Psicopedagógico",
+    crp: professional?.crp || "06/12345-SP",
     specialty: professional?.specialty || "Psicopedagogia Clínica & Neuroaprendizagem",
     city: professional?.city || "São Paulo",
     state: professional?.state || "SP",
+    address: (professional as any)?.address || "Av. Paulista, 1000 - Sala 42",
     bio: professional?.bio || "Especialista no desenvolvimento cognitivo, dificuldades de aprendizagem, TDAH e orientação familiar.",
     pix_key: (professional as any)?.pix_key || "priscila.souza@pix.com.br",
     default_price: (professional as any)?.default_price || "180",
@@ -242,7 +249,7 @@ export function SettingsPage() {
         ...form,
       } as any)
 
-      toast.success("Configurações salvas com sucesso!")
+      toast.success("Configurações salvas com sucesso!", { icon: "✅" })
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar")
     } finally {
@@ -253,20 +260,21 @@ export function SettingsPage() {
   // Category Actions
   function handleAddCategory() {
     if (!newCatName.trim()) return
-    const colors = [
-      { color: "text-[#10B981]", colorDot: "bg-[#10B981]" },
-      { color: "text-[#7C3AED]", colorDot: "bg-[#7C3AED]" },
-      { color: "text-[#0284C7]", colorDot: "bg-[#0284C7]" },
-      { color: "text-[#EA580C]", colorDot: "bg-[#EA580C]" },
-      { color: "text-[#DB2777]", colorDot: "bg-[#DB2777]" },
-      { color: "text-[#6B7280]", colorDot: "bg-[#6B7280]" },
+    const styles = [
+      { color: "text-[#166534]", colorDot: "bg-[#10B981]", bg: "bg-[#DCFCE7]/60", border: "border-[#86EFAC]" },
+      { color: "text-[#6B21A8]", colorDot: "bg-[#7C3AED]", bg: "bg-[#F3E8FF]/60", border: "border-[#DDD6FE]" },
+      { color: "text-[#075985]", colorDot: "bg-[#0284C7]", bg: "bg-[#E0F2FE]/60", border: "border-[#BAE6FD]" },
+      { color: "text-[#9A3412]", colorDot: "bg-[#EA580C]", bg: "bg-[#FFEDD5]/60", border: "border-[#FED7AA]" },
+      { color: "text-[#9D174D]", colorDot: "bg-[#DB2777]", bg: "bg-[#FCE7F3]/60", border: "border-[#FBCFE8]" },
     ]
-    const chosenColor = colors[categories.length % colors.length]
+    const chosen = styles[categories.length % styles.length]
     const newCat: TaskCategory = {
       id: Date.now().toString(),
       name: newCatName.trim(),
-      color: chosenColor.color,
-      colorDot: chosenColor.colorDot,
+      color: chosen.color,
+      colorDot: chosen.colorDot,
+      bg: chosen.bg,
+      border: chosen.border,
       count: 0,
     }
     const updated = [...categories, newCat]
@@ -344,18 +352,18 @@ export function SettingsPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
-      {/* 1. TOP TITLE HEADER (Exact reference style) */}
+      {/* 1. TOP TITLE HEADER (High Contrast & Clean) */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <h1 className="text-2xl sm:text-3xl font-black text-[#0D2329] tracking-tight">
               Configurações
             </h1>
-            <div className="w-7 h-7 rounded-xl bg-[#F3E8FF] text-[#7C3AED] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center shadow-xs">
               <SettingsIcon className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-xs sm:text-sm font-medium text-[#6B7C83]">
+          <p className="text-xs sm:text-sm font-semibold text-[#6B7C83]">
             Personalize sua experiência e gerencie as preferências da sua conta.
           </p>
         </div>
@@ -364,74 +372,79 @@ export function SettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="h-10 px-5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white text-xs font-black flex items-center gap-2 shadow-sm active:scale-95 transition-all shrink-0"
+          className="h-10 px-5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white text-xs font-black flex items-center gap-2 shadow-md active:scale-95 transition-all shrink-0"
         >
-          {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 stroke-[2.5]" />}
           <span>{saving ? "Salvando..." : "Salvar Alterações"}</span>
         </button>
       </div>
 
-      {/* 2. MODERN TOP TABS (Clean underline / soft pill style) */}
-      <div className="flex items-center gap-1 border-b border-[#E2E8F0] pb-2 overflow-x-auto">
+      {/* 2. STRUCTURED TAB BAR (High Contrast & Visible) */}
+      <div className="flex bg-white p-1.5 rounded-2xl border-2 border-[#D8E5E7] shadow-xs overflow-x-auto gap-1">
         {[
-          { id: "geral", label: "Geral" },
-          { id: "agenda", label: "Agenda & Horários" },
-          { id: "notificacoes", label: "Notificações & WhatsApp" },
-          { id: "conta", label: "Consultório & Assinatura" },
-          { id: "integracoes", label: "Integrações" },
+          { id: "geral", label: "⚡ Geral & Categorias", icon: Sliders },
+          { id: "consultorio", label: "🏢 Consultório & PIX", icon: Building },
+          { id: "agenda", label: "📅 Horários de Atendimento", icon: Calendar },
+          { id: "notificacoes", label: "💬 Mensagens WhatsApp", icon: MessageSquare },
+          { id: "integracoes", label: "🔗 Google Agenda & Dados", icon: Globe },
         ].map((tab) => {
           const isActive = activeTab === tab.id
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as SettingsTab)}
-              className={`px-4 py-2 text-xs font-black transition-all shrink-0 relative rounded-xl ${
+              className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all shrink-0 flex items-center gap-2 ${
                 isActive
-                  ? "text-[#7C3AED] bg-[#F5F3FF]"
-                  : "text-[#6B7C83] hover:text-[#0D2329] hover:bg-[#F8FAFC]"
+                  ? "bg-[#7C3AED] text-white shadow-sm"
+                  : "text-[#4F6C74] hover:text-[#0D2329] hover:bg-[#F7FAFA]"
               }`}
             >
-              {tab.label}
-              {isActive && (
-                <span className="absolute bottom-[-9px] left-3 right-3 h-[2.5px] bg-[#7C3AED] rounded-full" />
-              )}
+              <tab.icon className="w-3.5 h-3.5" />
+              <span>{tab.label}</span>
             </button>
           )
         })}
       </div>
 
       {/* =========================================================================
-          TAB 1: GERAL (LAYOUT IDÊNTICO À IMAGEM DE REFERÊNCIA)
+          TAB 1: GERAL (LAYOUT IDÊNTICO À REFERÊNCIA COM CONTRASTE REFORÇADO)
           ========================================================================= */}
       {activeTab === "geral" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-in fade-in">
           {/* LEFT COLUMN: 7 COLS */}
           <div className="lg:col-span-7 space-y-5">
             {/* Card 1: Configurações Gerais do Sistema */}
-            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-[#E2E8F0] shadow-sm space-y-4">
-              <div>
-                <h2 className="text-sm font-black text-[#0D2329]">Configurações Gerais</h2>
-                <p className="text-xs font-medium text-[#6B7C83]">
-                  Gerencie as opções principais do sistema e tarefas rápidas.
-                </p>
+            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold">
+                    <Sliders className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-black text-[#0D2329]">Configurações Gerais</h2>
+                    <p className="text-[11px] font-semibold text-[#6B7C83]">
+                      Gerencie as opções principais e atalhos de tarefas.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-3 pt-1">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-[#0D2329]">
+                  <label className="text-xs font-black text-[#0D2329]">
                     Nome da tarefa (ex: Entrar em contato com a escola)
                   </label>
                   <input
                     type="text"
                     placeholder="Digite o nome da tarefa..."
-                    className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                    className="w-full px-3.5 py-2.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
                   />
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-[#6B7C83]">Prazo:</span>
-                    <select className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-[#E2E8F0] bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]">
+                    <span className="text-xs font-black text-[#6B7C83]">Prazo:</span>
+                    <select className="px-3 py-1.5 text-xs font-bold rounded-xl border-2 border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]">
                       <option>Hoje</option>
                       <option>Amanhã</option>
                       <option>Data específica...</option>
@@ -440,43 +453,40 @@ export function SettingsPage() {
                     <input
                       type="date"
                       defaultValue={format(new Date(), "yyyy-MM-dd")}
-                      className="px-2.5 py-1 text-xs font-bold rounded-xl border border-[#E2E8F0] bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                      className="px-2.5 py-1 text-xs font-bold rounded-xl border-2 border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
                     />
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="px-3.5 py-1.5 text-xs font-bold text-[#6B7C83] hover:bg-[#F1F5F9] rounded-xl transition-all"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toast.success("Exemplo de tarefa salvo!")}
-                      className="px-4 py-1.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black rounded-xl shadow-xs transition-all active:scale-95"
-                    >
-                      Salvar
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toast.success("Exemplo de tarefa salvo!")}
+                    className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black rounded-xl shadow-xs transition-all active:scale-95"
+                  >
+                    Salvar
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Card 2: Categorias de Tarefas (Exact list style from reference) */}
-            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-[#E2E8F0] shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm font-black text-[#0D2329]">Categorias de Tarefas</h2>
-                  <p className="text-xs font-medium text-[#6B7C83]">
-                    Organize suas tarefas por categorias para uma melhor gestão.
-                  </p>
+            {/* Card 2: Categorias de Tarefas (Contraste alto e bolinhas coloridas) */}
+            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#F3E8FF] text-[#7C3AED] flex items-center justify-center font-bold">
+                    <Layers className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-black text-[#0D2329]">Categorias de Tarefas</h2>
+                    <p className="text-[11px] font-semibold text-[#6B7C83]">
+                      Organize suas tarefas por categorias para uma melhor gestão.
+                    </p>
+                  </div>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setShowNewCatInput(!showNewCatInput)}
-                  className="text-xs font-black text-[#7C3AED] hover:underline flex items-center gap-1"
+                  className="text-xs font-black text-[#7C3AED] hover:underline flex items-center gap-1 bg-[#F5F3FF] px-2.5 py-1 rounded-xl border border-[#DDD6FE]"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[3]" />
                   <span>Nova categoria</span>
@@ -485,19 +495,19 @@ export function SettingsPage() {
 
               {/* Add New Category Input */}
               {showNewCatInput && (
-                <div className="p-3 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center gap-2 animate-in fade-in">
+                <div className="p-3 rounded-2xl bg-[#F7FAFA] border-2 border-[#7C3AED]/30 flex items-center gap-2 animate-in fade-in">
                   <input
                     type="text"
                     value={newCatName}
                     onChange={(e) => setNewCatName(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
                     placeholder="Nome da nova categoria..."
-                    className="flex-1 px-3 py-1.5 text-xs font-semibold rounded-xl border border-[#E2E8F0] bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                    className="flex-1 px-3 py-1.5 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
                     autoFocus
                   />
                   <button
                     onClick={handleAddCategory}
-                    className="px-3 py-1.5 bg-[#7C3AED] text-white text-xs font-black rounded-xl"
+                    className="px-3.5 py-1.5 bg-[#7C3AED] text-white text-xs font-black rounded-xl shadow-xs"
                   >
                     Adicionar
                   </button>
@@ -505,43 +515,43 @@ export function SettingsPage() {
               )}
 
               {/* Category List */}
-              <div className="divide-y divide-[#F1F5F9] border border-[#E2E8F0] rounded-2xl overflow-hidden bg-white">
+              <div className="divide-y divide-[#EEF5F6] border-2 border-[#D8E5E7] rounded-2xl overflow-hidden bg-white shadow-2xs">
                 {categories.map((cat) => {
                   const isEditing = editingCatId === cat.id
 
                   return (
                     <div
                       key={cat.id}
-                      className="p-3.5 flex items-center justify-between gap-3 hover:bg-[#F8FAFC] transition-colors"
+                      className="p-3.5 flex items-center justify-between gap-3 hover:bg-[#F7FAFA] transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <GripVertical className="w-4 h-4 text-[#CBD5E1] shrink-0" />
-                        <span className={`w-2.5 h-2.5 rounded-full ${cat.colorDot} shrink-0`} />
+                        <GripVertical className="w-4 h-4 text-[#A0B4B9] shrink-0" />
+                        <span className={`w-3 h-3 rounded-full ${cat.colorDot} shrink-0 ring-2 ring-white shadow-xs`} />
                         {isEditing ? (
                           <input
                             type="text"
                             value={editingCatName}
                             onChange={(e) => setEditingCatName(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && handleSaveEditCategory(cat.id)}
-                            className="px-2 py-0.5 text-xs font-bold border border-[#7C3AED] rounded-lg bg-white text-[#0D2329] focus:outline-none"
+                            className="px-2 py-0.5 text-xs font-bold border-2 border-[#7C3AED] rounded-lg bg-white text-[#0D2329] focus:outline-none"
                             autoFocus
                           />
                         ) : (
-                          <span className="text-xs font-bold text-[#0D2329] truncate">
+                          <span className="text-xs font-black text-[#0D2329] truncate">
                             {cat.name}
                           </span>
                         )}
                       </div>
 
                       <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-[11px] font-semibold text-[#94A3B8]">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-[#F7FAFA] border border-[#D8E5E7] text-[#6B7C83]">
                           {cat.count} tarefas
                         </span>
 
                         {isEditing ? (
                           <button
                             onClick={() => handleSaveEditCategory(cat.id)}
-                            className="p-1 text-[#7C3AED] hover:text-[#6D28D9] font-bold text-xs"
+                            className="p-1 text-[#7C3AED] hover:text-[#6D28D9] font-black text-xs"
                           >
                             Salvar
                           </button>
@@ -551,7 +561,7 @@ export function SettingsPage() {
                               setEditingCatId(cat.id)
                               setEditingCatName(cat.name)
                             }}
-                            className="p-1 text-[#94A3B8] hover:text-[#7C3AED] transition-colors"
+                            className="p-1 text-[#A0B4B9] hover:text-[#7C3AED] transition-colors"
                             title="Editar categoria"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -560,7 +570,7 @@ export function SettingsPage() {
 
                         <button
                           onClick={() => handleDeleteCategory(cat.id)}
-                          className="p-1 text-[#94A3B8] hover:text-[#EF4444] transition-colors"
+                          className="p-1 text-[#A0B4B9] hover:text-[#EF4444] transition-colors"
                           title="Excluir categoria"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -572,22 +582,29 @@ export function SettingsPage() {
               </div>
             </div>
 
-            {/* Card 3: Formato de Data e Hora (Exact preview style from reference) */}
-            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-[#E2E8F0] shadow-sm space-y-4">
-              <div>
-                <h2 className="text-sm font-black text-[#0D2329]">Formato de Data e Hora</h2>
-                <p className="text-xs font-medium text-[#6B7C83]">
-                  Defina como as datas e horários serão exibidos no sistema.
-                </p>
+            {/* Card 3: Formato de Data e Hora com Prévia Destacada */}
+            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center font-bold">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-black text-[#0D2329]">Formato de Data e Hora</h2>
+                    <p className="text-[11px] font-semibold text-[#6B7C83]">
+                      Defina como as datas e horários serão exibidos no sistema.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-                <div className="sm:col-span-4 space-y-1">
-                  <label className="text-xs font-bold text-[#6B7C83]">Formato de Data</label>
+                <div className="sm:col-span-4 space-y-1.5">
+                  <label className="text-xs font-black text-[#0D2329]">Formato de Data</label>
                   <select
                     value={dateFormat}
                     onChange={(e) => setDateFormat(e.target.value)}
-                    className="w-full px-3 py-2 text-xs font-semibold rounded-2xl border border-[#E2E8F0] bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                    className="w-full px-3 py-2 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
                   >
                     <option value="DD/MM/AAAA">DD/MM/AAAA</option>
                     <option value="AAAA-MM-DD">AAAA-MM-DD</option>
@@ -595,29 +612,29 @@ export function SettingsPage() {
                   </select>
                 </div>
 
-                <div className="sm:col-span-4 space-y-1">
-                  <label className="text-xs font-bold text-[#6B7C83]">Formato de Hora</label>
+                <div className="sm:col-span-4 space-y-1.5">
+                  <label className="text-xs font-black text-[#0D2329]">Formato de Hora</label>
                   <select
                     value={timeFormat}
                     onChange={(e) => setTimeFormat(e.target.value)}
-                    className="w-full px-3 py-2 text-xs font-semibold rounded-2xl border border-[#E2E8F0] bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                    className="w-full px-3 py-2 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
                   >
                     <option value="24 horas (14:30)">24 horas (14:30)</option>
                     <option value="12 horas (02:30 PM)">12 horas (02:30 PM)</option>
                   </select>
                 </div>
 
-                {/* Prévia Box */}
-                <div className="sm:col-span-4 space-y-1">
-                  <span className="text-[10px] font-bold uppercase text-[#94A3B8] tracking-wider block">
+                {/* Prévia Box com Destaque */}
+                <div className="sm:col-span-4 space-y-1.5">
+                  <span className="text-[10px] font-black uppercase text-[#6B7C83] tracking-wider block">
                     Prévia
                   </span>
-                  <div className="p-2.5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-between text-xs font-bold text-[#0D2329]">
-                    <span className="flex items-center gap-1">
+                  <div className="p-2.5 rounded-2xl bg-[#EDE9FE]/50 border-2 border-[#DDD6FE] flex items-center justify-between text-xs font-black text-[#7C3AED] shadow-2xs">
+                    <span className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-[#7C3AED]" />
                       <span>{format(new Date(), "dd/MM/yyyy")}</span>
                     </span>
-                    <span className="flex items-center gap-1 text-[#6B7C83]">
+                    <span className="flex items-center gap-1.5 text-[#6B21A8]">
                       <Clock className="w-3.5 h-3.5" />
                       <span>14:30</span>
                     </span>
@@ -629,19 +646,26 @@ export function SettingsPage() {
 
           {/* RIGHT COLUMN: 5 COLS */}
           <div className="lg:col-span-5 space-y-5">
-            {/* Card 1: Perfil da Profissional (Exact avatar + compact inputs style from reference) */}
-            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-[#E2E8F0] shadow-sm space-y-4">
-              <div>
-                <h2 className="text-sm font-black text-[#0D2329]">Perfil da Profissional</h2>
-                <p className="text-xs font-medium text-[#6B7C83]">
-                  Atualize suas informações pessoais.
-                </p>
+            {/* Card 1: Perfil da Profissional */}
+            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-black text-[#0D2329]">Perfil da Profissional</h2>
+                    <p className="text-[11px] font-semibold text-[#6B7C83]">
+                      Atualize suas informações pessoais.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-start gap-4 pt-1">
                 {/* Round Avatar with Camera Badge */}
                 <div className="relative group shrink-0">
-                  <div className="w-16 h-16 rounded-full bg-[#EDE9FE] text-[#7C3AED] font-black text-xl flex items-center justify-center overflow-hidden border-2 border-white shadow-md">
+                  <div className="w-16 h-16 rounded-full bg-[#EDE9FE] text-[#7C3AED] font-black text-xl flex items-center justify-center overflow-hidden border-2 border-[#7C3AED]/40 shadow-sm">
                     {professional?.logo_url ? (
                       <img src={professional.logo_url} alt="Foto" className="w-full h-full object-cover" />
                     ) : (
@@ -664,35 +688,35 @@ export function SettingsPage() {
                   />
                 </div>
 
-                {/* Compact Row Inputs */}
-                <div className="flex-1 space-y-2">
+                {/* Compact Inputs with high contrast borders */}
+                <div className="flex-1 space-y-2.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-[#6B7C83] w-14 shrink-0 text-right">Nome</span>
+                    <span className="text-xs font-black text-[#0D2329] w-14 shrink-0 text-right">Nome</span>
                     <input
                       type="text"
                       value={form.full_name}
                       onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                      className="flex-1 px-3 py-1.5 text-xs font-bold rounded-xl border border-[#E2E8F0] bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                      className="flex-1 px-3 py-1.5 text-xs font-bold rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
                     />
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-[#6B7C83] w-14 shrink-0 text-right">E-mail</span>
+                    <span className="text-xs font-black text-[#0D2329] w-14 shrink-0 text-right">E-mail</span>
                     <input
                       type="email"
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      className="flex-1 px-3 py-1.5 text-xs font-bold rounded-xl border border-[#E2E8F0] bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                      className="flex-1 px-3 py-1.5 text-xs font-bold rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
                     />
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-[#6B7C83] w-14 shrink-0 text-right">Telefone</span>
+                    <span className="text-xs font-black text-[#0D2329] w-14 shrink-0 text-right">Telefone</span>
                     <input
                       type="text"
                       value={form.phone}
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      className="flex-1 px-3 py-1.5 text-xs font-bold rounded-xl border border-[#E2E8F0] bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                      className="flex-1 px-3 py-1.5 text-xs font-bold rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
                     />
                   </div>
                 </div>
@@ -709,34 +733,41 @@ export function SettingsPage() {
               </div>
             </div>
 
-            {/* Card 2: Preferências de Notificações (Exact toggle switches from reference) */}
-            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-[#E2E8F0] shadow-sm space-y-4">
-              <div>
-                <h2 className="text-sm font-black text-[#0D2329]">Preferências de Notificações</h2>
-                <p className="text-xs font-medium text-[#6B7C83]">
-                  Escolha como deseja receber notificações.
-                </p>
+            {/* Card 2: Preferências de Notificações com Switches Reativos */}
+            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#E8F8F5] text-[#10B981] flex items-center justify-center font-bold">
+                    <Bell className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-black text-[#0D2329]">Preferências de Notificações</h2>
+                    <p className="text-[11px] font-semibold text-[#6B7C83]">
+                      Escolha como deseja receber notificações.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-3.5 pt-1">
+              <div className="space-y-3 pt-1">
                 {/* 1. Lembretes de Agenda */}
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-3 p-2.5 rounded-2xl bg-[#F7FAFA] border border-[#EEF5F6]">
                   <div className="flex items-start gap-2.5">
-                    <Bell className="w-4 h-4 text-[#7C3AED] shrink-0 mt-0.5" />
+                    <Calendar className="w-4 h-4 text-[#7C3AED] shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-black text-[#0D2329]">Lembretes de Agenda</p>
-                      <p className="text-[11px] text-[#6B7C83]">Receber lembretes dos compromissos</p>
+                      <p className="text-[10px] font-medium text-[#6B7C83]">Receber lembretes dos compromissos</p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setNotifAgenda(!notifAgenda)}
-                    className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${
+                    className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${
                       notifAgenda ? "bg-[#7C3AED]" : "bg-[#CBD5E1]"
                     }`}
                   >
                     <span
-                      className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-transform shadow-xs ${
+                      className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform shadow-sm ${
                         notifAgenda ? "left-5" : "left-0.5"
                       }`}
                     />
@@ -744,23 +775,23 @@ export function SettingsPage() {
                 </div>
 
                 {/* 2. Tarefas Pendentes */}
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-3 p-2.5 rounded-2xl bg-[#F7FAFA] border border-[#EEF5F6]">
                   <div className="flex items-start gap-2.5">
                     <CheckSquare className="w-4 h-4 text-[#7C3AED] shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-black text-[#0D2329]">Tarefas Pendentes</p>
-                      <p className="text-[11px] text-[#6B7C83]">Avisos sobre tarefas próximas do vencimento</p>
+                      <p className="text-[10px] font-medium text-[#6B7C83]">Avisos sobre tarefas próximas do vencimento</p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setNotifPendingTasks(!notifPendingTasks)}
-                    className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${
+                    className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${
                       notifPendingTasks ? "bg-[#7C3AED]" : "bg-[#CBD5E1]"
                     }`}
                   >
                     <span
-                      className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-transform shadow-xs ${
+                      className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform shadow-sm ${
                         notifPendingTasks ? "left-5" : "left-0.5"
                       }`}
                     />
@@ -768,23 +799,23 @@ export function SettingsPage() {
                 </div>
 
                 {/* 3. Novas Avaliações */}
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-3 p-2.5 rounded-2xl bg-[#F7FAFA] border border-[#EEF5F6]">
                   <div className="flex items-start gap-2.5">
                     <Bell className="w-4 h-4 text-[#7C3AED] shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-black text-[#0D2329]">Novas Avaliações</p>
-                      <p className="text-[11px] text-[#6B7C83]">Notificações de novas avaliações realizadas</p>
+                      <p className="text-[10px] font-medium text-[#6B7C83]">Notificações de novas avaliações realizadas</p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setNotifNewEvals(!notifNewEvals)}
-                    className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${
+                    className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${
                       notifNewEvals ? "bg-[#7C3AED]" : "bg-[#CBD5E1]"
                     }`}
                   >
                     <span
-                      className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-transform shadow-xs ${
+                      className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform shadow-sm ${
                         notifNewEvals ? "left-5" : "left-0.5"
                       }`}
                     />
@@ -792,23 +823,23 @@ export function SettingsPage() {
                 </div>
 
                 {/* 4. Relatórios Semanais */}
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-3 p-2.5 rounded-2xl bg-[#F7FAFA] border border-[#EEF5F6]">
                   <div className="flex items-start gap-2.5">
                     <FileText className="w-4 h-4 text-[#7C3AED] shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-black text-[#0D2329]">Relatórios Semanais</p>
-                      <p className="text-[11px] text-[#6B7C83]">Resumo semanal das atividades</p>
+                      <p className="text-[10px] font-medium text-[#6B7C83]">Resumo semanal das atividades</p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setNotifWeeklyReports(!notifWeeklyReports)}
-                    className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${
+                    className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${
                       notifWeeklyReports ? "bg-[#7C3AED]" : "bg-[#CBD5E1]"
                     }`}
                   >
                     <span
-                      className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-transform shadow-xs ${
+                      className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform shadow-sm ${
                         notifWeeklyReports ? "left-5" : "left-0.5"
                       }`}
                     />
@@ -816,7 +847,7 @@ export function SettingsPage() {
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-[#F1F5F9]">
+              <div className="pt-2 border-t border-[#EEF5F6]">
                 <button
                   type="button"
                   onClick={() => setActiveTab("notificacoes")}
@@ -827,29 +858,36 @@ export function SettingsPage() {
               </div>
             </div>
 
-            {/* Card 3: Backup e Dados (Exact dual cards style from reference) */}
-            <div className="p-5 sm:p-6 rounded-3xl bg-white border border-[#E2E8F0] shadow-sm space-y-4">
-              <div>
-                <h2 className="text-sm font-black text-[#0D2329]">Backup e Dados</h2>
-                <p className="text-xs font-medium text-[#6B7C83]">
-                  Gerencie seus dados e exportações.
-                </p>
+            {/* Card 3: Backup e Dados */}
+            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#E8F8F5] text-[#10B981] flex items-center justify-center font-bold">
+                    <Cloud className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-black text-[#0D2329]">Backup e Dados</h2>
+                    <p className="text-[11px] font-semibold text-[#6B7C83]">
+                      Gerencie seus dados e exportações.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 {/* Action Card A: Exportar Dados */}
                 <div
                   onClick={() => toast.success("Exportando dados em formato seguro...")}
-                  className="p-3.5 rounded-2xl bg-[#ECFDF5] border border-[#A7F3D0] hover:border-[#10B981] transition-all cursor-pointer space-y-1.5 group shadow-2xs"
+                  className="p-3.5 rounded-2xl bg-[#E8F8F5] border-2 border-[#A7F3D0] hover:border-[#10B981] transition-all cursor-pointer space-y-1.5 group shadow-2xs"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-white text-[#10B981] flex items-center justify-center shadow-xs">
+                  <div className="w-8 h-8 rounded-xl bg-white text-[#10B981] flex items-center justify-center shadow-xs font-bold">
                     <Download className="w-4 h-4" />
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-[#065F46] group-hover:text-[#047857] transition-colors">
                       Exportar Dados
                     </h3>
-                    <p className="text-[10px] font-medium text-[#047857]/80 leading-snug">
+                    <p className="text-[10px] font-semibold text-[#047857]/80 leading-snug">
                       Baixe seus dados em formato CSV ou PDF.
                     </p>
                   </div>
@@ -858,29 +896,199 @@ export function SettingsPage() {
                 {/* Action Card B: Backup Automático */}
                 <div
                   onClick={() => toast.success("Backup sincronizado com sucesso!")}
-                  className="p-3.5 rounded-2xl bg-[#F5F3FF] border border-[#DDD6FE] hover:border-[#7C3AED] transition-all cursor-pointer space-y-1.5 group shadow-2xs"
+                  className="p-3.5 rounded-2xl bg-[#F3E8FF] border-2 border-[#DDD6FE] hover:border-[#7C3AED] transition-all cursor-pointer space-y-1.5 group shadow-2xs"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-white text-[#7C3AED] flex items-center justify-center shadow-xs">
+                  <div className="w-8 h-8 rounded-xl bg-white text-[#7C3AED] flex items-center justify-center shadow-xs font-bold">
                     <Cloud className="w-4 h-4" />
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-[#6B21A8] group-hover:text-[#581C87] transition-colors">
                       Backup Automático
                     </h3>
-                    <p className="text-[10px] font-medium text-[#6B21A8]/80 leading-snug">
+                    <p className="text-[10px] font-semibold text-[#6B21A8]/80 leading-snug">
                       Último backup em {format(new Date(), "dd/MM")} às 02:00.
                     </p>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-              <div className="pt-1">
+      {/* =========================================================================
+          TAB 2: CONSULTÓRIO & PIX (ALTO CONTRASTE & DESIGN ESTRUTURADO)
+          ========================================================================= */}
+      {activeTab === "consultorio" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-in fade-in">
+          {/* Main Form (8 Cols) */}
+          <div className="lg:col-span-8 space-y-5">
+            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center font-bold shadow-2xs">
+                    <Building className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-[#0D2329]">Dados do Consultório & Cobrança</h2>
+                    <p className="text-xs font-semibold text-[#6B7C83]">
+                      Informações impressas em relatórios clínicos, anamneses e recibos de cobrança PIX.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção 1: Identificação da Clínica */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black uppercase tracking-wider text-[#0D2329] flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#0284C7]" />
+                  <span>Identificação do Espaço Clínico</span>
+                </h3>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-[#0D2329]">Nome do Consultório / Espaço Clínico *</label>
+                  <input
+                    type="text"
+                    value={form.clinic_name}
+                    onChange={(e) => setForm({ ...form, clinic_name: e.target.value })}
+                    placeholder="Ex: Aprender Ensinando - Espaço Psicopedagógico"
+                    className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">Registro Profissional / ABPp / CBO</label>
+                    <input
+                      type="text"
+                      value={form.crp}
+                      onChange={(e) => setForm({ ...form, crp: e.target.value })}
+                      placeholder="Ex: 06/12345-SP"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">Especialidade Principal</label>
+                    <input
+                      type="text"
+                      value={form.specialty}
+                      onChange={(e) => setForm({ ...form, specialty: e.target.value })}
+                      placeholder="Psicopedagogia Clínica"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção 2: Cobrança & Chave PIX com Fundo Destacado */}
+              <div className="p-5 rounded-2xl bg-[#FEF8EC] border-2 border-[#F4C95D]/60 space-y-4 shadow-2xs">
+                <div className="flex items-center gap-2 text-[#8B6514]">
+                  <DollarSign className="w-4 h-4 font-black" />
+                  <h3 className="text-xs font-black uppercase tracking-wider">
+                    Dados Financeiros & Chave PIX para os Pais
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-[#8B6514]">Chave PIX Padrão *</label>
+                    <input
+                      type="text"
+                      value={form.pix_key}
+                      onChange={(e) => setForm({ ...form, pix_key: e.target.value })}
+                      placeholder="priscila.souza@pix.com.br"
+                      className="w-full px-4 py-3 text-xs font-black rounded-2xl border-2 border-[#F4C95D] bg-white focus:outline-none focus:ring-2 focus:ring-[#8B6514]/20 text-[#0D2329]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-[#8B6514]">Valor Padrão da Sessão (R$)</label>
+                    <input
+                      type="text"
+                      value={form.default_price}
+                      onChange={(e) => setForm({ ...form, default_price: e.target.value })}
+                      placeholder="180"
+                      className="w-full px-4 py-3 text-xs font-black rounded-2xl border-2 border-[#F4C95D] bg-white focus:outline-none focus:ring-2 focus:ring-[#8B6514]/20 text-[#0D2329]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção 3: Endereço & Localização */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black uppercase tracking-wider text-[#0D2329] flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+                  <span>Localização do Consultório</span>
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">Cidade</label>
+                    <input
+                      type="text"
+                      value={form.city}
+                      onChange={(e) => setForm({ ...form, city: e.target.value })}
+                      placeholder="São Paulo"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">Estado (UF)</label>
+                    <input
+                      type="text"
+                      value={form.state}
+                      onChange={(e) => setForm({ ...form, state: e.target.value })}
+                      placeholder="SP"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar Preview (4 Cols) */}
+          <div className="lg:col-span-4 space-y-5">
+            <div className="rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm overflow-hidden space-y-4">
+              <div className="bg-gradient-to-r from-[#00B4D8] to-[#0096C7] p-5 text-white flex items-center gap-3.5">
+                <div className="w-14 h-14 rounded-2xl bg-white/20 border-2 border-white/40 flex items-center justify-center font-black text-xl overflow-hidden shrink-0 shadow-xs">
+                  {professional?.logo_url ? (
+                    <img src={professional.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    form.clinic_name.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-black text-base truncate leading-tight">{form.clinic_name}</h3>
+                  <p className="text-xs text-white/95 font-bold truncate mt-0.5">{form.full_name}</p>
+                  <p className="text-[10px] text-white/80 truncate">{form.crp}</p>
+                </div>
+              </div>
+
+              <div className="p-5 pt-0 space-y-3 text-xs font-bold text-[#6B7C83]">
+                <div className="p-3 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span>Chave PIX:</span>
+                    <span className="text-[#0284C7] font-black">{form.pix_key}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Valor Padrão:</span>
+                    <span className="text-[#10B981] font-black">R$ {form.default_price},00 / sessão</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Local:</span>
+                    <span className="text-[#0D2329] font-black">{form.city}, {form.state}</span>
+                  </div>
+                </div>
+
                 <button
-                  type="button"
-                  onClick={() => toast.success("Histórico de backups: 100% íntegro e criptografado.")}
-                  className="text-xs font-black text-[#7C3AED] hover:underline flex items-center gap-1"
+                  onClick={handleSave}
+                  className="w-full py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black rounded-xl shadow-xs transition-all active:scale-95"
                 >
-                  <span>Ver histórico de backups →</span>
+                  Salvar Dados do Consultório
                 </button>
               </div>
             </div>
@@ -889,26 +1097,33 @@ export function SettingsPage() {
       )}
 
       {/* =========================================================================
-          TAB 2: AGENDA & HORÁRIOS
+          TAB 3: HORÁRIOS DE ATENDIMENTO
           ========================================================================= */}
       {activeTab === "agenda" && (
-        <div className="p-6 rounded-3xl bg-white border border-[#E2E8F0] shadow-sm space-y-6 animate-in fade-in max-w-4xl">
-          <div>
-            <h2 className="text-base font-black text-[#0D2329]">Horários de Atendimento Semanal</h2>
-            <p className="text-xs font-medium text-[#6B7C83]">
-              Defina os dias e intervalos em que seu consultório realiza atendimentos.
-            </p>
+        <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6 animate-in fade-in max-w-4xl">
+          <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#E8F8F5] text-[#10B981] flex items-center justify-center font-bold shadow-2xs">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-black text-[#0D2329]">Horários de Atendimento Semanal</h2>
+                <p className="text-xs font-semibold text-[#6B7C83]">
+                  Defina os dias e intervalos em que seu consultório realiza atendimentos.
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0]">
+          <div className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-[#F7FAFA] border-2 border-[#D8E5E7]">
             <div>
               <p className="text-xs font-black text-[#0D2329]">Duração Padrão da Sessão</p>
-              <p className="text-[11px] text-[#6B7C83]">Tempo estimado de cada atendimento clínico na agenda</p>
+              <p className="text-[11px] font-semibold text-[#6B7C83]">Tempo estimado de cada atendimento clínico na agenda</p>
             </div>
             <select
               value={sessionDuration}
               onChange={(e) => setSessionDuration(Number(e.target.value))}
-              className="px-3.5 py-2 rounded-xl border border-[#E2E8F0] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+              className="px-3.5 py-2 rounded-xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#10B981]"
             >
               <option value={45}>45 minutos</option>
               <option value={50}>50 minutos (Padrão)</option>
@@ -922,12 +1137,12 @@ export function SettingsPage() {
               Dias de Funcionamento:
             </p>
 
-            <div className="divide-y divide-[#F1F5F9] border border-[#E2E8F0] rounded-3xl overflow-hidden bg-white">
+            <div className="divide-y divide-[#EEF5F6] border-2 border-[#D8E5E7] rounded-3xl overflow-hidden bg-white shadow-2xs">
               {schedule.map((item, idx) => (
                 <div
                   key={item.day}
                   className={`p-4 flex items-center justify-between gap-3 transition-colors ${
-                    item.active ? "bg-white" : "bg-[#F8FAFC] opacity-60"
+                    item.active ? "bg-white" : "bg-[#F7FAFA] opacity-60"
                   }`}
                 >
                   <label className="flex items-center gap-3 cursor-pointer select-none min-w-[140px]">
@@ -935,9 +1150,9 @@ export function SettingsPage() {
                       type="checkbox"
                       checked={item.active}
                       onChange={() => toggleDay(idx)}
-                      className="w-4 h-4 rounded text-[#7C3AED] focus:ring-[#7C3AED] accent-[#7C3AED]"
+                      className="w-4 h-4 rounded text-[#10B981] focus:ring-[#10B981] accent-[#10B981]"
                     />
-                    <span className={`text-xs font-bold ${item.active ? "text-[#0D2329]" : "text-[#94A3B8]"}`}>
+                    <span className={`text-xs font-bold ${item.active ? "text-[#0D2329]" : "text-[#8DA3A8]"}`}>
                       {item.label}
                     </span>
                   </label>
@@ -948,18 +1163,18 @@ export function SettingsPage() {
                         type="time"
                         value={item.start}
                         onChange={(e) => updateDayHours(idx, "start", e.target.value)}
-                        className="px-2.5 py-1 text-xs font-bold border border-[#E2E8F0] rounded-xl bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                        className="px-2.5 py-1 text-xs font-bold border-2 border-[#D8E5E7] rounded-xl bg-white text-[#0D2329] focus:outline-none focus:border-[#10B981]"
                       />
-                      <span className="text-xs text-[#94A3B8] font-bold">às</span>
+                      <span className="text-xs text-[#8DA3A8] font-bold">às</span>
                       <input
                         type="time"
                         value={item.end}
                         onChange={(e) => updateDayHours(idx, "end", e.target.value)}
-                        className="px-2.5 py-1 text-xs font-bold border border-[#E2E8F0] rounded-xl bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                        className="px-2.5 py-1 text-xs font-bold border-2 border-[#D8E5E7] rounded-xl bg-white text-[#0D2329] focus:outline-none focus:border-[#10B981]"
                       />
                     </div>
                   ) : (
-                    <span className="text-xs text-[#94A3B8] italic font-semibold">
+                    <span className="text-xs text-[#8DA3A8] italic font-semibold">
                       Consultório fechado
                     </span>
                   )}
@@ -971,19 +1186,26 @@ export function SettingsPage() {
       )}
 
       {/* =========================================================================
-          TAB 3: NOTIFICAÇÕES & WHATSAPP
+          TAB 4: NOTIFICAÇÕES & WHATSAPP
           ========================================================================= */}
       {activeTab === "notificacoes" && (
-        <div className="p-6 rounded-3xl bg-white border border-[#E2E8F0] shadow-sm space-y-6 animate-in fade-in max-w-4xl">
-          <div>
-            <h2 className="text-base font-black text-[#0D2329]">Modelos de Mensagens WhatsApp</h2>
-            <p className="text-xs font-medium text-[#6B7C83]">
-              Personalize os textos automáticos disparados para os pais pelo sistema.
-            </p>
+        <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6 animate-in fade-in max-w-4xl">
+          <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#E8F8F5] text-[#10B981] flex items-center justify-center font-bold shadow-2xs">
+                <MessageSquare className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-black text-[#0D2329]">Modelos de Mensagens WhatsApp</h2>
+                <p className="text-xs font-semibold text-[#6B7C83]">
+                  Personalize os textos automáticos disparados para os pais pelo sistema.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* 1. Lembrete de Atendimento */}
-          <div className="p-5 rounded-3xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-3.5">
+          <div className="p-5 rounded-3xl bg-[#F7FAFA] border-2 border-[#D8E5E7] space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-[#E8F8F5] text-[#10B981] flex items-center justify-center font-bold">
@@ -993,7 +1215,7 @@ export function SettingsPage() {
                   <p className="text-xs font-black text-[#0D2329]">
                     1. Lembrete de Confirmação de Sessão
                   </p>
-                  <p className="text-[11px] text-[#6B7C83]">
+                  <p className="text-[11px] font-semibold text-[#6B7C83]">
                     Usado na <strong>Agenda</strong> e no <strong>Dashboard</strong> para confirmar atendimentos do dia.
                   </p>
                 </div>
@@ -1007,12 +1229,12 @@ export function SettingsPage() {
               rows={3}
               value={reminderTemplate}
               onChange={(e) => setReminderTemplate(e.target.value)}
-              className="w-full p-3 text-xs font-medium rounded-2xl border border-[#E2E8F0] bg-white text-[#0D2329] focus:outline-none focus:border-[#10B981] transition-all resize-none"
+              className="w-full p-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#10B981] transition-all resize-none"
             />
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[#E2E8F0]">
-              <p className="text-[11px] text-[#6B7C83]">
-                Tags: <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#E2E8F0] text-[#10B981] font-bold">{"{horario}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#E2E8F0] text-[#10B981] font-bold">{"{nome_crianca}"}</code>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[#EEF5F6]">
+              <p className="text-[11px] font-bold text-[#6B7C83]">
+                Tags: <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#10B981] font-black">{"{horario}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#10B981] font-black">{"{nome_crianca}"}</code>
               </p>
 
               <a
@@ -1032,7 +1254,7 @@ export function SettingsPage() {
           </div>
 
           {/* 2. Mensagem de Cobrança */}
-          <div className="p-5 rounded-3xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-3.5">
+          <div className="p-5 rounded-3xl bg-[#F7FAFA] border-2 border-[#D8E5E7] space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-[#FFEDD5] text-[#EA580C] flex items-center justify-center font-bold">
@@ -1042,7 +1264,7 @@ export function SettingsPage() {
                   <p className="text-xs font-black text-[#0D2329]">
                     2. Mensagem de Mensalidade / Cobrança PIX
                   </p>
-                  <p className="text-[11px] text-[#6B7C83]">
+                  <p className="text-[11px] font-semibold text-[#6B7C83]">
                     Usado no botão <strong>"Cobrar"</strong> da tela de <strong>Financeiro</strong>.
                   </p>
                 </div>
@@ -1056,12 +1278,12 @@ export function SettingsPage() {
               rows={3}
               value={billingTemplate}
               onChange={(e) => setBillingTemplate(e.target.value)}
-              className="w-full p-3 text-xs font-medium rounded-2xl border border-[#E2E8F0] bg-white text-[#0D2329] focus:outline-none focus:border-[#EA580C] transition-all resize-none"
+              className="w-full p-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#EA580C] transition-all resize-none"
             />
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[#E2E8F0]">
-              <p className="text-[11px] text-[#6B7C83]">
-                Tags: <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#E2E8F0] text-[#EA580C] font-bold">{"{nome_crianca}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#E2E8F0] text-[#EA580C] font-bold">{"{mes}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#E2E8F0] text-[#EA580C] font-bold">{"{valor}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#E2E8F0] text-[#EA580C] font-bold">{"{chave_pix}"}</code>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[#EEF5F6]">
+              <p className="text-[11px] font-bold text-[#6B7C83]">
+                Tags: <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{nome_crianca}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{mes}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{valor}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{chave_pix}"}</code>
               </p>
 
               <a
@@ -1085,82 +1307,12 @@ export function SettingsPage() {
       )}
 
       {/* =========================================================================
-          TAB 4: CONSULTÓRIO & ASSINATURA
-          ========================================================================= */}
-      {activeTab === "conta" && (
-        <div className="p-6 rounded-3xl bg-white border border-[#E2E8F0] shadow-sm space-y-6 animate-in fade-in max-w-4xl">
-          <div>
-            <h2 className="text-base font-black text-[#0D2329]">Dados do Consultório & Cobrança</h2>
-            <p className="text-xs font-medium text-[#6B7C83]">
-              Informações impressas em relatórios clínicos e cobranças PIX.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-[#0D2329]">Nome do Consultório / Espaço Clínico *</label>
-              <input
-                type="text"
-                value={form.clinic_name}
-                onChange={(e) => setForm({ ...form, clinic_name: e.target.value })}
-                className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-[#0D2329]">Registro Profissional / ABPp</label>
-                <input
-                  type="text"
-                  value={form.crp}
-                  onChange={(e) => setForm({ ...form, crp: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-[#0D2329]">Chave PIX Padrão</label>
-                <input
-                  type="text"
-                  value={form.pix_key}
-                  onChange={(e) => setForm({ ...form, pix_key: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="sm:col-span-2 space-y-1.5">
-                <label className="text-xs font-bold text-[#0D2329]">Cidade</label>
-                <input
-                  type="text"
-                  value={form.city}
-                  onChange={(e) => setForm({ ...form, city: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-[#0D2329]">Estado (UF)</label>
-                <input
-                  type="text"
-                  value={form.state}
-                  onChange={(e) => setForm({ ...form, state: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          TAB 5: INTEGRAÇÕES (GOOGLE AGENDA)
+          TAB 5: INTEGRAÇÕES (GOOGLE AGENDA & DADOS)
           ========================================================================= */}
       {activeTab === "integracoes" && (
-        <div className="p-6 rounded-3xl bg-white border border-[#E2E8F0] shadow-sm space-y-6 animate-in fade-in max-w-4xl">
+        <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6 animate-in fade-in max-w-4xl">
           {/* Live Status Banner */}
-          <div className="p-5 rounded-3xl border border-[#A7F3D0] bg-[#ECFDF5] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-5 rounded-3xl border-2 border-[#10B981]/40 bg-[#E8F8F5] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-[#10B981] text-white flex items-center justify-center shrink-0 shadow-sm font-bold">
                 <Calendar className="w-6 h-6" />
@@ -1176,7 +1328,7 @@ export function SettingsPage() {
                   </span>
                 </div>
                 <p className="text-xs text-[#065F46] font-semibold mt-0.5">
-                  Conta: <strong>{form.email}</strong>
+                  Conta vinculada: <strong>{form.email}</strong>
                 </p>
               </div>
             </div>
@@ -1192,10 +1344,10 @@ export function SettingsPage() {
             </button>
           </div>
 
-          <div className="p-5 rounded-3xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-4">
+          <div className="p-5 rounded-3xl bg-[#F7FAFA] border-2 border-[#D8E5E7] space-y-4">
             <div>
               <h3 className="text-xs font-black text-[#0D2329]">Link da Agenda (iCal / Google)</h3>
-              <p className="text-[11px] text-[#6B7C83]">
+              <p className="text-[11px] font-semibold text-[#6B7C83]">
                 Cole este link nas configurações do seu Google Calendar no celular ou computador:
               </p>
             </div>
@@ -1205,7 +1357,7 @@ export function SettingsPage() {
                 type="text"
                 readOnly
                 value={calendarFeedUrl}
-                className="flex-1 bg-white px-3.5 py-2 text-xs rounded-xl border border-[#E2E8F0] font-mono select-all text-[#0D2329] focus:outline-none"
+                className="flex-1 bg-white px-3.5 py-2 text-xs font-mono font-bold rounded-xl border-2 border-[#D8E5E7] select-all text-[#0D2329] focus:outline-none"
               />
               <button
                 onClick={handleCopyCalendarUrl}
@@ -1216,7 +1368,7 @@ export function SettingsPage() {
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-2.5 pt-2 border-t border-[#E2E8F0]">
+            <div className="flex flex-wrap gap-2.5 pt-2 border-t border-[#EEF5F6]">
               <a
                 href={`https://calendar.google.com/calendar/r/settings/addbyurl?cid=${encodeURIComponent(
                   calendarFeedUrl
@@ -1231,7 +1383,7 @@ export function SettingsPage() {
 
               <button
                 onClick={handleDownloadICS}
-                className="inline-flex items-center gap-1.5 text-xs font-black px-4 py-2 bg-white hover:bg-[#F8FAFC] text-[#0D2329] border border-[#E2E8F0] rounded-xl transition-all shadow-2xs"
+                className="inline-flex items-center gap-1.5 text-xs font-black px-4 py-2 bg-white hover:bg-[#F7FAFA] text-[#0D2329] border border-[#D8E5E7] rounded-xl transition-all shadow-2xs"
               >
                 <Download className="w-3.5 h-3.5 text-[#6B7C83]" />
                 <span>Baixar Arquivo (.ics)</span>
