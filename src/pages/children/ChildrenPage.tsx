@@ -219,8 +219,12 @@ export function ChildrenPage() {
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-12 h-12 rounded-2xl bg-[#245C6B] text-white font-black text-lg flex items-center justify-center shrink-0 border-2 border-[#63C7B2]/40 shadow-xs group-hover:scale-105 transition-transform">
-                        {child.full_name.charAt(0).toUpperCase()}
+                      <div className="w-12 h-12 rounded-2xl bg-[#245C6B] text-white font-black text-lg flex items-center justify-center shrink-0 border-2 border-[#63C7B2]/40 shadow-xs group-hover:scale-105 transition-transform overflow-hidden">
+                        {child.photo_url ? (
+                          <img src={child.photo_url} alt={child.full_name} className="w-full h-full object-cover" />
+                        ) : (
+                          child.full_name.charAt(0).toUpperCase()
+                        )}
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">

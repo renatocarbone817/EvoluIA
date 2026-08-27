@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { Camera, X, Loader2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { useAuthStore } from "@/store/authStore"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogBody,
 } from "@/components/ui/Dialog"
@@ -25,7 +27,13 @@ const STATUS_OPTIONS = [
 ]
 
 export function EditChildDialog({ open, child, onClose, onSuccess }: EditChildDialogProps) {
+  const { professional, user } = useAuthStore()
+  const profId = professional?.id || user?.id
   const [loading, setLoading] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+
   const [form, setForm] = useState({
     full_name: "",
     birth_date: "",
@@ -47,8 +55,43 @@ export function EditChildDialog({ open, child, onClose, onSuccess }: EditChildDi
         status: child.status,
         notes: child.notes || "",
       })
+      setPhotoUrl(child.photo_url || null)
     }
   }, [open, child])
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files || !e.target.files[0] || !profId) return
+    const file = e.target.files[0]
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Foto muito grande! Máximo de 5MB.")
+      return
+    }
+
+    setUploadingPhoto(true)
+    try {
+      const ext = file.name.split(".").pop()
+      const path = `${profId}/fotos-criancas/${child.id}_${Date.now()}.${ext}`
+
+      const { error: upErr } = await supabase.storage
+        .from("child-documents")
+        .upload(path, file, { upsert: true })
+
+      if (upErr) throw upErr
+
+      const { data: urlData } = supabase.storage
+        .from("child-documents")
+        .getPublicUrl(path)
+
+      setPhotoUrl(urlData.publicUrl)
+      toast.success("Foto carregada!")
+    } catch (err: any) {
+      toast.error("Erro ao enviar a foto")
+    } finally {
+      setUploadingPhoto(false)
+      if (photoInputRef.current) photoInputRef.current.value = ""
+    }
+  }
 
   async function handleSubmit() {
     if (!form.full_name.trim()) {
@@ -68,6 +111,7 @@ export function EditChildDialog({ open, child, onClose, onSuccess }: EditChildDi
           main_complaint: form.main_complaint || null,
           status: form.status,
           notes: form.notes || null,
+          photo_url: photoUrl || null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", child.id)
@@ -90,6 +134,58 @@ export function EditChildDialog({ open, child, onClose, onSuccess }: EditChildDi
           <DialogTitle>Editar Dados da Criança</DialogTitle>
         </DialogHeader>
         <DialogBody className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+
+          {/* Photo Upload */}
+          <div className="flex flex-col items-center gap-3 py-2">
+            <div className="relative">
+              <div className="w-24 h-24 rounded-3xl border-4 border-[#D8E5E7] bg-[#EEF5F6] overflow-hidden flex items-center justify-center shadow-md">
+                {uploadingPhoto ? (
+                  <Loader2 className="w-8 h-8 text-[#245C6B] animate-spin" />
+                ) : photoUrl ? (
+                  <img src={photoUrl} alt="Foto" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-3xl font-black text-[#245C6B]">
+                    {child.full_name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+
+              {/* Camera button */}
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                className="absolute -bottom-1.5 -right-1.5 w-8 h-8 bg-[#245C6B] text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-[#19323A] transition-colors border-2 border-white"
+                title="Adicionar foto"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+
+              {/* Remove photo button */}
+              {photoUrl && (
+                <button
+                  type="button"
+                  onClick={() => setPhotoUrl(null)}
+                  className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-red-500 text-white rounded-lg flex items-center justify-center shadow hover:bg-red-600 transition-colors border-2 border-white"
+                  title="Remover foto"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            <p className="text-xs text-[#6B7C83] font-medium">
+              {photoUrl ? "Clique na câmera para trocar" : "Clique na câmera para adicionar foto"}
+            </p>
+
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
+          </div>
+
           <Input
             label="Nome Completo *"
             value={form.full_name}

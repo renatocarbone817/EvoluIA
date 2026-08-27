@@ -131,6 +131,15 @@ export function ChildProfilePage() {
               <ArrowLeft className="w-4 h-4" />
             </Button>
 
+            {/* Avatar with photo */}
+            <div className="w-12 h-12 rounded-2xl bg-[#245C6B] text-white font-black text-xl flex items-center justify-center shrink-0 border-2 border-[#63C7B2]/40 shadow-md overflow-hidden">
+              {child.photo_url ? (
+                <img src={child.photo_url} alt={child.full_name} className="w-full h-full object-cover" />
+              ) : (
+                child.full_name.charAt(0).toUpperCase()
+              )}
+            </div>
+
             <div className="flex-1">
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-xl font-black text-[#19323A]">{child.full_name}</h1>
@@ -142,6 +151,7 @@ export function ChildProfilePage() {
                 {child.grade && <span>📚 {child.grade}</span>}
               </div>
             </div>
+
 
             <div className="flex items-center gap-2">
               {nextAppointment && (
