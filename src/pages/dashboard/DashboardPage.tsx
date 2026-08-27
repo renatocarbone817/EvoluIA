@@ -404,11 +404,37 @@ export function DashboardPage() {
   // =========================================================================
   // TASK DRAG AND DROP, SORT BY DATE & DYNAMIC DEADLINE BADGE CALCULATION
   // =========================================================================
+  function getTaskEffectiveDate(task: TaskItem): string | undefined {
+    if (task.dueDate) return task.dueDate
+    const txt = (task.dueText || "").toLowerCase()
+    const todayStr = format(new Date(), "yyyy-MM-dd")
+    const tomorrowDate = new Date()
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1)
+    const tomorrowStr = format(tomorrowDate, "yyyy-MM-dd")
+    const nextWeekDate = new Date()
+    nextWeekDate.setDate(nextWeekDate.getDate() + 7)
+    const nextWeekStr = format(nextWeekDate, "yyyy-MM-dd")
+
+    if (txt.includes("hoje")) return todayStr
+    if (txt.includes("amanh")) return tomorrowStr
+    if (txt.includes("semana")) return nextWeekStr
+    return undefined
+  }
+
+  function getTaskSortDate(task: TaskItem): string {
+    const effDate = getTaskEffectiveDate(task)
+    if (effDate) return effDate
+    return "9999-12-31" // Sem prazo vai pro fim
+  }
+
   function getTaskBadge(task: TaskItem) {
     if (task.completed) {
       return { text: "Concluído", color: "green" as const }
     }
-    if (!task.dueDate) {
+
+    const resolvedDate = getTaskEffectiveDate(task)
+
+    if (!resolvedDate) {
       return { text: task.dueText || "Pendente", color: (task.dueColor || "gray") as "red" | "orange" | "gray" | "green" }
     }
 
@@ -417,18 +443,18 @@ export function DashboardPage() {
     tomorrowDate.setDate(tomorrowDate.getDate() + 1)
     const tomorrowStr = format(tomorrowDate, "yyyy-MM-dd")
 
-    if (task.dueDate === todayStr) {
+    if (resolvedDate === todayStr) {
       return { text: "Hoje", color: "red" as const }
     }
-    if (task.dueDate === tomorrowStr) {
+    if (resolvedDate === tomorrowStr) {
       return { text: "Amanhã", color: "orange" as const }
     }
-    if (task.dueDate < todayStr) {
-      const d = new Date(task.dueDate + "T12:00:00")
+    if (resolvedDate < todayStr) {
+      const d = new Date(resolvedDate + "T12:00:00")
       return { text: `Atrasada (${format(d, "dd/MM")})`, color: "red" as const }
     }
 
-    const d = new Date(task.dueDate + "T12:00:00")
+    const d = new Date(resolvedDate + "T12:00:00")
     return { text: `Venc. ${format(d, "dd/MM")}`, color: "gray" as const }
   }
 
@@ -455,17 +481,18 @@ export function DashboardPage() {
   function handleSortTasksByDate() {
     if (tasks.length <= 1) return
     const sorted = [...tasks].sort((a, b) => {
-      // 1. Concluídas vão para o final
+      // 1. Concluídas vão para o final absoluto
       if (a.completed !== b.completed) {
         return a.completed ? 1 : -1
       }
-      // 2. Se nenhuma tem data, mantém
-      if (!a.dueDate && !b.dueDate) return 0
-      // 3. Quem não tem data vai pro fim das pendentes
-      if (!a.dueDate) return 1
-      if (!b.dueDate) return -1
-      // 4. Ordenação cronológica crescente (Atrasadas -> Hoje -> Amanhã -> Futuras)
-      return a.dueDate.localeCompare(b.dueDate)
+      // 2. Ordenação por data calculada (Atrasadas -> Hoje -> Amanhã -> Próximas -> Sem Prazo)
+      const dateA = getTaskSortDate(a)
+      const dateB = getTaskSortDate(b)
+
+      if (dateA !== dateB) {
+        return dateA.localeCompare(dateB)
+      }
+      return 0
     })
     setTasks(sorted)
     localStorage.setItem("evoluia_dashboard_tasks", JSON.stringify(sorted))
@@ -487,20 +514,33 @@ export function DashboardPage() {
     const tomorrowStr = format(tomorrowDate, "yyyy-MM-dd")
 
     let dueDate: string | undefined = undefined
+    let dueText: string = "Hoje"
+    let dueColor: "red" | "orange" | "gray" | "green" = "red"
+
     if (newTaskDueOption === "hoje") {
       dueDate = todayStr
+      dueText = "Hoje"
+      dueColor = "red"
     } else if (newTaskDueOption === "amanha") {
       dueDate = tomorrowStr
+      dueText = "Amanhã"
+      dueColor = "orange"
     } else if (newTaskDueOption === "data") {
       dueDate = newTaskSpecificDate || todayStr
+      dueText = `Venc. ${format(new Date(dueDate + "T12:00:00"), "dd/MM")}`
+      dueColor = "gray"
     } else if (newTaskDueOption === "sem_prazo") {
       dueDate = undefined
+      dueText = "Pendente"
+      dueColor = "gray"
     }
 
     const newTask: TaskItem = {
       id: Date.now().toString(),
       text: newTaskText.trim(),
       dueDate,
+      dueText,
+      dueColor,
       completed: false,
     }
 
@@ -860,7 +900,7 @@ export function DashboardPage() {
 
               <button
                 onClick={() => navigate("/biblioteca?novo=true")}
-                className="p-2.5 rounded-2xl bg-[#F7FAFA] hover:bg-[#FFEDD5] border border-[#D8E5E7] hover:border-[#EA580C] text-[#0D2329] text-[11px] font-bold flex items-center gap-2 transition-all shadow-2xs"
+                className="p-2.5 rounded-2xl bg-[#FFEDD5] hover:bg-[#FED7AA] border border-[#D8E5E7] hover:border-[#EA580C] text-[#0D2329] text-[11px] font-bold flex items-center gap-2 transition-all shadow-2xs"
               >
                 <BookOpen className="w-4 h-4 text-[#EA580C]" />
                 <span className="truncate">Nova Atividade</span>
