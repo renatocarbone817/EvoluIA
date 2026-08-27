@@ -27,6 +27,9 @@ import {
   CheckCircle2,
   ExternalLink,
   Trash2,
+  Search,
+  X,
+  XCircle,
 } from "lucide-react"
 import toast from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
@@ -51,6 +54,12 @@ export function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentWithChild[]>([])
   const [loading, setLoading] = useState(true)
   const [showNewModal, setShowNewModal] = useState(searchParams.get("novo") === "true")
+
+  // Search feature
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<AppointmentWithChild[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
 
   const profId = professional?.id || user?.id
 
@@ -146,6 +155,63 @@ export function AppointmentsPage() {
     }
   }
 
+  async function handleSearch(query: string) {
+    setSearchQuery(query)
+    if (!query.trim() || query.trim().length < 2) {
+      setIsSearching(false)
+      setSearchResults([])
+      return
+    }
+
+    setIsSearching(true)
+    setSearchLoading(true)
+    try {
+      const { data } = await supabase
+        .from("appointments")
+        .select("*, child:children(*)")
+        .eq("professional_id", profId)
+        .ilike("children.full_name", `%${query.trim()}%`)
+        .order("start_time", { ascending: true })
+
+      // Also search directly via child name join
+      const { data: data2 } = await supabase
+        .from("appointments")
+        .select("*, child:children!inner(*)")
+        .eq("professional_id", profId)
+        .ilike("child.full_name", `%${query.trim()}%`)
+        .order("start_time", { ascending: true })
+
+      const combined = data2 || data || []
+      setSearchResults(combined as AppointmentWithChild[])
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+
+  async function handleCancelAppointment(e: React.MouseEvent, apptId: string) {
+    e.stopPropagation()
+    if (!confirm("Deseja cancelar este agendamento?")) return
+    try {
+      const { error } = await supabase
+        .from("appointments")
+        .update({ status: "cancelled" })
+        .eq("id", apptId)
+      if (error) throw error
+      toast.success("Agendamento cancelado!")
+      // Refresh search results
+      if (searchQuery) handleSearch(searchQuery)
+      loadAppointments()
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao cancelar")
+    }
+  }
+
+  function clearSearch() {
+    setSearchQuery("")
+    setSearchResults([])
+    setIsSearching(false)
+  }
+
   const weekDays = eachDayOfInterval({
     start: startOfWeek(currentDate, { weekStartsOn: 1 }),
     end: endOfWeek(currentDate, { weekStartsOn: 1 }),
@@ -165,6 +231,26 @@ export function AppointmentsPage() {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8DA3A8]" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Buscar paciente..."
+              className="pl-9 pr-8 py-2.5 text-sm font-semibold bg-white border-2 border-[#D8E5E7] rounded-xl w-52 focus:outline-none focus:border-[#245C6B] text-[#19323A] placeholder:text-[#8DA3A8] transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8DA3A8] hover:text-[#19323A] transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
           <Button
             variant="outline"
             onClick={() => navigate("/configuracoes")}
@@ -179,6 +265,113 @@ export function AppointmentsPage() {
           </Button>
         </div>
       </div>
+
+      {/* SEARCH RESULTS PANEL */}
+      {isSearching && (
+        <div className="max-w-2xl mx-auto space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-black text-base text-[#19323A]">
+                Resultados para "{searchQuery}"
+              </h2>
+              {!searchLoading && (
+                <p className="text-xs text-[#6B7C83] mt-0.5">
+                  {searchResults.length === 0
+                    ? "Nenhum agendamento encontrado"
+                    : `${searchResults.length} agendamento${searchResults.length > 1 ? "s" : ""} encontrado${searchResults.length > 1 ? "s" : ""}`}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={clearSearch}
+              className="text-xs text-[#6B7C83] hover:text-[#19323A] flex items-center gap-1 font-semibold"
+            >
+              <X className="w-3.5 h-3.5" />
+              Limpar busca
+            </button>
+          </div>
+
+          {searchLoading ? (
+            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-sm p-8 text-center">
+              <div className="w-6 h-6 border-2 border-[#245C6B] border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-xs text-[#6B7C83] mt-2 font-semibold">Buscando...</p>
+            </div>
+          ) : searchResults.length === 0 ? (
+            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-sm py-10 text-center">
+              <Search className="w-8 h-8 text-[#8DA3A8] mx-auto mb-2" />
+              <p className="font-bold text-sm text-[#19323A]">Nenhum agendamento encontrado</p>
+              <p className="text-xs text-[#6B7C83] mt-1">Tente outro nome.</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-sm overflow-hidden">
+              {searchResults.map((appt, idx) => {
+                const rawName = appt.child?.full_name || "Criança"
+                const displayName = rawName.startsWith("Avaliação")
+                  ? rawName.replace(/^Avaliação/i, "Entrevista")
+                  : rawName
+                const displayType =
+                  appt.type === "Avaliação Inicial" ? "Entrevista Inicial" : appt.type
+                const isFuture = new Date(appt.start_time) >= new Date()
+
+                return (
+                  <div
+                    key={appt.id}
+                    className={`flex items-center gap-4 px-5 py-3.5 group transition-colors hover:bg-[#F7FAFA] ${
+                      idx < searchResults.length - 1 ? "border-b border-[#EEF5F6]" : ""
+                    } ${appt.status === "cancelled" ? "opacity-50" : ""}`}
+                  >
+                    {/* Time block */}
+                    <div className="shrink-0 text-center w-14">
+                      <p className="text-[10px] font-bold text-[#6B7C83] uppercase">
+                        {format(new Date(appt.start_time), "dd/MM/yy")}
+                      </p>
+                      <p className="text-sm font-black text-[#19323A]">
+                        {format(new Date(appt.start_time), "HH:mm")}
+                      </p>
+                    </div>
+
+                    <div className="w-px h-10 bg-[#D8E5E7] shrink-0" />
+
+                    <ChildAvatar photoUrl={appt.child?.photo_url} name={displayName} size="sm" />
+
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-black text-sm text-[#19323A] truncate">{displayName}</h3>
+                      <p className="text-[11px] font-semibold text-[#6B7C83] truncate">{displayType}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge statusKey={appt.status} />
+
+                      {/* Show cancel button only for future non-cancelled appointments */}
+                      {isFuture && appt.status !== "cancelled" && appt.status !== "done" && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleCancelAppointment(e, appt.id)}
+                          className="flex items-center gap-1 text-[10px] font-bold text-[#D96C6C] hover:bg-[#FDF0F0] px-2.5 py-1.5 rounded-lg border border-[#D96C6C]/30 transition-colors"
+                          title="Cancelar agendamento"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          Cancelar
+                        </button>
+                      )}
+
+                      {/* Delete button */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteAppointment(e, appt.id)}
+                        className="p-1.5 text-[#8DA3A8] hover:text-[#D96C6C] hover:bg-[#FDF0F0] rounded-lg transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* View & Navigation Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-3.5 rounded-2xl border-2 border-[#D8E5E7] shadow-sm">
