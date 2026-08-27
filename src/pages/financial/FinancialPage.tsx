@@ -1093,11 +1093,15 @@ export function FinancialPage() {
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pb-2 border-b border-[#EEF5F6]">
           {/* Period Scope Buttons */}
           <div className="flex items-center gap-1.5 flex-wrap">
+            {/* 1. Mês Atual */}
             <button
               type="button"
-              onClick={() => setTablePeriod("current")}
+              onClick={() => {
+                setSelectedMonth(currentMonth)
+                setTablePeriod("current")
+              }}
               className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all border ${
-                tablePeriod === "current"
+                tablePeriod === "current" || (tablePeriod === "month" && selectedMonth === currentMonth)
                   ? "bg-[#19323A] text-white border-[#19323A] shadow-xs"
                   : "bg-white text-[#6B7C83] border-[#D8E5E7] hover:border-[#19323A]"
               }`}
@@ -1105,18 +1109,41 @@ export function FinancialPage() {
               <span>🗓️ Mês Atual ({MONTHS[currentMonth - 1]})</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => setTablePeriod("month")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all border ${
-                tablePeriod === "month"
+            {/* 2. Selecionar Mês (Lista com todos os meses) */}
+            <div
+              className={`px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1 transition-all border ${
+                tablePeriod === "month" && selectedMonth !== currentMonth
                   ? "bg-[#19323A] text-white border-[#19323A] shadow-xs"
                   : "bg-white text-[#6B7C83] border-[#D8E5E7] hover:border-[#19323A]"
               }`}
             >
-              <span>🗓️ {MONTHS[selectedMonth - 1]}/{selectedYear}</span>
-            </button>
+              <span>🗓️</span>
+              <select
+                value={tablePeriod === "month" && selectedMonth !== currentMonth ? selectedMonth : ""}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setSelectedMonth(Number(e.target.value))
+                    setTablePeriod("month")
+                  }
+                }}
+                className={`text-xs font-black bg-transparent focus:outline-none cursor-pointer ${
+                  tablePeriod === "month" && selectedMonth !== currentMonth
+                    ? "text-white"
+                    : "text-[#6B7C83]"
+                }`}
+              >
+                <option value="" disabled className="text-[#0D2329]">
+                  Selecionar mês...
+                </option>
+                {MONTHS.map((m, idx) => (
+                  <option key={m} value={idx + 1} className="text-[#0D2329]">
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
 
+            {/* 3. Ano Inteiro */}
             <button
               type="button"
               onClick={() => setTablePeriod("year")}
@@ -1126,7 +1153,7 @@ export function FinancialPage() {
                   : "bg-white text-[#6B7C83] border-[#D8E5E7] hover:border-[#19323A]"
               }`}
             >
-              <span>📅 Ano Inteiro ({selectedYear})</span>
+              <span>📅 Ano Inteiro ({currentYear})</span>
             </button>
 
             <button
