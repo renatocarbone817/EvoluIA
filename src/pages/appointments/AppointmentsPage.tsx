@@ -31,6 +31,7 @@ import {
   X,
   XCircle,
   Filter,
+  MessageSquare,
 } from "lucide-react"
 import toast from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
@@ -97,7 +98,17 @@ export function AppointmentsPage() {
 
       const { data } = await supabase
         .from("appointments")
-        .select("*, child:children(*)")
+        .select(`
+          *,
+          child:children(
+            *,
+            guardians:guardian_children(
+              relationship,
+              is_primary,
+              guardian:guardians(id, full_name, phone, whatsapp)
+            )
+          )
+        `)
         .eq("professional_id", profId)
         .gte("start_time", startStr)
         .lte("start_time", endStr)
@@ -509,6 +520,33 @@ export function AppointmentsPage() {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <Badge statusKey={appt.status} className="text-[10px] px-2 py-0.5" />
+
+                        {/* WhatsApp Reminder Button */}
+                        {(() => {
+                          const guardian = (appt.child as any)?.guardians?.[0]?.guardian
+                          const rawPhone = guardian?.whatsapp || guardian?.phone
+                          if (!rawPhone || appt.status === "done" || appt.status === "cancelled") return null
+                          const cleanPhone = rawPhone.replace(/\D/g, "")
+                          const msg = encodeURIComponent(
+                            `Olá, tudo bem? 🌟 Passando para confirmar a nossa sessão psicopedagógica de ${displayName} hoje às ${format(
+                              startTime,
+                              "HH:mm"
+                            )} no consultório. Qualquer imprevisto, por favor nos avise. Até logo!`
+                          )
+                          return (
+                            <a
+                              href={`https://wa.me/55${cleanPhone}?text=${msg}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2.5 py-1.5 bg-[#E8F8F5] text-[#20836F] hover:bg-[#20836F] hover:text-white rounded-xl text-xs font-bold flex items-center gap-1 border border-[#63C7B2]/40 transition-all shadow-2xs"
+                              title="Enviar Lembrete WhatsApp para a família"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                              <span className="hidden sm:inline">Lembrete</span>
+                            </a>
+                          )
+                        })()}
+
                         {(appt.status === "scheduled" || appt.status === "confirmed") && (
                           <Button
                             size="sm"
@@ -651,27 +689,55 @@ export function AppointmentsPage() {
                             <p className="text-[10px] font-semibold text-[#6B7C83] truncate">
                               {appt.type}
                             </p>
-                            {(appt.status === "scheduled" || appt.status === "confirmed") && (
-                              <Button
-                                size="sm"
-                                className="w-full h-7 text-[10px] mt-1 gap-1 font-black"
-                                onClick={() => handleStartAppointment(appt)}
-                              >
-                                <Play className="w-3 h-3 fill-current" />
-                                Iniciar
-                              </Button>
-                            )}
 
-                            {appt.status === "in_progress" && (
-                              <Button
-                                size="sm"
-                                className="w-full h-7 text-[10px] mt-1 gap-1 font-black bg-[#20836F] hover:bg-[#186b5a] text-white"
-                                onClick={() => handleStartAppointment(appt)}
-                              >
-                                <Play className="w-3 h-3 fill-current" />
-                                Continuar
-                              </Button>
-                            )}
+                            <div className="flex items-center gap-1 mt-1">
+                              {/* WhatsApp Button */}
+                              {(() => {
+                                const guardian = (appt.child as any)?.guardians?.[0]?.guardian
+                                const rawPhone = guardian?.whatsapp || guardian?.phone
+                                if (!rawPhone || appt.status === "done" || appt.status === "cancelled") return null
+                                const cleanPhone = rawPhone.replace(/\D/g, "")
+                                const msg = encodeURIComponent(
+                                  `Olá, tudo bem? 🌟 Passando para confirmar a nossa sessão psicopedagógica de ${displayName} hoje às ${format(
+                                    new Date(appt.start_time),
+                                    "HH:mm"
+                                  )} no consultório. Qualquer imprevisto, por favor nos avise. Até logo!`
+                                )
+                                return (
+                                  <a
+                                    href={`https://wa.me/55${cleanPhone}?text=${msg}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="p-1 bg-[#E8F8F5] text-[#20836F] hover:bg-[#20836F] hover:text-white rounded-lg border border-[#63C7B2]/40 transition-all shadow-2xs shrink-0 flex items-center justify-center h-7 w-7"
+                                    title="Enviar Lembrete WhatsApp para a família"
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                                  </a>
+                                )
+                              })()}
+
+                              {(appt.status === "scheduled" || appt.status === "confirmed") && (
+                                <Button
+                                  size="sm"
+                                  className="flex-1 h-7 text-[10px] gap-1 font-black"
+                                  onClick={() => handleStartAppointment(appt)}
+                                >
+                                  <Play className="w-3 h-3 fill-current" />
+                                  Iniciar
+                                </Button>
+                              )}
+
+                              {appt.status === "in_progress" && (
+                                <Button
+                                  size="sm"
+                                  className="flex-1 h-7 text-[10px] gap-1 font-black bg-[#20836F] hover:bg-[#186b5a] text-white"
+                                  onClick={() => handleStartAppointment(appt)}
+                                >
+                                  <Play className="w-3 h-3 fill-current" />
+                                  Continuar
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         )
                       })}

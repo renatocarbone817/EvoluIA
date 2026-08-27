@@ -16,6 +16,7 @@ import {
   Cake,
   AlertTriangle,
   CheckCircle2,
+  MessageSquare,
 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -96,7 +97,17 @@ export function DashboardPage() {
 
         supabase
           .from("appointments")
-          .select("*, child:children(*)")
+          .select(`
+            *,
+            child:children(
+              *,
+              guardians:guardian_children(
+                relationship,
+                is_primary,
+                guardian:guardians(id, full_name, phone, whatsapp)
+              )
+            )
+          `)
           .eq("professional_id", profId)
           .gte("start_time", `${todayStr}T00:00:00`)
           .lte("start_time", `${todayStr}T23:59:59`)
@@ -104,7 +115,17 @@ export function DashboardPage() {
 
         supabase
           .from("appointments")
-          .select("*, child:children(*)")
+          .select(`
+            *,
+            child:children(
+              *,
+              guardians:guardian_children(
+                relationship,
+                is_primary,
+                guardian:guardians(id, full_name, phone, whatsapp)
+              )
+            )
+          `)
           .eq("professional_id", profId)
           .gt("start_time", `${todayStr}T23:59:59`)
           .neq("status", "cancelled")
@@ -554,6 +575,32 @@ export function DashboardPage() {
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge statusKey={appt.status} className="text-[10px] px-2 py-0.5" />
 
+                      {/* WhatsApp Reminder Button */}
+                      {(() => {
+                        const guardian = appt.child?.guardians?.[0]?.guardian
+                        const rawPhone = guardian?.whatsapp || guardian?.phone
+                        if (!rawPhone || appt.status === "done" || appt.status === "cancelled") return null
+                        const cleanPhone = rawPhone.replace(/\D/g, "")
+                        const msg = encodeURIComponent(
+                          `Olá, tudo bem? 🌟 Passando para confirmar a nossa sessão psicopedagógica de ${displayName} hoje às ${format(
+                            startTime,
+                            "HH:mm"
+                          )} no consultório. Qualquer imprevisto, por favor nos avise. Até logo!`
+                        )
+                        return (
+                          <a
+                            href={`https://wa.me/55${cleanPhone}?text=${msg}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2.5 py-1.5 bg-[#E8F8F5] text-[#20836F] hover:bg-[#20836F] hover:text-white rounded-xl text-xs font-bold flex items-center gap-1 border border-[#63C7B2]/40 transition-all shadow-2xs"
+                            title="Enviar Lembrete WhatsApp para a família"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                            <span className="hidden sm:inline">Lembrete</span>
+                          </a>
+                        )
+                      })()}
+
                       {canStart && (
                         <Button
                           size="sm"
@@ -581,9 +628,10 @@ export function DashboardPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => navigate(`/criancas/${appt.child_id}`)}
-                          className="text-xs"
+                          className="gap-1 text-xs text-[#20836F] border-[#63C7B2]/40"
                         >
-                          Ficha
+                          <CheckCircle2 className="w-3 h-3 text-[#20836F]" />
+                          <span>Concluído</span>
                         </Button>
                       )}
                     </div>
