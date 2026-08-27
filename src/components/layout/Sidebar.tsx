@@ -43,14 +43,13 @@ export function Sidebar() {
         collapsed ? "w-16" : "w-64"
       )}
     >
-      {/* 1. TOP: Psicopedagoga & Consultório */}
+      {/* 1. TOP: Psicopedagoga & Consultório -> Direciona para o Dashboard */}
       <div
-        onClick={() => navigate("/configuracoes")}
-        title="Clique para editar as configurações do seu consultório"
+        onClick={() => navigate("/dashboard")}
+        title="Ir para o Início / Dashboard"
         className={cn(
           "flex items-center gap-3 px-4 py-4 border-b border-white/10 cursor-pointer hover:bg-white/5 transition-all group",
-          collapsed && "justify-center px-2",
-          location.pathname === "/configuracoes" && "bg-white/10"
+          collapsed && "justify-center px-2"
         )}
       >
         <div className="w-10 h-10 rounded-xl bg-[#245C6B] border border-[#63C7B2]/40 flex items-center justify-center flex-shrink-0 overflow-hidden group-hover:scale-105 transition-transform shadow-md">
