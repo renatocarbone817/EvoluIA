@@ -201,7 +201,7 @@ export function ChildProfilePage() {
             onReload={loadChild}
           />
         )}
-        {activeTab === "avaliacao" && <ChildAssessmentTab childId={child.id} />}
+        {activeTab === "avaliacao" && <ChildAssessmentTab childId={child.id} childName={child.full_name} />}
         {activeTab === "sessoes" && <ChildSessionsTab childId={child.id} childName={child.full_name} />}
         {activeTab === "linha-do-tempo" && <ChildTimelineTab childId={child.id} />}
         {activeTab === "documentos" && <ChildDocumentsTab childId={child.id} />}

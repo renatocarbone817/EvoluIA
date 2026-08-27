@@ -12,6 +12,7 @@ import type { InitialAssessment } from "@/types/database"
 
 interface ChildAssessmentTabProps {
   childId: string
+  childName?: string
 }
 
 export const DEFAULT_ASSESSMENT_QUESTIONS = [
@@ -160,7 +161,7 @@ function renderFormattedMarkdown(text: string) {
   })
 }
 
-export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
+export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabProps) {
   const { user, professional } = useAuthStore()
   const [searchParams] = useSearchParams()
   const appointmentId = searchParams.get("appointmentId")
@@ -369,9 +370,30 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* Top action bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border">
+    <div className="printable-report space-y-6 max-w-4xl print:max-w-none print:w-full print:p-0">
+      {/* Print-only Formal Header */}
+      <div className="hidden print:block text-center border-b-2 border-[#19323A] pb-6 mb-6 space-y-1.5">
+        <h1 className="text-2xl font-black uppercase tracking-wide text-[#19323A]">
+          Entrevista Inicial — Anamnese com os Pais
+        </h1>
+        <p className="text-xs font-bold text-[#245C6B]">
+          Clínica: {professional?.clinic_name || "EvoluIA — Gestão Psicopedagógica"}
+        </p>
+        <p className="text-xs font-semibold text-[#6B7C83]">
+          Profissional: <strong>{professional?.full_name}</strong> {professional?.crp ? `· CBO: ${professional.crp}` : ""}
+        </p>
+        <p className="text-xs font-semibold text-[#6B7C83]">
+          Paciente: <strong>{childName || "Paciente"}</strong> · Data da Entrevista: <strong>{baseForm.date ? formatDate(baseForm.date) : formatDate(new Date().toISOString())}</strong>
+        </p>
+        {(baseForm.school_name || baseForm.referral_source) && (
+          <p className="text-xs font-medium text-[#6B7C83]">
+            {baseForm.school_name ? `Escola: ${baseForm.school_name}` : ""} {baseForm.referral_source ? `· Indicação: ${baseForm.referral_source}` : ""}
+          </p>
+        )}
+      </div>
+
+      {/* Top action bar (hidden on print) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border print:hidden">
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
             <BookOpen className="w-5 h-5" />
@@ -418,7 +440,7 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
       </div>
 
       {/* General info card */}
-      <Card>
+      <Card className="print:border print:border-[#D8E5E7] print:shadow-none">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">
             Dados da Entrevista Inicial
@@ -458,16 +480,16 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
           return (
             <Card
               key={q.id}
-              className={`transition-colors ${
+              className={`transition-colors print:break-inside-avoid print:border print:border-[#D8E5E7] print:shadow-none print:bg-white ${
                 isEditing ? "hover:border-foreground/40" : ""
               }`}
             >
-              <CardContent className="p-5 space-y-2.5">
+              <CardContent className="p-5 space-y-2.5 print:p-3.5">
                 <div className="flex items-start gap-2.5">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-foreground text-background font-bold text-xs flex items-center justify-center mt-0.5">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-foreground text-background font-bold text-xs flex items-center justify-center mt-0.5 print:bg-[#19323A] print:text-white">
                     {q.num}
                   </span>
-                  <label className="text-sm font-bold text-foreground leading-snug">
+                  <label className="text-sm font-bold text-foreground leading-snug print:text-[#19323A]">
                     {q.title}
                   </label>
                 </div>
@@ -481,13 +503,13 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
                     className="mt-1"
                   />
                 ) : (
-                  <div className="pl-8 pt-1">
+                  <div className="pl-8 pt-1 print:pl-7 print:pt-0">
                     {value ? (
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed bg-muted/30 p-3 rounded-lg border border-border/50">
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed bg-muted/30 p-3 rounded-lg border border-border/50 print:bg-[#F7FAFA] print:text-[#19323A] print:border-[#D8E5E7] print:p-2.5">
                         {value}
                       </p>
                     ) : (
-                      <p className="text-xs text-muted-foreground/60 italic">
+                      <p className="text-xs text-muted-foreground/60 italic print:text-[#8DA3A8]">
                         Não respondido.
                       </p>
                     )}
@@ -499,9 +521,9 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
         })}
       </div>
 
-      {/* ✨ AI ANALYSIS RESULT CARD */}
+      {/* ✨ AI ANALYSIS RESULT CARD (hidden on print — internal clinical tool) */}
       {aiAnalysis && (
-        <div className="rounded-2xl border-2 border-[#245C6B]/30 bg-gradient-to-br from-[#EAF3F5] to-[#F0F7F9] p-6 space-y-5">
+        <div className="rounded-2xl border-2 border-[#245C6B]/30 bg-gradient-to-br from-[#EAF3F5] to-[#F0F7F9] p-6 space-y-5 print:hidden">
           {/* Card Header */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2.5">
@@ -584,7 +606,7 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
 
       {/* Bottom save bar */}
       {isEditing && (
-        <div className="flex justify-end gap-3 pt-4 border-t border-border sticky bottom-4 bg-background/90 backdrop-blur-sm p-3 rounded-xl border">
+        <div className="flex justify-end gap-3 pt-4 border-t border-border sticky bottom-4 bg-background/90 backdrop-blur-sm p-3 rounded-xl border print:hidden">
           {assessment && (
             <Button variant="outline" onClick={() => setIsEditing(false)}>
               Cancelar
