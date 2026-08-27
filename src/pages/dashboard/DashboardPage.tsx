@@ -873,9 +873,10 @@ export function DashboardPage() {
         </div>
 
         {/* ========================================================
-            COLUMN 2: RESUMO DO MÊS (COMPARATIVO MULTI-LINHAS + UNIFIED TOOLTIP) (5 COLS)
+            COLUMN 2: RESUMO DO MÊS + PRÓXIMAS SESSÕES (5 COLS)
             ======================================================== */}
         <div className="lg:col-span-5 space-y-5">
+          {/* Resumo do Mês Card */}
           <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
@@ -1124,26 +1125,24 @@ export function DashboardPage() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* ========================================================
-            COLUMN 3: PRÓXIMAS SESSÕES + TAREFAS + ANOTAÇÕES (3 COLS)
-            ======================================================== */}
-        <div className="lg:col-span-3 space-y-5">
-          {/* Próximas Sessões Card */}
+          {/* Próximas Sessões Card (AGORA NA COLUNA 2 EMBAIXO DO RESUMO DO MÊS) */}
           <div className="rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm overflow-hidden space-y-3">
             <div className="bg-[#00B4D8] text-white p-3.5 px-4 flex items-center justify-between">
-              <h3 className="text-xs font-black tracking-wide">Próximas Sessões</h3>
-              <button onClick={() => navigate("/agenda")} className="text-[10px] font-bold text-white/90 hover:underline">
-                Ver todas
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                <h3 className="text-xs font-black tracking-wide">Próximas Sessões</h3>
+              </div>
+              <button onClick={() => navigate("/agenda")} className="text-[11px] font-bold text-white/90 hover:underline">
+                Ver todas →
               </button>
             </div>
 
-            <div className="p-3.5 pt-0 space-y-2.5">
+            <div className="p-4 pt-1 space-y-2.5">
               {upcomingAppointments.length === 0 ? (
                 <div className="py-6 text-center space-y-2 border-2 border-dashed border-[#EEF5F6] rounded-2xl bg-[#FAFCFC]">
                   <Calendar className="w-6 h-6 mx-auto text-[#A0B4B9]" />
-                  <p className="text-xs font-bold text-[#0D2329]">Nenhuma sessão futura</p>
+                  <p className="text-xs font-bold text-[#0D2329]">Nenhuma sessão futura agendada</p>
                   <button
                     onClick={() => navigate("/agenda?novo=true")}
                     className="text-xs font-bold text-[#00B4D8] hover:underline"
@@ -1152,59 +1151,66 @@ export function DashboardPage() {
                   </button>
                 </div>
               ) : (
-                upcomingAppointments.slice(0, 3).map((appt) => {
-                  const d = new Date(appt.start_time)
-                  const day = format(d, "dd")
-                  const month = format(d, "MMM", { locale: ptBR }).toUpperCase()
-                  const time = format(d, "HH:mm")
-                  const name = appt.child?.full_name || appt.notes || "Paciente"
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {upcomingAppointments.slice(0, 4).map((appt) => {
+                    const d = new Date(appt.start_time)
+                    const day = format(d, "dd")
+                    const month = format(d, "MMM", { locale: ptBR }).toUpperCase()
+                    const time = format(d, "HH:mm")
+                    const name = appt.child?.full_name || appt.notes || "Paciente"
 
-                  return (
-                    <div
-                      key={appt.id}
-                      className="flex items-center gap-2.5 p-2 rounded-2xl hover:bg-[#F7FAFA] border border-[#EEF5F6] hover:border-[#D8E5E7] transition-all"
-                    >
-                      <div className="w-11 h-11 rounded-2xl bg-[#F0F9FF] border border-[#BAE6FD] text-[#0284C7] flex flex-col items-center justify-center font-black text-xs shrink-0 leading-tight">
-                        <span className="text-xs leading-none">{day}</span>
-                        <span className="text-[8px] tracking-wider uppercase opacity-80">{month}</span>
-                      </div>
-
+                    return (
                       <div
-                        onClick={() => {
-                          if (appt.child_id) navigate(`/criancas/${appt.child_id}`)
-                          else navigate(`/agenda`)
-                        }}
-                        className="min-w-0 flex-1 cursor-pointer"
+                        key={appt.id}
+                        className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-[#F7FAFA] border border-[#EEF5F6] hover:border-[#D8E5E7] transition-all group"
                       >
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs font-black text-[#0D2329] truncate">{name}</p>
-                          <span className="text-[10px] font-bold text-[#6B7C83]">{time}</span>
+                        <div className="w-11 h-11 rounded-2xl bg-[#F0F9FF] border border-[#BAE6FD] text-[#0284C7] flex flex-col items-center justify-center font-black text-xs shrink-0 leading-tight">
+                          <span className="text-xs leading-none">{day}</span>
+                          <span className="text-[8px] tracking-wider uppercase opacity-80">{month}</span>
                         </div>
-                        <p className="text-[10px] text-[#6B7C83] truncate">{appt.type}</p>
-                      </div>
 
-                      {/* Quick WhatsApp Reminder */}
-                      <button
-                        onClick={() => openWhatsApp(appt)}
-                        className="p-1.5 rounded-lg bg-[#E8F8F5] text-[#10B981] hover:bg-[#D1FAE5] transition-colors shrink-0"
-                        title="Enviar WhatsApp"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )
-                })
+                        <div
+                          onClick={() => {
+                            if (appt.child_id) navigate(`/criancas/${appt.child_id}`)
+                            else navigate(`/agenda`)
+                          }}
+                          className="min-w-0 flex-1 cursor-pointer"
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-black text-[#0D2329] truncate">{name}</p>
+                            <span className="text-[10px] font-bold text-[#6B7C83]">{time}</span>
+                          </div>
+                          <p className="text-[10px] text-[#6B7C83] truncate">{appt.type}</p>
+                        </div>
+
+                        {/* Quick WhatsApp Reminder */}
+                        <button
+                          onClick={() => openWhatsApp(appt)}
+                          className="p-1.5 rounded-lg bg-[#E8F8F5] text-[#10B981] hover:bg-[#D1FAE5] transition-colors shrink-0"
+                          title="Enviar WhatsApp"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
               )}
 
               <button
                 onClick={() => navigate("/agenda")}
                 className="w-full pt-1 text-center text-xs font-black text-[#00B4D8] hover:underline"
               >
-                Ver todas as sessões →
+                Ver todas as sessões na agenda →
               </button>
             </div>
           </div>
+        </div>
 
+        {/* ========================================================
+            COLUMN 3: TAREFAS + ANOTAÇÕES (3 COLS)
+            ======================================================== */}
+        <div className="lg:col-span-3 space-y-5">
           {/* Tarefas Pendentes Card (SELEÇÃO DE DATA ESPECÍFICA & TRELLO DRAG AND DROP) */}
           <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
             <div className="flex items-center justify-between">
