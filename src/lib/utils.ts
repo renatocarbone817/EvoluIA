@@ -55,21 +55,21 @@ export function getInitials(name: string): string {
 }
 
 export const STATUS_LABELS: Record<string, string> = {
-  initial_assessment: "Entrevista Inicial",
-  in_progress: "Em Acompanhamento",
-  paused: "Pausado",
-  closed: "Encerrado",
-  archived: "Arquivado",
-  scheduled: "Agendado",
-  confirmed: "Confirmado",
-  in_progress_appt: "Em Andamento",
-  done: "Realizado",
-  cancelled: "Cancelado",
-  missed: "Faltou",
-  rescheduled: "Reagendado",
-  paid: "Pago",
-  pending: "Pendente",
-  overdue: "Atrasado",
+  initial_assessment: "📋 Entrevista Inicial",
+  in_progress: "🌱 Em Acompanhamento",
+  paused: "⏸️ Pausado",
+  closed: "🔒 Encerrado",
+  archived: "📦 Arquivado",
+  scheduled: "● Agendado",
+  confirmed: "✓ Confirmado",
+  in_progress_appt: "▶ Em Andamento",
+  done: "✓ Realizado",
+  cancelled: "✕ Cancelado",
+  missed: "⚠ Faltou",
+  rescheduled: "🔄 Reagendado",
+  paid: "✓ Pago",
+  pending: "⏳ Pendente",
+  overdue: "⚠ Atrasado",
 }
 
 export const STATUS_COLORS: Record<string, string> = {
