@@ -110,7 +110,8 @@ export function SettingsPage() {
     city: professional?.city || "São José do Rio Preto",
     state: professional?.state || "SP",
     bio: professional?.bio || "Especialista no desenvolvimento cognitivo, dificuldades de aprendizagem, TDAH e orientação familiar.",
-    pix_key: (professional as any)?.pix_key || "priscila.carbone@pix.com.br",
+    pix_type: (professional as any)?.pix_type || localStorage.getItem("evoluia_pix_type") || "Celular",
+    pix_key: (professional as any)?.pix_key || localStorage.getItem("evoluia_pix_key") || "17 99758-0663",
   })
 
   // Task Categories State
@@ -237,6 +238,8 @@ export function SettingsPage() {
 
       if (error) throw error
 
+      localStorage.setItem("evoluia_pix_type", form.pix_type)
+      localStorage.setItem("evoluia_pix_key", form.pix_key)
       localStorage.setItem("evoluia_task_categories", JSON.stringify(categories))
       localStorage.setItem("evoluia_working_hours", JSON.stringify(schedule))
       localStorage.setItem("evoluia_session_duration", String(sessionDuration))
@@ -592,27 +595,45 @@ export function SettingsPage() {
               </div>
 
               {/* SEÇÃO 3: CHAVE PIX COM FUNDO DESTACADO */}
-              <div className="p-5 rounded-2xl bg-[#FEF8EC] border-2 border-[#F4C95D]/60 space-y-3 shadow-2xs">
+              <div className="p-5 rounded-2xl bg-[#FEF8EC] border-2 border-[#F4C95D]/60 space-y-3.5 shadow-2xs">
                 <div className="flex items-center gap-2 text-[#8B6514]">
                   <DollarSign className="w-4 h-4 font-black" />
                   <h3 className="text-xs font-black uppercase tracking-wider">
-                    3. Chave PIX para Recebimentos dos Pais
+                    3. Dados Financeiros & Chave PIX para os Pais
                   </h3>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-[#8B6514]">Chave PIX Padrão *</label>
-                  <input
-                    type="text"
-                    value={form.pix_key}
-                    onChange={(e) => setForm({ ...form, pix_key: e.target.value })}
-                    placeholder="priscila.carbone@pix.com.br (E-mail, CPF, Telefone ou Chave Aleatória)"
-                    className="w-full px-4 py-3 text-xs font-black rounded-2xl border-2 border-[#F4C95D] bg-white focus:outline-none focus:ring-2 focus:ring-[#8B6514]/20 text-[#0D2329]"
-                  />
-                  <p className="text-[11px] font-semibold text-[#8B6514]/80">
-                    Esta chave PIX é inserida automaticamente nas mensagens de cobrança enviadas pelo WhatsApp.
-                  </p>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                  <div className="sm:col-span-4 space-y-1.5">
+                    <label className="text-xs font-black text-[#8B6514]">Tipo da Chave *</label>
+                    <select
+                      value={form.pix_type}
+                      onChange={(e) => setForm({ ...form, pix_type: e.target.value })}
+                      className="w-full px-3 py-3 text-xs font-bold rounded-2xl border-2 border-[#F4C95D] bg-white text-[#0D2329] focus:outline-none focus:ring-2 focus:ring-[#8B6514]/20"
+                    >
+                      <option value="Celular">📱 Celular / Telefone</option>
+                      <option value="E-mail">✉️ E-mail</option>
+                      <option value="CPF">🆔 CPF</option>
+                      <option value="CNPJ">🏢 CNPJ</option>
+                      <option value="Chave Aleatória">🔑 Chave Aleatória</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-8 space-y-1.5">
+                    <label className="text-xs font-black text-[#8B6514]">Chave PIX *</label>
+                    <input
+                      type="text"
+                      value={form.pix_key}
+                      onChange={(e) => setForm({ ...form, pix_key: e.target.value })}
+                      placeholder="Digite sua chave PIX..."
+                      className="w-full px-4 py-3 text-xs font-black rounded-2xl border-2 border-[#F4C95D] bg-white focus:outline-none focus:ring-2 focus:ring-[#8B6514]/20 text-[#0D2329]"
+                    />
+                  </div>
                 </div>
+
+                <p className="text-[11px] font-semibold text-[#8B6514]/80 pt-0.5">
+                  Nas mensagens de cobrança e recibos constará: <strong>Chave PIX ({form.pix_type}): {form.pix_key}</strong>
+                </p>
               </div>
 
               {/* Save Button inside card */}
@@ -663,7 +684,7 @@ export function SettingsPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[#8CAAB1]">Chave PIX:</span>
-                    <span className="text-[#0284C7] font-black truncate max-w-[150px]">{form.pix_key}</span>
+                    <span className="text-[#0284C7] font-black truncate max-w-[160px]">({form.pix_type}) {form.pix_key}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[#8CAAB1]">Endereço:</span>
