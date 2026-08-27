@@ -108,11 +108,13 @@ export function AppointmentsPage() {
   }
 
   function handleStartAppointment(appt: AppointmentWithChild) {
-    const isEvaluation =
+    const isInterviewOrEval =
+      appt.type === "Entrevista Inicial" ||
       appt.type === "Avaliação Inicial" ||
+      appt.type?.toLowerCase().includes("entrevista") ||
       appt.type?.toLowerCase().includes("avaliação")
 
-    if (isEvaluation) {
+    if (isInterviewOrEval) {
       navigate(`/criancas/${appt.child_id}?editar=true`)
     } else {
       navigate(`/atendimento/${appt.id}`)

@@ -20,7 +20,7 @@ interface EditChildDialogProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: "initial_assessment", label: "Avaliação Inicial" },
+  { value: "initial_assessment", label: "Entrevista Inicial" },
   { value: "in_progress", label: "Em Acompanhamento" },
   { value: "paused", label: "Pausado" },
   { value: "closed", label: "Encerrado" },

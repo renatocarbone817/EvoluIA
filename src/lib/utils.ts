@@ -55,7 +55,7 @@ export function getInitials(name: string): string {
 }
 
 export const STATUS_LABELS: Record<string, string> = {
-  initial_assessment: "Avaliação Inicial",
+  initial_assessment: "Entrevista Inicial",
   in_progress: "Em Acompanhamento",
   paused: "Pausado",
   closed: "Encerrado",

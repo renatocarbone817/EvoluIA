@@ -21,7 +21,7 @@ type Tab = "resumo" | "avaliacao" | "sessoes" | "linha-do-tempo" | "documentos" 
 
 const TABS: { id: Tab; label: string; icon: typeof Calendar }[] = [
   { id: "resumo", label: "Resumo", icon: Users },
-  { id: "avaliacao", label: "Avaliação Inicial", icon: BookOpen },
+  { id: "avaliacao", label: "Entrevista Inicial", icon: BookOpen },
   { id: "sessoes", label: "Sessões", icon: Activity },
   { id: "linha-do-tempo", label: "Linha do Tempo", icon: Clock },
   { id: "documentos", label: "Documentos", icon: FileText },

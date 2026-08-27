@@ -246,10 +246,10 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
             <BookOpen className="w-5 h-5" />
-            Avaliação Inicial (Anamnese Psicopedagógica)
+            Entrevista Inicial (Anamnese com os Pais)
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            13 perguntas estruturadas para o primeiro encontro com os pais e responsáveis.
+            13 perguntas estruturadas para a primeira entrevista com os pais e responsáveis.
           </p>
         </div>
 
@@ -268,7 +268,7 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
           ) : (
             <Button loading={saving} onClick={handleSaveAssessment}>
               <Save className="w-4 h-4 mr-1.5" />
-              Salvar Avaliação
+              Salvar Entrevista
             </Button>
           )}
         </div>
@@ -278,13 +278,13 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">
-            Dados do Atendimento Inicial
+            Dados da Entrevista Inicial
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid sm:grid-cols-3 gap-3">
             <Input
-              label="Data da Avaliação"
+              label="Data da Entrevista"
               type="date"
               disabled={!isEditing}
               value={baseForm.date}

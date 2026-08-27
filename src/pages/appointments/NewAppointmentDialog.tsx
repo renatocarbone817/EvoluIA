@@ -193,7 +193,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
     let targetChildId = form.child_id
 
     if (mode === "existing" && !targetChildId) {
-      toast.error("Selecione um paciente cadastrado ou clique em '+ Nova Avaliação'.")
+      toast.error("Selecione um paciente cadastrado ou clique em '+ Nova Entrevista'.")
       return
     }
 
@@ -217,16 +217,16 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
         await fetchProfessional(profId)
       }
 
-      // 2. If creating a new assessment on the fly
+      // 2. If creating a new interview / appointment on the fly
       if (mode === "new") {
         let resolvedName = form.new_child_name.trim()
         if (!resolvedName) {
           if (form.new_guardian_name.trim()) {
-            resolvedName = `Avaliação (${form.new_guardian_name.trim()})`
+            resolvedName = `Entrevista (${form.new_guardian_name.trim()})`
           } else if (form.notes.trim()) {
-            resolvedName = `Avaliação: ${form.notes.trim().substring(0, 20)}`
+            resolvedName = `Entrevista: ${form.notes.trim().substring(0, 20)}`
           } else {
-            resolvedName = `Nova Avaliação (${form.start_time})`
+            resolvedName = `Nova Entrevista (${form.start_time})`
           }
         }
 
@@ -236,7 +236,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
             professional_id: profId,
             full_name: resolvedName,
             status: "initial_assessment",
-            main_complaint: form.notes.trim() || "Primeira Avaliação Clínica",
+            main_complaint: form.notes.trim() || "Primeira Entrevista com os Pais",
           })
           .select()
           .single()
@@ -276,7 +276,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
           child_id: targetChildId,
           start_time: startDate.toISOString(),
           end_time: endDate.toISOString(),
-          type: mode === "new" ? "Avaliação Inicial" : form.type,
+          type: mode === "new" ? "Entrevista Inicial" : form.type,
           status: form.status as any,
           notes: form.notes || null,
         }
@@ -345,7 +345,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
               type="button"
               onClick={() => {
                 setMode("new")
-                setForm((f) => ({ ...f, type: "Avaliação Inicial" }))
+                setForm((f) => ({ ...f, type: "Entrevista Inicial" }))
                 setIsRecurring(false)
               }}
               className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
@@ -355,7 +355,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
               }`}
             >
               <UserPlus className="w-3.5 h-3.5" />
-              <span>+ Nova Avaliação</span>
+              <span>+ Nova Entrevista</span>
             </button>
           </div>
 
@@ -374,7 +374,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
                 />
               ) : (
                 <div className="p-4 bg-[#FEF8EC] border-2 border-[#F4C95D]/50 rounded-2xl text-xs text-[#B8871E] font-bold">
-                  Nenhuma criança cadastrada ainda. Use a opção "+ Nova Avaliação" acima para agendar direto!
+                  Nenhuma criança cadastrada ainda. Use a opção "+ Nova Entrevista" acima para agendar direto!
                 </div>
               )}
             </div>
@@ -387,7 +387,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
                   <p className="text-xs font-black uppercase tracking-wider">
-                    Agendamento Rápido de Avaliação
+                    Agendamento Rápido de Entrevista
                   </p>
                 </div>
                 <span className="text-[10px] bg-white px-2 py-0.5 rounded-md border border-[#63C7B2]/30 font-bold">
@@ -455,7 +455,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
                   Tipo de Atendimento
                 </label>
                 <div className="h-11 rounded-xl border-2 border-[#63C7B2]/50 bg-[#E8F8F5] px-3.5 flex items-center justify-between text-xs font-black text-[#20836F]">
-                  <span>Avaliação Inicial</span>
+                  <span>Entrevista Inicial</span>
                   <span className="text-[10px] bg-white px-2 py-0.5 rounded-md border border-[#63C7B2]/30 uppercase">
                     1ª Consulta
                   </span>
@@ -468,7 +468,8 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
                 onChange={(e) => setForm({ ...form, type: e.target.value })}
                 options={[
                   { value: "Sessão Psicopedagógica", label: "Sessão Psicopedagógica" },
-                  { value: "Avaliação Inicial", label: "Avaliação Inicial" },
+                  { value: "Entrevista Inicial", label: "Entrevista Inicial (com os Pais)" },
+                  { value: "Avaliação com a Criança", label: "Avaliação com a Criança" },
                   { value: "Devolutiva com Pais", label: "Devolutiva com Pais" },
                   { value: "Reunião Escolar", label: "Reunião Escolar" },
                   { value: "Outro", label: "Outro" },

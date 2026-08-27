@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Calendar, Clock, DollarSign, Edit, User, UserPlus, Phone } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
-import { calculateAge, formatDate, formatDateTime, formatCurrency, formatPhone } from "@/lib/utils"
+import { calculateAge, formatDate, formatDateTime, formatCurrency, formatPhone, STATUS_LABELS } from "@/lib/utils"
 import type { Child, Guardian, Appointment } from "@/types/database"
 import { AddGuardianDialog } from "./AddGuardianDialog"
 import { CarePlanDialog } from "./CarePlanDialog"
@@ -173,8 +173,8 @@ export function ChildSummaryTab({
               </div>
               <div className="flex justify-between py-1 border-b border-border/50">
                 <span>Status Atual:</span>
-                <span className="font-medium text-foreground capitalize">
-                  {child.status.replace("_", " ")}
+                <span className="font-medium text-foreground">
+                  {STATUS_LABELS[child.status] || child.status}
                 </span>
               </div>
             </CardContent>

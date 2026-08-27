@@ -122,11 +122,13 @@ export function DashboardPage() {
   const firstName = professional?.full_name?.split(" ")[0] || "Priscila"
 
   async function handleStartSession(appointment: any) {
-    const isEvaluation =
+    const isInterviewOrEval =
+      appointment.type === "Entrevista Inicial" ||
       appointment.type === "Avaliação Inicial" ||
+      appointment.type?.toLowerCase().includes("entrevista") ||
       appointment.type?.toLowerCase().includes("avaliação")
 
-    if (isEvaluation) {
+    if (isInterviewOrEval) {
       navigate(`/criancas/${appointment.child_id}?editar=true`)
     } else {
       await supabase
@@ -198,12 +200,12 @@ export function DashboardPage() {
             sub: "Pacientes ativos",
           },
           {
-            label: "Em Avaliação",
+            label: "Em Entrevista",
             value: stats.childrenInAssessment,
             icon: Clock,
             color: "text-[#B8871E]",
             bg: "bg-[#FEF8EC] border-2 border-[#F4C95D]/50",
-            sub: "Anamnese inicial",
+            sub: "Anamnese / 1ª consulta",
           },
           {
             label: "Atendimentos Hoje",

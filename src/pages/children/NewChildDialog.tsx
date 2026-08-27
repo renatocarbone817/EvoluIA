@@ -18,7 +18,7 @@ interface NewChildDialogProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: "initial_assessment", label: "Avaliação Inicial" },
+  { value: "initial_assessment", label: "Entrevista Inicial" },
   { value: "in_progress", label: "Em Acompanhamento" },
 ]
 
