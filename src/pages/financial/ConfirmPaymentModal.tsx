@@ -335,8 +335,8 @@ export function ConfirmPaymentModal({
         cleanPhone = `55${cleanPhone}`
       }
 
-      // 4. Short, pleasant greeting phrase for WhatsApp
-      const shortGreeting = `Olá, ${guardianName || "tudo bem"}! Segue o comprovante de pagamento de ${childName} (${refMonth}/${refYear}) no valor de ${amountFormatted}. ✨`
+      // 4. Short, pleasant greeting phrase for WhatsApp (no emojis to prevent encoding issues)
+      const shortGreeting = `Olá, ${guardianName || "tudo bem"}! Segue o comprovante de pagamento de ${childName} (${refMonth}/${refYear}) no valor de ${amountFormatted}.`
 
       // 5. Open WhatsApp
       const waUrl = cleanPhone
