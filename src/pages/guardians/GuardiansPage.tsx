@@ -22,6 +22,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
+import { Badge } from "@/components/ui/Badge"
 import { Input } from "@/components/ui/Input"
 import {
   Dialog,
@@ -58,6 +59,7 @@ export function GuardiansPage() {
   const [viewType, setViewType] = useState<ViewType>("cards")
   const [filterType, setFilterType] = useState<FilterType>("todos")
   const [showNewChildDialog, setShowNewChildDialog] = useState(false)
+  const [selectedFamilyGuardian, setSelectedFamilyGuardian] = useState<GuardianWithChildren | null>(null)
 
   // Edit Guardian State
   const [editingGuardian, setEditingGuardian] = useState<Guardian | null>(null)
@@ -590,18 +592,19 @@ export function GuardiansPage() {
                     {formatDate(g.created_at)}
                   </span>
 
-                  {g.email ? (
+                  {linkedChildren.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFamilyGuardian(g)}
+                      className="text-[#245C6B] hover:underline font-black text-xs flex items-center gap-1"
+                    >
+                      <span>Ver família ({linkedChildren.length})</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : g.email ? (
                     <span className="truncate max-w-[140px] text-right font-medium text-[#6B7C83]" title={g.email}>
                       ✉️ {g.email}
                     </span>
-                  ) : linkedChildren.length > 1 ? (
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/criancas/${linkedChildren[0].child!.id}`)}
-                      className="text-[#245C6B] hover:underline font-black text-xs"
-                    >
-                      Ver família →
-                    </button>
                   ) : null}
                 </div>
               </div>
@@ -609,6 +612,124 @@ export function GuardiansPage() {
           })}
         </div>
       )}
+
+      {/* Family Hub Dialog (Visão da Família Completa) */}
+      <Dialog
+        open={Boolean(selectedFamilyGuardian)}
+        onOpenChange={(open) => !open && setSelectedFamilyGuardian(null)}
+      >
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Baby className="w-5 h-5 text-[#245C6B]" />
+              <span>Visão da Família — {selectedFamilyGuardian?.full_name}</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <DialogBody className="space-y-4">
+            {/* Guardian Quick Info */}
+            <div className="p-3.5 bg-[#F7FAFA] border-2 border-[#D8E5E7] rounded-2xl space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#245C6B] text-white font-black text-xs flex items-center justify-center">
+                    {selectedFamilyGuardian?.full_name?.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm text-[#19323A]">
+                      {selectedFamilyGuardian?.full_name}
+                    </h4>
+                    <p className="text-[11px] text-[#8DA3A8]">
+                      {selectedFamilyGuardian?.cpf ? `CPF: ${selectedFamilyGuardian.cpf}` : "Responsável legal"}
+                    </p>
+                  </div>
+                </div>
+
+                {selectedFamilyGuardian?.phone && (
+                  <div className="flex items-center gap-1.5">
+                    <a
+                      href={`https://wa.me/55${selectedFamilyGuardian.phone.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-2.5 py-1.5 bg-[#E8F8F5] text-[#20836F] hover:bg-[#20836F] hover:text-white rounded-xl text-xs font-bold flex items-center gap-1 border border-[#63C7B2]/40 transition-all shadow-2xs"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                      <span>WhatsApp</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {selectedFamilyGuardian?.notes && (
+                <p className="text-xs text-[#6B7C83] bg-white p-2 rounded-xl border border-[#D8E5E7] italic">
+                  💬 "{selectedFamilyGuardian.notes}"
+                </p>
+              )}
+            </div>
+
+            {/* List of Children */}
+            <div className="space-y-2">
+              <h5 className="text-xs font-black uppercase tracking-wider text-[#6B7C83] flex items-center justify-between">
+                <span>Filhos / Crianças no Consultório:</span>
+                <span className="text-[#245C6B]">
+                  {selectedFamilyGuardian?.children?.filter((c) => c.child)?.length || 0} vinculados
+                </span>
+              </h5>
+
+              <div className="space-y-2">
+                {selectedFamilyGuardian?.children
+                  ?.filter((c) => c.child)
+                  ?.map((link, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] transition-all flex items-center justify-between gap-3 shadow-2xs"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <ChildAvatar
+                          photoUrl={link.child!.photo_url}
+                          name={link.child!.full_name}
+                          size="md"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-black text-sm text-[#19323A] truncate">
+                              {link.child!.full_name}
+                            </h4>
+                            {link.relationship && (
+                              <span className="text-[10px] bg-[#EEF5F6] text-[#245C6B] px-1.5 py-0.2 rounded font-bold">
+                                {link.relationship}
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-0.5">
+                            <Badge statusKey={link.child!.status} type="child" className="text-[10px] px-2 py-0.2" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setSelectedFamilyGuardian(null)
+                          navigate(`/criancas/${link.child!.id}`)
+                        }}
+                        className="gap-1 text-xs font-bold shrink-0"
+                      >
+                        <span>Abrir Ficha</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </DialogBody>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedFamilyGuardian(null)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* New Child / Guardian Dialog */}
       <NewChildDialog
