@@ -90,12 +90,13 @@ export function FinancialPage() {
   const now = new Date()
   const currentMonth = now.getMonth() + 1
   const currentYear = now.getFullYear()
+  const currentDay = now.getDate()
 
   // Month & Year state for charts and indicators
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth)
   const [selectedYear, setSelectedYear] = useState<number>(currentYear)
 
-  // Table Period Scope: "month" (mês selecionado), "current" (mês atual), "year" (ano todo), "overdue" (em atraso), "all" (todo histórico)
+  // Table Period Scope: "month", "current", "year", "overdue", "all"
   const [tablePeriod, setTablePeriod] = useState<"month" | "current" | "year" | "overdue" | "all">("month")
 
   // Table Filter Pills
@@ -113,11 +114,12 @@ export function FinancialPage() {
   const [recurringMonthsCount, setRecurringMonthsCount] = useState<number>(12)
   const [installmentsCount, setInstallmentsCount] = useState<number>(6)
 
-  // Form state
+  // Form state (with explicit Day selection)
   const [formData, setFormData] = useState({
     child_id: "",
     description: "",
     amount: "",
+    day: String(currentDay),
     month: currentMonth,
     year: currentYear,
     category: "Sessões",
@@ -180,12 +182,26 @@ export function FinancialPage() {
   }
 
   // =========================================================================
-  // HELPER: PARSE RECORD DETAILS (INCOME VS EXPENSE, CATEGORY & DESCRIPTION)
+  // HELPER: PARSE RECORD DETAILS & EXACT DAY
   // =========================================================================
+  function getRecordDay(r: FinancialRecordWithDetails): number {
+    if (r.payment_date) {
+      const parts = r.payment_date.split("-")
+      if (parts.length === 3) {
+        const dNum = Number(parts[2])
+        if (dNum >= 1 && dNum <= 31) return dNum
+      }
+    }
+    if (r.created_at) {
+      const d = new Date(r.created_at)
+      return d.getDate()
+    }
+    return 10
+  }
+
   function getRecordInfo(r: FinancialRecordWithDetails) {
     const rawNotes = r.notes || ""
 
-    // Check if expense
     if (rawNotes.includes("[DESPESA:") || (!r.child_id && !r.child)) {
       const match = rawNotes.match(/\[DESPESA:\s*([^\]]+)\]\s*(.*)/)
       if (match) {
@@ -202,7 +218,6 @@ export function FinancialPage() {
       }
     }
 
-    // Check if explicit income note
     if (rawNotes.includes("[RECEITA:")) {
       const match = rawNotes.match(/\[RECEITA:\s*([^\]]+)\]\s*(.*)/)
       if (match) {
@@ -214,7 +229,6 @@ export function FinancialPage() {
       }
     }
 
-    // Default child session income
     return {
       isExpense: false,
       category: "Sessões",
@@ -223,7 +237,7 @@ export function FinancialPage() {
   }
 
   // =========================================================================
-  // HANDLE CREATE RECORD
+  // HANDLE CREATE RECORD (WITH EXPLICIT DAY, MONTH & YEAR)
   // =========================================================================
   async function handleCreateRecord(e: React.FormEvent) {
     e.preventDefault()
@@ -239,6 +253,7 @@ export function FinancialPage() {
       }
 
       const isIncome = entryType === "income"
+      const chosenDay = Math.min(Math.max(Number(formData.day) || 10, 1), 31)
       const startMonth = Number(formData.month)
       const startYear = Number(formData.year)
 
@@ -247,6 +262,10 @@ export function FinancialPage() {
           ? `[RECEITA: ${formData.category || "Sessões"}] ${formData.description}${formData.notes ? ` - ${formData.notes}` : ""}`
           : (formData.notes || null)
 
+        const dateObj = new Date(startYear, startMonth - 1, chosenDay, 12, 0, 0)
+        const dateStr = dateObj.toISOString()
+        const paymentDateStr = `${startYear}-${String(startMonth).padStart(2, "0")}-${String(chosenDay).padStart(2, "0")}`
+
         const { error } = await supabase.from("financial_records").insert({
           professional_id: profId,
           child_id: formData.child_id || null,
@@ -254,8 +273,9 @@ export function FinancialPage() {
           year: startYear,
           amount: rawAmount,
           status: formData.firstMonthStatus,
-          payment_date: formData.firstMonthStatus === "paid" ? new Date().toISOString().split("T")[0] : null,
+          payment_date: formData.firstMonthStatus === "paid" ? paymentDateStr : paymentDateStr,
           notes: noteTag,
+          created_at: dateStr,
         })
 
         if (error) throw error
@@ -267,6 +287,10 @@ export function FinancialPage() {
 
         if (expenseRepetition === "single") {
           const noteTag = `[DESPESA: ${expCategory}] ${expDesc}${formData.notes ? ` - ${formData.notes}` : ""}`
+          const dateObj = new Date(startYear, startMonth - 1, chosenDay, 12, 0, 0)
+          const dateStr = dateObj.toISOString()
+          const paymentDateStr = `${startYear}-${String(startMonth).padStart(2, "0")}-${String(chosenDay).padStart(2, "0")}`
+
           recordsToInsert.push({
             professional_id: profId,
             child_id: null,
@@ -274,8 +298,9 @@ export function FinancialPage() {
             year: startYear,
             amount: rawAmount,
             status: formData.firstMonthStatus,
-            payment_date: formData.firstMonthStatus === "paid" ? new Date().toISOString().split("T")[0] : null,
+            payment_date: formData.firstMonthStatus === "paid" ? paymentDateStr : paymentDateStr,
             notes: noteTag,
+            created_at: dateStr,
           })
         } else if (expenseRepetition === "recurring") {
           for (let i = 0; i < recurringMonthsCount; i++) {
@@ -286,6 +311,10 @@ export function FinancialPage() {
               y += 1
             }
             const noteTag = `[DESPESA: ${expCategory}] ${expDesc} (${i + 1}/${recurringMonthsCount} meses)${formData.notes ? ` - ${formData.notes}` : ""}`
+            const curDateObj = new Date(y, m - 1, chosenDay, 12, 0, 0)
+            const curDateStr = curDateObj.toISOString()
+            const curPayDate = `${y}-${String(m).padStart(2, "0")}-${String(chosenDay).padStart(2, "0")}`
+
             recordsToInsert.push({
               professional_id: profId,
               child_id: null,
@@ -293,8 +322,9 @@ export function FinancialPage() {
               year: y,
               amount: rawAmount,
               status: i === 0 ? formData.firstMonthStatus : "pending",
-              payment_date: i === 0 && formData.firstMonthStatus === "paid" ? new Date().toISOString().split("T")[0] : null,
+              payment_date: i === 0 && formData.firstMonthStatus === "paid" ? curPayDate : curPayDate,
               notes: noteTag,
+              created_at: curDateStr,
             })
           }
         } else if (expenseRepetition === "installments") {
@@ -308,6 +338,10 @@ export function FinancialPage() {
             }
             const installmentDesc = `${expDesc} (Parcela ${i + 1}/${installmentsCount})`
             const noteTag = `[DESPESA: ${expCategory}] ${installmentDesc}${formData.notes ? ` - ${formData.notes}` : ""}`
+            const curDateObj = new Date(y, m - 1, chosenDay, 12, 0, 0)
+            const curDateStr = curDateObj.toISOString()
+            const curPayDate = `${y}-${String(m).padStart(2, "0")}-${String(chosenDay).padStart(2, "0")}`
+
             recordsToInsert.push({
               professional_id: profId,
               child_id: null,
@@ -315,8 +349,9 @@ export function FinancialPage() {
               year: y,
               amount: installmentVal,
               status: i === 0 ? formData.firstMonthStatus : "pending",
-              payment_date: i === 0 && formData.firstMonthStatus === "paid" ? new Date().toISOString().split("T")[0] : null,
+              payment_date: i === 0 && formData.firstMonthStatus === "paid" ? curPayDate : curPayDate,
               notes: noteTag,
+              created_at: curDateStr,
             })
           }
         }
@@ -340,6 +375,7 @@ export function FinancialPage() {
         child_id: children[0]?.id || "",
         description: "",
         amount: "",
+        day: String(chosenDay),
         month: startMonth,
         year: startYear,
         category: entryType === "income" ? "Sessões" : "Aluguel & Condomínio",
@@ -394,7 +430,7 @@ export function FinancialPage() {
   }
 
   // =========================================================================
-  // REAL REACTIVE CALCULATIONS FOR SELECTED MONTH & YEAR (CHARTS & TOP CARDS)
+  // REAL REACTIVE CALCULATIONS FOR SELECTED MONTH & YEAR
   // =========================================================================
 
   const monthRecords = useMemo(() => {
@@ -477,7 +513,10 @@ export function FinancialPage() {
   const pendingGrowth = calcGrowth(realPendingIncome, prevPendingIncome)
   const expenseGrowth = calcGrowth(realTotalExpense, prevTotalExpense)
 
-  // Weekly Cash Flow Breakdown
+  // =========================================================================
+  // WEEKLY CASH FLOW BREAKDOWN (ACCURATE BY RECORD'S EXACT DAY)
+  // Sem 1: 1-7, Sem 2: 8-14, Sem 3: 15-21, Sem 4: 22-28, Sem 5: 29-31
+  // =========================================================================
   const weeklyData = useMemo(() => {
     const weeks = [
       { label: "Sem 1", range: [1, 7], inc: 0, exp: 0 },
@@ -488,8 +527,7 @@ export function FinancialPage() {
     ]
 
     monthRecords.forEach((r) => {
-      const d = new Date(r.created_at || r.payment_date || new Date())
-      const day = d.getDate()
+      const day = getRecordDay(r)
       const amt = Number(r.amount) || 0
       const isExp = getRecordInfo(r).isExpense
       const targetWeek = weeks.find((w) => day >= w.range[0] && day <= w.range[1]) || weeks[4]
@@ -526,10 +564,6 @@ export function FinancialPage() {
     return monthRecords.filter((r) => !getRecordInfo(r).isExpense && r.status === "pending")
   }, [monthRecords])
 
-  const payablesList = useMemo(() => {
-    return monthRecords.filter((r) => getRecordInfo(r).isExpense)
-  }, [monthRecords])
-
   const paymentMethodsBreakdown = useMemo(() => {
     const paidRecords = monthRecords.filter((r) => !getRecordInfo(r).isExpense && r.status === "paid")
     const totalPaid = paidRecords.reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
@@ -553,11 +587,22 @@ export function FinancialPage() {
     }
   }, [monthRecords])
 
-  // =========================================================================
-  // POWERFUL TABLE FILTERING (BY PERIOD, TYPE, CATEGORY & SEARCH)
-  // =========================================================================
+  // Available Years
+  const availableYears = useMemo(() => {
+    const yearsSet = new Set<number>()
+    yearsSet.add(currentYear)
 
-  // 1. Filter by Period Scope
+    records.forEach((r) => {
+      const y = Number(r.year) || (r.created_at ? new Date(r.created_at).getFullYear() : null)
+      if (y && y >= currentYear) {
+        yearsSet.add(y)
+      }
+    })
+
+    return Array.from(yearsSet).sort((a, b) => a - b)
+  }, [records, currentYear])
+
+  // Period Scoped Records
   const scopedRecords = useMemo(() => {
     return records.filter((r) => {
       const m = Number(r.month) || (new Date(r.created_at).getMonth() + 1)
@@ -570,10 +615,9 @@ export function FinancialPage() {
         return m === currentMonth && y === currentYear
       }
       if (tablePeriod === "year") {
-        return y === selectedYear
+        return y === currentYear
       }
       if (tablePeriod === "overdue") {
-        // Pending records from past months
         if (r.status !== "pending") return false
         if (y < currentYear) return true
         if (y === currentYear && m < currentMonth) return true
@@ -586,7 +630,7 @@ export function FinancialPage() {
     })
   }, [records, tablePeriod, selectedMonth, selectedYear, currentMonth, currentYear])
 
-  // 2. Compute dynamic counts for pill badges in the current period scope
+  // Dynamic filter counts
   const filterCounts = useMemo(() => {
     const total = scopedRecords.length
     const incomes = scopedRecords.filter((r) => !getRecordInfo(r).isExpense).length
@@ -603,22 +647,7 @@ export function FinancialPage() {
     return { total, incomes, expenses, pendings, paids, overdueCount }
   }, [scopedRecords, records, currentMonth, currentYear])
 
-  // Available Years: Only Current Year (2026), and future years only if they have scheduled records
-  const availableYears = useMemo(() => {
-    const yearsSet = new Set<number>()
-    yearsSet.add(currentYear)
-
-    records.forEach((r) => {
-      const y = Number(r.year) || (r.created_at ? new Date(r.created_at).getFullYear() : null)
-      if (y && y >= currentYear) {
-        yearsSet.add(y)
-      }
-    })
-
-    return Array.from(yearsSet).sort((a, b) => a - b)
-  }, [records, currentYear])
-
-  // 3. Unique categories available in scoped records
+  // Categories
   const availableCategories = useMemo(() => {
     const set = new Set<string>()
     scopedRecords.forEach((r) => {
@@ -628,24 +657,21 @@ export function FinancialPage() {
     return Array.from(set)
   }, [scopedRecords])
 
-  // 4. Final filtered records for the Table
+  // Final Filtered Records for Table
   const filteredRecords = useMemo(() => {
     return scopedRecords.filter((r) => {
       const info = getRecordInfo(r)
       const childName = r.child?.full_name || ""
 
-      // Type filter
       if (typeFilter === "income" && info.isExpense) return false
       if (typeFilter === "expense" && !info.isExpense) return false
       if (typeFilter === "pending" && r.status !== "pending") return false
       if (typeFilter === "paid" && r.status !== "paid") return false
 
-      // Category filter
       if (categoryFilter !== "all" && info.category.toLowerCase() !== categoryFilter.toLowerCase()) {
         return false
       }
 
-      // Search query
       const matchSearch =
         info.description.toLowerCase().includes(search.toLowerCase()) ||
         childName.toLowerCase().includes(search.toLowerCase()) ||
@@ -656,7 +682,7 @@ export function FinancialPage() {
     })
   }, [scopedRecords, typeFilter, categoryFilter, search])
 
-  // 5. Total calculation for currently filtered table items
+  // Table summary
   const tableFilteredSum = useMemo(() => {
     let inc = 0
     let exp = 0
@@ -717,6 +743,7 @@ export function FinancialPage() {
                 ...prev,
                 month: selectedMonth,
                 year: selectedYear,
+                day: String(new Date().getDate()),
                 category: "Sessões",
                 child_id: children[0]?.id || "",
               }))
@@ -735,6 +762,7 @@ export function FinancialPage() {
                 ...prev,
                 month: selectedMonth,
                 year: selectedYear,
+                day: String(new Date().getDate()),
                 category: "Aluguel & Condomínio",
               }))
               setShowAddModal(true)
@@ -747,7 +775,7 @@ export function FinancialPage() {
         </div>
       </div>
 
-      {/* 2. TOP 4 METRIC CARDS WITH REAL SPARKLINES & REAL VALUES */}
+      {/* 2. TOP 4 METRIC CARDS WITH REAL VALUES */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Receita Total */}
         <div className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#10B981] hover:shadow-md transition-all space-y-3 flex flex-col justify-between shadow-2xs">
@@ -876,7 +904,7 @@ export function FinancialPage() {
             </div>
           </div>
 
-          {/* Grouped Bar Chart SVG */}
+          {/* Grouped Bar Chart SVG (Sem 1 a Sem 5 de acordo com o Dia exato) */}
           <div className="pt-2">
             <div className="h-44 w-full relative flex items-end justify-between px-3 sm:px-4 pb-3 border-b border-[#EEF5F6]">
               <div className="absolute left-0 right-0 top-0 text-[9px] text-[#8CAAB1] border-b border-[#F0F5F6] pointer-events-none">
@@ -896,12 +924,12 @@ export function FinancialPage() {
                       <div
                         style={{ height: `${Math.max(incHeight, 4)}%` }}
                         className="w-4 sm:w-5 bg-[#00A896] rounded-t-md hover:opacity-90 transition-all shadow-2xs cursor-pointer"
-                        title={`${item.label} Receitas: ${formatCurrency(item.inc)}`}
+                        title={`${item.label} (Dias ${item.range[0]}-${item.range[1]}): Receitas ${formatCurrency(item.inc)}`}
                       />
                       <div
                         style={{ height: `${Math.max(expHeight, 4)}%` }}
                         className="w-4 sm:w-5 bg-[#7C3AED] rounded-t-md hover:opacity-90 transition-all shadow-2xs cursor-pointer"
-                        title={`${item.label} Despesas: ${formatCurrency(item.exp)}`}
+                        title={`${item.label} (Dias ${item.range[0]}-${item.range[1]}): Despesas ${formatCurrency(item.exp)}`}
                       />
                     </div>
                     <span className="text-[10px] font-bold text-[#8CAAB1] mt-1">{item.label}</span>
@@ -936,7 +964,6 @@ export function FinancialPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            {/* Donut Chart */}
             <div className="relative w-32 h-32 flex items-center justify-center shrink-0">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="38" fill="none" stroke="#F1F5F9" strokeWidth="12" />
@@ -996,7 +1023,6 @@ export function FinancialPage() {
               </div>
             </div>
 
-            {/* Legend */}
             <div className="space-y-2.5 flex-1 min-w-0">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-[#0D2329]">
@@ -1035,7 +1061,6 @@ export function FinancialPage() {
             RIGHT COLUMN: COMPACT QUICK METRICS (3 COLS)
             ========================================== */}
         <div className="lg:col-span-3 space-y-3 flex flex-col justify-between">
-          {/* Contas a Receber & Pagar Compact Pills */}
           <div className="p-3.5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-2.5">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-black text-[#0D2329]">Pendências de {MONTHS[selectedMonth - 1]}</h3>
@@ -1064,7 +1089,6 @@ export function FinancialPage() {
             )}
           </div>
 
-          {/* Formas de Pagamento Compact */}
           <div className="p-3.5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-2">
             <h3 className="text-xs font-black text-[#0D2329]">Formas de Pagamento</h3>
             <div className="space-y-1.5 text-[11px]">
@@ -1091,7 +1115,6 @@ export function FinancialPage() {
       <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
         {/* ROW 1: PERIOD SCOPE TABS & SEARCH */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pb-2 border-b border-[#EEF5F6]">
-          {/* Period Scope Buttons */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {/* 1. Mês Atual */}
             <button
@@ -1109,7 +1132,7 @@ export function FinancialPage() {
               <span>🗓️ Mês Atual ({MONTHS[currentMonth - 1]})</span>
             </button>
 
-            {/* 2. Selecionar Mês (Lista com todos os meses) */}
+            {/* 2. Selecionar Mês */}
             <div
               className={`px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1 transition-all border ${
                 tablePeriod === "month" && selectedMonth !== currentMonth
@@ -1156,6 +1179,7 @@ export function FinancialPage() {
               <span>📅 Ano Inteiro ({currentYear})</span>
             </button>
 
+            {/* 4. Em Atraso */}
             <button
               type="button"
               onClick={() => setTablePeriod("overdue")}
@@ -1168,6 +1192,7 @@ export function FinancialPage() {
               <span>🚨 Em Atraso ({filterCounts.overdueCount})</span>
             </button>
 
+            {/* 5. Todo o Histórico */}
             <button
               type="button"
               onClick={() => setTablePeriod("all")}
@@ -1195,9 +1220,8 @@ export function FinancialPage() {
           </div>
         </div>
 
-        {/* ROW 2: TYPE PILL BUTTONS (WITH COUNTS) & CATEGORY SELECTOR */}
+        {/* ROW 2: TYPE PILL BUTTONS & CATEGORY SELECTOR */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          {/* Type Filter Pills */}
           <div className="flex items-center gap-1.5 flex-wrap text-xs">
             <span className="font-bold text-[#8CAAB1] mr-1 flex items-center gap-1">
               <Filter className="w-3.5 h-3.5" /> Tipo:
@@ -1264,7 +1288,6 @@ export function FinancialPage() {
             </button>
           </div>
 
-          {/* Category Dropdown */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-[#8CAAB1]">Categoria:</span>
             <select
@@ -1301,12 +1324,12 @@ export function FinancialPage() {
           </div>
         </div>
 
-        {/* Table */}
+        {/* Table with Exact Day Formatting */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-[#EEF5F6] text-[11px] font-bold text-[#8CAAB1]">
-                <th className="pb-2.5">Data / Ref</th>
+                <th className="pb-2.5">Data / Vencimento</th>
                 <th className="pb-2.5">Descrição</th>
                 <th className="pb-2.5">Categoria</th>
                 <th className="pb-2.5">Tipo</th>
@@ -1326,15 +1349,19 @@ export function FinancialPage() {
                 filteredRecords.map((record) => {
                   const info = getRecordInfo(record)
                   const isPaid = record.status === "paid"
-                  const refMonthName = record.month ? MONTHS[record.month - 1] : ""
-                  const refYearName = record.year || ""
+                  const day = getRecordDay(record)
+                  const dayStr = String(day).padStart(2, "0")
+                  const mStr = String(record.month).padStart(2, "0")
+                  const yStr = record.year || currentYear
 
                   return (
                     <tr key={record.id} className="hover:bg-[#F7FAFA] transition-colors group">
                       <td className="py-3 text-[#6B7C83] font-semibold">
-                        <div>{formatDate(record.created_at)}</div>
-                        <span className="text-[10px] text-[#8CAAB1] font-bold">
-                          {refMonthName}/{refYearName}
+                        <div className="font-bold text-[#0D2329]">
+                          {dayStr}/{mStr}/{yStr}
+                        </div>
+                        <span className="text-[10px] text-[#8CAAB1]">
+                          {MONTHS[record.month - 1]}
                         </span>
                       </td>
                       <td className="py-3 font-bold text-[#0D2329] max-w-[220px] truncate">
@@ -1366,7 +1393,6 @@ export function FinancialPage() {
                       </td>
                       <td className="py-3 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* WhatsApp button if income & has phone */}
                           {!info.isExpense && !isPaid && record.child && (
                             <button
                               onClick={() => handleSendWhatsApp(record)}
@@ -1377,7 +1403,6 @@ export function FinancialPage() {
                             </button>
                           )}
 
-                          {/* Confirm Payment button if pending */}
                           {!isPaid && (
                             <button
                               onClick={() => setConfirmingRecord(record)}
@@ -1387,7 +1412,6 @@ export function FinancialPage() {
                             </button>
                           )}
 
-                          {/* Delete button */}
                           <button
                             onClick={() => handleDeleteRecord(record.id)}
                             className="p-1 text-[#8CAAB1] hover:text-[#EF4444] rounded-lg transition-colors opacity-0 group-hover:opacity-100"
@@ -1407,7 +1431,7 @@ export function FinancialPage() {
       </div>
 
       {/* =========================================================================
-          5. COMPLETE ADVANCED MODAL: NOVO LANÇAMENTO
+          5. COMPLETE ADVANCED MODAL: NOVO LANÇAMENTO COM DATA EXATA (DIA, MÊS, ANO)
           ========================================================================= */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
@@ -1585,13 +1609,32 @@ export function FinancialPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* DATA EXATA: DIA, MÊS, ANO */}
+              <div className="grid grid-cols-3 gap-2.5">
                 <div>
-                  <label className="font-bold text-[#0D2329] block mb-1">Mês de Início</label>
+                  <label className="font-bold text-[#0D2329] block mb-1">
+                    Dia (Vencimento) *
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={31}
+                    required
+                    placeholder="Ex: 05, 10"
+                    value={formData.day}
+                    onChange={(e) => setFormData({ ...formData, day: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-bold text-[#0D2329] focus:outline-none focus:bg-white focus:border-[#10B981]"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#0D2329] block mb-1">
+                    Mês de Início *
+                  </label>
                   <select
                     value={formData.month}
                     onChange={(e) => setFormData({ ...formData, month: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none"
+                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none focus:border-[#10B981]"
                   >
                     {MONTHS.map((m, idx) => (
                       <option key={m} value={idx + 1}>{m}</option>
@@ -1600,17 +1643,20 @@ export function FinancialPage() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-[#0D2329] block mb-1">ANO</label>
+                  <label className="font-bold text-[#0D2329] block mb-1">
+                    ANO *
+                  </label>
                   <input
                     type="number"
                     required
                     value={formData.year}
                     onChange={(e) => setFormData({ ...formData, year: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none"
+                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none focus:border-[#10B981]"
                   />
                 </div>
               </div>
 
+              {/* Valor & Status */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-[#0D2329] block mb-1">
@@ -1627,7 +1673,7 @@ export function FinancialPage() {
                     placeholder="0,00"
                     value={formData.amount}
                     onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-black text-sm focus:outline-none"
+                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-black text-sm focus:outline-none focus:bg-white"
                   />
                   {entryType === "expense" && expenseRepetition === "installments" && formData.amount && (
                     <p className="text-[10px] text-[#7C3AED] font-bold mt-1">
@@ -1689,7 +1735,7 @@ export function FinancialPage() {
         </div>
       )}
 
-      {/* 6. MODAL: CONFIRM PAYMENT (DAR BAIXA) */}
+      {/* 6. MODAL: CONFIRM PAYMENT */}
       {confirmingRecord && (
         <ConfirmPaymentModal
           open={!!confirmingRecord}
