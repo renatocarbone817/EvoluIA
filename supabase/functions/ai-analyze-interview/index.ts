@@ -1,14 +1,15 @@
-﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 }
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
+    return new Response("ok", { headers: corsHeaders, status: 200 })
   }
 
   try {
@@ -75,20 +76,26 @@ serve(async (req) => {
       })
       .join("\n\n")
 
-    const prompt = `Você é um assistente de apoio clínico para uma psicopedagoga brasileira.
+    const prompt = `Você é um assistente de apoio clínico especializado para uma psicopedagoga brasileira de alto nível.
 
-Analise as respostas da entrevista inicial realizada com os pais/responsáveis da criança "${child_name || "paciente"}" e gere uma análise estruturada com as seguintes seções:
+Analise detalhadamente as respostas da entrevista inicial realizada com os pais/responsáveis da criança "${child_name || "paciente"}" e elabore um guia de intervenção clínica estruturado com as seguintes seções:
 
 ## 📋 RESUMO DA ENTREVISTA
-Síntese objetiva e clínica dos principais pontos relatados pelos responsáveis (3 a 4 parágrafos).
+Síntese objetiva, rica e clínica dos principais pontos relatados pelos responsáveis (3 a 4 parágrafos), contextualizando queixa, dinâmica familiar, rotina e histórico escolar.
 
 ## 💡 HIPÓTESES INICIAIS
-Liste de 3 a 5 hipóteses clínicas a investigar com base nas queixas e relatos dos pais. Use linguagem técnica psicopedagógica.
+Liste de 3 a 5 hipóteses clínicas a investigar com base nas queixas e relatos dos pais. Use terminologia psicopedagógica e neuropsicopedagógica precisa (ex: funções executivas, autorregulação, ganho secundário, ansiedade, TEA nível 1, processamento sensorial/auditivo, etc.).
 
 ## 🎯 ÁREAS SUGERIDAS PARA AVALIAÇÃO
-Quais áreas do desenvolvimento e aprendizagem merecem atenção prioritária nas próximas sessões de avaliação (ex: leitura, escrita, atenção, memória, comportamento, coordenação motora, linguagem, etc.).
+Quais áreas do desenvolvimento e aprendizagem merecem atenção prioritária nas sessões de avaliação diagnóstica.
 
-Use linguagem clínica e objetiva, em português do Brasil. Este conteúdo é para uso interno da psicopedagoga — não será entregue aos pais ou à escola.
+## 🛠️ INSTRUMENTOS E PROVAS SUGERIDAS
+Sugira de 3 a 5 instrumentos ou provas psicopedagógicas consagradas adequadas para este caso (ex: EOCA - Entrevista Operativa Centrada na Aprendizagem, Desenho do Par Educativo / Família Educativa de Visca, Provas Operatórias Piagetianas, TDE-II, Prolec, Torre de Londres, etc.), explicando brevemente o porquê de cada uma.
+
+## 💬 PERGUNTAS-CHAVE PARA A 1ª SESSÃO COM A CRIANÇA
+Sugira 3 abordagens lúdicas e perguntas investigativas que a psicopedagoga pode utilizar na primeira sessão individual com a criança para validar as queixas dos pais e estabelecer vínculo.
+
+Use linguagem clínica, empática e profissional, em português do Brasil. Este documento é confidencial e para uso exclusivo da psicopedagoga.
 
 --- RESPOSTAS DA ENTREVISTA INICIAL ---
 
@@ -119,7 +126,7 @@ ${interviewText}`
 
       try {
         const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${api_key}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${api_key}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -127,7 +134,7 @@ ${interviewText}`
               contents: [{ parts: [{ text: prompt }] }],
               generationConfig: {
                 temperature: 0.7,
-                maxOutputTokens: 2048,
+                maxOutputTokens: 4096,
               },
             }),
           }

@@ -95,6 +95,44 @@ export const DEFAULT_ASSESSMENT_QUESTIONS = [
   },
 ]
 
+function renderFormattedMarkdown(text: string) {
+  const lines = text.split("\n")
+  return lines.map((line, lineIdx) => {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed === "---") return null
+
+    const isBullet = trimmed.startsWith("* ") || trimmed.startsWith("- ")
+    const cleanLine = isBullet ? trimmed.substring(2) : trimmed
+
+    // Split on **bold text**
+    const parts = cleanLine.split(/(\*\*.*?\*\*)/g)
+    const content = parts.map((part, partIdx) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return (
+          <strong key={partIdx} className="font-black text-[#19323A]">
+            {part.slice(2, -2)}
+          </strong>
+        )
+      }
+      return part
+    })
+
+    if (isBullet) {
+      return (
+        <li key={lineIdx} className="ml-5 list-disc text-sm text-[#2E4A52] leading-relaxed my-1 pl-1">
+          {content}
+        </li>
+      )
+    }
+
+    return (
+      <p key={lineIdx} className="text-sm text-[#2E4A52] leading-relaxed my-2">
+        {content}
+      </p>
+    )
+  })
+}
+
 export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
   const { user, professional } = useAuthStore()
   const [searchParams] = useSearchParams()
@@ -199,34 +237,29 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
         .eq("id", childId)
         .single()
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-      const res = await fetch(`${supabaseUrl}/functions/v1/ai-analyze-interview`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${supabaseKey}`,
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke("ai-analyze-interview", {
+        body: {
           assessment_id: assessment.id,
           child_name: childData?.full_name || "paciente",
-        }),
+        },
       })
 
-      const json = await res.json()
+      if (error) {
+        console.error("Supabase function error:", error)
+        throw new Error(error.message || "Erro ao invocar a função de IA")
+      }
 
-      if (!res.ok || json.error) {
-        toast.error(json.error || "Erro ao gerar análise. Tente novamente.")
+      if (data?.error) {
+        toast.error(data.error || "Erro ao gerar análise. Tente novamente.")
         return
       }
 
-      setAiAnalysis(json.analysis)
+      setAiAnalysis(data.analysis)
       setAiAnalyzedAt(new Date().toISOString())
       toast.success("Análise gerada com sucesso! ✨")
     } catch (err: any) {
-      toast.error("Erro ao conectar com a IA. Tente novamente.")
-      console.error(err)
+      console.error("AI Analysis error:", err)
+      toast.error(err.message || "Erro ao conectar com a IA. Tente novamente.")
     } finally {
       setAiLoading(false)
     }
@@ -487,8 +520,8 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
                       {title}
                     </h4>
                   )}
-                  <div className="text-sm text-[#2E4A52] leading-relaxed whitespace-pre-wrap bg-white/60 rounded-xl p-4 border border-[#245C6B]/10">
-                    {body || section}
+                  <div className="bg-white/70 rounded-xl p-4 border border-[#245C6B]/15">
+                    {renderFormattedMarkdown(body || section)}
                   </div>
                 </div>
               )
