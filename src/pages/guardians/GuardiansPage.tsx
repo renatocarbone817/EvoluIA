@@ -13,12 +13,27 @@ import {
   LayoutGrid,
   List,
   Filter,
+  Copy,
+  Check,
+  Edit2,
+  Calendar,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
-import { formatPhone } from "@/lib/utils"
+import { Input } from "@/components/ui/Input"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogBody,
+} from "@/components/ui/Dialog"
+import { ChildAvatar } from "@/components/ui/ChildAvatar"
+import { formatPhone, formatDate } from "@/lib/utils"
+import toast from "react-hot-toast"
 import type { Guardian, Child } from "@/types/database"
 import { NewChildDialog } from "@/pages/children/NewChildDialog"
 
@@ -43,6 +58,21 @@ export function GuardiansPage() {
   const [viewType, setViewType] = useState<ViewType>("cards")
   const [filterType, setFilterType] = useState<FilterType>("todos")
   const [showNewChildDialog, setShowNewChildDialog] = useState(false)
+
+  // Edit Guardian State
+  const [editingGuardian, setEditingGuardian] = useState<Guardian | null>(null)
+  const [editForm, setEditForm] = useState({
+    full_name: "",
+    cpf: "",
+    phone: "",
+    whatsapp: "",
+    email: "",
+    notes: "",
+  })
+  const [savingEdit, setSavingEdit] = useState(false)
+
+  // Copied Phone state
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const profId = professional?.id || user?.id
 
@@ -89,6 +119,61 @@ export function GuardiansPage() {
     }
   }
 
+  function handleCopyPhone(e: React.MouseEvent, id: string, phone: string) {
+    e.stopPropagation()
+    const clean = phone.replace(/\D/g, "")
+    navigator.clipboard.writeText(clean || phone)
+    setCopiedId(id)
+    toast.success("Telefone copiado!")
+    setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  function openEdit(g: Guardian) {
+    setEditingGuardian(g)
+    setEditForm({
+      full_name: g.full_name || "",
+      cpf: g.cpf || "",
+      phone: g.phone || "",
+      whatsapp: g.whatsapp || g.phone || "",
+      email: g.email || "",
+      notes: g.notes || "",
+    })
+  }
+
+  async function handleSaveEdit() {
+    if (!editingGuardian) return
+    if (!editForm.full_name.trim()) {
+      toast.error("Nome do responsável é obrigatório")
+      return
+    }
+
+    setSavingEdit(true)
+    try {
+      const { error } = await supabase
+        .from("guardians")
+        .update({
+          full_name: editForm.full_name.trim(),
+          cpf: editForm.cpf.trim() || null,
+          phone: editForm.phone.trim() || null,
+          whatsapp: editForm.whatsapp.trim() || editForm.phone.trim() || null,
+          email: editForm.email.trim() || null,
+          notes: editForm.notes.trim() || null,
+        })
+        .eq("id", editingGuardian.id)
+
+      if (error) throw error
+
+      toast.success("Responsável atualizado com sucesso!")
+      setEditingGuardian(null)
+      loadGuardians()
+    } catch (err: any) {
+      toast.error("Erro ao salvar: " + (err.message || "Erro desconhecido"))
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  // Smart Search: matches Guardian Name, Phone, Email, CPF OR Child Name!
   const filtered = guardians.filter((g) => {
     const q = search.toLowerCase().trim()
     const linkedChildren = g.children?.filter((c) => c.child) || []
@@ -115,6 +200,7 @@ export function GuardiansPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-[92%] mx-auto space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-black text-[#19323A] tracking-tight">
@@ -135,8 +221,10 @@ export function GuardiansPage() {
         </Button>
       </div>
 
+      {/* Search, Sort & View Mode Toolbar */}
       <div className="space-y-3 bg-white p-3.5 rounded-2xl border-2 border-[#D8E5E7] shadow-sm">
         <div className="flex gap-2.5 flex-wrap">
+          {/* Search input */}
           <div className="relative flex-1 min-w-56">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8DA3A8]" />
             <input
@@ -148,6 +236,7 @@ export function GuardiansPage() {
             />
           </div>
 
+          {/* Sort By Dropdown */}
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
@@ -157,6 +246,7 @@ export function GuardiansPage() {
             <option value="az">🔤 Ordem Alfabética (A - Z)</option>
           </select>
 
+          {/* View Mode Toggle: Cards vs List */}
           <div className="flex bg-[#EEF5F6] rounded-xl p-0.5 border-2 border-[#D8E5E7]">
             <button
               onClick={() => setViewType("cards")}
@@ -185,6 +275,7 @@ export function GuardiansPage() {
           </div>
         </div>
 
+        {/* Filter Chips */}
         <div className="flex items-center gap-2 overflow-x-auto pt-1">
           <div className="flex items-center gap-1 text-xs font-bold text-[#6B7C83] mr-1">
             <Filter className="w-3.5 h-3.5" />
@@ -222,10 +313,11 @@ export function GuardiansPage() {
         </div>
       </div>
 
+      {/* Main Content: Loading, Empty or List/Grid View */}
       {loading ? (
         <div className={viewType === "cards" ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4" : "space-y-2"}>
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <div key={i} className="h-44 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-2xl" />
+            <div key={i} className="h-48 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-2xl" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -256,18 +348,21 @@ export function GuardiansPage() {
           </CardContent>
         </Card>
       ) : viewType === "list" ? (
+        /* 1. LIST / TABLE VIEW (Dense, Contact-First & Scalable) */
         <div className="bg-white rounded-2xl border-2 border-[#D8E5E7] shadow-sm overflow-hidden">
           <div className="divide-y divide-[#EEF5F6]">
             {filtered.map((g) => {
               const rawPhone = g.whatsapp || g.phone || ""
               const cleanPhone = rawPhone.replace(/\D/g, "")
               const linkedChildren = g.children?.filter((c) => c.child) || []
+              const isCopied = copiedId === g.id
 
               return (
                 <div
                   key={g.id}
                   className="p-3.5 sm:p-4 hover:bg-[#F7FAFA] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3 group"
                 >
+                  {/* Guardian Info */}
                   <div className="flex items-center gap-3 min-w-0 md:w-1/3">
                     <div className="w-10 h-10 rounded-xl bg-[#245C6B] text-white font-black text-sm flex items-center justify-center shrink-0 border border-[#63C7B2]/40 shadow-xs">
                       {g.full_name.charAt(0).toUpperCase()}
@@ -277,19 +372,41 @@ export function GuardiansPage() {
                         {g.full_name}
                       </h3>
                       <p className="text-xs text-[#8DA3A8] truncate mt-0.5">
-                        {g.cpf ? `CPF: ${g.cpf}` : "Responsável legal"}
+                        {g.cpf ? `CPF: ${g.cpf}` : "Responsável"}
                       </p>
                     </div>
                   </div>
 
-                  <div className="min-w-0 md:w-1/3">
+                  {/* Primary Phone & WhatsApp Actions */}
+                  <div className="min-w-0 md:w-1/4">
+                    {rawPhone ? (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-xs text-[#19323A] font-mono">
+                          {formatPhone(rawPhone)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => handleCopyPhone(e, g.id, rawPhone)}
+                          className="p-1 text-[#8DA3A8] hover:text-[#245C6B] hover:bg-[#EEF5F6] rounded-md transition-colors text-[10px]"
+                          title="Copiar telefone"
+                        >
+                          {isCopied ? <Check className="w-3.5 h-3.5 text-[#20836F]" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-[#8DA3A8] italic">Sem telefone</span>
+                    )}
+                  </div>
+
+                  {/* Linked Children */}
+                  <div className="min-w-0 md:w-1/4">
                     {linkedChildren.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {linkedChildren.map((link, idx) => (
                           <button
                             key={idx}
                             onClick={() => navigate(`/criancas/${link.child!.id}`)}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#EEF5F6] hover:bg-[#245C6B] hover:text-white text-[#19323A] border border-[#D8E5E7] text-[11px] font-bold transition-all truncate max-w-[200px]"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#EEF5F6] hover:bg-[#245C6B] hover:text-white text-[#19323A] border border-[#D8E5E7] text-xs font-bold transition-all truncate max-w-[180px]"
                             title="Abrir ficha da criança"
                           >
                             <span>🧒 {link.child!.full_name}</span>
@@ -306,21 +423,7 @@ export function GuardiansPage() {
                     )}
                   </div>
 
-                  <div className="min-w-0 md:w-1/4 space-y-0.5 text-xs text-[#6B7C83]">
-                    {g.phone && (
-                      <p className="font-medium flex items-center gap-1.5 text-xs text-[#19323A]">
-                        <Phone className="w-3 h-3 text-[#245C6B]" />
-                        <span>{formatPhone(g.phone)}</span>
-                      </p>
-                    )}
-                    {g.email && (
-                      <p className="text-[11px] text-[#8DA3A8] truncate flex items-center gap-1.5">
-                        <Mail className="w-3 h-3 text-[#245C6B]" />
-                        <span className="truncate">{g.email}</span>
-                      </p>
-                    )}
-                  </div>
-
+                  {/* Fast Action Buttons */}
                   <div className="flex items-center gap-2 shrink-0 justify-end">
                     {cleanPhone && (
                       <a
@@ -335,17 +438,14 @@ export function GuardiansPage() {
                       </a>
                     )}
 
-                    {linkedChildren[0] && (
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/criancas/${linkedChildren[0].child!.id}`)}
-                        className="px-2.5 py-1.5 text-[#245C6B] bg-[#EAF3F5] hover:bg-[#245C6B] hover:text-white rounded-xl border border-[#245C6B]/30 transition-all text-xs font-black flex items-center gap-1 shadow-2xs"
-                        title="Ver ficha da criança"
-                      >
-                        <span>Ficha</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => openEdit(g)}
+                      className="p-2 text-[#6B7C83] hover:text-[#245C6B] hover:bg-[#EEF5F6] rounded-xl border border-[#D8E5E7] transition-all text-xs"
+                      title="Editar dados"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               )
@@ -353,11 +453,13 @@ export function GuardiansPage() {
           </div>
         </div>
       ) : (
+        /* 2. CARD VIEW (4 Columns on XL - Contact-First, Compact & Rich Family Relationships) */
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((g) => {
             const rawPhone = g.whatsapp || g.phone || ""
             const cleanPhone = rawPhone.replace(/\D/g, "")
             const linkedChildren = g.children?.filter((c) => c.child) || []
+            const isCopied = copiedId === g.id
 
             return (
               <div
@@ -365,6 +467,7 @@ export function GuardiansPage() {
                 className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:shadow-md transition-all space-y-3 flex flex-col justify-between group"
               >
                 <div className="space-y-2.5">
+                  {/* 1. Header: Avatar + Name + Edit Button */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-10 h-10 rounded-xl bg-[#245C6B] text-white font-black text-sm flex items-center justify-center shrink-0 border border-[#63C7B2]/40 shadow-xs group-hover:scale-105 transition-transform">
@@ -380,76 +483,126 @@ export function GuardiansPage() {
                       </div>
                     </div>
 
-                    {cleanPhone && (
-                      <a
-                        href={`https://wa.me/55${cleanPhone}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-2 bg-[#E8F8F5] text-[#20836F] border border-[#63C7B2]/40 hover:bg-[#63C7B2] hover:text-white rounded-xl transition-all shadow-2xs shrink-0"
-                        title="Enviar WhatsApp"
-                      >
-                        <MessageSquare className="w-4 h-4 fill-current" />
-                      </a>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => openEdit(g)}
+                      className="p-1.5 text-[#8DA3A8] hover:text-[#245C6B] hover:bg-[#EEF5F6] rounded-lg transition-colors shrink-0"
+                      title="Editar responsável"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
 
+                  {/* 2. Primary Phone Banner (Super Visible + WhatsApp + Copy) */}
+                  {rawPhone ? (
+                    <div className="p-2.5 bg-[#F7FAFA] border border-[#D8E5E7] rounded-xl flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Phone className="w-3.5 h-3.5 text-[#245C6B] shrink-0" />
+                        <span className="font-bold text-xs text-[#19323A] font-mono truncate">
+                          {formatPhone(rawPhone)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => handleCopyPhone(e, g.id, rawPhone)}
+                          className="px-2 py-1 bg-white hover:bg-[#EEF5F6] border border-[#D8E5E7] rounded-lg text-[11px] font-bold text-[#6B7C83] flex items-center gap-1 transition-all shadow-2xs"
+                          title="Copiar número"
+                        >
+                          {isCopied ? (
+                            <>
+                              <Check className="w-3 h-3 text-[#20836F]" />
+                              <span className="text-[#20836F]">Copiado</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3" />
+                              <span>Copiar</span>
+                            </>
+                          )}
+                        </button>
+
+                        {cleanPhone && (
+                          <a
+                            href={`https://wa.me/55${cleanPhone}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1.5 bg-[#E8F8F5] text-[#20836F] border border-[#63C7B2]/40 hover:bg-[#63C7B2] hover:text-white rounded-lg transition-all shadow-2xs"
+                            title="Conversar no WhatsApp"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-2 bg-[#F7FAFA] border border-[#D8E5E7] rounded-xl text-center text-xs text-[#8DA3A8] italic">
+                      Nenhum telefone cadastrado
+                    </div>
+                  )}
+
+                  {/* 3. Section: Linked Children & Family Concept */}
                   <div className="pt-2 border-t border-[#EEF5F6] space-y-1.5">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-[#6B7C83] flex items-center gap-1">
-                      <Baby className="w-3.5 h-3.5 text-[#245C6B]" />
-                      Filho(a) Vinculado:
-                    </p>
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-[#6B7C83]">
+                      <span className="flex items-center gap-1">
+                        <Baby className="w-3.5 h-3.5 text-[#245C6B]" />
+                        {linkedChildren.length > 1 ? "Família / Filhos:" : "Filho(a) Vinculado:"}
+                      </span>
+                      <span className="text-[10px] font-bold bg-[#EEF5F6] text-[#245C6B] px-1.5 py-0.2 rounded">
+                        {linkedChildren.length} {linkedChildren.length === 1 ? "criança" : "crianças"}
+                      </span>
+                    </div>
 
                     {linkedChildren.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      <div className="space-y-1 pt-0.5">
                         {linkedChildren.map((link, idx) => (
-                          <button
+                          <div
                             key={idx}
                             onClick={() => navigate(`/criancas/${link.child!.id}`)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#EEF5F6] hover:bg-[#245C6B] hover:text-white text-[#19323A] border border-[#D8E5E7] hover:border-[#245C6B] text-xs font-bold transition-all truncate max-w-full"
+                            className="p-1.5 rounded-xl bg-[#EEF5F6] hover:bg-[#245C6B] hover:text-white text-[#19323A] border border-[#D8E5E7] hover:border-[#245C6B] text-xs font-bold transition-all cursor-pointer flex items-center justify-between group/item"
                           >
-                            <span>🧒 {link.child!.full_name}</span>
-                            {link.relationship && (
-                              <span className="text-[10px] opacity-75">
-                                ({link.relationship})
-                              </span>
-                            )}
-                          </button>
+                            <span className="truncate flex items-center gap-1.5">
+                              <span>🧒</span>
+                              <span className="truncate">{link.child!.full_name}</span>
+                              {link.relationship && (
+                                <span className="text-[10px] opacity-75 font-normal">
+                                  ({link.relationship})
+                                </span>
+                              )}
+                            </span>
+                            <ChevronRight className="w-3.5 h-3.5 opacity-60 group-hover/item:translate-x-0.5 transition-transform shrink-0" />
+                          </div>
                         ))}
                       </div>
                     ) : (
                       <p className="text-xs text-[#8DA3A8] italic">
-                        Sem filho vinculado ainda.
+                        Sem criança vinculada diretamente.
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="pt-2.5 border-t border-[#EEF5F6] space-y-1.5 text-xs font-medium text-[#6B7C83]">
-                  {g.phone && (
-                    <div className="flex items-center gap-1.5 text-[#19323A] font-semibold">
-                      <Phone className="w-3.5 h-3.5 text-[#245C6B] shrink-0" />
-                      <span>{formatPhone(g.phone)}</span>
-                    </div>
-                  )}
-                  {g.email && (
-                    <div className="flex items-center gap-1.5 text-[11px] text-[#8DA3A8] truncate">
-                      <Mail className="w-3.5 h-3.5 text-[#245C6B] shrink-0" />
-                      <span className="truncate">{g.email}</span>
-                    </div>
-                  )}
+                {/* 4. Bottom: Email & Registration Date */}
+                <div className="pt-2.5 border-t border-[#EEF5F6] flex items-center justify-between text-[11px] text-[#8DA3A8]">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-[#8DA3A8]" />
+                    {formatDate(g.created_at)}
+                  </span>
 
-                  {linkedChildren[0] && (
-                    <div className="pt-1 flex items-center justify-end">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/criancas/${linkedChildren[0].child!.id}`)}
-                        className="inline-flex items-center gap-0.5 text-xs text-[#245C6B] hover:underline font-black"
-                      >
-                        <span>Ver ficha do filho</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
+                  {g.email ? (
+                    <span className="truncate max-w-[140px] text-right font-medium text-[#6B7C83]" title={g.email}>
+                      ✉️ {g.email}
+                    </span>
+                  ) : linkedChildren.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/criancas/${linkedChildren[0].child!.id}`)}
+                      className="text-[#245C6B] hover:underline font-black text-xs"
+                    >
+                      Ver família →
+                    </button>
+                  ) : null}
                 </div>
               </div>
             )
@@ -457,6 +610,7 @@ export function GuardiansPage() {
         </div>
       )}
 
+      {/* New Child / Guardian Dialog */}
       <NewChildDialog
         open={showNewChildDialog}
         onClose={() => setShowNewChildDialog(false)}
@@ -465,6 +619,98 @@ export function GuardiansPage() {
           loadGuardians()
         }}
       />
+
+      {/* Edit Guardian Dialog */}
+      <Dialog open={Boolean(editingGuardian)} onOpenChange={(open) => !open && setEditingGuardian(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Responsável</DialogTitle>
+          </DialogHeader>
+
+          <DialogBody className="space-y-4">
+            <div>
+              <label className="text-xs font-black uppercase text-[#6B7C83] tracking-wider mb-1 block">
+                Nome Completo *
+              </label>
+              <Input
+                value={editForm.full_name}
+                onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                placeholder="Ex: Maria Aparecida Silva"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-black uppercase text-[#6B7C83] tracking-wider mb-1 block">
+                  Telefone / Celular
+                </label>
+                <Input
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-black uppercase text-[#6B7C83] tracking-wider mb-1 block">
+                  WhatsApp
+                </label>
+                <Input
+                  value={editForm.whatsapp}
+                  onChange={(e) => setEditForm({ ...editForm, whatsapp: e.target.value })}
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-black uppercase text-[#6B7C83] tracking-wider mb-1 block">
+                  E-mail
+                </label>
+                <Input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-black uppercase text-[#6B7C83] tracking-wider mb-1 block">
+                  CPF
+                </label>
+                <Input
+                  value={editForm.cpf}
+                  onChange={(e) => setEditForm({ ...editForm, cpf: e.target.value })}
+                  placeholder="000.000.000-00"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-black uppercase text-[#6B7C83] tracking-wider mb-1 block">
+                Observações
+              </label>
+              <textarea
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                rows={2}
+                className="w-full px-3 py-2 rounded-xl border-2 border-[#D8E5E7] bg-white text-xs font-medium text-[#19323A] focus:outline-none focus:border-[#245C6B]"
+                placeholder="Ex: Contatar preferencialmente no período da tarde..."
+              />
+            </div>
+          </DialogBody>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingGuardian(null)} disabled={savingEdit}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={savingEdit}>
+              {savingEdit ? "Salvando..." : "Salvar Alterações"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
+
