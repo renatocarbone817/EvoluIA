@@ -623,24 +623,27 @@ export function AppointmentsPage() {
         <div className="lg:col-span-9 space-y-6">
           {/* A. WEEKLY GRID VIEW */}
           {viewMode === "semana" && (
-            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-sm p-4 sm:p-5 overflow-hidden">
+            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-sm overflow-hidden">
               {/* Header Days Row */}
-              <div className="grid grid-cols-8 gap-2 pb-3 border-b border-[#EEF5F6] text-center">
-                <div className="text-[11px] font-black text-[#8CAAB1] flex items-center justify-center">
+              <div className="grid grid-cols-8 border-b-2 border-[#D8E5E7] bg-[#F7FAFA]">
+                <div className="p-3 text-[11px] font-black text-[#6B7C83] flex items-center justify-center border-r-2 border-[#D8E5E7] bg-[#EEF5F6]">
                   Horário
                 </div>
 
-                {weekDays.map((day) => {
+                {weekDays.map((day, dIdx) => {
                   const isToday = isSameDay(day, new Date())
                   const dayName = format(day, "EEE", { locale: ptBR }).replace(".", "")
                   const formattedDayNum = format(day, "dd/MM")
+                  const isWeekend = dIdx >= 5
 
                   return (
                     <div
                       key={day.toISOString()}
-                      className={`p-1.5 rounded-2xl flex flex-col items-center justify-center transition-all ${
+                      className={`p-2.5 flex flex-col items-center justify-center border-r-2 last:border-r-0 border-[#D8E5E7] transition-all ${
                         isToday
                           ? "bg-[#F3E8FF] text-[#7C3AED]"
+                          : isWeekend
+                          ? "bg-[#F4F7F8] text-[#8CAAB1]"
                           : "text-[#0D2329]"
                       }`}
                     >
@@ -648,9 +651,9 @@ export function AppointmentsPage() {
                         {dayName}
                       </span>
                       <span
-                        className={`text-xs font-extrabold mt-0.5 px-2 py-0.5 rounded-xl ${
+                        className={`text-xs font-black mt-0.5 px-2 py-0.5 rounded-xl ${
                           isToday
-                            ? "bg-[#7C3AED] text-white shadow-2xs"
+                            ? "bg-[#7C3AED] text-white shadow-xs"
                             : "text-[#6B7C83]"
                         }`}
                       >
@@ -662,20 +665,21 @@ export function AppointmentsPage() {
               </div>
 
               {/* Weekly Time Grid Matrix (08:00 to 18:00) */}
-              <div className="divide-y divide-[#F0F5F6] pt-1">
+              <div className="divide-y-2 border-b-2 border-[#D8E5E7] divide-[#D8E5E7]">
                 {HOURS_TIMELINE.map((hourStr) => {
                   const hourNum = parseInt(hourStr.split(":")[0], 10)
 
                   return (
-                    <div key={hourStr} className="grid grid-cols-8 gap-2 py-2 min-h-[72px] items-stretch">
+                    <div key={hourStr} className="grid grid-cols-8 min-h-[76px] items-stretch">
                       {/* Left Hour Label */}
-                      <div className="text-[11px] font-bold text-[#8CAAB1] pt-1 text-center select-none">
+                      <div className="text-[11px] font-black text-[#6B7C83] p-2 flex items-start justify-center border-r-2 border-[#D8E5E7] bg-[#F8FAFB] select-none">
                         {hourStr}
                       </div>
 
                       {/* 7 Day Slot Columns */}
                       {weekDays.map((day, dIdx) => {
-                        const isWeekend = dIdx >= 5 // Sábado & Domingo
+                        const isToday = isSameDay(day, new Date())
+                        const isWeekend = dIdx >= 5
                         const dayAppts = filteredAppointments.filter((a) => {
                           const aDate = new Date(a.start_time)
                           return isSameDay(aDate, day) && aDate.getHours() === hourNum
@@ -685,8 +689,12 @@ export function AppointmentsPage() {
                         return (
                           <div
                             key={day.toISOString()}
-                            className={`rounded-2xl p-1 border border-dashed border-transparent hover:border-[#D8E5E7] hover:bg-[#F7FAFA]/80 transition-all relative flex flex-col justify-center ${
-                              isWeekend && hourNum === 13 ? "bg-[#FAFDFD] rounded-2xl" : ""
+                            className={`p-1.5 border-r-2 last:border-r-0 border-[#D8E5E7] relative flex flex-col justify-center transition-colors group/cell ${
+                              isToday
+                                ? "bg-[#FDFBFF] hover:bg-[#F3E8FF]/40"
+                                : isWeekend
+                                ? "bg-[#FAFCFD] hover:bg-[#F0F5F6]"
+                                : "bg-white hover:bg-[#F7FAFA]"
                             }`}
                           >
                             {dayAppts.length > 0 ? (
@@ -701,7 +709,7 @@ export function AppointmentsPage() {
                                   <div
                                     key={appt.id}
                                     onClick={() => handleStartAppointment(appt)}
-                                    className={`p-2 rounded-xl border ${style.bg} ${style.border} shadow-2xs cursor-pointer transition-all hover:scale-[1.02] hover:shadow-xs group space-y-1 my-0.5`}
+                                    className={`p-2 rounded-xl border-2 ${style.bg} ${style.border} shadow-2xs cursor-pointer transition-all hover:scale-[1.02] hover:shadow-xs group space-y-1 my-0.5`}
                                     title={`${format(startTime, "HH:mm")} - ${format(endTime, "HH:mm")} • ${title}`}
                                   >
                                     <div className="flex items-center justify-between gap-1">
@@ -734,19 +742,14 @@ export function AppointmentsPage() {
                                   </div>
                                 )
                               })
-                            ) : isWeekend && hourNum === 13 ? (
-                              <div className="text-center py-2 px-1 text-[10px] text-[#8CAAB1] font-medium leading-tight">
-                                <span className="block text-base mb-0.5">🌿</span>
-                                Recarregar
-                              </div>
                             ) : (
                               <button
                                 type="button"
                                 onClick={() => openNewModalForDate(dateStr)}
-                                className="w-full h-full min-h-[42px] rounded-xl flex items-center justify-center opacity-0 hover:opacity-100 bg-[#EDE9FE]/40 text-[#7C3AED] text-[10px] font-bold transition-all border border-dashed border-[#7C3AED]/30"
+                                className="w-full h-full min-h-[44px] rounded-xl flex items-center justify-center opacity-0 group-hover/cell:opacity-100 bg-[#EDE9FE]/50 text-[#7C3AED] text-[10px] font-bold transition-all border border-dashed border-[#7C3AED]/40 hover:bg-[#7C3AED] hover:text-white"
                                 title={`Agendar em ${format(day, "dd/MM")} às ${hourStr}`}
                               >
-                                <Plus className="w-3.5 h-3.5" />
+                                <Plus className="w-4 h-4" />
                               </button>
                             )}
                           </div>
@@ -758,7 +761,7 @@ export function AppointmentsPage() {
               </div>
 
               {/* Legend Footer */}
-              <div className="pt-4 mt-2 border-t border-[#EEF5F6] flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs font-bold text-[#6B7C83]">
+              <div className="p-4 bg-[#F8FAFB] flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs font-bold text-[#6B7C83]">
                 <span className="flex items-center gap-1.5 text-[#065F46]">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" /> Sessão de Intervenção
                 </span>
