@@ -22,12 +22,13 @@ import {
   QrCode,
   DollarSign,
   MessageSquare,
+  Camera,
+  CheckCircle2,
+  AlertCircle,
+  HelpCircle,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card"
-import { Button } from "@/components/ui/Button"
-import { Input, Textarea } from "@/components/ui/Input"
 import { generateICalFeed } from "@/lib/calendarSync"
 import type { AppointmentWithChild } from "@/types/database"
 import { ImageCropperModal } from "@/components/ui/ImageCropperModal"
@@ -63,8 +64,8 @@ export function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Stats for sidebar
-  const [childrenCount, setChildrenCount] = useState<number>(11)
-  const [guardiansCount, setGuardiansCount] = useState<number>(8)
+  const [childrenCount, setChildrenCount] = useState<number>(14)
+  const [guardiansCount, setGuardiansCount] = useState<number>(11)
 
   // Working hours state
   const [schedule, setSchedule] = useState<DaySchedule[]>(() => {
@@ -281,504 +282,586 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-[92%] mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black text-[#19323A] tracking-tight">
-            Configurações do Consultório
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
+      {/* 1. HERO HEADER */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#0D2329] tracking-tight">
+            Configurações da Clínica ⚙️
           </h1>
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#6B7C83] mt-1">
-            Perfil profissional, dados da clínica, horários de atendimento e integrações
+          <p className="text-sm font-medium text-[#6B7C83]">
+            Personalize seu perfil profissional, dados do consultório, horários e integrações.
           </p>
         </div>
 
-        <Button size="lg" loading={saving} onClick={handleSave} className="gap-2 shadow-sm">
-          <Save className="w-5 h-5" />
-          Salvar Alterações
-        </Button>
+        {/* Action Button */}
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="h-10 px-5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white text-xs font-black flex items-center gap-2 shadow-sm active:scale-95 transition-all shrink-0"
+        >
+          {saving ? (
+            <RefreshCw className="w-4 h-4 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4 stroke-[2.5]" />
+          )}
+          <span>{saving ? "Salvando..." : "Salvar Alterações"}</span>
+        </button>
       </div>
 
-      {/* Main 2-Column Layout */}
+      {/* 2. MAIN 2-COLUMN GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Tabs & Forms (8 Cols on LG) */}
+        {/* ========================================================
+            LEFT COLUMN: TABS & FORMS (8 COLS)
+            ======================================================== */}
         <div className="lg:col-span-8 space-y-5">
-          {/* Navigation Tabs */}
-          <div className="flex bg-white p-1.5 rounded-2xl border-2 border-[#D8E5E7] shadow-sm overflow-x-auto gap-1">
+          {/* Modern Navigation Pill Tabs */}
+          <div className="flex bg-white p-1.5 rounded-3xl border-2 border-[#D8E5E7] shadow-sm overflow-x-auto gap-1">
             {[
               { id: "perfil", label: "👤 Perfil & Foto" },
-              { id: "consultorio", label: "🏢 Consultório & Cobrança" },
+              { id: "consultorio", label: "🏢 Consultório & PIX" },
               { id: "horarios", label: "📅 Horários de Atendimento" },
               { id: "google_calendar", label: "🔗 Google Agenda" },
-              { id: "notificacoes", label: "🔔 Lembretes WhatsApp" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as SettingsTab)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all shrink-0 flex items-center gap-1.5 ${
-                  activeTab === tab.id
-                    ? "bg-[#245C6B] text-white shadow-xs"
-                    : "text-[#4F6C74] hover:bg-[#EEF5F6]"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+              { id: "notificacoes", label: "💬 Mensagens WhatsApp" },
+            ].map((tab) => {
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as SettingsTab)}
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all shrink-0 flex items-center gap-1.5 ${
+                    isActive
+                      ? "bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white shadow-md"
+                      : "text-[#6B7C83] hover:text-[#0D2329] hover:bg-[#F7FAFA]"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              )
+            })}
           </div>
 
-          {/* TAB 1: PERFIL */}
+          {/* TAB 1: PERFIL & FOTO */}
           {activeTab === "perfil" && (
-            <Card className="border-2 border-[#D8E5E7] shadow-sm rounded-2xl">
-              <CardHeader className="pb-3 border-b border-[#EEF5F6]">
-                <CardTitle className="text-base font-black text-[#19323A]">
-                  Perfil Profissional
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Seus dados principais que identificam você para os pais e nos relatórios clínicos.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-5 space-y-4">
-                {/* Photo / Logo Cropper Row */}
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7]">
-                  <div className="w-16 h-16 rounded-2xl bg-[#245C6B] text-white font-black text-xl flex items-center justify-center shrink-0 overflow-hidden border-2 border-[#63C7B2]/40 shadow-xs">
-                    {professional?.logo_url ? (
-                      <img
-                        src={professional.logo_url}
-                        alt="Logo"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      form.full_name.charAt(0).toUpperCase()
-                    )}
+            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6 animate-in fade-in">
+              <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold shadow-2xs">
+                    <User className="w-5 h-5" />
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-black text-[#19323A]">Foto de Perfil ou Logotipo</p>
-                    <p className="text-[11px] text-[#6B7C83]">
-                      Formatos JPG ou PNG até 10MB. Usado no cabeçalho e nos relatórios.
+                  <div>
+                    <h2 className="text-base font-black text-[#0D2329]">Perfil Profissional</h2>
+                    <p className="text-xs font-semibold text-[#6B7C83]">
+                      Identificação pessoal para relatórios clínicos, pais e atendimentos.
                     </p>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleLogoSelect}
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      loading={uploadingLogo}
-                      onClick={() => fileInputRef.current?.click()}
-                      className="text-xs font-bold gap-1 mt-1"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      Alterar Imagem
-                    </Button>
                   </div>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Input
-                    label="Nome Completo *"
+              {/* Photo Upload Row */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-5 p-4 rounded-3xl bg-[#F7FAFA] border border-[#D8E5E7]">
+                <div className="relative group w-20 h-20 rounded-3xl bg-[#EDE9FE] text-[#7C3AED] font-black text-2xl flex items-center justify-center shrink-0 overflow-hidden border-2 border-[#7C3AED]/40 shadow-xs">
+                  {professional?.logo_url ? (
+                    <img
+                      src={professional.logo_url}
+                      alt="Foto de Perfil"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    form.full_name.charAt(0).toUpperCase()
+                  )}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Trocar Foto"
+                  >
+                    <Camera className="w-6 h-6" />
+                  </button>
+                </div>
+
+                <div className="space-y-1 flex-1">
+                  <p className="text-sm font-black text-[#0D2329]">Foto de Perfil ou Logotipo da Clínica</p>
+                  <p className="text-xs text-[#6B7C83]">
+                    Formatos JPG ou PNG recomendados até 10MB. Exibido nos relatórios e cabeçalhos.
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleLogoSelect}
+                  />
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      disabled={uploadingLogo}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="h-8 px-3.5 rounded-xl bg-white hover:bg-[#EDE9FE] border border-[#D8E5E7] hover:border-[#7C3AED] text-[#7C3AED] text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{uploadingLogo ? "Enviando..." : "Alterar Foto"}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Input Fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[#0D2329]">Nome Completo *</label>
+                  <input
+                    type="text"
                     value={form.full_name}
                     onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                    placeholder="Ex: Priscila Carbone"
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
                   />
-                  <Input
-                    label="E-mail de Acesso"
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[#0D2329]">E-mail de Acesso</label>
+                  <input
                     type="email"
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    placeholder="seu.email@exemplo.com"
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Input
-                    label="Celular / WhatsApp Profissional"
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[#0D2329]">Celular / WhatsApp Profissional</label>
+                  <input
+                    type="text"
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  />
-                  <Input
-                    label="Especialidade Principal"
-                    value={form.specialty}
-                    onChange={(e) => setForm({ ...form, specialty: e.target.value })}
+                    placeholder="(11) 98765-4321"
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
                   />
                 </div>
 
-                <Textarea
-                  label="Apresentação / Mini Biografia"
-                  placeholder="Formação acadêmica, abordagem clínica, público-alvo..."
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[#0D2329]">Especialidade Principal</label>
+                  <input
+                    type="text"
+                    value={form.specialty}
+                    onChange={(e) => setForm({ ...form, specialty: e.target.value })}
+                    placeholder="Ex: Psicopedagogia Clínica & Neuroaprendizagem"
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-[#0D2329]">Apresentação / Mini Biografia</label>
+                <textarea
+                  rows={3}
                   value={form.bio}
                   onChange={(e) => setForm({ ...form, bio: e.target.value })}
-                  rows={3}
+                  placeholder="Formação acadêmica, abordagem clínica, público-alvo e metodologia..."
+                  className="w-full p-3 text-xs font-semibold rounded-2xl border border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329] resize-none"
                 />
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* TAB 2: CONSULTÓRIO & COBRANÇA */}
           {activeTab === "consultorio" && (
-            <Card className="border-2 border-[#D8E5E7] shadow-sm rounded-2xl">
-              <CardHeader className="pb-3 border-b border-[#EEF5F6]">
-                <CardTitle className="text-base font-black text-[#19323A]">
-                  Dados do Consultório & Cobrança
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Informações de cabeçalho nos documentos e chave de recebimento para os pais.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-5 space-y-4">
-                <Input
-                  label="Nome do Consultório / Espaço Clínico *"
-                  value={form.clinic_name}
-                  onChange={(e) => setForm({ ...form, clinic_name: e.target.value })}
-                  placeholder="Ex: Consultório Priscila Carbone"
-                />
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Input
-                    label="Registro Profissional / CBO / ABPp"
-                    value={form.crp}
-                    onChange={(e) => setForm({ ...form, crp: e.target.value })}
-                    placeholder="Ex: ABPp 12.345 / CBO 2394-25"
-                  />
-                  <Input
-                    label="Chave PIX Padrão (Cobranças)"
-                    value={form.pix_key}
-                    onChange={(e) => setForm({ ...form, pix_key: e.target.value })}
-                    placeholder="E-mail, CPF ou celular"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2">
-                    <Input
-                      label="Cidade"
-                      value={form.city}
-                      onChange={(e) => setForm({ ...form, city: e.target.value })}
-                    />
+            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6 animate-in fade-in">
+              <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center font-bold shadow-2xs">
+                    <Building className="w-5 h-5" />
                   </div>
                   <div>
-                    <Input
-                      label="UF"
-                      value={form.state}
-                      onChange={(e) => setForm({ ...form, state: e.target.value })}
+                    <h2 className="text-base font-black text-[#0D2329]">Dados do Consultório & Cobrança</h2>
+                    <p className="text-xs font-semibold text-[#6B7C83]">
+                      Informações impressas em cabeçalhos, recibos e mensagens de cobrança.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[#0D2329]">Nome do Consultório / Espaço Clínico *</label>
+                  <input
+                    type="text"
+                    value={form.clinic_name}
+                    onChange={(e) => setForm({ ...form, clinic_name: e.target.value })}
+                    placeholder="Ex: Espaço EvoluIA Psicopedagogia"
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#0D2329]">Registro Profissional / ABPp / CBO</label>
+                    <input
+                      type="text"
+                      value={form.crp}
+                      onChange={(e) => setForm({ ...form, crp: e.target.value })}
+                      placeholder="Ex: ABPp 12.345 / CBO 2394-25"
+                      className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#0D2329]">Chave PIX Padrão para Recebimento</label>
+                    <input
+                      type="text"
+                      value={form.pix_key}
+                      onChange={(e) => setForm({ ...form, pix_key: e.target.value })}
+                      placeholder="E-mail, CPF, CNPJ ou telefone"
+                      className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
                     />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-xs font-bold text-[#0D2329]">Cidade</label>
+                    <input
+                      type="text"
+                      value={form.city}
+                      onChange={(e) => setForm({ ...form, city: e.target.value })}
+                      placeholder="São Paulo"
+                      className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#0D2329]">Estado (UF)</label>
+                    <input
+                      type="text"
+                      value={form.state}
+                      onChange={(e) => setForm({ ...form, state: e.target.value })}
+                      placeholder="SP"
+                      className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* TAB 3: HORÁRIOS DE ATENDIMENTO */}
           {activeTab === "horarios" && (
-            <Card className="border-2 border-[#D8E5E7] shadow-sm rounded-2xl">
-              <CardHeader className="pb-3 border-b border-[#EEF5F6]">
-                <CardTitle className="text-base font-black text-[#19323A]">
-                  Horários de Atendimento Semanal
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Defina os dias e horários em que você atende no consultório para preencher a agenda.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-5 space-y-4">
-                <div className="flex items-center justify-between p-3.5 bg-[#F7FAFA] border border-[#D8E5E7] rounded-xl">
+            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6 animate-in fade-in">
+              <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#E8F8F5] text-[#10B981] flex items-center justify-center font-bold shadow-2xs">
+                    <Clock className="w-5 h-5" />
+                  </div>
                   <div>
-                    <p className="text-xs font-black text-[#19323A]">Duração Padrão da Sessão</p>
-                    <p className="text-[11px] text-[#6B7C83]">Tempo estimado de cada atendimento clínico</p>
+                    <h2 className="text-base font-black text-[#0D2329]">Horários de Atendimento Semanal</h2>
+                    <p className="text-xs font-semibold text-[#6B7C83]">
+                      Defina os dias e intervalos em que seu consultório realiza atendimentos.
+                    </p>
                   </div>
-                  <select
-                    value={sessionDuration}
-                    onChange={(e) => setSessionDuration(Number(e.target.value))}
-                    className="px-3 py-1.5 rounded-xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#19323A]"
-                  >
-                    <option value={45}>45 minutos</option>
-                    <option value={50}>50 minutos (Padrão)</option>
-                    <option value={60}>60 minutos (1 hora)</option>
-                    <option value={90}>90 minutos (1h 30m)</option>
-                  </select>
                 </div>
+              </div>
 
-                <div className="space-y-2 pt-2">
-                  <p className="text-xs font-black uppercase tracking-wider text-[#6B7C83]">
-                    Dias de Funcionamento:
-                  </p>
+              {/* Session Duration Selector */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7]">
+                <div>
+                  <p className="text-xs font-black text-[#0D2329]">Duração Padrão da Sessão</p>
+                  <p className="text-[11px] text-[#6B7C83]">Tempo estimado de cada atendimento clínico na agenda</p>
+                </div>
+                <select
+                  value={sessionDuration}
+                  onChange={(e) => setSessionDuration(Number(e.target.value))}
+                  className="px-3.5 py-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#10B981]"
+                >
+                  <option value={45}>45 minutos</option>
+                  <option value={50}>50 minutos (Padrão)</option>
+                  <option value={60}>60 minutos (1 hora)</option>
+                  <option value={90}>90 minutos (1h 30m)</option>
+                </select>
+              </div>
 
-                  <div className="divide-y divide-[#EEF5F6] border-2 border-[#D8E5E7] rounded-2xl overflow-hidden bg-white">
-                    {schedule.map((item, idx) => (
-                      <div
-                        key={item.day}
-                        className={`p-3 sm:p-3.5 flex items-center justify-between gap-3 transition-colors ${
-                          item.active ? "bg-white" : "bg-[#F7FAFA] opacity-60"
-                        }`}
-                      >
-                        <label className="flex items-center gap-2.5 cursor-pointer select-none min-w-[140px]">
+              {/* Weekly Days List */}
+              <div className="space-y-3">
+                <p className="text-xs font-black uppercase tracking-wider text-[#6B7C83]">
+                  Dias de Funcionamento:
+                </p>
+
+                <div className="divide-y divide-[#EEF5F6] border-2 border-[#D8E5E7] rounded-3xl overflow-hidden bg-white shadow-2xs">
+                  {schedule.map((item, idx) => (
+                    <div
+                      key={item.day}
+                      className={`p-3.5 sm:p-4 flex items-center justify-between gap-3 transition-colors ${
+                        item.active ? "bg-white" : "bg-[#F7FAFA] opacity-60"
+                      }`}
+                    >
+                      <label className="flex items-center gap-3 cursor-pointer select-none min-w-[140px]">
+                        <input
+                          type="checkbox"
+                          checked={item.active}
+                          onChange={() => toggleDay(idx)}
+                          className="w-4 h-4 rounded text-[#10B981] focus:ring-[#10B981] accent-[#10B981]"
+                        />
+                        <span className={`text-xs font-bold ${item.active ? "text-[#0D2329]" : "text-[#8DA3A8]"}`}>
+                          {item.label}
+                        </span>
+                      </label>
+
+                      {item.active ? (
+                        <div className="flex items-center gap-2">
                           <input
-                            type="checkbox"
-                            checked={item.active}
-                            onChange={() => toggleDay(idx)}
-                            className="w-4 h-4 rounded border-[#D8E5E7] text-[#245C6B] focus:ring-[#245C6B]"
+                            type="time"
+                            value={item.start}
+                            onChange={(e) => updateDayHours(idx, "start", e.target.value)}
+                            className="px-2.5 py-1 text-xs font-bold border border-[#D8E5E7] rounded-xl bg-white text-[#0D2329] focus:outline-none focus:border-[#10B981]"
                           />
-                          <span className={`text-xs font-bold ${item.active ? "text-[#19323A]" : "text-[#8DA3A8]"}`}>
-                            {item.label}
-                          </span>
-                        </label>
-
-                        {item.active ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="time"
-                              value={item.start}
-                              onChange={(e) => updateDayHours(idx, "start", e.target.value)}
-                              className="px-2.5 py-1 text-xs font-bold border border-[#D8E5E7] rounded-lg bg-white text-[#19323A]"
-                            />
-                            <span className="text-xs text-[#8DA3A8] font-bold">às</span>
-                            <input
-                              type="time"
-                              value={item.end}
-                              onChange={(e) => updateDayHours(idx, "end", e.target.value)}
-                              className="px-2.5 py-1 text-xs font-bold border border-[#D8E5E7] rounded-lg bg-white text-[#19323A]"
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-xs text-[#8DA3A8] italic font-semibold">
-                            Não atende
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                          <span className="text-xs text-[#8DA3A8] font-bold">às</span>
+                          <input
+                            type="time"
+                            value={item.end}
+                            onChange={(e) => updateDayHours(idx, "end", e.target.value)}
+                            className="px-2.5 py-1 text-xs font-bold border border-[#D8E5E7] rounded-xl bg-white text-[#0D2329] focus:outline-none focus:border-[#10B981]"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[#8DA3A8] italic font-semibold">
+                          Consultório fechado
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
-          {/* TAB 4: GOOGLE CALENDAR */}
+          {/* TAB 4: GOOGLE AGENDA */}
           {activeTab === "google_calendar" && (
-            <div className="space-y-4">
+            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6 animate-in fade-in">
               {/* Detailed Live Status Banner */}
-              <div className="p-5 rounded-2xl border-2 border-[#63C7B2]/50 bg-[#E8F8F5] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="p-5 rounded-3xl border-2 border-[#10B981]/40 bg-[#E8F8F5] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-start gap-3.5">
-                  <div className="w-11 h-11 rounded-2xl bg-[#20836F] text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <div className="w-12 h-12 rounded-2xl bg-[#10B981] text-white flex items-center justify-center shrink-0 shadow-sm font-bold">
                     <Calendar className="w-6 h-6" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-black text-sm text-[#14282F]">
+                      <h3 className="font-black text-sm text-[#0D2329]">
                         Google Agenda Conectado
                       </h3>
-                      <span className="text-[10px] bg-[#63C7B2] text-[#14282F] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#14282F] animate-pulse" />
+                      <span className="text-[10px] bg-[#10B981] text-white font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                         Sincronizado
                       </span>
                     </div>
-                    <p className="text-xs text-[#20836F] font-semibold mt-0.5">
+                    <p className="text-xs text-[#065F46] font-semibold mt-0.5">
                       Conta vinculada: <strong>{form.email}</strong>
                     </p>
                     <p className="text-[11px] text-[#6B7C83] mt-0.5">
-                      Última sincronização: <strong>Hoje, há 2 minutos</strong>
+                      Sincronização em tempo real de todas as sessões e avaliações.
                     </p>
                   </div>
                 </div>
 
-                <Button
-                  size="sm"
-                  variant="outline"
-                  loading={syncingNow}
+                <button
+                  type="button"
+                  disabled={syncingNow}
                   onClick={handleSyncNow}
-                  className="text-xs font-black bg-white hover:bg-[#EEF5F6] border-[#63C7B2] text-[#20836F] gap-1.5 shrink-0"
+                  className="px-4 py-2 text-xs font-black bg-white hover:bg-[#EDE9FE] border border-[#7C3AED]/30 text-[#7C3AED] rounded-2xl flex items-center gap-1.5 shrink-0 shadow-2xs transition-all active:scale-95"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${syncingNow ? "animate-spin" : ""}`} />
-                  Sincronizar Agora
-                </Button>
+                  <span>Sincronizar Agora</span>
+                </button>
               </div>
 
               {/* Feed Link Card */}
-              <Card className="border-2 border-[#D8E5E7] shadow-sm rounded-2xl">
-                <CardHeader className="pb-3 border-b border-[#EEF5F6]">
-                  <CardTitle className="text-base font-black text-[#19323A]">
-                    Link da Agenda (iCal / Google)
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Cole este link nas configurações do seu Google Calendar para sincronização em tempo real.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-5 space-y-3">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={calendarFeedUrl}
-                      className="flex-1 bg-[#F7FAFA] px-3.5 py-2 text-xs rounded-xl border-2 border-[#D8E5E7] font-mono select-all text-[#19323A]"
-                    />
-                    <Button size="sm" onClick={handleCopyCalendarUrl} className="gap-1.5 text-xs font-bold shrink-0">
-                      {copied ? <Check className="w-4 h-4 text-[#63C7B2]" /> : <Copy className="w-4 h-4" />}
-                      {copied ? "Copiado!" : "Copiar"}
-                    </Button>
-                  </div>
+              <div className="p-5 rounded-3xl bg-[#F7FAFA] border border-[#D8E5E7] space-y-4">
+                <div>
+                  <h3 className="text-xs font-black text-[#0D2329]">Link da Agenda (iCal / Google)</h3>
+                  <p className="text-[11px] text-[#6B7C83]">
+                    Cole este link nas configurações do seu Google Calendar no celular ou computador:
+                  </p>
+                </div>
 
-                  <div className="flex flex-wrap gap-2.5 pt-2 border-t border-[#EEF5F6]">
-                    <a
-                      href={`https://calendar.google.com/calendar/r/settings/addbyurl?cid=${encodeURIComponent(
-                        calendarFeedUrl
-                      )}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-black px-3.5 py-2 bg-[#245C6B] text-white rounded-xl hover:bg-[#1B4752] transition-all shadow-2xs"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Abrir no Google Calendar Web</span>
-                    </a>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={calendarFeedUrl}
+                    className="flex-1 bg-white px-3.5 py-2 text-xs rounded-xl border border-[#D8E5E7] font-mono select-all text-[#0D2329] focus:outline-none"
+                  />
+                  <button
+                    onClick={handleCopyCalendarUrl}
+                    className="px-3.5 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-xs transition-all shrink-0"
+                  >
+                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copied ? "Copiado!" : "Copiar"}</span>
+                  </button>
+                </div>
 
-                    <Button size="sm" variant="outline" onClick={handleDownloadICS} className="gap-1.5 text-xs font-bold">
-                      <Download className="w-3.5 h-3.5" />
-                      Baixar Arquivo (.ics)
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                <div className="flex flex-wrap gap-2.5 pt-2 border-t border-[#EEF5F6]">
+                  <a
+                    href={`https://calendar.google.com/calendar/r/settings/addbyurl?cid=${encodeURIComponent(
+                      calendarFeedUrl
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-black px-4 py-2 bg-[#0284C7] hover:bg-[#0369A1] text-white rounded-xl transition-all shadow-xs"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Abrir no Google Calendar Web</span>
+                  </a>
+
+                  <button
+                    onClick={handleDownloadICS}
+                    className="inline-flex items-center gap-1.5 text-xs font-black px-4 py-2 bg-white hover:bg-[#F7FAFA] text-[#0D2329] border border-[#D8E5E7] rounded-xl transition-all shadow-2xs"
+                  >
+                    <Download className="w-3.5 h-3.5 text-[#6B7C83]" />
+                    <span>Baixar Arquivo (.ics)</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
           {/* TAB 5: LEMBRETES & WHATSAPP */}
           {activeTab === "notificacoes" && (
-            <Card className="border-2 border-[#D8E5E7] shadow-sm rounded-2xl">
-              <CardHeader className="pb-3 border-b border-[#EEF5F6]">
-                <CardTitle className="text-base font-black text-[#19323A]">
-                  Lembretes e Mensagens WhatsApp
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Personalize os modelos de mensagens que o EvoluIA preenche automaticamente para enviar aos pais.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-5 space-y-5">
-                {/* 1. Lembrete de Atendimento */}
-                <div className="p-4 rounded-2xl bg-[#F7FAFA] border-2 border-[#D8E5E7] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-[#E8F8F5] text-[#20836F] flex items-center justify-center font-bold">
-                        <MessageSquare className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-black text-[#19323A]">
-                          1. Lembrete Matinal de Confirmação de Sessão
-                        </p>
-                        <p className="text-[11px] text-[#6B7C83]">
-                          Usado na <strong>Agenda</strong> e no <strong>Dashboard</strong> para confirmar atendimentos do dia.
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] bg-[#E8F8F5] text-[#20836F] font-black px-2.5 py-1 rounded-md border border-[#63C7B2]/40">
-                      Disponível na Agenda
-                    </span>
+            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6 animate-in fade-in">
+              <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#E8F8F5] text-[#10B981] flex items-center justify-center font-bold shadow-2xs">
+                    <MessageSquare className="w-5 h-5" />
                   </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-[#6B7C83]">
-                      Texto da Mensagem (com tags automáticas):
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={reminderTemplate}
-                      onChange={(e) => setReminderTemplate(e.target.value)}
-                      placeholder="Digite o modelo de mensagem de confirmação..."
-                      className="w-full px-3 py-2 text-xs font-medium rounded-xl border-2 border-[#D8E5E7] bg-white text-[#19323A] focus:outline-none focus:border-[#245C6B]"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <p className="text-[11px] text-[#8DA3A8]">
-                      Tags disponíveis: <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{horario}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{nome_crianca}"}</code>
+                  <div>
+                    <h2 className="text-base font-black text-[#0D2329]">Modelos de Mensagens WhatsApp</h2>
+                    <p className="text-xs font-semibold text-[#6B7C83]">
+                      Personalize os textos automáticos disparados para os pais pelo sistema.
                     </p>
-
-                    <a
-                      href={`https://wa.me/?text=${encodeURIComponent(
-                        reminderTemplate
-                          .replace("{horario}", "14:00")
-                          .replace("{nome_crianca}", "Maria Eduarda")
-                      )}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-3 py-1.5 bg-[#E8F8F5] hover:bg-[#20836F] hover:text-white text-[#20836F] rounded-xl text-xs font-black flex items-center gap-1.5 border border-[#63C7B2]/40 transition-all shadow-2xs"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 fill-current" />
-                      <span>Testar Envio no WhatsApp</span>
-                    </a>
                   </div>
                 </div>
+              </div>
 
-                {/* 2. Mensagem de Cobrança */}
-                <div className="p-4 rounded-2xl bg-[#F7FAFA] border-2 border-[#D8E5E7] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-[#FEF8EC] text-[#8B6514] flex items-center justify-center font-bold">
-                        <DollarSign className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-black text-[#19323A]">
-                          2. Mensagem de Cobrança / Mensalidade com PIX
-                        </p>
-                        <p className="text-[11px] text-[#6B7C83]">
-                          Usado no botão <strong>"Cobrar"</strong> da tela de <strong>Financeiro</strong>.
-                        </p>
-                      </div>
+              {/* 1. Lembrete de Atendimento */}
+              <div className="p-5 rounded-3xl bg-[#F7FAFA] border-2 border-[#D8E5E7] space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-[#E8F8F5] text-[#10B981] flex items-center justify-center font-bold">
+                      <MessageSquare className="w-4 h-4" />
                     </div>
-                    <span className="text-[10px] bg-[#FEF8EC] text-[#8B6514] font-black px-2.5 py-1 rounded-md border border-[#F4C95D]/40">
-                      Disponível no Financeiro
-                    </span>
+                    <div>
+                      <p className="text-xs font-black text-[#0D2329]">
+                        1. Lembrete de Confirmação de Sessão
+                      </p>
+                      <p className="text-[11px] text-[#6B7C83]">
+                        Usado na <strong>Agenda</strong> e no <strong>Dashboard</strong> para confirmar atendimentos do dia.
+                      </p>
+                    </div>
                   </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-[#6B7C83]">
-                      Texto da Mensagem:
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={billingTemplate}
-                      onChange={(e) => setBillingTemplate(e.target.value)}
-                      placeholder="Digite o modelo de cobrança..."
-                      className="w-full px-3 py-2 text-xs font-medium rounded-xl border-2 border-[#D8E5E7] bg-white text-[#19323A] focus:outline-none focus:border-[#245C6B]"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <p className="text-[11px] text-[#8DA3A8]">
-                      Tags disponíveis: <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{nome_crianca}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{mes}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{valor}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded border border-[#D8E5E7] text-[#245C6B]">{"{chave_pix}"}</code>
-                    </p>
-
-                    <a
-                      href={`https://wa.me/?text=${encodeURIComponent(
-                        billingTemplate
-                          .replace("{nome_crianca}", "Maria Eduarda")
-                          .replace("{mes}", "Agosto")
-                          .replace("{valor}", "R$ 350,00")
-                          .replace("{chave_pix}", form.pix_key)
-                      )}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-3 py-1.5 bg-[#FEF8EC] hover:bg-[#F4C95D] hover:text-[#19323A] text-[#8B6514] rounded-xl text-xs font-black flex items-center gap-1.5 border border-[#F4C95D]/40 transition-all shadow-2xs"
-                    >
-                      <DollarSign className="w-3.5 h-3.5" />
-                      <span>Testar Cobrança</span>
-                    </a>
-                  </div>
+                  <span className="text-[10px] bg-[#E8F8F5] text-[#10B981] font-black px-2.5 py-1 rounded-xl border border-[#10B981]/30">
+                    Disponível na Agenda
+                  </span>
                 </div>
 
-                {/* Info Guide */}
-                <div className="p-3.5 rounded-xl bg-[#EAF3F5] border border-[#245C6B]/20 flex items-start gap-2.5 text-xs text-[#245C6B]">
-                  <span className="text-base">💡</span>
-                  <p className="leading-relaxed">
-                    <strong>Como usar no dia a dia:</strong> Ao clicar no botão de WhatsApp na <strong>Agenda</strong>, nos <strong>Responsáveis</strong> ou no <strong>Financeiro</strong>, o EvoluIA abre diretamente o WhatsApp do pai/mãe com essa mensagem já preenchida com o nome do filho, horário ou valor certinho, sem você precisar digitar nada!
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-[#6B7C83]">
+                    Texto da Mensagem (com tags automáticas):
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={reminderTemplate}
+                    onChange={(e) => setReminderTemplate(e.target.value)}
+                    placeholder="Digite o modelo de mensagem de confirmação..."
+                    className="w-full p-3 text-xs font-medium rounded-2xl border border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#10B981] transition-all resize-none"
+                  />
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[#EEF5F6]">
+                  <p className="text-[11px] text-[#6B7C83]">
+                    Tags: <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#10B981] font-bold">{"{horario}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#10B981] font-bold">{"{nome_crianca}"}</code>
                   </p>
+
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(
+                      reminderTemplate
+                        .replace("{horario}", "14:00")
+                        .replace("{nome_crianca}", "Maria Eduarda")
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3.5 py-1.5 bg-[#E8F8F5] hover:bg-[#10B981] hover:text-white text-[#10B981] rounded-xl text-xs font-black flex items-center gap-1.5 border border-[#10B981]/30 transition-all shadow-2xs self-start sm:self-auto"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                    <span>Testar Mensagem</span>
+                  </a>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+
+              {/* 2. Mensagem de Cobrança */}
+              <div className="p-5 rounded-3xl bg-[#F7FAFA] border-2 border-[#D8E5E7] space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-[#FFEDD5] text-[#EA580C] flex items-center justify-center font-bold">
+                      <DollarSign className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-[#0D2329]">
+                        2. Mensagem de Mensalidade / Cobrança PIX
+                      </p>
+                      <p className="text-[11px] text-[#6B7C83]">
+                        Usado no botão <strong>"Cobrar"</strong> da tela de <strong>Financeiro</strong>.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] bg-[#FFEDD5] text-[#EA580C] font-black px-2.5 py-1 rounded-xl border border-[#EA580C]/30">
+                    Disponível no Financeiro
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-[#6B7C83]">
+                    Texto da Mensagem:
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={billingTemplate}
+                    onChange={(e) => setBillingTemplate(e.target.value)}
+                    placeholder="Digite o modelo de cobrança..."
+                    className="w-full p-3 text-xs font-medium rounded-2xl border border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#EA580C] transition-all resize-none"
+                  />
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[#EEF5F6]">
+                  <p className="text-[11px] text-[#6B7C83]">
+                    Tags: <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-bold">{"{nome_crianca}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-bold">{"{mes}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-bold">{"{valor}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-bold">{"{chave_pix}"}</code>
+                  </p>
+
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(
+                      billingTemplate
+                        .replace("{nome_crianca}", "Maria Eduarda")
+                        .replace("{mes}", "Agosto")
+                        .replace("{valor}", "R$ 350,00")
+                        .replace("{chave_pix}", form.pix_key)
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3.5 py-1.5 bg-[#FFEDD5] hover:bg-[#EA580C] hover:text-white text-[#EA580C] rounded-xl text-xs font-black flex items-center gap-1.5 border border-[#EA580C]/30 transition-all shadow-2xs self-start sm:self-auto"
+                  >
+                    <DollarSign className="w-3.5 h-3.5" />
+                    <span>Testar Cobrança</span>
+                  </a>
+                </div>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Right Column: Profile & System Health Sidebars (4 Cols on LG) */}
+        {/* ========================================================
+            RIGHT COLUMN: PREVIEW & CLINIC HEALTH SIDEBAR (4 COLS)
+            ======================================================== */}
         <div className="lg:col-span-4 space-y-5">
           {/* Card 1: Perfil do Consultório */}
-          <Card className="border-2 border-[#D8E5E7] shadow-sm rounded-2xl overflow-hidden bg-white">
-            <div className="bg-[#245C6B] p-5 text-white flex items-center gap-3.5">
+          <div className="rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm overflow-hidden space-y-4">
+            <div className="bg-gradient-to-r from-[#00B4D8] to-[#0096C7] p-5 text-white flex items-center gap-3.5">
               <div className="w-14 h-14 rounded-2xl bg-white/20 border-2 border-white/40 flex items-center justify-center font-black text-xl overflow-hidden shrink-0 shadow-xs">
                 {professional?.logo_url ? (
                   <img src={professional.logo_url} alt="Logo" className="w-full h-full object-cover" />
@@ -788,66 +871,77 @@ export function SettingsPage() {
               </div>
               <div className="min-w-0">
                 <h3 className="font-black text-base truncate leading-tight">{form.clinic_name}</h3>
-                <p className="text-xs text-[#63C7B2] font-bold truncate mt-0.5">{form.full_name}</p>
-                <p className="text-[10px] text-white/70 truncate">{form.specialty}</p>
+                <p className="text-xs text-white/95 font-bold truncate mt-0.5">{form.full_name}</p>
+                <p className="text-[10px] text-white/80 truncate">{form.specialty}</p>
               </div>
             </div>
 
-            <CardContent className="p-4 space-y-3">
-              <div className="grid grid-cols-2 gap-2 text-center">
-                <div className="p-2.5 rounded-xl bg-[#F7FAFA] border border-[#D8E5E7]">
-                  <p className="text-lg font-black text-[#19323A]">{childrenCount}</p>
+            <div className="p-5 pt-0 space-y-3.5">
+              <div className="grid grid-cols-2 gap-2.5 text-center">
+                <div className="p-3 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7]">
+                  <p className="text-xl font-black text-[#0D2329]">{childrenCount}</p>
                   <p className="text-[10px] font-bold uppercase text-[#6B7C83]">Pacientes</p>
                 </div>
-                <div className="p-2.5 rounded-xl bg-[#F7FAFA] border border-[#D8E5E7]">
-                  <p className="text-lg font-black text-[#19323A]">{guardiansCount}</p>
+                <div className="p-3 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7]">
+                  <p className="text-xl font-black text-[#0D2329]">{guardiansCount}</p>
                   <p className="text-[10px] font-bold uppercase text-[#6B7C83]">Responsáveis</p>
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-[#EEF5F6] space-y-1.5 text-xs text-[#6B7C83]">
+              <div className="pt-2 border-t border-[#EEF5F6] space-y-2 text-xs text-[#6B7C83]">
                 <div className="flex items-center justify-between">
-                  <span>Membro desde:</span>
-                  <span className="font-bold text-[#19323A]">Agosto / 2026</span>
+                  <span>Registro / ABPp:</span>
+                  <span className="font-bold text-[#0D2329]">{form.crp || "Pendente"}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Localização:</span>
-                  <span className="font-bold text-[#19323A]">{form.city}, {form.state}</span>
+                  <span className="font-bold text-[#0D2329]">{form.city}, {form.state}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Chave PIX:</span>
+                  <span className="font-bold text-[#0284C7] truncate max-w-[150px]">{form.pix_key}</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Card 2: Status do Sistema & Saúde da Conta */}
-          <Card className="border-2 border-[#D8E5E7] shadow-sm rounded-2xl bg-white">
-            <CardHeader className="pb-3 border-b border-[#EEF5F6]">
-              <CardTitle className="text-xs font-black uppercase tracking-wider text-[#6B7C83] flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-[#20836F]" />
-                <span>Status da Plataforma</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-2.5">
-              <div className="flex items-center justify-between p-2 rounded-xl bg-[#E8F8F5] border border-[#63C7B2]/30 text-xs">
-                <span className="font-bold text-[#14282F]">🟢 Conta & Plano Clínico:</span>
-                <span className="font-black text-[#20836F]">Ativo</span>
+          <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#6B7C83] flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-[#10B981]" />
+              <span>Status das Integrações</span>
+            </h3>
+
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-[#E8F8F5] border border-[#10B981]/30 text-xs">
+                <span className="font-bold text-[#0D2329] flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#10B981]" /> Google Agenda
+                </span>
+                <span className="font-black text-[#10B981]">Conectado</span>
               </div>
 
-              <div className="flex items-center justify-between p-2 rounded-xl bg-[#E8F8F5] border border-[#63C7B2]/30 text-xs">
-                <span className="font-bold text-[#14282F]">🟢 Google Agenda:</span>
-                <span className="font-black text-[#20836F]">Sincronizado</span>
+              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-[#E8F8F5] border border-[#10B981]/30 text-xs">
+                <span className="font-bold text-[#0D2329] flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#10B981]" /> Cobranças PIX
+                </span>
+                <span className="font-black text-[#10B981]">Ativo</span>
               </div>
 
-              <div className="flex items-center justify-between p-2 rounded-xl bg-[#E8F8F5] border border-[#63C7B2]/30 text-xs">
-                <span className="font-bold text-[#14282F]">🟢 Banco de Dados:</span>
-                <span className="font-black text-[#20836F]">Criptografado</span>
+              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-[#E8F8F5] border border-[#10B981]/30 text-xs">
+                <span className="font-bold text-[#0D2329] flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#10B981]" /> Lembretes WhatsApp
+                </span>
+                <span className="font-black text-[#10B981]">Ativo</span>
               </div>
 
-              <div className="flex items-center justify-between p-2 rounded-xl bg-[#FEF8EC] border border-[#F4C95D]/40 text-xs">
-                <span className="font-bold text-[#8B6514]">🟡 WhatsApp:</span>
-                <span className="font-black text-[#8B6514]">Pronto</span>
+              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-[#F3E8FF] border border-[#7C3AED]/30 text-xs">
+                <span className="font-bold text-[#0D2329] flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#7C3AED]" /> Segurança & Backup
+                </span>
+                <span className="font-black text-[#7C3AED]">Criptografado</span>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
 
