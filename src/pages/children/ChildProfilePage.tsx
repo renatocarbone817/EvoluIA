@@ -206,7 +206,7 @@ export function ChildProfilePage() {
         {activeTab === "sessoes" && <ChildSessionsTab childId={child.id} childName={child.full_name} />}
         {activeTab === "linha-do-tempo" && <ChildTimelineTab childId={child.id} />}
         {activeTab === "documentos" && <ChildDocumentsTab childId={child.id} />}
-        {activeTab === "financeiro" && <ChildFinancialTab childId={child.id} />}
+        {activeTab === "financeiro" && <ChildFinancialTab childId={child.id} childName={child.full_name} />}
         {activeTab === "relatorios" && <ChildReportsTab childId={child.id} childName={child.full_name} />}
       </div>
 
