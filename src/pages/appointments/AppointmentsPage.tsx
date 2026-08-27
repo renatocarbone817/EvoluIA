@@ -519,6 +519,16 @@ export function AppointmentsPage() {
                             Iniciar
                           </Button>
                         )}
+                        {appt.status === "in_progress" && (
+                          <Button
+                            size="sm"
+                            className="gap-1.5 text-xs font-bold bg-[#20836F] hover:bg-[#186b5a] text-white"
+                            onClick={() => handleStartAppointment(appt)}
+                          >
+                            <Play className="w-3 h-3 fill-current" />
+                            Continuar
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )
@@ -651,6 +661,17 @@ export function AppointmentsPage() {
                                 Iniciar
                               </Button>
                             )}
+
+                            {appt.status === "in_progress" && (
+                              <Button
+                                size="sm"
+                                className="w-full h-7 text-[10px] mt-1 gap-1 font-black bg-[#20836F] hover:bg-[#186b5a] text-white"
+                                onClick={() => handleStartAppointment(appt)}
+                              >
+                                <Play className="w-3 h-3 fill-current" />
+                                Continuar
+                              </Button>
+                            )}
                           </div>
                         )
                       })}
@@ -737,6 +758,16 @@ export function AppointmentsPage() {
                         >
                           <Play className="w-3 h-3 fill-current" />
                           Iniciar
+                        </Button>
+                      )}
+                      {appt.status === "in_progress" && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleStartAppointment(appt)}
+                          className="gap-1.5 text-xs bg-[#20836F] hover:bg-[#186b5a] text-white font-black"
+                        >
+                          <Play className="w-3 h-3 fill-current" />
+                          Continuar
                         </Button>
                       )}
                     </div>

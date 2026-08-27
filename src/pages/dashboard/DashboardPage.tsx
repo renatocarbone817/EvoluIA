@@ -565,6 +565,17 @@ export function DashboardPage() {
                         </Button>
                       )}
 
+                      {appt.status === "in_progress" && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleStartSession(appt)}
+                          className="gap-1 text-xs bg-[#20836F] hover:bg-[#186b5a] text-white font-black"
+                        >
+                          <Play className="w-3 h-3 fill-current" />
+                          <span>Continuar</span>
+                        </Button>
+                      )}
+
                       {appt.status === "done" && (
                         <Button
                           size="sm"
