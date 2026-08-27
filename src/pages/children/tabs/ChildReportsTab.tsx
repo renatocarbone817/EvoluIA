@@ -513,7 +513,7 @@ export function ChildReportsTab({ childId, childName }: ChildReportsTabProps) {
                   Clínica: {professional?.clinic_name || "EvoluIA — Gestão Psicopedagógica"}
                 </p>
                 <p className="text-xs font-semibold text-[#6B7C83]">
-                  Profissional: <strong>{professional?.full_name}</strong> {professional?.crp ? `· CRP: ${professional.crp}` : ""}
+                  Profissional: <strong>{professional?.full_name}</strong> {professional?.crp ? `· CBO: ${professional.crp}` : ""}
                 </p>
                 <p className="text-xs font-semibold text-[#6B7C83]">
                   Paciente: <strong>{childName}</strong> · Data de Emissão: <strong>{formatDate(selectedReport.created_at)}</strong>

@@ -176,7 +176,7 @@ export function ReportsPage() {
                   Clínica: {professional?.clinic_name || "EvoluIA — Gestão Psicopedagógica"}
                 </p>
                 <p className="text-xs font-semibold text-[#6B7C83]">
-                  Profissional: <strong>{professional?.full_name}</strong> {professional?.crp ? `· CRP: ${professional.crp}` : ""}
+                  Profissional: <strong>{professional?.full_name}</strong> {professional?.crp ? `· CBO: ${professional.crp}` : ""}
                 </p>
                 <p className="text-xs font-semibold text-[#6B7C83]">
                   Paciente: <strong>{selectedReport.child?.full_name}</strong> · Data de Emissão: <strong>{formatDate(selectedReport.created_at)}</strong>

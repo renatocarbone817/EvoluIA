@@ -285,8 +285,8 @@ export function SettingsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <Input
-                  label="Registro (CRP / ABPp)"
-                  placeholder="Ex: 06/12345-SP"
+                  label="CBO"
+                  placeholder="Ex: 2394-25"
                   value={form.crp}
                   onChange={(e) => setForm({ ...form, crp: e.target.value })}
                 />

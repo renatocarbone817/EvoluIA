@@ -72,7 +72,7 @@ export function Sidebar() {
               {professional?.full_name || "Priscila Carbone"}
             </p>
             <p className="text-xs text-[#A0B4B9] truncate leading-tight mt-0.5">
-              {professional?.clinic_name || (professional?.crp ? `CRP ${professional.crp}` : "Psicopedagoga")}
+              {professional?.clinic_name || (professional?.crp ? `CBO ${professional.crp}` : "Psicopedagoga")}
             </p>
           </div>
         )}
