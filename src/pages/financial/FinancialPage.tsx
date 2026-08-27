@@ -237,8 +237,6 @@ export function FinancialPage() {
           status: form.status as any,
           payment_date: form.status === "paid" ? new Date().toISOString().split("T")[0] : null,
           notes: form.notes || null,
-          record_type: "income",
-          category: "Mensalidade / Atendimento",
         })
         if (error) throw error
         toast.success("Receita lançada com sucesso!")
@@ -267,9 +265,6 @@ export function FinancialPage() {
             status: form.status as any,
             payment_date: form.status === "paid" ? new Date().toISOString().split("T")[0] : null,
             notes: formattedNotes,
-            record_type: "expense",
-            category: form.expense_category,
-            description: form.expense_description,
           })
         } else if (expenseRepetition === "recurring") {
           // Recurring fixed expense for N months (e.g. Rent 12 months)
@@ -292,9 +287,6 @@ export function FinancialPage() {
               status: i === 0 ? (form.status as any) : "pending",
               payment_date: i === 0 && form.status === "paid" ? new Date().toISOString().split("T")[0] : null,
               notes: formattedNotes,
-              record_type: "expense",
-              category: form.expense_category,
-              description: `${form.expense_description}`,
             })
           }
         } else if (expenseRepetition === "installments") {
@@ -319,9 +311,6 @@ export function FinancialPage() {
               status: i === 0 ? (form.status as any) : "pending",
               payment_date: i === 0 && form.status === "paid" ? new Date().toISOString().split("T")[0] : null,
               notes: formattedNotes,
-              record_type: "expense",
-              category: form.expense_category,
-              description: installmentDesc,
             })
           }
         }
