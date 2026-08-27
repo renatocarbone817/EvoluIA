@@ -46,13 +46,13 @@ interface NoteItem {
   starred: boolean
 }
 
-interface HoveredPointInfo {
+interface HoveredWeekData {
+  index: number
   label: string
-  weekName: string
-  count: number
-  color: string
-  bg: string
-  border: string
+  rangeText: string
+  aulas: number
+  entrevistas: number
+  novos: number
   x: number
   y: number
 }
@@ -80,8 +80,8 @@ export function DashboardPage() {
   const currentYearNum = new Date().getFullYear()
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonthNum)
 
-  // Interactive Hover Tooltip for Chart Nodes
-  const [hoveredPoint, setHoveredPoint] = useState<HoveredPointInfo | null>(null)
+  // Unified Hover Tooltip for Chart
+  const [hoveredWeek, setHoveredWeek] = useState<HoveredWeekData | null>(null)
 
   // Interactive Tasks (persisted)
   const [tasks, setTasks] = useState<TaskItem[]>(() => {
@@ -674,7 +674,7 @@ export function DashboardPage() {
         </div>
 
         {/* ========================================================
-            COLUMN 2: RESUMO DO MÊS (COMPARATIVO MULTI-LINHAS + TOOLTIPS) (5 COLS)
+            COLUMN 2: RESUMO DO MÊS (COMPARATIVO MULTI-LINHAS + UNIFIED TOOLTIP) (5 COLS)
             ======================================================== */}
         <div className="lg:col-span-5 space-y-5">
           <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
@@ -708,21 +708,46 @@ export function DashboardPage() {
               </span>
             </div>
 
-            {/* Multi-Series Smooth Line Chart with Interactive Tooltips */}
+            {/* Multi-Series Smooth Line Chart with Unified Tooltip Card */}
             <div className="relative pt-2">
-              <div className="h-44 w-full relative">
-                {/* Floating Interactive Tooltip */}
-                {hoveredPoint && (
+              <div className="h-48 w-full relative">
+                {/* Unified Floating Breakdown Card */}
+                {hoveredWeek && (
                   <div
                     style={{
-                      left: `${(hoveredPoint.x / 400) * 100}%`,
-                      top: `${(hoveredPoint.y / 150) * 100}%`,
-                      transform: "translate(-50%, -125%)",
+                      left: `${(hoveredWeek.x / 400) * 100}%`,
+                      top: `${(Math.max(hoveredWeek.y - 12, 10) / 150) * 100}%`,
+                      transform: "translate(-50%, -100%)",
                     }}
-                    className={`absolute pointer-events-none z-30 px-3 py-1.5 rounded-2xl border-2 shadow-lg text-xs font-black whitespace-nowrap animate-in fade-in zoom-in-95 backdrop-blur-xs ${hoveredPoint.bg} ${hoveredPoint.border} ${hoveredPoint.color}`}
+                    className="absolute pointer-events-none z-30 min-w-[170px] p-3 rounded-2xl bg-white/95 backdrop-blur-md border-2 border-[#D8E5E7] shadow-xl text-xs space-y-1.5 animate-in fade-in zoom-in-95"
                   >
-                    <p className="text-[9px] uppercase tracking-wider opacity-80 font-extrabold">{hoveredPoint.weekName}</p>
-                    <p className="text-xs font-black mt-0.5">{hoveredPoint.label}</p>
+                    <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-1">
+                      <span className="font-black text-[#0D2329] uppercase text-[11px] tracking-wide">{hoveredWeek.label}</span>
+                      <span className="text-[9px] font-bold text-[#8CAAB1]">{hoveredWeek.rangeText}</span>
+                    </div>
+
+                    <div className="space-y-1.5 pt-0.5">
+                      <div className="flex items-center justify-between gap-3 text-[#065F46] font-bold">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-[#10B981]" /> Aulas
+                        </span>
+                        <span className="font-black text-xs">{hoveredWeek.aulas}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 text-[#6B21A8] font-bold">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-[#7C3AED]" /> Entrevistas
+                        </span>
+                        <span className="font-black text-xs">{hoveredWeek.entrevistas}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 text-[#0369A1] font-bold">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-[#0284C7]" /> Novos Pacientes
+                        </span>
+                        <span className="font-black text-xs">{hoveredWeek.novos}</span>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -750,115 +775,131 @@ export function DashboardPage() {
                   {/* 1. Curva Aulas (Verde) */}
                   <path d={monthlyChartData.curveAulas.path} fill="none" stroke="#10B981" strokeWidth="2.5" />
                   {monthlyChartData.curveAulas.pts.map((pt, i) => (
-                    <g key={`aulas-${i}`} className="cursor-pointer">
-                      <circle
-                        cx={pt.x}
-                        cy={pt.y}
-                        r="4.5"
-                        className="fill-white stroke-[#10B981] stroke-2 shadow-xs transition-all"
-                      />
-                      <circle
-                        cx={pt.x}
-                        cy={pt.y}
-                        r="14"
-                        fill="transparent"
-                        onMouseEnter={() => setHoveredPoint({
-                          label: `${pt.val} Aulas`,
-                          weekName: monthlyChartData.weeks[i].label,
-                          count: pt.val,
-                          color: "text-[#065F46]",
-                          bg: "bg-[#E8F8F5]",
-                          border: "border-[#A7F3D0]",
-                          x: pt.x,
-                          y: pt.y,
-                        })}
-                        onMouseLeave={() => setHoveredPoint(null)}
-                      >
-                        <title>{`${monthlyChartData.weeks[i].label}: ${pt.val} Aulas`}</title>
-                      </circle>
-                    </g>
+                    <circle
+                      key={`aulas-${i}`}
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={hoveredWeek?.index === i ? 6 : 4.5}
+                      className="fill-white stroke-[#10B981] stroke-2 shadow-xs transition-all"
+                    />
                   ))}
 
                   {/* 2. Curva Entrevistas (Roxa) */}
                   <path d={monthlyChartData.curveEvals.path} fill="none" stroke="#7C3AED" strokeWidth="2.5" />
                   {monthlyChartData.curveEvals.pts.map((pt, i) => (
-                    <g key={`evals-${i}`} className="cursor-pointer">
-                      <circle
-                        cx={pt.x}
-                        cy={pt.y}
-                        r="4.5"
-                        className="fill-white stroke-[#7C3AED] stroke-2 shadow-xs transition-all"
-                      />
-                      <circle
-                        cx={pt.x}
-                        cy={pt.y}
-                        r="14"
-                        fill="transparent"
-                        onMouseEnter={() => setHoveredPoint({
-                          label: `${pt.val} Entrevistas`,
-                          weekName: monthlyChartData.weeks[i].label,
-                          count: pt.val,
-                          color: "text-[#6B21A8]",
-                          bg: "bg-[#F3E8FF]",
-                          border: "border-[#DDD6FE]",
-                          x: pt.x,
-                          y: pt.y,
-                        })}
-                        onMouseLeave={() => setHoveredPoint(null)}
-                      >
-                        <title>{`${monthlyChartData.weeks[i].label}: ${pt.val} Entrevistas`}</title>
-                      </circle>
-                    </g>
+                    <circle
+                      key={`evals-${i}`}
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={hoveredWeek?.index === i ? 6 : 4.5}
+                      className="fill-white stroke-[#7C3AED] stroke-2 shadow-xs transition-all"
+                    />
                   ))}
 
                   {/* 3. Curva Novos Pacientes (Azul) */}
                   <path d={monthlyChartData.curveNovos.path} fill="none" stroke="#0284C7" strokeWidth="2" strokeDasharray="4 3" />
                   {monthlyChartData.curveNovos.pts.map((pt, i) => (
-                    <g key={`novos-${i}`} className="cursor-pointer">
-                      <circle
-                        cx={pt.x}
-                        cy={pt.y}
-                        r="4"
-                        className="fill-white stroke-[#0284C7] stroke-2 shadow-xs transition-all"
-                      />
-                      <circle
-                        cx={pt.x}
-                        cy={pt.y}
-                        r="14"
-                        fill="transparent"
-                        onMouseEnter={() => setHoveredPoint({
-                          label: `${pt.val} Novos Pacientes`,
-                          weekName: monthlyChartData.weeks[i].label,
-                          count: pt.val,
-                          color: "text-[#0369A1]",
-                          bg: "bg-[#E0F2FE]",
-                          border: "border-[#BAE6FD]",
-                          x: pt.x,
-                          y: pt.y,
-                        })}
-                        onMouseLeave={() => setHoveredPoint(null)}
-                      >
-                        <title>{`${monthlyChartData.weeks[i].label}: ${pt.val} Novos Pacientes`}</title>
-                      </circle>
-                    </g>
+                    <circle
+                      key={`novos-${i}`}
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={hoveredWeek?.index === i ? 5.5 : 4}
+                      className="fill-white stroke-[#0284C7] stroke-2 shadow-xs transition-all"
+                    />
                   ))}
+
+                  {/* Interactive Week Hover Columns (Captures any mouse hover over the week) */}
+                  {monthlyChartData.weeks.map((w, idx) => {
+                    const x = idx * 92 + 16
+                    const minY = Math.min(
+                      monthlyChartData.curveAulas.pts[idx].y,
+                      monthlyChartData.curveEvals.pts[idx].y,
+                      monthlyChartData.curveNovos.pts[idx].y
+                    )
+                    const isHovered = hoveredWeek?.index === idx
+
+                    return (
+                      <g key={`hover-band-${idx}`} className="cursor-pointer">
+                        {/* Vertical Highlight Line */}
+                        {isHovered && (
+                          <line
+                            x1={x}
+                            y1={10}
+                            x2={x}
+                            y2={145}
+                            stroke="#7C3AED"
+                            strokeWidth="1.5"
+                            strokeDasharray="4 3"
+                            className="opacity-75"
+                          />
+                        )}
+
+                        {/* Hover sensor rect */}
+                        <rect
+                          x={x - 44}
+                          y={0}
+                          width={88}
+                          height={150}
+                          fill="transparent"
+                          onMouseEnter={() => setHoveredWeek({
+                            index: idx,
+                            label: w.label,
+                            rangeText: `${w.range[0]} a ${w.range[1]} ${MONTHS[selectedMonth - 1].slice(0, 3)}`,
+                            aulas: w.aulas,
+                            entrevistas: w.entrevistas,
+                            novos: w.novos,
+                            x: x,
+                            y: minY,
+                          })}
+                          onMouseLeave={() => setHoveredWeek(null)}
+                        />
+                      </g>
+                    )
+                  })}
                 </svg>
               </div>
 
               {/* X-axis labels with values per series */}
               <div className="flex justify-between text-[10px] font-bold text-[#8CAAB1] pt-3 px-1 border-t border-[#EEF5F6]">
-                {monthlyChartData.weeks.map((w) => (
-                  <div key={w.label} className="text-center space-y-0.5">
-                    <span className="font-extrabold text-[#0D2329] block text-xs">{w.label}</span>
-                    <div className="flex items-center justify-center gap-1 text-[9px]">
-                      <span className="text-[#10B981] font-black" title="Aulas">{w.aulas}</span>
-                      <span className="text-[#D8E5E7]">•</span>
-                      <span className="text-[#7C3AED] font-black" title="Entrevistas">{w.entrevistas}</span>
-                      <span className="text-[#D8E5E7]">•</span>
-                      <span className="text-[#0284C7] font-black" title="Novos">{w.novos}</span>
+                {monthlyChartData.weeks.map((w, idx) => {
+                  const isHovered = hoveredWeek?.index === idx
+                  return (
+                    <div
+                      key={w.label}
+                      className={`text-center space-y-0.5 px-2 py-1 rounded-xl transition-all cursor-pointer ${
+                        isHovered ? "bg-[#EDE9FE] ring-2 ring-[#7C3AED]" : "hover:bg-[#F7FAFA]"
+                      }`}
+                      onMouseEnter={() => {
+                        const x = idx * 92 + 16
+                        const minY = Math.min(
+                          monthlyChartData.curveAulas.pts[idx].y,
+                          monthlyChartData.curveEvals.pts[idx].y,
+                          monthlyChartData.curveNovos.pts[idx].y
+                        )
+                        setHoveredWeek({
+                          index: idx,
+                          label: w.label,
+                          rangeText: `${w.range[0]} a ${w.range[1]} ${MONTHS[selectedMonth - 1].slice(0, 3)}`,
+                          aulas: w.aulas,
+                          entrevistas: w.entrevistas,
+                          novos: w.novos,
+                          x: x,
+                          y: minY,
+                        })
+                      }}
+                      onMouseLeave={() => setHoveredWeek(null)}
+                    >
+                      <span className="font-extrabold text-[#0D2329] block text-xs">{w.label}</span>
+                      <div className="flex items-center justify-center gap-1 text-[9px]">
+                        <span className="text-[#10B981] font-black">{w.aulas}</span>
+                        <span className="text-[#D8E5E7]">•</span>
+                        <span className="text-[#7C3AED] font-black">{w.entrevistas}</span>
+                        <span className="text-[#D8E5E7]">•</span>
+                        <span className="text-[#0284C7] font-black">{w.novos}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 
