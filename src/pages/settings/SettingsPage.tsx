@@ -984,36 +984,26 @@ export function SettingsPage() {
               </div>
 
               {/* Seção 2: Cobrança & Chave PIX com Fundo Destacado */}
-              <div className="p-5 rounded-2xl bg-[#FEF8EC] border-2 border-[#F4C95D]/60 space-y-4 shadow-2xs">
+              <div className="p-5 rounded-2xl bg-[#FEF8EC] border-2 border-[#F4C95D]/60 space-y-3 shadow-2xs">
                 <div className="flex items-center gap-2 text-[#8B6514]">
                   <DollarSign className="w-4 h-4 font-black" />
                   <h3 className="text-xs font-black uppercase tracking-wider">
-                    Dados Financeiros & Chave PIX para os Pais
+                    Chave PIX para Recebimentos
                   </h3>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black text-[#8B6514]">Chave PIX Padrão *</label>
-                    <input
-                      type="text"
-                      value={form.pix_key}
-                      onChange={(e) => setForm({ ...form, pix_key: e.target.value })}
-                      placeholder="priscila.souza@pix.com.br"
-                      className="w-full px-4 py-3 text-xs font-black rounded-2xl border-2 border-[#F4C95D] bg-white focus:outline-none focus:ring-2 focus:ring-[#8B6514]/20 text-[#0D2329]"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black text-[#8B6514]">Valor Padrão da Sessão (R$)</label>
-                    <input
-                      type="text"
-                      value={form.default_price}
-                      onChange={(e) => setForm({ ...form, default_price: e.target.value })}
-                      placeholder="180"
-                      className="w-full px-4 py-3 text-xs font-black rounded-2xl border-2 border-[#F4C95D] bg-white focus:outline-none focus:ring-2 focus:ring-[#8B6514]/20 text-[#0D2329]"
-                    />
-                  </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-[#8B6514]">Chave PIX Padrão *</label>
+                  <input
+                    type="text"
+                    value={form.pix_key}
+                    onChange={(e) => setForm({ ...form, pix_key: e.target.value })}
+                    placeholder="priscila.souza@pix.com.br (E-mail, CPF, Telefone ou Chave Aleatória)"
+                    className="w-full px-4 py-3 text-xs font-black rounded-2xl border-2 border-[#F4C95D] bg-white focus:outline-none focus:ring-2 focus:ring-[#8B6514]/20 text-[#0D2329]"
+                  />
+                  <p className="text-[11px] font-semibold text-[#8B6514]/80">
+                    Esta chave PIX é inserida automaticamente nas mensagens de cobrança do WhatsApp.
+                  </p>
                 </div>
               </div>
 
@@ -1075,10 +1065,7 @@ export function SettingsPage() {
                     <span>Chave PIX:</span>
                     <span className="text-[#0284C7] font-black">{form.pix_key}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span>Valor Padrão:</span>
-                    <span className="text-[#10B981] font-black">R$ {form.default_price},00 / sessão</span>
-                  </div>
+                  
                   <div className="flex items-center justify-between">
                     <span>Local:</span>
                     <span className="text-[#0D2329] font-black">{form.city}, {form.state}</span>
