@@ -31,6 +31,7 @@ interface NewAppointmentDialogProps {
   onClose: () => void
   onSuccess: () => void
   defaultDate?: string
+  defaultChildId?: string
 }
 
 const WEEK_DAYS = [
@@ -42,7 +43,7 @@ const WEEK_DAYS = [
   { id: 6, label: "Sáb", name: "Sábado" },
 ]
 
-export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate }: NewAppointmentDialogProps) {
+export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, defaultChildId }: NewAppointmentDialogProps) {
   const { user, professional } = useAuthStore()
   const [children, setChildren] = useState<Child[]>([])
   const [loading, setLoading] = useState(false)
@@ -57,7 +58,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate }: 
   const [selectedDays, setSelectedDays] = useState<number[]>([])
 
   const [form, setForm] = useState({
-    child_id: "",
+    child_id: defaultChildId || "",
     new_child_name: "",
     new_guardian_name: "",
     new_guardian_phone: "",
@@ -78,8 +79,11 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate }: 
       if (defaultDate) {
         setForm((prev) => ({ ...prev, date: defaultDate }))
       }
+      if (defaultChildId) {
+        setForm((prev) => ({ ...prev, child_id: defaultChildId }))
+      }
     }
-  }, [open, professional, user, defaultDate])
+  }, [open, professional, user, defaultDate, defaultChildId])
 
   // Sync selected day with initial date day of week
   useEffect(() => {

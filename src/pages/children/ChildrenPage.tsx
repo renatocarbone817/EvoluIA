@@ -13,7 +13,13 @@ import {
   Sparkles,
   BookOpen,
   Cake,
+  LayoutGrid,
+  List,
+  Clock,
+  Filter,
 } from "lucide-react"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
 import { Card, CardContent } from "@/components/ui/Card"
@@ -23,6 +29,7 @@ import { ChildAvatar } from "@/components/ui/ChildAvatar"
 import { calculateAge, formatDate, formatPhone } from "@/lib/utils"
 import type { Child, Guardian } from "@/types/database"
 import { NewChildDialog } from "./NewChildDialog"
+import { NewAppointmentDialog } from "@/pages/appointments/NewAppointmentDialog"
 
 interface ChildWithDetails extends Child {
   guardians?: {
@@ -30,16 +37,20 @@ interface ChildWithDetails extends Child {
     is_primary: boolean
     guardian: Guardian | null
   }[]
+  nextAppointment?: {
+    id: string
+    start_time: string
+    type: string
+  } | null
+  lastAppointment?: {
+    id: string
+    start_time: string
+    type: string
+  } | null
 }
 
-const STATUS_OPTIONS = [
-  { value: "", label: "Todos os status" },
-  { value: "initial_assessment", label: "Entrevista Inicial" },
-  { value: "in_progress", label: "Em Acompanhamento" },
-  { value: "paused", label: "Pausado" },
-  { value: "closed", label: "Encerrado" },
-  { value: "archived", label: "Arquivado" },
-]
+type ViewType = "cards" | "list"
+type StatusFilterType = "todos" | "in_progress" | "initial_assessment" | "outros"
 
 export function ChildrenPage() {
   const navigate = useNavigate()
@@ -48,10 +59,13 @@ export function ChildrenPage() {
   const [children, setChildren] = useState<ChildWithDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState("")
+  const [statusFilter, setStatusFilter] = useState<StatusFilterType>("todos")
+  const [viewType, setViewType] = useState<ViewType>("cards")
   const [showNewDialog, setShowNewDialog] = useState(searchParams.get("nova") === "true")
+  const [sortBy, setSortBy] = useState<"recent" | "az" | "next_appt">("recent")
 
-  const [sortBy, setSortBy] = useState<"recent" | "az">("recent")
+  // Fast schedule appointment for a specific child
+  const [scheduleForChildId, setScheduleForChildId] = useState<string | null>(null)
 
   const profId = professional?.id || user?.id
 
@@ -63,6 +77,7 @@ export function ChildrenPage() {
     if (!profId) return
     setLoading(true)
     try {
+      // 1. Fetch children with guardians
       const query = supabase
         .from("children")
         .select(`
@@ -75,24 +90,65 @@ export function ChildrenPage() {
         `)
         .eq("professional_id", profId)
 
-      const { data, error } = sortBy === "recent"
-        ? await query.order("created_at", { ascending: false })
-        : await query.order("full_name", { ascending: true })
+      let { data: childrenData, error } = sortBy === "az"
+        ? await query.order("full_name", { ascending: true })
+        : await query.order("created_at", { ascending: false })
 
-      if (!error && data) {
-        setChildren(data as any)
-      } else {
-        const fallbackQuery = supabase
+      if (error || !childrenData) {
+        const { data: fallback } = await supabase
           .from("children")
           .select("*")
           .eq("professional_id", profId)
-
-        const { data: fallback } = sortBy === "recent"
-          ? await fallbackQuery.order("created_at", { ascending: false })
-          : await fallbackQuery.order("full_name", { ascending: true })
-
-        setChildren(fallback || [])
+        childrenData = fallback || []
       }
+
+      // 2. Fetch appointments to calculate next and last appointment for each child
+      const { data: apptsData } = await supabase
+        .from("appointments")
+        .select("id, child_id, start_time, type, status")
+        .eq("professional_id", profId)
+        .order("start_time", { ascending: true })
+
+      const now = new Date()
+      const apptsByChild: Record<string, { next?: any; last?: any }> = {}
+
+      if (apptsData) {
+        for (const appt of apptsData) {
+          const apptTime = new Date(appt.start_time)
+          if (!apptsByChild[appt.child_id]) {
+            apptsByChild[appt.child_id] = {}
+          }
+
+          if (apptTime >= now && appt.status !== "cancelled") {
+            // First upcoming appointment
+            if (!apptsByChild[appt.child_id].next) {
+              apptsByChild[appt.child_id].next = appt
+            }
+          } else if (apptTime < now && appt.status !== "cancelled") {
+            // Latest past appointment
+            apptsByChild[appt.child_id].last = appt
+          }
+        }
+      }
+
+      const enriched: ChildWithDetails[] = (childrenData as any[]).map((c) => ({
+        ...c,
+        nextAppointment: apptsByChild[c.id]?.next || null,
+        lastAppointment: apptsByChild[c.id]?.last || null,
+      }))
+
+      if (sortBy === "next_appt") {
+        enriched.sort((a, b) => {
+          if (a.nextAppointment && !b.nextAppointment) return -1
+          if (!a.nextAppointment && b.nextAppointment) return 1
+          if (a.nextAppointment && b.nextAppointment) {
+            return new Date(a.nextAppointment.start_time).getTime() - new Date(b.nextAppointment.start_time).getTime()
+          }
+          return 0
+        })
+      }
+
+      setChildren(enriched)
     } finally {
       setLoading(false)
     }
@@ -101,14 +157,17 @@ export function ChildrenPage() {
   // Smart search: matches child name, school, complaint OR parent name/phone!
   const filtered = children.filter((c) => {
     const q = search.toLowerCase().trim()
-    const matchStatus = !statusFilter || c.status === statusFilter
+    let matchStatus = true
+    if (statusFilter === "in_progress") matchStatus = c.status === "in_progress"
+    else if (statusFilter === "initial_assessment") matchStatus = c.status === "initial_assessment"
+    else if (statusFilter === "outros") matchStatus = c.status !== "in_progress" && c.status !== "initial_assessment"
+
     if (!matchStatus) return false
     if (!q) return true
 
     const childText = `${c.full_name} ${c.school || ""} ${c.grade || ""} ${c.main_complaint || ""}`.toLowerCase()
     if (childText.includes(q)) return true
 
-    // Match parent name or phone
     const guardianMatch = c.guardians?.some((g) =>
       g.guardian?.full_name?.toLowerCase().includes(q) ||
       g.guardian?.phone?.includes(q)
@@ -118,8 +177,15 @@ export function ChildrenPage() {
     return false
   })
 
+  // Counts for status tabs
+  const countInProgress = children.filter((c) => c.status === "in_progress").length
+  const countInitial = children.filter((c) => c.status === "initial_assessment").length
+  const countOthers = children.filter(
+    (c) => c.status !== "in_progress" && c.status !== "initial_assessment"
+  ).length
+
   return (
-    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -130,57 +196,118 @@ export function ChildrenPage() {
             {children.length} paciente{children.length !== 1 ? "s" : ""} cadastrado{children.length !== 1 ? "s" : ""} no consultório
           </p>
         </div>
-        <Button size="lg" onClick={() => setShowNewDialog(true)} className="gap-2 shadow-[0_4px_0_0_#143741]">
+        <Button size="lg" onClick={() => setShowNewDialog(true)} className="gap-2 shadow-sm">
           <Plus className="w-5 h-5" />
           Nova Criança
         </Button>
       </div>
 
-      {/* Search & Filters */}
-      <div className="flex gap-3 flex-wrap bg-white p-3 rounded-2xl border-2 border-[#D8E5E7] shadow-sm">
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8DA3A8]" />
-          <input
-            type="text"
-            placeholder="Buscar por nome da criança, responsável, escola ou queixa..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 h-11 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-sm font-semibold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all placeholder:text-[#8DA3A8] placeholder:font-normal"
-          />
+      {/* Search, Sort & View Mode Toolbar */}
+      <div className="space-y-3 bg-white p-3.5 rounded-2xl border-2 border-[#D8E5E7] shadow-sm">
+        <div className="flex gap-2.5 flex-wrap">
+          {/* Search input */}
+          <div className="relative flex-1 min-w-56">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8DA3A8]" />
+            <input
+              type="text"
+              placeholder="Buscar por criança, responsável, escola ou queixa..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 h-10 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all placeholder:text-[#8DA3A8]"
+            />
+          </div>
+
+          {/* Sort By Dropdown */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="h-10 px-3 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-xs font-bold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] transition-all"
+          >
+            <option value="recent">⏱️ Mais Recentes</option>
+            <option value="az">🔤 Ordem Alfabética (A - Z)</option>
+            <option value="next_appt">📅 Próximo Atendimento</option>
+          </select>
+
+          {/* View Mode Toggle: Cards vs List */}
+          <div className="flex bg-[#EEF5F6] rounded-xl p-0.5 border-2 border-[#D8E5E7]">
+            <button
+              onClick={() => setViewType("cards")}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all ${
+                viewType === "cards"
+                  ? "bg-[#245C6B] text-white shadow-xs"
+                  : "text-[#19323A] hover:bg-white/60"
+              }`}
+              title="Visualização em Cards"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Cards</span>
+            </button>
+            <button
+              onClick={() => setViewType("list")}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all ${
+                viewType === "list"
+                  ? "bg-[#245C6B] text-white shadow-xs"
+                  : "text-[#19323A] hover:bg-white/60"
+              }`}
+              title="Visualização em Lista / Tabela"
+            >
+              <List className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Lista</span>
+            </button>
+          </div>
         </div>
 
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as any)}
-          className="h-11 px-4 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-sm font-bold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all"
-        >
-          <option value="recent">⏱️ Mais Recentes Primeiro</option>
-          <option value="az">🔤 Ordem Alfabética (A - Z)</option>
-        </select>
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-11 px-4 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-sm font-bold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all"
-        >
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+        {/* Status Filter Chips */}
+        <div className="flex items-center gap-2 overflow-x-auto pt-1">
+          <div className="flex items-center gap-1 text-xs font-bold text-[#6B7C83] mr-1">
+            <Filter className="w-3.5 h-3.5" />
+            <span>Status:</span>
+          </div>
+          {[
+            { id: "todos", label: "Todos", count: children.length },
+            { id: "in_progress", label: "Em Acompanhamento", count: countInProgress, dot: "bg-[#20836F]" },
+            { id: "initial_assessment", label: "Entrevista Inicial", count: countInitial, dot: "bg-[#F4C95D]" },
+            { id: "outros", label: "Pausado / Encerrado", count: countOthers, dot: "bg-[#6B7C83]" },
+          ].map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setStatusFilter(f.id as StatusFilterType)}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5 shrink-0 ${
+                statusFilter === f.id
+                  ? "bg-[#19323A] text-white border-[#19323A] shadow-xs"
+                  : "bg-white text-[#4F6C74] border-[#D8E5E7] hover:border-[#245C6B]"
+              }`}
+            >
+              {f.dot && (
+                <span
+                  className={`w-2 h-2 rounded-full ${statusFilter === f.id ? "bg-white" : f.dot}`}
+                />
+              )}
+              <span>{f.label}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                  statusFilter === f.id ? "bg-white/20 text-white" : "bg-[#EEF5F6] text-[#6B7C83]"
+                }`}
+              >
+                {f.count}
+              </span>
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
-      {/* Grid of Children Cards (2 Columns - Rich details like Guardians) */}
+      {/* Main Content: Loading, Empty or List/Grid View */}
       {loading ? (
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className={viewType === "cards" ? "grid sm:grid-cols-2 gap-4" : "space-y-2"}>
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-56 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-2xl" />
+            <div key={i} className="h-40 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-2xl" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
         <Card className="border-2 border-dashed border-[#D8E5E7] text-center py-16">
           <CardContent className="space-y-3">
-            <div className="w-16 h-16 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex items-center justify-center mx-auto text-[#245C6B]">
-              <Users className="w-8 h-8" />
+            <div className="w-14 h-14 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex items-center justify-center mx-auto text-[#245C6B]">
+              <Users className="w-7 h-7" />
             </div>
             {children.length === 0 ? (
               <>
@@ -201,7 +328,122 @@ export function ChildrenPage() {
             )}
           </CardContent>
         </Card>
+      ) : viewType === "list" ? (
+        /* 1. LIST / TABLE VIEW (Dense & Scalable for 50-300+ children) */
+        <div className="bg-white rounded-2xl border-2 border-[#D8E5E7] shadow-sm overflow-hidden">
+          <div className="divide-y divide-[#EEF5F6]">
+            {filtered.map((child) => {
+              const age = child.birth_date ? calculateAge(child.birth_date) : null
+              const linkedGuardians = child.guardians?.filter((g) => g.guardian) || []
+              const primaryGuardian = linkedGuardians[0]?.guardian
+              const rawPhone = primaryGuardian?.whatsapp || primaryGuardian?.phone || ""
+              const cleanPhone = rawPhone.replace(/\D/g, "")
+
+              return (
+                <div
+                  key={child.id}
+                  onClick={() => navigate(`/criancas/${child.id}`)}
+                  className="p-3 sm:p-4 hover:bg-[#F7FAFA] transition-colors cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-3 group"
+                >
+                  {/* Child Info */}
+                  <div className="flex items-center gap-3 min-w-0 md:w-1/3">
+                    <ChildAvatar photoUrl={child.photo_url} name={child.full_name} size="md" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-black text-sm text-[#19323A] group-hover:text-[#245C6B] truncate">
+                          {child.full_name}
+                        </h3>
+                        {age !== null && (
+                          <span className="text-[10px] font-bold text-[#6B7C83] bg-[#EEF5F6] px-1.5 py-0.2 rounded-md">
+                            {age} anos
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-[#6B7C83] truncate">
+                        {child.school ? `🏫 ${child.school}` : "Escola não informada"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Guardian & Contact */}
+                  <div className="min-w-0 md:w-1/4 text-xs">
+                    {primaryGuardian ? (
+                      <div className="space-y-0.5">
+                        <p className="font-bold text-[#19323A] truncate flex items-center gap-1">
+                          <span>👤 {primaryGuardian.full_name}</span>
+                          {linkedGuardians[0]?.relationship && (
+                            <span className="text-[10px] text-[#6B7C83] font-normal">
+                              ({linkedGuardians[0].relationship})
+                            </span>
+                          )}
+                        </p>
+                        {primaryGuardian.phone && (
+                          <p className="text-[11px] text-[#6B7C83] font-medium">
+                            {formatPhone(primaryGuardian.phone)}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-[#8DA3A8] italic">Sem responsável</span>
+                    )}
+                  </div>
+
+                  {/* Status & Next Session */}
+                  <div className="min-w-0 md:w-1/4 space-y-1">
+                    <Badge statusKey={child.status} className="text-[10px] px-2 py-0.5" />
+                    {child.nextAppointment ? (
+                      <p className="text-[11px] font-bold text-[#20836F] flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        Próx: {format(new Date(child.nextAppointment.start_time), "dd/MM 'às' HH:mm")}
+                      </p>
+                    ) : child.lastAppointment ? (
+                      <p className="text-[10px] text-[#6B7C83] flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Último: {format(new Date(child.lastAppointment.start_time), "dd/MM/yy")}
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-[#8DA3A8] italic">Sem agendamento</p>
+                    )}
+                  </div>
+
+                  {/* Fast Action Buttons */}
+                  <div className="flex items-center gap-2 shrink-0 justify-end">
+                    {cleanPhone && (
+                      <a
+                        href={`https://wa.me/55${cleanPhone}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-2 text-[#20836F] bg-[#E8F8F5] hover:bg-[#20836F] hover:text-white rounded-xl border border-[#63C7B2]/40 transition-all text-xs font-bold flex items-center gap-1 shadow-2xs"
+                        title="Abrir WhatsApp"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                        <span className="hidden lg:inline text-[11px]">WhatsApp</span>
+                      </a>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setScheduleForChildId(child.id)
+                      }}
+                      className="px-2.5 py-1.5 text-[#245C6B] bg-[#EAF3F5] hover:bg-[#245C6B] hover:text-white rounded-xl border border-[#245C6B]/30 transition-all text-[11px] font-black flex items-center gap-1 shadow-2xs"
+                      title="Agendar nova sessão"
+                    >
+                      <Calendar className="w-3 h-3" />
+                      <span>Agendar</span>
+                    </button>
+
+                    <ChevronRight className="w-4 h-4 text-[#8DA3A8] group-hover:text-[#245C6B] group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       ) : (
+        /* 2. CARD VIEW (Rich context with next appointment, age & complaint) */
         <div className="grid sm:grid-cols-2 gap-4">
           {filtered.map((child) => {
             const age = child.birth_date ? calculateAge(child.birth_date) : null
@@ -214,122 +456,124 @@ export function ChildrenPage() {
               <div
                 key={child.id}
                 onClick={() => navigate(`/criancas/${child.id}`)}
-                className="p-5 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:shadow-md cursor-pointer transition-all space-y-4 flex flex-col justify-between group"
+                className="p-4 sm:p-5 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:shadow-md cursor-pointer transition-all space-y-3.5 flex flex-col justify-between group"
               >
                 {/* 1. Header: Avatar + Name + Status + WhatsApp */}
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="group-hover:scale-105 transition-transform">
-                        <ChildAvatar
-                          photoUrl={child.photo_url}
-                          name={child.full_name}
-                          size="md"
-                        />
+                        <ChildAvatar photoUrl={child.photo_url} name={child.full_name} size="md" />
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-black text-base text-[#19323A] group-hover:text-[#245C6B] transition-colors truncate leading-tight">
-                            {child.full_name}
-                          </h3>
-                        </div>
-                        <div className="mt-1">
-                          <Badge statusKey={child.status} />
+                        <h3 className="font-black text-base text-[#19323A] group-hover:text-[#245C6B] transition-colors truncate leading-tight">
+                          {child.full_name}
+                        </h3>
+                        <div className="mt-1 flex items-center gap-2 flex-wrap">
+                          <Badge statusKey={child.status} className="text-[10px] px-2 py-0.5" />
+                          {age !== null && (
+                            <span className="text-[11px] font-bold text-[#6B7C83] bg-[#EEF5F6] px-2 py-0.5 rounded-md">
+                              {age} anos
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
 
+                    {/* Quick WhatsApp Button */}
                     {cleanPhone && (
                       <a
                         href={`https://wa.me/55${cleanPhone}`}
                         target="_blank"
                         rel="noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="text-xs bg-[#E8F8F5] text-[#20836F] border-2 border-[#63C7B2]/40 hover:bg-[#63C7B2] hover:text-white px-3 py-1.5 rounded-xl font-black flex items-center gap-1.5 transition-all shadow-2xs active:scale-95 shrink-0"
+                        className="text-xs bg-[#E8F8F5] text-[#20836F] border border-[#63C7B2]/40 hover:bg-[#63C7B2] hover:text-white px-2.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shadow-2xs shrink-0"
                         title="Enviar WhatsApp para o responsável"
                       >
                         <MessageSquare className="w-3.5 h-3.5 fill-current" />
-                        WhatsApp
+                        <span className="text-[11px]">WhatsApp</span>
                       </a>
                     )}
                   </div>
 
-                  {/* 2. School & Age Badges */}
-                  <div className="flex items-center gap-2 text-xs font-bold text-[#19323A] flex-wrap pt-1">
-                    {age !== null && (
-                      <span className="inline-flex items-center gap-1 bg-[#EEF5F6] border border-[#D8E5E7] px-2.5 py-1 rounded-xl">
-                        <Cake className="w-3.5 h-3.5 text-[#245C6B]" />
-                        {age} anos {child.birth_date && `(${formatDate(child.birth_date)})`}
+                  {/* Next / Last Session Badge Banner */}
+                  {child.nextAppointment ? (
+                    <div className="p-2 bg-[#E8F8F5] border border-[#63C7B2]/40 rounded-xl text-xs flex items-center justify-between text-[#20836F]">
+                      <span className="flex items-center gap-1.5 font-bold">
+                        <Calendar className="w-3.5 h-3.5" />
+                        Próx: {format(new Date(child.nextAppointment.start_time), "dd/MM 'às' HH:mm", { locale: ptBR })}
                       </span>
-                    )}
-
-                    {child.school && (
-                      <span className="inline-flex items-center gap-1 bg-[#EEF5F6] border border-[#D8E5E7] px-2.5 py-1 rounded-xl truncate max-w-[200px]">
-                        <School className="w-3.5 h-3.5 text-[#245C6B] shrink-0" />
-                        <span className="truncate">{child.school}</span>
+                      <span className="text-[10px] font-extrabold uppercase opacity-80">
+                        {child.nextAppointment.type}
                       </span>
-                    )}
-
-                    {child.grade && (
-                      <span className="inline-flex items-center gap-1 bg-[#EEF5F6] border border-[#D8E5E7] px-2.5 py-1 rounded-xl">
-                        <BookOpen className="w-3.5 h-3.5 text-[#245C6B]" />
-                        {child.grade}
+                    </div>
+                  ) : child.lastAppointment ? (
+                    <div className="p-2 bg-[#EEF5F6] border border-[#D8E5E7] rounded-xl text-xs flex items-center justify-between text-[#6B7C83]">
+                      <span className="flex items-center gap-1.5 font-semibold text-[11px]">
+                        <Clock className="w-3 h-3" />
+                        Último atendimento: {format(new Date(child.lastAppointment.start_time), "dd/MM/yyyy")}
                       </span>
-                    )}
-                  </div>
+                    </div>
+                  ) : null}
 
-                  {/* 3. Guardians Linked */}
-                  <div className="pt-2 pb-1 border-t-2 border-[#EEF5F6] space-y-1.5">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-[#6B7C83] flex items-center gap-1">
-                      <UserCheck className="w-3.5 h-3.5 text-[#245C6B]" />
-                      Responsável / Família:
-                    </p>
+                  {/* School & Grade info */}
+                  {(child.school || child.grade) && (
+                    <div className="flex items-center gap-2 text-xs font-semibold text-[#6B7C83] flex-wrap">
+                      {child.school && (
+                        <span className="inline-flex items-center gap-1 bg-[#EEF5F6] px-2 py-0.5 rounded-md truncate max-w-[220px]">
+                          <School className="w-3 h-3 text-[#245C6B] shrink-0" />
+                          <span className="truncate">{child.school}</span>
+                        </span>
+                      )}
+                      {child.grade && (
+                        <span className="inline-flex items-center gap-1 bg-[#EEF5F6] px-2 py-0.5 rounded-md">
+                          <BookOpen className="w-3 h-3 text-[#245C6B]" />
+                          {child.grade}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
-                    {linkedGuardians.length > 0 ? (
-                      <div className="flex flex-wrap gap-2 pt-0.5">
-                        {linkedGuardians.map((link, idx) => (
-                          <div
-                            key={idx}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F7FAFA] border-2 border-[#D8E5E7] text-xs font-bold text-[#19323A]"
-                          >
-                            <span>👤 {link.guardian!.full_name}</span>
-                            {link.relationship && (
-                              <span className="text-[10px] bg-[#EEF5F6] px-1.5 py-0.5 rounded-md font-semibold text-[#6B7C83]">
-                                {link.relationship}
-                              </span>
-                            )}
-                            {link.guardian!.phone && (
-                              <span className="text-[11px] text-[#6B7C83]">
-                                • {formatPhone(link.guardian!.phone)}
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-[#8DA3A8] italic">
-                        Nenhum responsável vinculado ainda.
-                      </p>
-                    )}
-                  </div>
+                  {/* Primary Guardian info */}
+                  {primaryGuardian && (
+                    <div className="pt-2 border-t border-[#EEF5F6] flex items-center justify-between text-xs font-bold text-[#19323A]">
+                      <span className="text-[#6B7C83] font-medium truncate flex items-center gap-1">
+                        👤 {primaryGuardian.full_name}{" "}
+                        {linkedGuardians[0]?.relationship ? `(${linkedGuardians[0].relationship})` : ""}
+                      </span>
+                      {primaryGuardian.phone && (
+                        <span className="text-[11px] text-[#6B7C83]">
+                          {formatPhone(primaryGuardian.phone)}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
-                  {/* 4. Clinical Complaint / Motivo */}
+                  {/* Clinical Complaint snippet */}
                   {child.main_complaint && (
-                    <div className="p-3 bg-[#FEF8EC]/60 border-2 border-[#F4C95D]/40 rounded-xl text-xs text-[#8B6514] font-medium leading-relaxed italic">
+                    <div className="p-2.5 bg-[#FEF8EC]/60 border border-[#F4C95D]/40 rounded-xl text-xs text-[#8B6514] font-medium leading-relaxed italic truncate">
                       💬 "{child.main_complaint}"
                     </div>
                   )}
                 </div>
 
-                {/* 5. Bottom: Registration Date & Action Button */}
-                <div className="flex items-center justify-between pt-3 border-t-2 border-[#EEF5F6] text-xs font-bold">
-                  <span className="text-[#8DA3A8] uppercase tracking-wider text-[10px]">
-                    Cadastrado em {formatDate(child.created_at)}
-                  </span>
+                {/* Bottom: Fast Schedule + View Profile */}
+                <div className="flex items-center justify-between pt-2.5 border-t border-[#EEF5F6] text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setScheduleForChildId(child.id)
+                    }}
+                    className="text-[#245C6B] hover:underline flex items-center gap-1 font-black text-xs"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    Agendar Sessão
+                  </button>
 
                   <span className="inline-flex items-center gap-1 text-[#245C6B] group-hover:underline font-black">
-                    Abrir Ficha Completa
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    Ver ficha
+                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </span>
                 </div>
               </div>
@@ -338,11 +582,23 @@ export function ChildrenPage() {
         </div>
       )}
 
+      {/* New Child Dialog */}
       <NewChildDialog
         open={showNewDialog}
         onClose={() => setShowNewDialog(false)}
         onSuccess={() => {
           setShowNewDialog(false)
+          loadChildren()
+        }}
+      />
+
+      {/* Direct Schedule Dialog for Selected Child */}
+      <NewAppointmentDialog
+        open={Boolean(scheduleForChildId)}
+        defaultChildId={scheduleForChildId || undefined}
+        onClose={() => setScheduleForChildId(null)}
+        onSuccess={() => {
+          setScheduleForChildId(null)
           loadChildren()
         }}
       />
