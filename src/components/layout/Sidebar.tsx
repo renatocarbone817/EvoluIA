@@ -1,15 +1,10 @@
-﻿import { NavLink, useNavigate, useLocation } from "react-router-dom"
+import { NavLink, useNavigate, useLocation } from "react-router-dom"
 import {
   LayoutDashboard,
   Calendar,
   Users,
-  ClipboardList,
-  Target,
-  ListTodo,
-  ScrollText,
   FileText,
-  MessageCircle,
-  FolderArchive,
+  BookOpen,
   DollarSign,
   Settings,
   Brain,
@@ -30,13 +25,8 @@ const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/agenda", icon: Calendar, label: "Agenda" },
   { to: "/criancas", icon: Users, label: "Pacientes" },
-  { to: "/criancas?tab=avaliacoes", icon: ClipboardList, label: "Avaliações" },
-  { to: "/atendimento", icon: Target, label: "Intervenções" },
-  { to: "/biblioteca", icon: ListTodo, label: "Atividades" },
-  { to: "/relatorios?tab=planos", icon: ScrollText, label: "Planos de Intervenção" },
   { to: "/relatorios", icon: FileText, label: "Relatórios" },
-  { to: "/responsaveis", icon: MessageCircle, label: "Comunicações" },
-  { to: "/biblioteca?tab=recursos", icon: FolderArchive, label: "Recursos" },
+  { to: "/biblioteca", icon: BookOpen, label: "Biblioteca" },
   { to: "/financeiro", icon: DollarSign, label: "Financeiro" },
   { to: "/configuracoes", icon: Settings, label: "Configurações" },
 ]
