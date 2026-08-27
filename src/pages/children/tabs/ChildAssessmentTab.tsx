@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
-import { Plus, CheckCircle, Clock, Save, Edit3, BookOpen, Printer, Sparkles } from "lucide-react"
+import { Plus, CheckCircle, Clock, Save, Edit3, BookOpen, Printer, Sparkles, RotateCcw, Loader2, AlertCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
@@ -106,6 +106,12 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
   const [saving, setSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(true)
 
+  // AI analysis state
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null)
+  const [aiAnalyzedAt, setAiAnalyzedAt] = useState<string | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+
+
   // Base info
   const [baseForm, setBaseForm] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -168,11 +174,61 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
         }
 
         setIsEditing(false)
+
+        // Load existing AI analysis if available
+        if ((assessmentData as any).ai_analysis) {
+          setAiAnalysis((assessmentData as any).ai_analysis)
+          setAiAnalyzedAt((assessmentData as any).ai_analyzed_at)
+        }
       } else {
         setIsEditing(true)
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleAnalyzeWithAI() {
+    if (!assessment?.id) return
+    setAiLoading(true)
+    try {
+      // Get child name from the parent component context via childId
+      const { data: childData } = await supabase
+        .from("children")
+        .select("full_name")
+        .eq("id", childId)
+        .single()
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+      const res = await fetch(`${supabaseUrl}/functions/v1/ai-analyze-interview`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          assessment_id: assessment.id,
+          child_name: childData?.full_name || "paciente",
+        }),
+      })
+
+      const json = await res.json()
+
+      if (!res.ok || json.error) {
+        toast.error(json.error || "Erro ao gerar análise. Tente novamente.")
+        return
+      }
+
+      setAiAnalysis(json.analysis)
+      setAiAnalyzedAt(new Date().toISOString())
+      toast.success("Análise gerada com sucesso! ✨")
+    } catch (err: any) {
+      toast.error("Erro ao conectar com a IA. Tente novamente.")
+      console.error(err)
+    } finally {
+      setAiLoading(false)
     }
   }
 
@@ -266,7 +322,7 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {assessment && !isEditing ? (
             <>
               <Button variant="outline" size="sm" onClick={() => window.print()}>
@@ -276,6 +332,20 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
               <Button size="sm" onClick={() => setIsEditing(true)}>
                 <Edit3 className="w-4 h-4 mr-1.5" />
                 Editar Respostas
+              </Button>
+              {/* AI Analyze Button */}
+              <Button
+                size="sm"
+                onClick={handleAnalyzeWithAI}
+                disabled={aiLoading}
+                className="gap-1.5 bg-gradient-to-r from-[#245C6B] to-[#1a4a58] hover:from-[#1a4a58] hover:to-[#132f3a] text-white border-0"
+              >
+                {aiLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                {aiLoading ? "Analisando..." : aiAnalysis ? "Reanalisar com IA" : "✨ Analisar com IA"}
               </Button>
             </>
           ) : (
@@ -368,6 +438,89 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
           )
         })}
       </div>
+
+      {/* ✨ AI ANALYSIS RESULT CARD */}
+      {aiAnalysis && (
+        <div className="rounded-2xl border-2 border-[#245C6B]/30 bg-gradient-to-br from-[#EAF3F5] to-[#F0F7F9] p-6 space-y-5">
+          {/* Card Header */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#245C6B] flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-black text-[#19323A] text-base">Análise IA — Entrevista Inicial</h3>
+                {aiAnalyzedAt && (
+                  <p className="text-[11px] text-[#6B7C83] font-semibold mt-0.5">
+                    Gerada em {new Date(aiAnalyzedAt).toLocaleDateString("pt-BR")} às{" "}
+                    {new Date(aiAnalyzedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleAnalyzeWithAI}
+              disabled={aiLoading}
+              className="flex items-center gap-1.5 text-[11px] font-bold text-[#245C6B] hover:bg-[#245C6B]/10 px-3 py-1.5 rounded-lg transition-colors shrink-0"
+            >
+              {aiLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <RotateCcw className="w-3.5 h-3.5" />
+              )}
+              Reanalisar
+            </button>
+          </div>
+
+          {/* AI Content — rendered as formatted markdown-like text */}
+          <div className="space-y-4">
+            {aiAnalysis.split(/\n(?=##\s)/).map((section, i) => {
+              const lines = section.trim().split("\n")
+              const title = lines[0].replace(/^##\s*/, "").trim()
+              const body = lines.slice(1).join("\n").trim()
+
+              return (
+                <div key={i} className="space-y-2">
+                  {title && (
+                    <h4 className="font-black text-sm text-[#19323A] flex items-center gap-1.5">
+                      {title}
+                    </h4>
+                  )}
+                  <div className="text-sm text-[#2E4A52] leading-relaxed whitespace-pre-wrap bg-white/60 rounded-xl p-4 border border-[#245C6B]/10">
+                    {body || section}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <p className="text-[10px] text-[#8DA3A8] font-semibold border-t border-[#245C6B]/10 pt-3">
+            🔒 Conteúdo gerado por IA para uso interno clínico. Revisão profissional obrigatória antes de qualquer uso.
+          </p>
+        </div>
+      )}
+
+      {/* AI Loading skeleton */}
+      {aiLoading && !aiAnalysis && (
+        <div className="rounded-2xl border-2 border-[#245C6B]/20 bg-[#EAF3F5]/50 p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#245C6B]/20 animate-pulse" />
+            <div className="space-y-1.5 flex-1">
+              <div className="h-4 w-48 bg-[#245C6B]/20 rounded animate-pulse" />
+              <div className="h-3 w-32 bg-[#245C6B]/10 rounded animate-pulse" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="h-3 w-full bg-[#245C6B]/10 rounded animate-pulse" />
+            <div className="h-3 w-4/5 bg-[#245C6B]/10 rounded animate-pulse" />
+            <div className="h-3 w-3/4 bg-[#245C6B]/10 rounded animate-pulse" />
+          </div>
+          <p className="text-xs text-[#6B7C83] font-semibold text-center animate-pulse">
+            ✨ A IA está analisando a entrevista...
+          </p>
+        </div>
+      )}
 
       {/* Bottom save bar */}
       {isEditing && (
