@@ -22,6 +22,7 @@ import {
   MessageCircle,
   GripVertical,
   Edit2,
+  ArrowUpDown,
 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -401,7 +402,7 @@ export function DashboardPage() {
   }
 
   // =========================================================================
-  // TASK DRAG AND DROP & DYNAMIC DEADLINE BADGE CALCULATION
+  // TASK DRAG AND DROP, SORT BY DATE & DYNAMIC DEADLINE BADGE CALCULATION
   // =========================================================================
   function getTaskBadge(task: TaskItem) {
     if (task.completed) {
@@ -449,6 +450,26 @@ export function DashboardPage() {
     }
     setDraggedTaskIndex(null)
     setDragOverTaskIndex(null)
+  }
+
+  function handleSortTasksByDate() {
+    if (tasks.length <= 1) return
+    const sorted = [...tasks].sort((a, b) => {
+      // 1. Concluídas vão para o final
+      if (a.completed !== b.completed) {
+        return a.completed ? 1 : -1
+      }
+      // 2. Se nenhuma tem data, mantém
+      if (!a.dueDate && !b.dueDate) return 0
+      // 3. Quem não tem data vai pro fim das pendentes
+      if (!a.dueDate) return 1
+      if (!b.dueDate) return -1
+      // 4. Ordenação cronológica crescente (Atrasadas -> Hoje -> Amanhã -> Futuras)
+      return a.dueDate.localeCompare(b.dueDate)
+    })
+    setTasks(sorted)
+    localStorage.setItem("evoluia_dashboard_tasks", JSON.stringify(sorted))
+    toast.success("Tarefas organizadas por data!", { icon: "📅" })
   }
 
   function toggleTask(id: string) {
@@ -1211,19 +1232,32 @@ export function DashboardPage() {
             COLUMN 3: TAREFAS + ANOTAÇÕES (3 COLS)
             ======================================================== */}
         <div className="lg:col-span-3 space-y-5">
-          {/* Tarefas Pendentes Card (SELEÇÃO DE DATA ESPECÍFICA & TRELLO DRAG AND DROP) */}
+          {/* Tarefas Pendentes Card (SELEÇÃO DE DATA, FILTRO/ORDENAÇÃO POR DATA & TRELLO DRAG AND DROP) */}
           <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <CheckSquare className="w-3.5 h-3.5 text-[#7C3AED]" />
                 <h3 className="text-xs font-black text-[#0D2329]">Tarefas da Clínica</h3>
               </div>
-              <button
-                onClick={() => setShowNewTaskInput(!showNewTaskInput)}
-                className="text-[10px] font-black text-[#7C3AED] hover:underline flex items-center gap-0.5"
-              >
-                <Plus className="w-3 h-3" /> Nova tarefa
-              </button>
+
+              <div className="flex items-center gap-1.5">
+                {/* Botão de Ordenar por Data */}
+                <button
+                  onClick={handleSortTasksByDate}
+                  className="px-2 py-0.5 text-[10px] font-bold text-[#6B7C83] hover:text-[#7C3AED] bg-[#F7FAFA] hover:bg-[#EDE9FE] border border-[#D8E5E7] hover:border-[#DDD6FE] rounded-lg transition-all flex items-center gap-1 active:scale-95"
+                  title="Organizar por data (Hoje no topo, depois as próximas)"
+                >
+                  <ArrowUpDown className="w-3 h-3 text-[#7C3AED]" />
+                  <span>Por data</span>
+                </button>
+
+                <button
+                  onClick={() => setShowNewTaskInput(!showNewTaskInput)}
+                  className="text-[10px] font-black text-[#7C3AED] hover:underline flex items-center gap-0.5"
+                >
+                  <Plus className="w-3 h-3" /> Nova tarefa
+                </button>
+              </div>
             </div>
 
             {showNewTaskInput && (
