@@ -18,11 +18,11 @@ import {
   FileText,
   UserPlus,
   Plus,
-  ArrowUpRight,
-  TrendingUp,
-  AlertTriangle,
   Play,
-  MessageSquare,
+  MessageCircle,
+  CheckCircle2,
+  XCircle,
+  ExternalLink,
 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -83,28 +83,45 @@ export function DashboardPage() {
   // Unified Hover Tooltip for Chart
   const [hoveredWeek, setHoveredWeek] = useState<HoveredWeekData | null>(null)
 
-  // Interactive Tasks (persisted)
+  // Interactive Tasks (persisted - clean of mock items)
   const [tasks, setTasks] = useState<TaskItem[]>(() => {
     const saved = localStorage.getItem("evoluia_dashboard_tasks")
-    if (saved) return JSON.parse(saved)
-    return [
-      { id: "1", text: "Elaborar relatório de avaliação", dueText: "Venc. hoje", dueColor: "red", completed: false },
-      { id: "2", text: "Enviar lembrete das sessões da semana", dueText: "Venc. amanhã", dueColor: "orange", completed: false },
-      { id: "3", text: "Planejar intervenção lúdica", dueText: "Venc. breve", dueColor: "gray", completed: false },
-      { id: "4", text: "Conferir extrato financeiro do mês", dueText: "Concluído", dueColor: "green", completed: true },
-    ]
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        // Clean out legacy mock data if present
+        return parsed.filter((t: TaskItem) => 
+          !t.text.includes("João Pedro") && 
+          !t.text.includes("Maria Clara") && 
+          !t.text.includes("Enzo") && 
+          !t.text.includes("Lucas")
+        )
+      } catch (e) {
+        return []
+      }
+    }
+    return []
   })
   const [showNewTaskInput, setShowNewTaskInput] = useState(false)
   const [newTaskText, setNewTaskText] = useState("")
+  const [newTaskDue, setNewTaskDue] = useState<"hoje" | "amanha" | "semana" | "sem_prazo">("hoje")
 
-  // Interactive Notes (persisted)
+  // Interactive Notes (persisted - clean of mock items)
   const [notes, setNotes] = useState<NoteItem[]>(() => {
     const saved = localStorage.getItem("evoluia_dashboard_notes")
-    if (saved) return JSON.parse(saved)
-    return [
-      { id: "1", text: "Reunião de alinhamento com a equipe escolar.", color: "yellow", starred: true },
-      { id: "2", text: "Organizar jogos cognitivos e fichas de avaliação.", color: "blue", starred: true },
-    ]
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        // Clean out legacy mock data
+        return parsed.filter((n: NoteItem) => 
+          !n.text.includes("Maria Clara dia 29/08") && 
+          !n.text.includes("kit de atividades")
+        )
+      } catch (e) {
+        return []
+      }
+    }
+    return []
   })
   const [newNoteText, setNewNoteText] = useState("")
 
@@ -344,6 +361,39 @@ export function DashboardPage() {
     }
   }, [allAppointments, allChildren, selectedMonth, currentYearNum])
 
+  // Appointment Actions
+  function openWhatsApp(appt: any) {
+    const guardian = appt.child?.guardians?.[0]?.guardian
+    const phone = guardian?.whatsapp || guardian?.phone
+    if (!phone) {
+      toast.error("Nenhum telefone cadastrado para o responsável.")
+      return
+    }
+    const cleanPhone = phone.replace(/\D/g, "")
+    const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`
+    const childName = appt.child?.full_name?.split(" ")[0] || "aluno"
+    const startTime = format(new Date(appt.start_time), "HH:mm")
+    const msg = encodeURIComponent(
+      `Olá! Lembrete do atendimento de ${childName} hoje às ${startTime} no Espaço EvoluIA. Podemos confirmar?`
+    )
+    window.open(`https://wa.me/${fullPhone}?text=${msg}`, "_blank")
+  }
+
+  async function updateAppointmentStatus(apptId: string, newStatus: string) {
+    try {
+      const { error } = await supabase
+        .from("appointments")
+        .update({ status: newStatus })
+        .eq("id", apptId)
+
+      if (error) throw error
+      toast.success(`Status atualizado para ${newStatus === "done" ? "Realizado" : "Confirmado"}!`)
+      loadDashboardData()
+    } catch (e: any) {
+      toast.error("Erro ao atualizar status.")
+    }
+  }
+
   // Task handlers
   function toggleTask(id: string) {
     const updated = tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
@@ -353,11 +403,25 @@ export function DashboardPage() {
 
   function handleAddTask() {
     if (!newTaskText.trim()) return
+
+    let dueText = "Hoje"
+    let dueColor: TaskItem["dueColor"] = "red"
+    if (newTaskDue === "amanha") {
+      dueText = "Amanhã"
+      dueColor = "orange"
+    } else if (newTaskDue === "semana") {
+      dueText = "Esta semana"
+      dueColor = "gray"
+    } else if (newTaskDue === "sem_prazo") {
+      dueText = "Pendente"
+      dueColor = "gray"
+    }
+
     const newTask: TaskItem = {
       id: Date.now().toString(),
       text: newTaskText.trim(),
-      dueText: "Pendente",
-      dueColor: "orange",
+      dueText,
+      dueColor,
       completed: false,
     }
     const updated = [newTask, ...tasks]
@@ -372,6 +436,7 @@ export function DashboardPage() {
     const updated = tasks.filter((t) => t.id !== id)
     setTasks(updated)
     localStorage.setItem("evoluia_dashboard_tasks", JSON.stringify(updated))
+    toast.success("Tarefa excluída!")
   }
 
   // Note handlers
@@ -394,6 +459,7 @@ export function DashboardPage() {
     const updated = notes.filter((n) => n.id !== id)
     setNotes(updated)
     localStorage.setItem("evoluia_dashboard_notes", JSON.stringify(updated))
+    toast.success("Anotação excluída!")
   }
 
   const firstName = professional?.full_name?.split(" ")[0] || "Priscila"
@@ -573,7 +639,7 @@ export function DashboardPage() {
                 </button>
               </div>
             ) : (
-              <div className="relative space-y-3.5 pl-2 before:absolute before:left-[45px] before:top-2 before:bottom-2 before:w-0.5 before:bg-[#EEF5F6]">
+              <div className="relative space-y-3 pl-2 before:absolute before:left-[45px] before:top-2 before:bottom-2 before:w-0.5 before:bg-[#EEF5F6]">
                 {todayAppointments.map((appt) => {
                   const startTime = new Date(appt.start_time)
                   const timeStr = format(startTime, "HH:mm")
@@ -591,14 +657,14 @@ export function DashboardPage() {
                         isDone ? "bg-[#10B981]" : isConfirmed ? "bg-[#00B4D8]" : "bg-[#F59E0B]"
                       }`} />
 
-                      <div
-                        onClick={() => {
-                          if (appt.child_id) navigate(`/criancas/${appt.child_id}`)
-                          else navigate(`/atendimento/${appt.id}`)
-                        }}
-                        className="flex-1 flex items-center justify-between p-2.5 rounded-2xl hover:bg-[#F7FAFA] border border-transparent hover:border-[#D8E5E7] transition-all cursor-pointer min-w-0"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex-1 flex items-center justify-between p-2.5 rounded-2xl hover:bg-[#F7FAFA] border border-[#EEF5F6] hover:border-[#D8E5E7] transition-all min-w-0">
+                        <div
+                          onClick={() => {
+                            if (appt.child_id) navigate(`/criancas/${appt.child_id}`)
+                            else navigate(`/atendimento/${appt.id}`)
+                          }}
+                          className="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1"
+                        >
                           <ChildAvatar photoUrl={appt.child?.photo_url} name={childName} size="xs" />
                           <div className="min-w-0">
                             <p className="text-xs font-black text-[#0D2329] truncate">{childName}</p>
@@ -606,15 +672,23 @@ export function DashboardPage() {
                           </div>
                         </div>
 
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                          isDone
-                            ? "bg-[#E8F8F5] text-[#10B981]"
-                            : isConfirmed
-                            ? "bg-[#E0F7FA] text-[#00A896]"
-                            : "bg-[#FEF8EC] text-[#B8871E]"
-                        }`}>
-                          {isDone ? "Realizado" : isConfirmed ? "Confirmado" : "Pendente"}
-                        </span>
+                        {/* Interactive Session Actions */}
+                        <div className="flex items-center gap-1 shrink-0 ml-2">
+                          <button
+                            onClick={() => openWhatsApp(appt)}
+                            className="p-1.5 rounded-lg bg-[#E8F8F5] text-[#10B981] hover:bg-[#D1FAE5] transition-colors"
+                            title="Lembrete WhatsApp"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => navigate(`/atendimento/${appt.id}`)}
+                            className="p-1.5 rounded-lg bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE] transition-colors font-bold text-[10px] flex items-center gap-1"
+                            title="Iniciar Atendimento"
+                          >
+                            <Play className="w-3 h-3 fill-current" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )
@@ -821,7 +895,7 @@ export function DashboardPage() {
                     />
                   ))}
 
-                  {/* Interactive Week Hover Columns (Captures any mouse hover over the week) */}
+                  {/* Interactive Week Hover Columns */}
                   {monthlyChartData.weeks.map((w, idx) => {
                     const x = idx * 92 + 16
                     const minY = Math.min(
@@ -833,7 +907,6 @@ export function DashboardPage() {
 
                     return (
                       <g key={`hover-band-${idx}`} className="cursor-pointer">
-                        {/* Vertical Highlight Line */}
                         {isHovered && (
                           <line
                             x1={x}
@@ -847,7 +920,6 @@ export function DashboardPage() {
                           />
                         )}
 
-                        {/* Hover sensor rect */}
                         <rect
                           x={x - 44}
                           y={0}
@@ -916,7 +988,7 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* Bottom 4 Performance Badges (REAL CALCULATED METRICS) */}
+            {/* Bottom 4 Performance Badges */}
             <div className="grid grid-cols-4 gap-2 pt-3 border-t border-[#EEF5F6] text-center">
               <div className="space-y-0.5 p-2 rounded-2xl bg-[#E8F8F5] border border-[#A7F3D0]/60">
                 <p className="text-[10px] text-[#065F46] font-bold">Aulas</p>
@@ -957,33 +1029,56 @@ export function DashboardPage() {
 
             <div className="p-3.5 pt-0 space-y-2.5">
               {upcomingAppointments.length === 0 ? (
-                <div className="py-4 text-center text-xs text-[#8CAAB1]">Nenhuma sessão futura agendada</div>
+                <div className="py-6 text-center space-y-2 border-2 border-dashed border-[#EEF5F6] rounded-2xl bg-[#FAFCFC]">
+                  <Calendar className="w-6 h-6 mx-auto text-[#A0B4B9]" />
+                  <p className="text-xs font-bold text-[#0D2329]">Nenhuma sessão futura</p>
+                  <button
+                    onClick={() => navigate("/agenda?novo=true")}
+                    className="text-xs font-bold text-[#00B4D8] hover:underline"
+                  >
+                    + Agendar nova sessão
+                  </button>
+                </div>
               ) : (
                 upcomingAppointments.slice(0, 3).map((appt) => {
                   const d = new Date(appt.start_time)
                   const day = format(d, "dd")
                   const month = format(d, "MMM", { locale: ptBR }).toUpperCase()
                   const time = format(d, "HH:mm")
-                  const name = appt.child?.full_name || "Paciente"
+                  const name = appt.child?.full_name || appt.notes || "Paciente"
 
                   return (
                     <div
                       key={appt.id}
-                      onClick={() => navigate(`/criancas/${appt.child_id}`)}
-                      className="flex items-center gap-2.5 p-2 rounded-2xl hover:bg-[#F7FAFA] border border-transparent hover:border-[#D8E5E7] transition-all cursor-pointer"
+                      className="flex items-center gap-2.5 p-2 rounded-2xl hover:bg-[#F7FAFA] border border-[#EEF5F6] hover:border-[#D8E5E7] transition-all"
                     >
                       <div className="w-11 h-11 rounded-2xl bg-[#F0F9FF] border border-[#BAE6FD] text-[#0284C7] flex flex-col items-center justify-center font-black text-xs shrink-0 leading-tight">
                         <span className="text-xs leading-none">{day}</span>
                         <span className="text-[8px] tracking-wider uppercase opacity-80">{month}</span>
                       </div>
 
-                      <div className="min-w-0 flex-1">
+                      <div
+                        onClick={() => {
+                          if (appt.child_id) navigate(`/criancas/${appt.child_id}`)
+                          else navigate(`/agenda`)
+                        }}
+                        className="min-w-0 flex-1 cursor-pointer"
+                      >
                         <div className="flex items-center justify-between">
                           <p className="text-xs font-black text-[#0D2329] truncate">{name}</p>
                           <span className="text-[10px] font-bold text-[#6B7C83]">{time}</span>
                         </div>
                         <p className="text-[10px] text-[#6B7C83] truncate">{appt.type}</p>
                       </div>
+
+                      {/* Quick WhatsApp Reminder */}
+                      <button
+                        onClick={() => openWhatsApp(appt)}
+                        className="p-1.5 rounded-lg bg-[#E8F8F5] text-[#10B981] hover:bg-[#D1FAE5] transition-colors shrink-0"
+                        title="Enviar WhatsApp"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   )
                 })
@@ -998,10 +1093,13 @@ export function DashboardPage() {
             </div>
           </div>
 
-          {/* Tarefas Pendentes Card (INTERACTIVE) */}
+          {/* Tarefas Pendentes Card (100% REAL & INTERATIVO) */}
           <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-black text-[#0D2329]">Tarefas Pendentes</h3>
+              <div className="flex items-center gap-1.5">
+                <CheckSquare className="w-3.5 h-3.5 text-[#7C3AED]" />
+                <h3 className="text-xs font-black text-[#0D2329]">Tarefas da Clínica</h3>
+              </div>
               <button
                 onClick={() => setShowNewTaskInput(!showNewTaskInput)}
                 className="text-[10px] font-black text-[#7C3AED] hover:underline flex items-center gap-0.5"
@@ -1011,71 +1109,102 @@ export function DashboardPage() {
             </div>
 
             {showNewTaskInput && (
-              <div className="flex items-center gap-1.5 pt-1">
+              <div className="p-2.5 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7] space-y-2">
                 <input
                   type="text"
                   value={newTaskText}
                   onChange={(e) => setNewTaskText(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAddTask()}
-                  placeholder="Nome da tarefa..."
-                  className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED]"
+                  placeholder="Nome da tarefa (ex: Ligar para mãe do Pedro)..."
+                  className="w-full px-3 py-1.5 text-xs rounded-xl border border-[#D8E5E7] bg-white focus:outline-none focus:border-[#7C3AED]"
                   autoFocus
                 />
-                <button
-                  onClick={handleAddTask}
-                  className="px-3 py-1.5 bg-[#7C3AED] text-white text-xs font-black rounded-xl"
-                >
-                  Adicionar
-                </button>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-[#F7FAFA] transition-colors group"
-                >
-                  <div
-                    onClick={() => toggleTask(task.id)}
-                    className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
-                  >
-                    {task.completed ? (
-                      <CheckSquare className="w-4 h-4 text-[#10B981] shrink-0" />
-                    ) : (
-                      <Square className="w-4 h-4 text-[#8CAAB1] shrink-0" />
-                    )}
-                    <p className={`text-xs font-bold truncate ${task.completed ? "line-through text-[#8CAAB1]" : "text-[#0D2329]"}`}>
-                      {task.text}
-                    </p>
+                
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1 text-[10px] font-bold">
+                    <span className="text-[#6B7C83]">Prazo:</span>
+                    <select
+                      value={newTaskDue}
+                      onChange={(e: any) => setNewTaskDue(e.target.value)}
+                      className="px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] bg-white text-[#0D2329]"
+                    >
+                      <option value="hoje">Hoje</option>
+                      <option value="amanha">Amanhã</option>
+                      <option value="semana">Esta semana</option>
+                      <option value="sem_prazo">Sem prazo</option>
+                    </select>
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded shrink-0 ${
-                      task.dueColor === "red"
-                        ? "bg-[#FDF0F0] text-[#EF4444]"
-                        : task.dueColor === "orange"
-                        ? "bg-[#FEF8EC] text-[#F59E0B]"
-                        : task.dueColor === "green"
-                        ? "bg-[#E8F8F5] text-[#10B981]"
-                        : "bg-[#EEF5F6] text-[#6B7C83]"
-                    }`}>
-                      {task.dueText}
-                    </span>
                     <button
-                      onClick={() => handleDeleteTask(task.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-[#8CAAB1] hover:text-[#EF4444] rounded"
-                      title="Excluir tarefa"
+                      onClick={() => setShowNewTaskInput(false)}
+                      className="px-2.5 py-1 text-[10px] font-bold text-[#6B7C83] hover:bg-[#EEF5F6] rounded-lg"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleAddTask}
+                      className="px-3 py-1 bg-[#7C3AED] text-white text-[10px] font-black rounded-lg shadow-xs"
+                    >
+                      Salvar
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
+
+            {tasks.length === 0 ? (
+              <div className="py-4 text-center text-xs text-[#8CAAB1]">
+                Nenhuma tarefa pendente no momento.
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-[#F7FAFA] transition-colors"
+                  >
+                    <div
+                      onClick={() => toggleTask(task.id)}
+                      className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
+                    >
+                      {task.completed ? (
+                        <CheckSquare className="w-4 h-4 text-[#10B981] shrink-0" />
+                      ) : (
+                        <Square className="w-4 h-4 text-[#8CAAB1] shrink-0" />
+                      )}
+                      <p className={`text-xs font-bold truncate ${task.completed ? "line-through text-[#8CAAB1]" : "text-[#0D2329]"}`}>
+                        {task.text}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
+                        task.dueColor === "red"
+                          ? "bg-[#FDF0F0] text-[#EF4444]"
+                          : task.dueColor === "orange"
+                          ? "bg-[#FEF8EC] text-[#F59E0B]"
+                          : task.dueColor === "green"
+                          ? "bg-[#E8F8F5] text-[#10B981]"
+                          : "bg-[#EEF5F6] text-[#6B7C83]"
+                      }`}>
+                        {task.dueText}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteTask(task.id)}
+                        className="p-1 text-[#A0B4B9] hover:text-[#EF4444] rounded hover:bg-[#FEE2E2] transition-colors"
+                        title="Excluir tarefa"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Anotações Rápidas (INTERACTIVE) */}
+          {/* Anotações Rápidas (100% REAL & INTERATIVO) */}
           <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
@@ -1101,31 +1230,35 @@ export function DashboardPage() {
               </button>
             </div>
 
-            <div className="space-y-2 pt-1">
-              {notes.map((note) => (
-                <div
-                  key={note.id}
-                  className={`p-3 rounded-2xl border text-xs font-semibold space-y-1 relative group transition-all shadow-2xs ${
-                    note.color === "yellow"
-                      ? "bg-[#FEF9C3]/80 border-[#FDE047]/60 text-[#854D0E]"
-                      : "bg-[#E0F2FE]/80 border-[#BAE6FD]/70 text-[#075985]"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-1">
-                    <p className="leading-snug pr-4">{note.text}</p>
-                    <button
-                      onClick={() => handleDeleteNote(note.id)}
-                      className="opacity-0 group-hover:opacity-100 text-[#8CAAB1] hover:text-[#EF4444] p-0.5 rounded transition-opacity"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+            {notes.length === 0 ? (
+              <div className="py-4 text-center text-xs text-[#8CAAB1]">
+                Nenhuma anotação salva.
+              </div>
+            ) : (
+              <div className="space-y-2 pt-1">
+                {notes.map((note) => (
+                  <div
+                    key={note.id}
+                    className={`p-3 rounded-2xl border text-xs font-semibold space-y-1 relative transition-all shadow-2xs ${
+                      note.color === "yellow"
+                        ? "bg-[#FEF9C3]/80 border-[#FDE047]/60 text-[#854D0E]"
+                        : "bg-[#E0F2FE]/80 border-[#BAE6FD]/70 text-[#075985]"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-1">
+                      <p className="leading-snug pr-2 flex-1">{note.text}</p>
+                      <button
+                        onClick={() => handleDeleteNote(note.id)}
+                        className="text-[#8CAAB1] hover:text-[#EF4444] p-1 rounded hover:bg-white/50 transition-all shrink-0"
+                        title="Excluir anotação"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-end">
-                    <Star className="w-3 h-3 text-[#F59E0B] fill-current" />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
