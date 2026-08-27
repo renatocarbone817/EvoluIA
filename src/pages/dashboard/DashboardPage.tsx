@@ -21,8 +21,6 @@ import {
   Play,
   MessageCircle,
   GripVertical,
-  Check,
-  X,
   Edit2,
 } from "lucide-react"
 import { format } from "date-fns"
@@ -121,7 +119,7 @@ export function DashboardPage() {
   const [draggedTaskIndex, setDraggedTaskIndex] = useState<number | null>(null)
   const [dragOverTaskIndex, setDragOverTaskIndex] = useState<number | null>(null)
 
-  // Interactive Notes (persisted with clean popover color picker & full reading view)
+  // Interactive Notes (persisted with 144 chars preview & expand/edit)
   const [notes, setNotes] = useState<NoteItem[]>(() => {
     const saved = localStorage.getItem("evoluia_dashboard_notes")
     if (saved) {
@@ -141,6 +139,7 @@ export function DashboardPage() {
   const [colorPickerOpenForId, setColorPickerOpenForId] = useState<string | null>(null)
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editingNoteText, setEditingNoteText] = useState("")
+  const [expandedNoteIds, setExpandedNoteIds] = useState<Record<string, boolean>>({})
 
   // Drag and drop state for notes
   const [draggedNoteIndex, setDraggedNoteIndex] = useState<number | null>(null)
@@ -467,7 +466,7 @@ export function DashboardPage() {
   }
 
   // =========================================================================
-  // NOTE DRAG AND DROP, EDITING & COLOR PICKER
+  // NOTE DRAG AND DROP, EXPAND/COLLAPSE (144 CHARS), EDIT & COLOR PICKER
   // =========================================================================
   function handleNoteDragStart(index: number) {
     setDraggedNoteIndex(index)
@@ -502,6 +501,13 @@ export function DashboardPage() {
     localStorage.setItem("evoluia_dashboard_notes", JSON.stringify(updated))
     setNewNoteText("")
     toast.success("Anotação salva!")
+  }
+
+  function toggleExpandNote(id: string) {
+    setExpandedNoteIds((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }))
   }
 
   function handleStartEditNote(note: NoteItem) {
@@ -1295,7 +1301,7 @@ export function DashboardPage() {
             )}
           </div>
 
-          {/* Anotações Rápidas (LEITURA COMPLETA DO TEXTO + EDIÇÃO INLINE + POPUP DE CORES) */}
+          {/* Anotações Rápidas (PREVIEW ATÉ 144 CARACTERES + CLIQUE PARA EXPANDIR + EDIÇÃO + CORES) */}
           <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
@@ -1334,6 +1340,9 @@ export function DashboardPage() {
                   const colorConfig = NOTE_COLORS.find((c) => c.id === note.color) || NOTE_COLORS[0]
                   const isColorPickerOpen = colorPickerOpenForId === note.id
                   const isEditing = editingNoteId === note.id
+                  const isExpanded = !!expandedNoteIds[note.id]
+                  const isLongText = note.text.length > 144
+                  const displayText = isLongText && !isExpanded ? `${note.text.slice(0, 144)}...` : note.text
 
                   return (
                     <div
@@ -1381,15 +1390,31 @@ export function DashboardPage() {
                         <div className="flex items-start justify-between gap-2">
                           <GripVertical className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 shrink-0 mt-0.5 transition-opacity" />
 
-                          {/* Full Readable Text (wraps naturally, clickable to edit) */}
+                          {/* 144 Chars Preview & Click to Expand/Collapse */}
                           <div
-                            onClick={() => handleStartEditNote(note)}
-                            title="Clique para editar o texto"
-                            className="flex-1 min-w-0 pr-1 cursor-pointer"
+                            onClick={() => {
+                              if (isLongText) toggleExpandNote(note.id)
+                              else handleStartEditNote(note)
+                            }}
+                            title={isLongText ? "Clique para expandir/recolher" : "Clique para editar"}
+                            className="flex-1 min-w-0 pr-1 cursor-pointer select-text"
                           >
-                            <p className="leading-relaxed break-words whitespace-pre-wrap select-text">
-                              {note.text}
+                            <p className="leading-relaxed break-words whitespace-pre-wrap">
+                              {displayText}
                             </p>
+
+                            {isLongText && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  toggleExpandNote(note.id)
+                                }}
+                                className="text-[10px] font-black underline opacity-75 hover:opacity-100 mt-1 inline-flex items-center gap-0.5 transition-opacity"
+                              >
+                                {isExpanded ? "Ver menos ↑" : "Ver texto completo (144+)... ↓"}
+                              </button>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0 relative mt-0.5">
