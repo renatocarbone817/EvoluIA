@@ -37,6 +37,8 @@ import {
   QrCode,
   Globe,
   Sliders,
+  Mail,
+  Award,
 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -87,7 +89,7 @@ const DEFAULT_SCHEDULE: DaySchedule[] = [
 
 export function SettingsPage() {
   const { user, professional, setProfessional } = useAuthStore()
-  const [activeTab, setActiveTab] = useState<SettingsTab>("geral")
+  const [activeTab, setActiveTab] = useState<SettingsTab>("consultorio")
   const [saving, setSaving] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -96,20 +98,19 @@ export function SettingsPage() {
 
   const profId = professional?.id || user?.id
 
-  // Profile and Clinic Form State
+  // Profile, Clinic & Address Form State
   const [form, setForm] = useState({
-    full_name: professional?.full_name || "Priscila Souza",
-    email: professional?.email || user?.email || "priscila@evoluia.com",
-    phone: professional?.phone || "(11) 98765-4321",
+    full_name: professional?.full_name || "Priscila Carbone",
+    email: professional?.email || user?.email || "priscila@evolui.com.br",
+    phone: professional?.phone || "17 99758-0663",
     clinic_name: professional?.clinic_name || "Aprender Ensinando - Espaço Psicopedagógico",
-    crp: professional?.crp || "06/12345-SP",
+    crp: professional?.crp || "2394-25",
     specialty: professional?.specialty || "Psicopedagogia Clínica & Neuroaprendizagem",
-    city: professional?.city || "São Paulo",
+    address: (professional as any)?.address || "Av. Principal, 1000 - Sala 04",
+    city: professional?.city || "São José do Rio Preto",
     state: professional?.state || "SP",
-    address: (professional as any)?.address || "Av. Paulista, 1000 - Sala 42",
     bio: professional?.bio || "Especialista no desenvolvimento cognitivo, dificuldades de aprendizagem, TDAH e orientação familiar.",
-    pix_key: (professional as any)?.pix_key || "priscila.souza@pix.com.br",
-    default_price: (professional as any)?.default_price || "180",
+    pix_key: (professional as any)?.pix_key || "priscila.carbone@pix.com.br",
   })
 
   // Task Categories State
@@ -143,7 +144,7 @@ export function SettingsPage() {
   const DEFAULT_REMINDER_TEMPLATE =
     "Olá, tudo bem? 🌟 Passando para confirmar a nossa sessão psicopedagógica de {nome_crianca} hoje às {horario} no consultório. Qualquer imprevisto, por favor nos avise. Até logo!"
   const DEFAULT_BILLING_TEMPLATE =
-    "Olá! Segue a mensalidade psicopedagógica de {nome_crianca} referente ao mês de {mes} no valor de {valor}. Segue nossa chave PIX: {chave_pix}. Qualquer dúvida estou à disposição!"
+    "Olá! Segue a mensalidade psicopedagógica de {nome_crianca} referente ao mês de {mes}. Segue nossa chave PIX: {chave_pix}. Qualquer dúvida estou à disposição!"
 
   const [reminderTemplate, setReminderTemplate] = useState<string>(() => {
     return localStorage.getItem("evoluia_reminder_template") || DEFAULT_REMINDER_TEMPLATE
@@ -236,7 +237,6 @@ export function SettingsPage() {
 
       if (error) throw error
 
-      localStorage.setItem("evoluia_default_price", form.default_price || "180")
       localStorage.setItem("evoluia_task_categories", JSON.stringify(categories))
       localStorage.setItem("evoluia_working_hours", JSON.stringify(schedule))
       localStorage.setItem("evoluia_session_duration", String(sessionDuration))
@@ -250,7 +250,7 @@ export function SettingsPage() {
         ...form,
       } as any)
 
-      toast.success("Configurações salvas com sucesso!", { icon: "✅" })
+      toast.success("Dados salvos com sucesso!", { icon: "✅" })
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar")
     } finally {
@@ -365,7 +365,7 @@ export function SettingsPage() {
             </div>
           </div>
           <p className="text-xs sm:text-sm font-semibold text-[#6B7C83]">
-            Personalize sua experiência e gerencie as preferências da sua conta.
+            Gerencie o perfil da profissional, dados do consultório, chave PIX, horários e integrações.
           </p>
         </div>
 
@@ -380,11 +380,11 @@ export function SettingsPage() {
         </button>
       </div>
 
-      {/* 2. STRUCTURED TAB BAR (High Contrast & Visible) */}
+      {/* 2. STRUCTURED TAB BAR */}
       <div className="flex bg-white p-1.5 rounded-2xl border-2 border-[#D8E5E7] shadow-xs overflow-x-auto gap-1">
         {[
-          { id: "geral", label: "⚡ Geral & Categorias", icon: Sliders },
-          { id: "consultorio", label: "🏢 Consultório & PIX", icon: Building },
+          { id: "consultorio", label: "🏢 Consultório, Perfil & PIX", icon: Building },
+          { id: "geral", label: "⚡ Categorias & Geral", icon: Sliders },
           { id: "agenda", label: "📅 Horários de Atendimento", icon: Calendar },
           { id: "notificacoes", label: "💬 Mensagens WhatsApp", icon: MessageSquare },
           { id: "integracoes", label: "🔗 Google Agenda & Dados", icon: Globe },
@@ -408,7 +408,281 @@ export function SettingsPage() {
       </div>
 
       {/* =========================================================================
-          TAB 1: GERAL (LAYOUT IDÊNTICO À REFERÊNCIA COM CONTRASTE REFORÇADO)
+          TAB 1: CONSULTÓRIO, PERFIL & PIX (TUDO UNIFICADO COM ALTO CONTRASTE)
+          ========================================================================= */}
+      {activeTab === "consultorio" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-in fade-in">
+          {/* Main Form (8 Cols) */}
+          <div className="lg:col-span-8 space-y-6">
+            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold shadow-2xs">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-[#0D2329]">Perfil Profissional & Consultório</h2>
+                    <p className="text-xs font-semibold text-[#6B7C83]">
+                      Suas informações pessoais, dados da clínica, endereço completo e chave PIX.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* SEÇÃO 1: FOTO & DADOS DA PROFISSIONAL */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black uppercase tracking-wider text-[#0D2329] flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#7C3AED]" />
+                  <span>1. Identificação da Profissional</span>
+                </h3>
+
+                {/* Avatar Row */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl bg-[#F7FAFA] border-2 border-[#D8E5E7]">
+                  <div className="relative group shrink-0 w-16 h-16 rounded-full bg-[#EDE9FE] text-[#7C3AED] font-black text-xl flex items-center justify-center overflow-hidden border-2 border-[#7C3AED]/40 shadow-sm">
+                    {professional?.logo_url ? (
+                      <img src={professional.logo_url} alt="Foto" className="w-full h-full object-cover" />
+                    ) : (
+                      form.full_name.charAt(0).toUpperCase()
+                    )}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Alterar foto"
+                    >
+                      <Camera className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-black text-[#0D2329]">Foto de Perfil ou Logo</p>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-2.5 py-1 text-[11px] font-bold text-[#7C3AED] bg-white border border-[#DDD6FE] hover:bg-[#EDE9FE] rounded-lg transition-colors"
+                      >
+                        Trocar Foto
+                      </button>
+                    </div>
+                    <p className="text-[11px] font-medium text-[#6B7C83]">
+                      Formatos JPG ou PNG. Usado em relatórios clínicos e cabeçalhos.
+                    </p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleLogoSelect}
+                    />
+                  </div>
+                </div>
+
+                {/* Inputs da Profissional */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">Nome Completo *</label>
+                    <input
+                      type="text"
+                      value={form.full_name}
+                      onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                      placeholder="Ex: Priscila Carbone"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">E-mail de Contato *</label>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      placeholder="priscila@evolui.com.br"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">Telefone / WhatsApp *</label>
+                    <input
+                      type="text"
+                      value={form.phone}
+                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      placeholder="17 99758-0663"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">CBO</label>
+                    <input
+                      type="text"
+                      value={form.crp}
+                      onChange={(e) => setForm({ ...form, crp: e.target.value })}
+                      placeholder="Ex: 2394-25"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-[#0D2329]">Especialidade Principal</label>
+                  <input
+                    type="text"
+                    value={form.specialty}
+                    onChange={(e) => setForm({ ...form, specialty: e.target.value })}
+                    placeholder="Psicopedagogia Clínica & Neuroaprendizagem"
+                    className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                  />
+                </div>
+              </div>
+
+              {/* SEÇÃO 2: DADOS DO CONSULTÓRIO & ENDEREÇO */}
+              <div className="space-y-4 pt-2 border-t border-[#EEF5F6]">
+                <h3 className="text-xs font-black uppercase tracking-wider text-[#0D2329] flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#0284C7]" />
+                  <span>2. Espaço Clínico & Endereço</span>
+                </h3>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-[#0D2329]">Nome do Consultório / Espaço Clínico *</label>
+                  <input
+                    type="text"
+                    value={form.clinic_name}
+                    onChange={(e) => setForm({ ...form, clinic_name: e.target.value })}
+                    placeholder="Ex: Aprender Ensinando - Espaço Psicopedagógico"
+                    className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-[#0D2329]">Endereço Completo (Rua, Número, Sala/Andar)</label>
+                  <input
+                    type="text"
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    placeholder="Ex: Av. Principal, 1000 - Sala 04"
+                    className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">Cidade</label>
+                    <input
+                      type="text"
+                      value={form.city}
+                      onChange={(e) => setForm({ ...form, city: e.target.value })}
+                      placeholder="São José do Rio Preto"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-[#0D2329]">Estado (UF)</label>
+                    <input
+                      type="text"
+                      value={form.state}
+                      onChange={(e) => setForm({ ...form, state: e.target.value })}
+                      placeholder="SP"
+                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SEÇÃO 3: CHAVE PIX COM FUNDO DESTACADO */}
+              <div className="p-5 rounded-2xl bg-[#FEF8EC] border-2 border-[#F4C95D]/60 space-y-3 shadow-2xs">
+                <div className="flex items-center gap-2 text-[#8B6514]">
+                  <DollarSign className="w-4 h-4 font-black" />
+                  <h3 className="text-xs font-black uppercase tracking-wider">
+                    3. Chave PIX para Recebimentos dos Pais
+                  </h3>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-[#8B6514]">Chave PIX Padrão *</label>
+                  <input
+                    type="text"
+                    value={form.pix_key}
+                    onChange={(e) => setForm({ ...form, pix_key: e.target.value })}
+                    placeholder="priscila.carbone@pix.com.br (E-mail, CPF, Telefone ou Chave Aleatória)"
+                    className="w-full px-4 py-3 text-xs font-black rounded-2xl border-2 border-[#F4C95D] bg-white focus:outline-none focus:ring-2 focus:ring-[#8B6514]/20 text-[#0D2329]"
+                  />
+                  <p className="text-[11px] font-semibold text-[#8B6514]/80">
+                    Esta chave PIX é inserida automaticamente nas mensagens de cobrança enviadas pelo WhatsApp.
+                  </p>
+                </div>
+              </div>
+
+              {/* Save Button inside card */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="w-full py-3 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Salvar Dados da Profissional & Consultório</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar Live Preview (4 Cols) */}
+          <div className="lg:col-span-4 space-y-5">
+            <div className="rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm overflow-hidden space-y-4">
+              <div className="bg-gradient-to-r from-[#00B4D8] to-[#0096C7] p-5 text-white flex items-center gap-3.5">
+                <div className="w-14 h-14 rounded-2xl bg-white/20 border-2 border-white/40 flex items-center justify-center font-black text-xl overflow-hidden shrink-0 shadow-xs">
+                  {professional?.logo_url ? (
+                    <img src={professional.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    form.full_name.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-black text-base truncate leading-tight">{form.clinic_name}</h3>
+                  <p className="text-xs text-white/95 font-bold truncate mt-0.5">{form.full_name}</p>
+                  <p className="text-[10px] text-white/80 truncate">CBO {form.crp}</p>
+                </div>
+              </div>
+
+              <div className="p-5 pt-0 space-y-3 text-xs font-bold text-[#6B7C83]">
+                <div className="p-3.5 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#8CAAB1]">Profissional:</span>
+                    <span className="text-[#0D2329] font-black">{form.full_name}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#8CAAB1]">WhatsApp:</span>
+                    <span className="text-[#0D2329] font-black">{form.phone}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#8CAAB1]">E-mail:</span>
+                    <span className="text-[#0D2329] font-black truncate max-w-[160px]">{form.email}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#8CAAB1]">Chave PIX:</span>
+                    <span className="text-[#0284C7] font-black truncate max-w-[150px]">{form.pix_key}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#8CAAB1]">Endereço:</span>
+                    <span className="text-[#0D2329] font-black truncate max-w-[160px]">{form.address || `${form.city}, ${form.state}`}</span>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-[#E8F8F5] border border-[#10B981]/30 flex items-center gap-2 text-[#065F46] text-xs font-bold">
+                  <CheckCircle2 className="w-4 h-4 text-[#10B981] shrink-0" />
+                  <span>Dados sincronizados em relatórios e WhatsApp</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 2: GERAL & CATEGORIAS (TAREFAS, NOTIFICAÇÕES & BACKUP)
           ========================================================================= */}
       {activeTab === "geral" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-in fade-in">
@@ -469,7 +743,7 @@ export function SettingsPage() {
               </div>
             </div>
 
-            {/* Card 2: Categorias de Tarefas (Contraste alto e bolinhas coloridas) */}
+            {/* Card 2: Categorias de Tarefas */}
             <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-3">
                 <div className="flex items-center gap-2.5">
@@ -583,7 +857,7 @@ export function SettingsPage() {
               </div>
             </div>
 
-            {/* Card 3: Formato de Data e Hora com Prévia Destacada */}
+            {/* Card 3: Formato de Data e Hora */}
             <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-3">
                 <div className="flex items-center gap-2.5">
@@ -625,7 +899,7 @@ export function SettingsPage() {
                   </select>
                 </div>
 
-                {/* Prévia Box com Destaque */}
+                {/* Prévia Box */}
                 <div className="sm:col-span-4 space-y-1.5">
                   <span className="text-[10px] font-black uppercase text-[#6B7C83] tracking-wider block">
                     Prévia
@@ -647,94 +921,7 @@ export function SettingsPage() {
 
           {/* RIGHT COLUMN: 5 COLS */}
           <div className="lg:col-span-5 space-y-5">
-            {/* Card 1: Perfil da Profissional */}
-            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-black text-[#0D2329]">Perfil da Profissional</h2>
-                    <p className="text-[11px] font-semibold text-[#6B7C83]">
-                      Atualize suas informações pessoais.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4 pt-1">
-                {/* Round Avatar with Camera Badge */}
-                <div className="relative group shrink-0">
-                  <div className="w-16 h-16 rounded-full bg-[#EDE9FE] text-[#7C3AED] font-black text-xl flex items-center justify-center overflow-hidden border-2 border-[#7C3AED]/40 shadow-sm">
-                    {professional?.logo_url ? (
-                      <img src={professional.logo_url} alt="Foto" className="w-full h-full object-cover" />
-                    ) : (
-                      form.full_name.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#7C3AED] text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform"
-                    title="Alterar foto"
-                  >
-                    <Camera className="w-3 h-3" />
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleLogoSelect}
-                  />
-                </div>
-
-                {/* Compact Inputs with high contrast borders */}
-                <div className="flex-1 space-y-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-[#0D2329] w-14 shrink-0 text-right">Nome</span>
-                    <input
-                      type="text"
-                      value={form.full_name}
-                      onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                      className="flex-1 px-3 py-1.5 text-xs font-bold rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-[#0D2329] w-14 shrink-0 text-right">E-mail</span>
-                    <input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      className="flex-1 px-3 py-1.5 text-xs font-bold rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-[#0D2329] w-14 shrink-0 text-right">Telefone</span>
-                    <input
-                      type="text"
-                      value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      className="flex-1 px-3 py-1.5 text-xs font-bold rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  className="w-full sm:w-auto px-5 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black rounded-xl shadow-xs transition-all active:scale-95"
-                >
-                  {saving ? "Salvando..." : "Editar perfil"}
-                </button>
-              </div>
-            </div>
-
-            {/* Card 2: Preferências de Notificações com Switches Reativos */}
+            {/* Card 1: Preferências de Notificações */}
             <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-3">
                 <div className="flex items-center gap-2.5">
@@ -744,7 +931,7 @@ export function SettingsPage() {
                   <div>
                     <h2 className="text-sm font-black text-[#0D2329]">Preferências de Notificações</h2>
                     <p className="text-[11px] font-semibold text-[#6B7C83]">
-                      Escolha como deseja receber notificações.
+                      Escolha como deseja receber alertas no sistema.
                     </p>
                   </div>
                 </div>
@@ -854,12 +1041,12 @@ export function SettingsPage() {
                   onClick={() => setActiveTab("notificacoes")}
                   className="text-xs font-black text-[#7C3AED] hover:underline flex items-center gap-1"
                 >
-                  <span>Gerenciar todas as notificações →</span>
+                  <span>Configurar mensagens WhatsApp →</span>
                 </button>
               </div>
             </div>
 
-            {/* Card 3: Backup e Dados */}
+            {/* Card 2: Backup e Dados */}
             <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-3">
                 <div className="flex items-center gap-2.5">
@@ -911,173 +1098,6 @@ export function SettingsPage() {
                     </p>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          TAB 2: CONSULTÓRIO & PIX (ALTO CONTRASTE & DESIGN ESTRUTURADO)
-          ========================================================================= */}
-      {activeTab === "consultorio" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-in fade-in">
-          {/* Main Form (8 Cols) */}
-          <div className="lg:col-span-8 space-y-5">
-            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6">
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center font-bold shadow-2xs">
-                    <Building className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-black text-[#0D2329]">Dados do Consultório & Cobrança</h2>
-                    <p className="text-xs font-semibold text-[#6B7C83]">
-                      Informações impressas em relatórios clínicos, anamneses e recibos de cobrança PIX.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Seção 1: Identificação da Clínica */}
-              <div className="space-y-4">
-                <h3 className="text-xs font-black uppercase tracking-wider text-[#0D2329] flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#0284C7]" />
-                  <span>Identificação do Espaço Clínico</span>
-                </h3>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-[#0D2329]">Nome do Consultório / Espaço Clínico *</label>
-                  <input
-                    type="text"
-                    value={form.clinic_name}
-                    onChange={(e) => setForm({ ...form, clinic_name: e.target.value })}
-                    placeholder="Ex: Aprender Ensinando - Espaço Psicopedagógico"
-                    className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black text-[#0D2329]">CBO</label>
-                    <input
-                      type="text"
-                      value={form.crp}
-                      onChange={(e) => setForm({ ...form, crp: e.target.value })}
-                      placeholder="Ex: 2394-25"
-                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black text-[#0D2329]">Especialidade Principal</label>
-                    <input
-                      type="text"
-                      value={form.specialty}
-                      onChange={(e) => setForm({ ...form, specialty: e.target.value })}
-                      placeholder="Psicopedagogia Clínica"
-                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Seção 2: Cobrança & Chave PIX com Fundo Destacado */}
-              <div className="p-5 rounded-2xl bg-[#FEF8EC] border-2 border-[#F4C95D]/60 space-y-3 shadow-2xs">
-                <div className="flex items-center gap-2 text-[#8B6514]">
-                  <DollarSign className="w-4 h-4 font-black" />
-                  <h3 className="text-xs font-black uppercase tracking-wider">
-                    Chave PIX para Recebimentos
-                  </h3>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-[#8B6514]">Chave PIX Padrão *</label>
-                  <input
-                    type="text"
-                    value={form.pix_key}
-                    onChange={(e) => setForm({ ...form, pix_key: e.target.value })}
-                    placeholder="priscila.souza@pix.com.br (E-mail, CPF, Telefone ou Chave Aleatória)"
-                    className="w-full px-4 py-3 text-xs font-black rounded-2xl border-2 border-[#F4C95D] bg-white focus:outline-none focus:ring-2 focus:ring-[#8B6514]/20 text-[#0D2329]"
-                  />
-                  <p className="text-[11px] font-semibold text-[#8B6514]/80">
-                    Esta chave PIX é inserida automaticamente nas mensagens de cobrança do WhatsApp.
-                  </p>
-                </div>
-              </div>
-
-              {/* Seção 3: Endereço & Localização */}
-              <div className="space-y-4">
-                <h3 className="text-xs font-black uppercase tracking-wider text-[#0D2329] flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#10B981]" />
-                  <span>Localização do Consultório</span>
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="sm:col-span-2 space-y-1.5">
-                    <label className="text-xs font-black text-[#0D2329]">Cidade</label>
-                    <input
-                      type="text"
-                      value={form.city}
-                      onChange={(e) => setForm({ ...form, city: e.target.value })}
-                      placeholder="São Paulo"
-                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black text-[#0D2329]">Estado (UF)</label>
-                    <input
-                      type="text"
-                      value={form.state}
-                      onChange={(e) => setForm({ ...form, state: e.target.value })}
-                      placeholder="SP"
-                      className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar Preview (4 Cols) */}
-          <div className="lg:col-span-4 space-y-5">
-            <div className="rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm overflow-hidden space-y-4">
-              <div className="bg-gradient-to-r from-[#00B4D8] to-[#0096C7] p-5 text-white flex items-center gap-3.5">
-                <div className="w-14 h-14 rounded-2xl bg-white/20 border-2 border-white/40 flex items-center justify-center font-black text-xl overflow-hidden shrink-0 shadow-xs">
-                  {professional?.logo_url ? (
-                    <img src={professional.logo_url} alt="Logo" className="w-full h-full object-cover" />
-                  ) : (
-                    form.clinic_name.charAt(0).toUpperCase()
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-black text-base truncate leading-tight">{form.clinic_name}</h3>
-                  <p className="text-xs text-white/95 font-bold truncate mt-0.5">{form.full_name}</p>
-                  <p className="text-[10px] text-white/80 truncate">{form.crp}</p>
-                </div>
-              </div>
-
-              <div className="p-5 pt-0 space-y-3 text-xs font-bold text-[#6B7C83]">
-                <div className="p-3 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7] space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span>Chave PIX:</span>
-                    <span className="text-[#0284C7] font-black">{form.pix_key}</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span>Local:</span>
-                    <span className="text-[#0D2329] font-black">{form.city}, {form.state}</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleSave}
-                  className="w-full py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black rounded-xl shadow-xs transition-all active:scale-95"
-                >
-                  Salvar Dados do Consultório
-                </button>
               </div>
             </div>
           </div>
@@ -1243,53 +1263,50 @@ export function SettingsPage() {
 
           {/* 2. Mensagem de Cobrança */}
           <div className="p-5 rounded-3xl bg-[#F7FAFA] border-2 border-[#D8E5E7] space-y-3.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#FFEDD5] text-[#EA580C] flex items-center justify-center font-bold">
-                  <DollarSign className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-[#0D2329]">
-                    2. Mensagem de Mensalidade / Cobrança PIX
-                  </p>
-                  <p className="text-[11px] font-semibold text-[#6B7C83]">
-                    Usado no botão <strong>"Cobrar"</strong> da tela de <strong>Financeiro</strong>.
-                  </p>
-                </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-[#FFEDD5] text-[#EA580C] flex items-center justify-center font-bold">
+                <DollarSign className="w-4 h-4" />
               </div>
-              <span className="text-[10px] bg-[#FFEDD5] text-[#EA580C] font-black px-2.5 py-1 rounded-xl border border-[#EA580C]/30">
-                Disponível no Financeiro
-              </span>
+              <div>
+                <p className="text-xs font-black text-[#0D2329]">
+                  2. Mensagem de Mensalidade / Cobrança PIX
+                </p>
+                <p className="text-[11px] font-semibold text-[#6B7C83]">
+                  Usado no botão <strong>"Cobrar"</strong> da tela de <strong>Financeiro</strong>.
+                </p>
+              </div>
             </div>
+            <span className="text-[10px] bg-[#FFEDD5] text-[#EA580C] font-black px-2.5 py-1 rounded-xl border border-[#EA580C]/30">
+              Disponível no Financeiro
+            </span>
+          </div>
 
-            <textarea
-              rows={3}
-              value={billingTemplate}
-              onChange={(e) => setBillingTemplate(e.target.value)}
-              className="w-full p-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#EA580C] transition-all resize-none"
-            />
+          <textarea
+            rows={3}
+            value={billingTemplate}
+            onChange={(e) => setBillingTemplate(e.target.value)}
+            className="w-full p-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#EA580C] transition-all resize-none"
+          />
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[#EEF5F6]">
-              <p className="text-[11px] font-bold text-[#6B7C83]">
-                Tags: <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{nome_crianca}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{mes}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{valor}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{chave_pix}"}</code>
-              </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[#EEF5F6]">
+            <p className="text-[11px] font-bold text-[#6B7C83]">
+              Tags: <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{nome_crianca}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{mes}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{chave_pix}"}</code>
+            </p>
 
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(
-                  billingTemplate
-                    .replace("{nome_crianca}", "Maria Eduarda")
-                    .replace("{mes}", "Agosto")
-                    .replace("{valor}", "R$ 350,00")
-                    .replace("{chave_pix}", form.pix_key)
-                )}`}
-                target="_blank"
-                rel="noreferrer"
-                className="px-3.5 py-1.5 bg-[#FFEDD5] hover:bg-[#EA580C] hover:text-white text-[#EA580C] rounded-xl text-xs font-black flex items-center gap-1.5 border border-[#EA580C]/30 transition-all shadow-2xs self-start sm:self-auto"
-              >
-                <DollarSign className="w-3.5 h-3.5" />
-                <span>Testar Cobrança</span>
-              </a>
-            </div>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(
+                billingTemplate
+                  .replace("{nome_crianca}", "Maria Eduarda")
+                  .replace("{mes}", "Agosto")
+                  .replace("{chave_pix}", form.pix_key)
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              className="px-3.5 py-1.5 bg-[#FFEDD5] hover:bg-[#EA580C] hover:text-white text-[#EA580C] rounded-xl text-xs font-black flex items-center gap-1.5 border border-[#EA580C]/30 transition-all shadow-2xs self-start sm:self-auto"
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              <span>Testar Cobrança</span>
+            </a>
           </div>
         </div>
       )}
