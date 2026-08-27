@@ -224,7 +224,7 @@ export function AppointmentsPage() {
   ).length
 
   return (
-    <div className="p-4 md:p-6 w-full space-y-6">
+    <div className="p-4 md:p-6 max-w-[80%] mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-black text-[#19323A] tracking-tight">
@@ -530,7 +530,7 @@ export function AppointmentsPage() {
       )}
 
       {viewMode === "semana" && (
-        <div className="max-w-[92%] mx-auto grid grid-cols-1 md:grid-cols-7 gap-3">
+        <div className="w-full grid grid-cols-1 md:grid-cols-7 gap-3">
           {weekDays.map((day) => {
             const isToday = isSameDay(day, new Date())
             const dayAppts = filteredAppointments.filter((a) =>
