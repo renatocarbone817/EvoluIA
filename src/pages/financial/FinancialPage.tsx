@@ -374,13 +374,73 @@ export function FinancialPage() {
     .filter((r) => !isExpense(r) && r.status === "pending")
     .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
 
-  // Overdue Records
+  const currentMonthPendingExpenses = currentMonthRecords
+    .filter((r) => isExpense(r) && r.status === "pending")
+    .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+
+  // Forecast until end of month (Total expected income - Total expected expenses)
+  const monthForecastProfit =
+    currentMonthIncome + currentMonthPendingIncome - (currentMonthExpenses + currentMonthPendingExpenses)
+
+  // Overdue Records (past months pending)
   const overdueRecords = records.filter((r) => {
     if (r.status !== "pending") return false
     if (r.year < currentYear) return true
     if (r.year === currentYear && r.month < currentMonth) return true
     return false
   })
+  const overdueAmount = overdueRecords.reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+
+  // Future Pending Records (upcoming months)
+  const futureRecords = records.filter((r) => {
+    if (r.status !== "pending") return false
+    if (r.year > currentYear) return true
+    if (r.year === currentYear && r.month > currentMonth) return true
+    return false
+  })
+  const futurePendingAmount = futureRecords.reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+
+  // Total Pending All Time
+  const totalPendingAll = overdueAmount + currentMonthPendingIncome + futurePendingAmount
+
+  // Category Expenses Breakdown for Current Month
+  const expensesByCategory: Record<string, number> = {}
+  currentMonthRecords
+    .filter((r) => isExpense(r))
+    .forEach((r) => {
+      const cat = getExpenseInfo(r).category
+      expensesByCategory[cat] = (expensesByCategory[cat] || 0) + (Number(r.amount) || 0)
+    })
+
+  // 6-Month Cash Flow Data for Chart
+  const last6MonthsData = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date()
+    d.setMonth(d.getMonth() - (5 - i))
+    const m = d.getMonth() + 1
+    const y = d.getFullYear()
+
+    const mRecords = records.filter((r) => r.month === m && r.year === y)
+    const income = mRecords
+      .filter((r) => !isExpense(r) && r.status === "paid")
+      .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+    const expense = mRecords
+      .filter((r) => isExpense(r) && r.status === "paid")
+      .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+
+    return {
+      monthLabel: MONTHS[m - 1].slice(0, 3),
+      fullMonth: `${MONTHS[m - 1]} / ${y}`,
+      income,
+      expense,
+      profit: income - expense,
+      isCurrent: m === currentMonth && y === currentYear,
+    }
+  })
+
+  const maxChartValue = Math.max(
+    ...last6MonthsData.map((d) => Math.max(d.income, d.expense)),
+    1000
+  )
 
   // Filter records based on selected period & type
   const filteredRecords = records.filter((r) => {
@@ -402,6 +462,12 @@ export function FinancialPage() {
     if (typeFilter === "income" && expense) return false
     if (typeFilter === "expense" && !expense) return false
     if (typeFilter === "pending" && r.status !== "pending") return false
+    if (typeFilter === "overdue") {
+      const isLate =
+        r.status === "pending" &&
+        (r.year < currentYear || (r.year === currentYear && r.month < currentMonth))
+      if (!isLate) return false
+    }
     if (typeFilter === "paid" && r.status !== "paid") return false
 
     // Search query
@@ -415,8 +481,14 @@ export function FinancialPage() {
     return name.includes(q) || notes.includes(q) || cat.includes(q) || desc.includes(q)
   })
 
+  // Counters for quick chips
+  const countIncomes = records.filter((r) => !isExpense(r)).length
+  const countExpenses = records.filter((r) => isExpense(r)).length
+  const countPending = records.filter((r) => r.status === "pending").length
+  const countPaid = records.filter((r) => r.status === "paid").length
+
   return (
-    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-[92%] mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -424,21 +496,21 @@ export function FinancialPage() {
             Controle Financeiro & Fluxo de Caixa
           </h1>
           <p className="text-xs font-semibold uppercase tracking-wider text-[#6B7C83] mt-1">
-            Receitas de atendimentos, despesas fixas, compras parceladas e lucro líquido
+            Receitas de atendimentos, contas fixas, previsão do mês e gráficos
           </p>
         </div>
 
-        <Button size="lg" onClick={() => setShowAddModal(true)} className="gap-2 shadow-[0_4px_0_0_#143741]">
+        <Button size="lg" onClick={() => setShowAddModal(true)} className="gap-2 shadow-sm">
           <Plus className="w-5 h-5" />
           Novo Lançamento
         </Button>
       </div>
 
-      {/* KPI Cards Grid - Cash Flow Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Cards Grid - Cash Flow Overview & Detailed Breakdown */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* 1. Receitas Realizadas (Entradas) */}
-        <div className="p-5 rounded-2xl border-2 border-[#63C7B2]/40 bg-[#E8F8F5] shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
+        <div className="p-4 sm:p-5 rounded-2xl border-2 border-[#63C7B2]/40 bg-[#E8F8F5] shadow-xs flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between">
             <div className="w-10 h-10 rounded-xl bg-[#63C7B2] text-[#14282F] flex items-center justify-center font-black">
               <ArrowDownLeft className="w-5 h-5" />
             </div>
@@ -457,8 +529,8 @@ export function FinancialPage() {
         </div>
 
         {/* 2. Despesas Realizadas (Saídas) */}
-        <div className="p-5 rounded-2xl border-2 border-[#D96C6C]/40 bg-[#FDF0F0] shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
+        <div className="p-4 sm:p-5 rounded-2xl border-2 border-[#D96C6C]/40 bg-[#FDF0F0] shadow-xs flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between">
             <div className="w-10 h-10 rounded-xl bg-[#D96C6C] text-white flex items-center justify-center font-black">
               <ArrowUpRight className="w-5 h-5" />
             </div>
@@ -476,15 +548,15 @@ export function FinancialPage() {
           </div>
         </div>
 
-        {/* 3. Lucro Líquido Real (Receitas - Despesas) */}
+        {/* 3. Lucro Líquido Real & Previsão do Mês */}
         <div
-          className={`p-5 rounded-2xl border-2 shadow-xs flex flex-col justify-between ${
+          className={`p-4 sm:p-5 rounded-2xl border-2 shadow-xs flex flex-col justify-between space-y-3 ${
             currentMonthNetProfit >= 0
               ? "border-[#245C6B]/40 bg-[#EAF3F5]"
               : "border-[#D96C6C] bg-[#FDF0F0]"
           }`}
         >
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between">
             <div
               className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${
                 currentMonthNetProfit >= 0
@@ -516,137 +588,312 @@ export function FinancialPage() {
             >
               {formatCurrency(currentMonthNetProfit)}
             </p>
-            <p className="text-xs font-bold text-[#6B7C83] mt-1">
-              Lucro Líquido do Mês
-            </p>
+            <div className="mt-1 pt-1.5 border-t border-[#D8E5E7] flex items-center justify-between text-[11px]">
+              <span className="text-[#6B7C83] font-semibold">Previsão final:</span>
+              <span className="font-black text-[#245C6B]">{formatCurrency(monthForecastProfit)}</span>
+            </div>
           </div>
         </div>
 
-        {/* 4. A Receber / Pendências */}
-        <div className="p-5 rounded-2xl border-2 border-[#F4C95D]/60 bg-[#FEF8EC] shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
+        {/* 4. A Receber Detalhado (Vencido, Este Mês, Futuro) */}
+        <div className="p-4 sm:p-5 rounded-2xl border-2 border-[#F4C95D]/60 bg-[#FEF8EC] shadow-xs flex flex-col justify-between space-y-2.5">
+          <div className="flex items-center justify-between">
             <div className="w-10 h-10 rounded-xl bg-[#F4C95D] text-[#8B6514] flex items-center justify-center font-black">
               <Clock className="w-5 h-5" />
             </div>
             <span className="text-[10px] font-black uppercase text-[#8B6514] bg-white px-2 py-0.5 rounded-md border border-[#F4C95D]/40">
-              A Receber
+              A Receber Total
             </span>
           </div>
           <div>
             <p className="text-2xl sm:text-3xl font-black text-[#8B6514] tracking-tight">
-              {formatCurrency(currentMonthPendingIncome)}
+              {formatCurrency(totalPendingAll)}
             </p>
-            <p className="text-xs font-bold text-[#8B6514] mt-1">
-              Mensalidades pendentes
+
+            {/* Detailed Sub-deadlines */}
+            <div className="mt-2 pt-2 border-t border-[#F4C95D]/40 space-y-1 text-[10px] font-bold">
+              {overdueAmount > 0 && (
+                <div className="flex items-center justify-between text-[#D96C6C]">
+                  <span>🔴 Vencido:</span>
+                  <span>{formatCurrency(overdueAmount)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-[#8B6514]">
+                <span>🟡 Vence este mês:</span>
+                <span>{formatCurrency(currentMonthPendingIncome)}</span>
+              </div>
+              {futurePendingAmount > 0 && (
+                <div className="flex items-center justify-between text-[#6B7C83]">
+                  <span>⚪ Futuro / Próx.:</span>
+                  <span>{formatCurrency(futurePendingAmount)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Visual Chart & Categories Distribution Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Left: 6-Month Cash Flow Visual Chart (2 Cols) */}
+        <div className="lg:col-span-2 bg-white p-5 rounded-2xl border-2 border-[#D8E5E7] shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-black text-base text-[#19323A] flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-[#20836F]" />
+                <span>Fluxo Financeiro — Últimos 6 Meses</span>
+              </h3>
+              <p className="text-xs text-[#6B7C83] mt-0.5">
+                Comparativo de Receitas (entradas) vs Despesas (saídas)
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 text-xs font-bold">
+              <span className="flex items-center gap-1.5 text-[#20836F]">
+                <span className="w-2.5 h-2.5 rounded bg-[#20836F]" />
+                Receitas
+              </span>
+              <span className="flex items-center gap-1.5 text-[#D96C6C]">
+                <span className="w-2.5 h-2.5 rounded bg-[#D96C6C]" />
+                Despesas
+              </span>
+            </div>
+          </div>
+
+          {/* Bar Chart Visualization */}
+          <div className="pt-4 pb-2 flex items-end justify-between gap-3 h-44 border-b border-[#EEF5F6]">
+            {last6MonthsData.map((m, idx) => {
+              const incomeHeight = Math.max((m.income / maxChartValue) * 100, 4)
+              const expenseHeight = Math.max((m.expense / maxChartValue) * 100, 4)
+
+              return (
+                <div key={idx} className="flex-1 flex flex-col items-center gap-2 group relative">
+                  {/* Tooltip on hover */}
+                  <div className="absolute -top-12 bg-[#19323A] text-white text-[10px] font-bold px-2.5 py-1 rounded-xl shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                    <p className="font-black">{m.fullMonth}</p>
+                    <p className="text-[#63C7B2]">Receitas: {formatCurrency(m.income)}</p>
+                    <p className="text-[#FF9B9B]">Despesas: {formatCurrency(m.expense)}</p>
+                    <p className="text-white border-t border-white/20 pt-0.5">Lucro: {formatCurrency(m.profit)}</p>
+                  </div>
+
+                  <div className="w-full flex items-end justify-center gap-1 h-32">
+                    {/* Income Bar */}
+                    <div
+                      style={{ height: `${incomeHeight}%` }}
+                      className={`w-3.5 sm:w-5 rounded-t-md transition-all ${
+                        m.isCurrent
+                          ? "bg-[#20836F] ring-2 ring-[#63C7B2]"
+                          : "bg-[#20836F]/80 hover:bg-[#20836F]"
+                      }`}
+                    />
+                    {/* Expense Bar */}
+                    <div
+                      style={{ height: `${expenseHeight}%` }}
+                      className={`w-3.5 sm:w-5 rounded-t-md transition-all ${
+                        m.isCurrent
+                          ? "bg-[#D96C6C] ring-2 ring-[#D96C6C]/40"
+                          : "bg-[#D96C6C]/80 hover:bg-[#D96C6C]"
+                      }`}
+                    />
+                  </div>
+
+                  <span
+                    className={`text-xs font-black capitalize ${
+                      m.isCurrent ? "text-[#20836F] underline" : "text-[#6B7C83]"
+                    }`}
+                  >
+                    {m.monthLabel}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Right: Gastos por Categoria no Mês (1 Col) */}
+        <div className="bg-white p-5 rounded-2xl border-2 border-[#D8E5E7] shadow-sm space-y-3 flex flex-col justify-between">
+          <div>
+            <h3 className="font-black text-base text-[#19323A] flex items-center gap-2">
+              <Layers className="w-4 h-4 text-[#D96C6C]" />
+              <span>Gastos por Categoria ({MONTHS[currentMonth - 1]})</span>
+            </h3>
+            <p className="text-xs text-[#6B7C83] mt-0.5">
+              Distribuição das despesas do consultório
             </p>
           </div>
+
+          <div className="space-y-2.5 py-1">
+            {Object.keys(expensesByCategory).length === 0 ? (
+              <p className="text-xs text-[#8DA3A8] italic text-center py-6">
+                Nenhuma despesa registrada neste mês.
+              </p>
+            ) : (
+              Object.entries(expensesByCategory).map(([cat, val], idx) => {
+                const pct = currentMonthExpenses > 0 ? Math.round((val / currentMonthExpenses) * 100) : 0
+                return (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs font-bold text-[#19323A]">
+                      <span className="truncate max-w-[170px]">{cat}</span>
+                      <span>{formatCurrency(val)} ({pct}%)</span>
+                    </div>
+                    <div className="w-full h-2 bg-[#EEF5F6] rounded-full overflow-hidden">
+                      <div
+                        style={{ width: `${pct}%` }}
+                        className="h-full bg-[#D96C6C] rounded-full transition-all"
+                      />
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setEntryType("expense")
+              setShowAddModal(true)
+            }}
+            className="w-full text-xs font-bold text-[#D96C6C] border-[#D96C6C]/40 hover:bg-[#FDF0F0]"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1" />
+            Registrar Nova Despesa
+          </Button>
         </div>
       </div>
 
       {/* Period Tabs & Quick Switcher */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border-2 border-[#D8E5E7] shadow-sm">
-        <div className="flex bg-[#EEF5F6] rounded-xl p-1 border-2 border-[#D8E5E7] flex-wrap gap-1">
-          <button
-            type="button"
-            onClick={() => setPeriodFilter("current_month")}
-            className={`px-3.5 py-1.5 text-xs font-black rounded-lg transition-all ${
-              periodFilter === "current_month"
-                ? "bg-[#245C6B] text-white shadow-xs"
-                : "text-[#19323A] hover:bg-white/60"
-            }`}
-          >
-            📅 Mês Atual ({MONTHS[currentMonth - 1]})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setPeriodFilter("overdue")}
-            className={`px-3.5 py-1.5 text-xs font-black rounded-lg transition-all flex items-center gap-1.5 ${
-              periodFilter === "overdue"
-                ? "bg-[#D96C6C] text-white shadow-xs"
-                : "text-[#D96C6C] hover:bg-[#FDF0F0]"
-            }`}
-          >
-            <AlertTriangle className="w-3.5 h-3.5" />
-            🚨 Em Atraso ({overdueRecords.length})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setPeriodFilter("custom_month")}
-            className={`px-3.5 py-1.5 text-xs font-black rounded-lg transition-all ${
-              periodFilter === "custom_month"
-                ? "bg-[#245C6B] text-white shadow-xs"
-                : "text-[#19323A] hover:bg-white/60"
-            }`}
-          >
-            🗓️ Escolher Outro Mês
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setPeriodFilter("all")}
-            className={`px-3.5 py-1.5 text-xs font-black rounded-lg transition-all ${
-              periodFilter === "all"
-                ? "bg-[#245C6B] text-white shadow-xs"
-                : "text-[#19323A] hover:bg-white/60"
-            }`}
-          >
-            🌐 Todo o Histórico
-          </button>
-        </div>
-
-        {periodFilter === "custom_month" && (
-          <div className="flex items-center gap-2 animate-in fade-in-50 duration-200">
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="h-9 px-3 rounded-lg border-2 border-[#245C6B] bg-white text-xs font-black text-[#245C6B]"
+      <div className="space-y-3 bg-white p-3.5 rounded-2xl border-2 border-[#D8E5E7] shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex bg-[#EEF5F6] rounded-xl p-1 border-2 border-[#D8E5E7] flex-wrap gap-1">
+            <button
+              type="button"
+              onClick={() => setPeriodFilter("current_month")}
+              className={`px-3.5 py-1.5 text-xs font-black rounded-lg transition-all ${
+                periodFilter === "current_month"
+                  ? "bg-[#245C6B] text-white shadow-xs"
+                  : "text-[#19323A] hover:bg-white/60"
+              }`}
             >
-              {MONTHS.map((m, idx) => (
-                <option key={idx} value={idx + 1}>{m}</option>
-              ))}
-            </select>
+              📅 Mês Atual ({MONTHS[currentMonth - 1]})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPeriodFilter("overdue")}
+              className={`px-3.5 py-1.5 text-xs font-black rounded-lg transition-all flex items-center gap-1.5 ${
+                periodFilter === "overdue"
+                  ? "bg-[#D96C6C] text-white shadow-xs"
+                  : "text-[#D96C6C] hover:bg-[#FDF0F0]"
+              }`}
+            >
+              <AlertTriangle className="w-3.5 h-3.5" />
+              🚨 Em Atraso ({overdueRecords.length})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPeriodFilter("custom_month")}
+              className={`px-3.5 py-1.5 text-xs font-black rounded-lg transition-all ${
+                periodFilter === "custom_month"
+                  ? "bg-[#245C6B] text-white shadow-xs"
+                  : "text-[#19323A] hover:bg-white/60"
+              }`}
+            >
+              🗓️ Outro Mês
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPeriodFilter("all")}
+              className={`px-3.5 py-1.5 text-xs font-black rounded-lg transition-all ${
+                periodFilter === "all"
+                  ? "bg-[#245C6B] text-white shadow-xs"
+                  : "text-[#19323A] hover:bg-white/60"
+              }`}
+            >
+              🌐 Todo o Histórico
+            </button>
+          </div>
+
+          {periodFilter === "custom_month" && (
+            <div className="flex items-center gap-2 animate-in fade-in-50 duration-200">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                className="h-9 px-3 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-xs font-bold text-[#19323A]"
+              >
+                {MONTHS.map((m, idx) => (
+                  <option key={idx} value={idx + 1}>{m}</option>
+                ))}
+              </select>
+              <input
+                type="number"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="w-20 h-9 px-3 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-xs font-bold text-[#19323A]"
+              />
+            </div>
+          )}
+
+          {/* Search bar */}
+          <div className="relative flex-1 min-w-48">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8DA3A8]" />
             <input
-              type="number"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="h-9 w-20 px-2 rounded-lg border-2 border-[#245C6B] bg-white text-xs font-black text-[#245C6B]"
+              type="text"
+              placeholder="Buscar por paciente, despesa ou observação..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 h-9 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all placeholder:text-[#8DA3A8]"
             />
           </div>
-        )}
-      </div>
-
-      {/* Filter Bar: Search + Type Selector */}
-      <div className="flex gap-3 flex-wrap bg-white p-3 rounded-2xl border-2 border-[#D8E5E7] shadow-sm">
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8DA3A8]" />
-          <input
-            type="text"
-            placeholder="Buscar por paciente, aluguel, bebedouro, observação..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 h-11 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-sm font-semibold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all placeholder:text-[#8DA3A8]"
-          />
         </div>
 
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="h-11 px-4 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-sm font-bold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all"
-        >
-          <option value="all">Todas as Movimentações</option>
-          <option value="income">🟢 Apenas Receitas (Entradas)</option>
-          <option value="expense">🔴 Apenas Despesas (Saídas / Contas)</option>
-          <option value="pending">⏳ Apenas Pendentes / A Pagar</option>
-          <option value="paid">✓ Apenas Quitados</option>
-        </select>
+        {/* Type Quick Filter Chips */}
+        <div className="flex items-center gap-2 overflow-x-auto pt-1 border-t border-[#EEF5F6]">
+          <div className="flex items-center gap-1 text-xs font-bold text-[#6B7C83] mr-1">
+            <Filter className="w-3.5 h-3.5" />
+            <span>Tipo:</span>
+          </div>
+          {[
+            { id: "all", label: "Todos", count: records.length },
+            { id: "income", label: "↑ Receitas", count: countIncomes, dot: "bg-[#20836F]" },
+            { id: "expense", label: "↓ Despesas", count: countExpenses, dot: "bg-[#D96C6C]" },
+            { id: "pending", label: "⏳ Pendentes", count: countPending, dot: "bg-[#F4C95D]" },
+            { id: "paid", label: "✓ Pagos", count: countPaid, dot: "bg-[#245C6B]" },
+          ].map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setTypeFilter(f.id)}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5 shrink-0 ${
+                typeFilter === f.id
+                  ? "bg-[#19323A] text-white border-[#19323A] shadow-xs"
+                  : "bg-white text-[#4F6C74] border-[#D8E5E7] hover:border-[#245C6B]"
+              }`}
+            >
+              {f.dot && (
+                <span
+                  className={`w-2 h-2 rounded-full ${typeFilter === f.id ? "bg-white" : f.dot}`}
+                />
+              )}
+              <span>{f.label}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                  typeFilter === f.id ? "bg-white/20 text-white" : "bg-[#EEF5F6] text-[#6B7C83]"
+                }`}
+              >
+                {f.count}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Records List */}
-      <div className="space-y-3">
+      {/* List of Financial Transactions */}
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-black text-lg text-[#19323A]">
+          <h2 className="text-lg font-black text-[#19323A]">
             {periodFilter === "current_month" && `Movimentações de ${MONTHS[currentMonth - 1]} / ${currentYear}`}
             {periodFilter === "overdue" && `🚨 Cobranças em Atraso`}
             {periodFilter === "custom_month" && `Movimentações de ${MONTHS[selectedMonth - 1]} / ${selectedYear}`}
@@ -696,6 +943,12 @@ export function FinancialPage() {
                 (r.year < currentYear || (r.year === currentYear && r.month < currentMonth))
 
               const primaryGuardian = r.child?.guardians?.[0]?.guardian
+              const rawPhone = primaryGuardian?.whatsapp || primaryGuardian?.phone || ""
+              const cleanPhone = rawPhone.replace(/\D/g, "")
+
+              const whatsappMessage = encodeURIComponent(
+                `Olá, ${primaryGuardian?.full_name || "tudo bem"}! Passando para lembrar da mensalidade psicopedagógica de ${r.child?.full_name || "seu filho(a)"} referente a ${MONTHS[r.month - 1]}/${r.year} no valor de ${formatCurrency(r.amount)}. Segue nossa chave PIX para pagamento. Qualquer dúvida, estou à disposição!`
+              )
 
               return (
                 <div
@@ -829,13 +1082,26 @@ export function FinancialPage() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-1.5">
+                        {cleanPhone && (
+                          <a
+                            href={`https://wa.me/55${cleanPhone}?text=${whatsappMessage}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2.5 py-1.5 bg-[#E8F8F5] text-[#20836F] hover:bg-[#20836F] hover:text-white rounded-xl text-xs font-black flex items-center gap-1 border border-[#63C7B2]/40 transition-all shadow-2xs"
+                            title="Enviar cobrança pelo WhatsApp"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                            <span>Cobrar</span>
+                          </a>
+                        )}
+
                         <Button
                           size="sm"
                           onClick={() => setConfirmingRecord(r)}
                           className="font-black text-xs bg-[#245C6B] hover:bg-[#1B4752] text-white gap-1.5"
                         >
                           <CheckCircle2 className="w-4 h-4 text-[#63C7B2]" />
-                          Confirmar Pagamento
+                          Confirmar
                         </Button>
                         <Button
                           size="sm"
