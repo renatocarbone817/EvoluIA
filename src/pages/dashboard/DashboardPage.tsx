@@ -2,68 +2,77 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Users,
-  Clock,
   Calendar,
-  DollarSign,
+  ClipboardList,
+  Target,
+  BarChart2,
   ChevronRight,
-  Play,
-  Plus,
   Sparkles,
-  ArrowUpRight,
+  CheckSquare,
+  Square,
+  Star,
+  Trash2,
+  Clock,
   BookOpen,
-  Search,
-  X,
-  Cake,
-  AlertTriangle,
-  CheckCircle2,
-  MessageSquare,
+  FolderOpen,
+  FileText,
+  UserPlus,
 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
-import { Button } from "@/components/ui/Button"
-import { Card, CardContent } from "@/components/ui/Card"
-import { Badge } from "@/components/ui/Badge"
 import { ChildAvatar } from "@/components/ui/ChildAvatar"
-import { formatCurrency, formatDate } from "@/lib/utils"
 
-interface DashboardStats {
-  childrenInProgress: number
-  childrenInAssessment: number
-  todayAppointments: number
-  pendingPayments: number
+interface TaskItem {
+  id: string
+  text: string
+  dueText: string
+  dueColor: "red" | "orange" | "gray" | "green"
+  completed: boolean
 }
 
-interface BirthdayItem {
-  child: any
-  diffDays: number
-  nextBirthday: Date
-  turningAge: number
-  isToday: boolean
+interface NoteItem {
+  id: string
+  text: string
+  color: "yellow" | "blue"
+  starred: boolean
 }
 
 export function DashboardPage() {
   const navigate = useNavigate()
   const { user, professional } = useAuthStore()
+  const profId = professional?.id || user?.id
 
-  const [stats, setStats] = useState<DashboardStats>({
-    childrenInProgress: 0,
-    childrenInAssessment: 0,
-    todayAppointments: 0,
-    pendingPayments: 0,
-  })
+  const [loading, setLoading] = useState(true)
+  const [childrenCount, setChildrenCount] = useState<number>(48)
+  const [evaluationsCount, setEvaluationsCount] = useState<number>(32)
+  const [interventionsCount, setInterventionsCount] = useState<number>(27)
+  const [monthlySessionsCount, setMonthlySessionsCount] = useState<number>(68)
+
   const [todayAppointments, setTodayAppointments] = useState<any[]>([])
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([])
-  const [birthdays, setBirthdays] = useState<BirthdayItem[]>([])
-  const [loading, setLoading] = useState(true)
 
-  // Fast search state
-  const [searchQuery, setSearchQuery] = useState("")
-  const [searchResults, setSearchResults] = useState<any[]>([])
-  const [searchLoading, setSearchLoading] = useState(false)
+  const [tasks, setTasks] = useState<TaskItem[]>(() => {
+    const saved = localStorage.getItem("evoluia_dashboard_tasks")
+    if (saved) return JSON.parse(saved)
+    return [
+      { id: "1", text: "Elaborar relatório - João Pedro", dueText: "Venc. hoje", dueColor: "red", completed: false },
+      { id: "2", text: "Corrigir avaliação - Maria Clara", dueText: "Venc. amanhã", dueColor: "orange", completed: false },
+      { id: "3", text: "Planejar intervenção - Enzo", dueText: "Venc. 29/08", dueColor: "gray", completed: false },
+      { id: "4", text: "Devolutiva - Lucas", dueText: "Concluído", dueColor: "green", completed: true },
+    ]
+  })
 
-  const profId = professional?.id || user?.id
+  const [notes, setNotes] = useState<NoteItem[]>(() => {
+    const saved = localStorage.getItem("evoluia_dashboard_notes")
+    if (saved) return JSON.parse(saved)
+    return [
+      { id: "1", text: "Reunião com escola - Maria Clara dia 29/08 às 14h.", color: "yellow", starred: true },
+      { id: "2", text: "Novo material de leitura - Chegou o kit de atividades!", color: "blue", starred: true },
+    ]
+  })
+  const [newNoteText, setNewNoteText] = useState("")
 
   useEffect(() => {
     if (profId) loadDashboardData()
@@ -76,18 +85,15 @@ export function DashboardPage() {
       const todayStr = format(new Date(), "yyyy-MM-dd")
 
       const [
-        { count: inProgressCount },
-        { count: inAssessmentCount },
+        { count: cCount },
+        { count: evalCount },
         { data: todayAppts },
         { data: upcomingAppts },
-        { count: pendingFinCount },
-        { data: allChildren },
       ] = await Promise.all([
         supabase
           .from("children")
           .select("*", { count: "exact", head: true })
-          .eq("professional_id", profId)
-          .eq("status", "in_progress"),
+          .eq("professional_id", profId),
 
         supabase
           .from("children")
@@ -100,10 +106,10 @@ export function DashboardPage() {
           .select(`
             *,
             child:children(
-              *,
+              id,
+              full_name,
+              photo_url,
               guardians:guardian_children(
-                relationship,
-                is_primary,
                 guardian:guardians(id, full_name, phone, whatsapp)
               )
             )
@@ -118,10 +124,10 @@ export function DashboardPage() {
           .select(`
             *,
             child:children(
-              *,
+              id,
+              full_name,
+              photo_url,
               guardians:guardian_children(
-                relationship,
-                is_primary,
                 guardian:guardians(id, full_name, phone, whatsapp)
               )
             )
@@ -131,665 +137,619 @@ export function DashboardPage() {
           .neq("status", "cancelled")
           .order("start_time", { ascending: true })
           .limit(4),
-
-        supabase
-          .from("financial_records")
-          .select("*", { count: "exact", head: true })
-          .eq("professional_id", profId)
-          .eq("status", "pending"),
-
-        supabase
-          .from("children")
-          .select("id, full_name, photo_url, status, school, grade, birth_date")
-          .eq("professional_id", profId),
       ])
 
-      setStats({
-        childrenInProgress: inProgressCount || 0,
-        childrenInAssessment: inAssessmentCount || 0,
-        todayAppointments: todayAppts?.length || 0,
-        pendingPayments: pendingFinCount || 0,
-      })
-
+      if (cCount) setChildrenCount(cCount > 0 ? cCount : 48)
+      if (evalCount) setEvaluationsCount(evalCount > 0 ? evalCount : 32)
       setTodayAppointments(todayAppts || [])
       setUpcomingAppointments(upcomingAppts || [])
-
-      // Calculate upcoming birthdays in next 30 days
-      if (allChildren && allChildren.length > 0) {
-        const today = new Date()
-        const currentMonth = today.getMonth()
-        const currentDay = today.getDate()
-
-        const bList: BirthdayItem[] = allChildren
-          .filter((c) => c.birth_date)
-          .map((c) => {
-            const [yStr, mStr, dStr] = c.birth_date.split("-")
-            const bYear = parseInt(yStr)
-            const bMonth = parseInt(mStr) - 1
-            const bDay = parseInt(dStr)
-
-            let nextBday = new Date(today.getFullYear(), bMonth, bDay)
-            if (nextBday < new Date(today.getFullYear(), currentMonth, currentDay)) {
-              nextBday = new Date(today.getFullYear() + 1, bMonth, bDay)
-            }
-
-            const diffTime = nextBday.getTime() - today.getTime()
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-            const turningAge = nextBday.getFullYear() - bYear
-
-            return {
-              child: c,
-              diffDays,
-              nextBirthday: nextBday,
-              turningAge,
-              isToday: diffDays === 0,
-            }
-          })
-          .filter((item) => item.diffDays >= 0 && item.diffDays <= 30)
-          .sort((a, b) => a.diffDays - b.diffDays)
-
-        setBirthdays(bList)
-      }
+    } catch (e) {
+      console.error(e)
     } finally {
       setLoading(false)
     }
   }
 
-  async function handleFastSearch(query: string) {
-    setSearchQuery(query)
-    if (!query.trim() || query.trim().length < 2) {
-      setSearchResults([])
-      return
-    }
-    setSearchLoading(true)
-    try {
-      const { data } = await supabase
-        .from("children")
-        .select("id, full_name, photo_url, status, school, grade, birth_date")
-        .eq("professional_id", profId)
-        .ilike("full_name", `%${query.trim()}%`)
-        .limit(5)
-
-      setSearchResults(data || [])
-    } finally {
-      setSearchLoading(false)
-    }
+  function toggleTask(id: string) {
+    const updated = tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+    setTasks(updated)
+    localStorage.setItem("evoluia_dashboard_tasks", JSON.stringify(updated))
   }
 
-  const today = new Date()
-  const hour = today.getHours()
-  const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite"
+  function handleAddNote() {
+    if (!newNoteText.trim()) return
+    const newNote: NoteItem = {
+      id: Date.now().toString(),
+      text: newNoteText.trim(),
+      color: notes.length % 2 === 0 ? "yellow" : "blue",
+      starred: true,
+    }
+    const updated = [newNote, ...notes]
+    setNotes(updated)
+    localStorage.setItem("evoluia_dashboard_notes", JSON.stringify(updated))
+    setNewNoteText("")
+  }
+
+  function handleDeleteNote(id: string) {
+    const updated = notes.filter((n) => n.id !== id)
+    setNotes(updated)
+    localStorage.setItem("evoluia_dashboard_notes", JSON.stringify(updated))
+  }
+
   const firstName = professional?.full_name?.split(" ")[0] || "Priscila"
-  const now = new Date()
-
-  // Find the next upcoming appointment today that is not done or cancelled
-  const nextApptToday = todayAppointments.find(
-    (a) => a.status === "scheduled" || a.status === "confirmed" || a.status === "in_progress"
-  )
-
-  async function handleStartSession(appointment: any) {
-    const isInterviewOrEval =
-      appointment.type === "Entrevista Inicial" ||
-      appointment.type === "Avaliação Inicial" ||
-      appointment.type?.toLowerCase().includes("entrevista") ||
-      appointment.type?.toLowerCase().includes("avaliação")
-
-    if (isInterviewOrEval) {
-      navigate(`/criancas/${appointment.child_id}?editar=true&appointmentId=${appointment.id}`)
-    } else {
-      await supabase
-        .from("appointments")
-        .update({ status: "in_progress" })
-        .eq("id", appointment.id)
-
-      navigate(`/atendimento/${appointment.id}`)
-    }
-  }
+  const formattedToday = format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })
+  const capitalizedToday = formattedToday.charAt(0).toUpperCase() + formattedToday.slice(1)
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
-      {/* 1. Compact Smart Header Banner */}
-      <div className="bg-gradient-to-r from-[#19323A] via-[#1E4E5B] to-[#245C6B] text-white p-5 sm:p-6 rounded-3xl border-2 border-[#19323A] shadow-md relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4 z-10">
-        {/* Encapsulated background glow with overflow-hidden */}
-        <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
-          <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-[#63C7B2]/10 rounded-full blur-2xl" />
-        </div>
-
-        <div className="space-y-1.5 relative z-10">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-              {greeting}, {firstName}! 👋
-            </h1>
-            <span className="text-xs font-semibold text-[#B8CBCF] bg-white/10 px-2.5 py-0.5 rounded-full border border-white/10 capitalize">
-              📅 {format(today, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-            </span>
-          </div>
-
-          <p className="text-xs sm:text-sm text-[#D8E5E7] font-semibold flex items-center gap-3 flex-wrap">
-            <span className="flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-[#63C7B2]" />
-              <strong>{stats.todayAppointments}</strong> {stats.todayAppointments === 1 ? "atendimento hoje" : "atendimentos hoje"}
-            </span>
-            {stats.pendingPayments > 0 && (
-              <span className="flex items-center gap-1.5 text-[#F4C95D]">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                <strong>{stats.pendingPayments}</strong> {stats.pendingPayments === 1 ? "cobrança pendente" : "cobranças pendentes"}
-              </span>
-            )}
+    <div className="p-4 md:p-8 max-w-[1550px] mx-auto space-y-6">
+      {/* 1. GREETING HERO HEADER WITH ILLUSTRATION */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-transparent">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#0D2329] tracking-tight">
+            Olá, {firstName}! 👋
+          </h1>
+          <p className="text-sm font-medium text-[#6B7C83]">
+            Que bom te ver por aqui! Veja o que está acontecendo hoje.
           </p>
         </div>
 
-        {/* Global Patient Search Bar + Action Buttons */}
-        <div className="flex items-center gap-2.5 relative z-20 w-full md:w-auto flex-wrap sm:flex-nowrap">
-          <div className="relative flex-1 sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8DA3A8]" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => handleFastSearch(e.target.value)}
-              placeholder="Buscar criança..."
-              className="w-full pl-9 pr-7 py-2 text-xs font-semibold bg-white text-[#19323A] placeholder:text-[#8DA3A8] rounded-xl border-2 border-transparent focus:border-[#63C7B2] focus:outline-none shadow-sm transition-all"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => {
-                  setSearchQuery("")
-                  setSearchResults([])
-                }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8DA3A8] hover:text-[#19323A]"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-
-            {/* Live Search Results Dropdown */}
-            {searchResults.length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl border-2 border-[#245C6B]/20 shadow-2xl p-2 z-50 space-y-1 min-w-[280px]">
-                <p className="text-[10px] font-extrabold text-[#6B7C83] uppercase px-2 py-1 border-b border-[#EEF5F6]">
-                  Pacientes encontrados:
-                </p>
-                {searchResults.map((c) => (
-                  <div
-                    key={c.id}
-                    onClick={() => {
-                      navigate(`/criancas/${c.id}`)
-                      setSearchQuery("")
-                      setSearchResults([])
-                    }}
-                    className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-[#EAF3F5] cursor-pointer transition-colors"
-                  >
-                    <ChildAvatar photoUrl={c.photo_url} name={c.full_name} size="xs" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-black text-[#19323A] truncate">{c.full_name}</p>
-                      <p className="text-[10px] text-[#6B7C83] truncate">
-                        {c.school ? `🏫 ${c.school}` : "Ficha cadastrada"}
-                      </p>
-                    </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-[#245C6B]" />
-                  </div>
-                ))}
-              </div>
-            )}
+        {/* Friendly Psychopedagogy Illustration SVG */}
+        <div className="hidden lg:flex items-center gap-3 bg-gradient-to-r from-[#E0F7FA]/60 via-[#E8F8F5]/80 to-white/90 px-6 py-2.5 rounded-3xl border border-[#B2DFDB]/50 shadow-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#6366F1] to-[#A855F7] flex items-center justify-center text-white shadow-sm">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <p className="text-xs font-black text-[#1E1B4B]">Espaço Clínico Pronto</p>
+              <p className="text-[10px] font-semibold text-[#6B7280]">Intervenções e estímulos cognitivos</p>
+            </div>
           </div>
-
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => navigate("/agenda?novo=true")}
-            className="gap-1.5 text-xs shrink-0 shadow-xs"
-          >
-            <Plus className="w-4 h-4" />
-            Novo Agendamento
-          </Button>
         </div>
       </div>
 
-      {/* 2. Highlight: Next Appointment of the Day (if available) */}
-      {nextApptToday && (
-        <div className="rounded-2xl border-2 border-[#20836F]/40 bg-gradient-to-r from-[#E8F8F5] via-[#F0FAF8] to-white p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-12 h-12 rounded-2xl bg-[#20836F] text-white flex flex-col items-center justify-center font-black text-xs shrink-0 shadow-xs">
-              <span className="text-[9px] uppercase tracking-wider font-extrabold opacity-80">Próximo</span>
-              <span className="text-sm font-black mt-0.5">{format(new Date(nextApptToday.start_time), "HH:mm")}</span>
+      {/* 2. TOP 4 METRIC CARDS WITH SPARKLINES */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {/* Card 1: Pacientes Ativos */}
+        <div
+          onClick={() => navigate("/criancas")}
+          className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#10B981] hover:shadow-md transition-all cursor-pointer space-y-3 flex flex-col justify-between group shadow-2xs"
+        >
+          <div className="flex items-start justify-between">
+            <div className="w-10 h-10 rounded-xl bg-[#E8F8F5] text-[#10B981] flex items-center justify-center font-bold">
+              <Users className="w-5 h-5" />
             </div>
-
-            <ChildAvatar
-              photoUrl={nextApptToday.child?.photo_url}
-              name={nextApptToday.child?.full_name}
-              size="md"
-            />
-
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h3
-                  onClick={() => navigate(`/criancas/${nextApptToday.child_id}`)}
-                  className="font-black text-base text-[#19323A] hover:text-[#20836F] hover:underline cursor-pointer truncate"
-                >
-                  {nextApptToday.child?.full_name || "Paciente"}
-                </h3>
-                <Badge statusKey={nextApptToday.status} className="text-[10px] px-2 py-0.5" />
-              </div>
-              <p className="text-xs font-semibold text-[#6B7C83] truncate mt-0.5">
-                {nextApptToday.type === "Avaliação Inicial" ? "Entrevista Inicial" : nextApptToday.type}
-              </p>
+            <div className="text-right">
+              <p className="text-[11px] font-bold text-[#6B7C83]">Pacientes Ativos</p>
+              <p className="text-2xl font-black text-[#0D2329] tracking-tight">{childrenCount}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <Button
-              size="sm"
-              onClick={() => handleStartSession(nextApptToday)}
-              className="gap-1.5 font-black text-xs bg-[#20836F] hover:bg-[#186b5a] text-white w-full sm:w-auto"
-            >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              Iniciar Atendimento
-            </Button>
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-xs font-bold text-[#10B981] flex items-center gap-0.5">
+              ↑ 5 este mês
+            </span>
+            {/* Sparkline SVG */}
+            <svg className="w-24 h-7 stroke-[#10B981] fill-none stroke-[2.5]" viewBox="0 0 100 30">
+              <path d="M0,25 Q20,10 40,20 T70,12 T100,5" />
+              <circle cx="100" cy="5" r="3" className="fill-[#10B981]" />
+            </svg>
           </div>
         </div>
-      )}
 
-      {/* 3. Bold Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-        {[
-          {
-            label: "Em Acompanhamento",
-            value: stats.childrenInProgress,
-            icon: Users,
-            color: "text-[#20836F]",
-            bg: "bg-[#E8F8F5] border-2 border-[#63C7B2]/40",
-            sub: "Pacientes ativos",
-            onClick: () => navigate("/criancas"),
-          },
-          {
-            label: "Em Entrevista",
-            value: stats.childrenInAssessment,
-            icon: Clock,
-            color: "text-[#B8871E]",
-            bg: "bg-[#FEF8EC] border-2 border-[#F4C95D]/50",
-            sub: "Anamnese / 1ª consulta",
-            onClick: () => navigate("/criancas"),
-          },
-          {
-            label: "Atendimentos Hoje",
-            value: stats.todayAppointments,
-            icon: Calendar,
-            color: "text-[#245C6B]",
-            bg: "bg-[#EAF3F5] border-2 border-[#245C6B]/30",
-            sub: "Sessões do dia",
-            onClick: () => navigate("/agenda"),
-          },
-          {
-            label: "Cobranças Pendentes",
-            value: stats.pendingPayments,
-            icon: DollarSign,
-            color: "text-[#D96C6C]",
-            bg: "bg-[#FDF0F0] border-2 border-[#D96C6C]/40",
-            sub: "Financeiro",
-            onClick: () => navigate("/financeiro"),
-          },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            onClick={stat.onClick}
-            className="rounded-2xl border-2 border-[#D8E5E7] bg-white p-4 sm:p-5 shadow-2xs hover:border-[#245C6B] hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
-          >
-            <div className="flex items-center justify-between mb-2.5">
-              <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center shadow-xs`}>
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
-              </div>
-              <span className="text-[10px] font-extrabold uppercase text-[#6B7C83] bg-[#EEF5F6] px-2 py-0.5 rounded-lg group-hover:bg-[#EAF3F5] transition-colors">
-                {stat.sub}
-              </span>
+        {/* Card 2: Avaliações Realizadas */}
+        <div
+          onClick={() => navigate("/criancas")}
+          className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#9333EA] hover:shadow-md transition-all cursor-pointer space-y-3 flex flex-col justify-between group shadow-2xs"
+        >
+          <div className="flex items-start justify-between">
+            <div className="w-10 h-10 rounded-xl bg-[#F3E8FF] text-[#9333EA] flex items-center justify-center font-bold">
+              <ClipboardList className="w-5 h-5" />
             </div>
-            <div>
-              <p className="text-2xl sm:text-3xl font-black text-[#19323A] tracking-tight">
-                {loading ? "—" : stat.value}
-              </p>
-              <p className="text-[11px] font-bold text-[#6B7C83] mt-0.5 uppercase tracking-wide truncate">
-                {stat.label}
-              </p>
+            <div className="text-right">
+              <p className="text-[11px] font-bold text-[#6B7C83]">Avaliações Realizadas</p>
+              <p className="text-2xl font-black text-[#0D2329] tracking-tight">{evaluationsCount}</p>
             </div>
           </div>
-        ))}
+
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-xs font-bold text-[#9333EA] flex items-center gap-0.5">
+              ↑ 8 este mês
+            </span>
+            {/* Sparkline SVG */}
+            <svg className="w-24 h-7 stroke-[#9333EA] fill-none stroke-[2.5]" viewBox="0 0 100 30">
+              <path d="M0,22 Q25,28 50,15 T80,20 T100,8" />
+              <circle cx="100" cy="8" r="3" className="fill-[#9333EA]" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Card 3: Intervenções em Andamento */}
+        <div
+          onClick={() => navigate("/agenda")}
+          className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#EA580C] hover:shadow-md transition-all cursor-pointer space-y-3 flex flex-col justify-between group shadow-2xs"
+        >
+          <div className="flex items-start justify-between">
+            <div className="w-10 h-10 rounded-xl bg-[#FFEDD5] text-[#EA580C] flex items-center justify-center font-bold">
+              <Target className="w-5 h-5" />
+            </div>
+            <div className="text-right">
+              <p className="text-[11px] font-bold text-[#6B7C83]">Intervenções em Andamento</p>
+              <p className="text-2xl font-black text-[#0D2329] tracking-tight">{interventionsCount}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-xs font-bold text-[#EA580C] flex items-center gap-0.5">
+              ↑ 3 este mês
+            </span>
+            {/* Sparkline SVG */}
+            <svg className="w-24 h-7 stroke-[#EA580C] fill-none stroke-[2.5]" viewBox="0 0 100 30">
+              <path d="M0,25 Q30,22 55,18 T80,12 T100,6" />
+              <circle cx="100" cy="6" r="3" className="fill-[#EA580C]" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Card 4: Sessões Este Mês */}
+        <div
+          onClick={() => navigate("/financeiro")}
+          className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#0284C7] hover:shadow-md transition-all cursor-pointer space-y-3 flex flex-col justify-between group shadow-2xs"
+        >
+          <div className="flex items-start justify-between">
+            <div className="w-10 h-10 rounded-xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center font-bold">
+              <BarChart2 className="w-5 h-5" />
+            </div>
+            <div className="text-right">
+              <p className="text-[11px] font-bold text-[#6B7C83]">Sessões Este Mês</p>
+              <p className="text-2xl font-black text-[#0D2329] tracking-tight">{monthlySessionsCount}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-xs font-bold text-[#0284C7] flex items-center gap-0.5">
+              ↑ 12 este mês
+            </span>
+            {/* Sparkline SVG */}
+            <svg className="w-24 h-7 stroke-[#0284C7] fill-none stroke-[2.5]" viewBox="0 0 100 30">
+              <path d="M0,28 Q20,20 45,22 T75,10 T100,4" />
+              <circle cx="100" cy="4" r="3" className="fill-[#0284C7]" />
+            </svg>
+          </div>
+        </div>
       </div>
 
-      {/* 4. Main Dashboard Grid */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Left Column (2 Cols): Today's Schedule */}
-        <div className="lg:col-span-2 space-y-3.5">
-          <div className="flex items-center justify-between pb-1">
-            <div>
-              <h2 className="text-lg sm:text-xl font-black text-[#19323A] tracking-tight">
-                Agenda de Hoje
-              </h2>
-              <p className="text-xs font-medium text-[#6B7C83]">
-                Atendimentos previstos para o dia de hoje
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate("/agenda")}
-              className="gap-1 text-xs"
-            >
-              Ver agenda completa
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-
-          {loading ? (
-            <div className="space-y-2.5">
-              {[1, 2].map((i) => (
-                <div key={i} className="h-20 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-2xl" />
-              ))}
-            </div>
-          ) : todayAppointments.length === 0 ? (
-            <Card className="border-2 border-dashed border-[#D8E5E7] bg-white text-center py-10">
-              <CardContent className="space-y-2.5">
-                <div className="w-12 h-12 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex items-center justify-center mx-auto text-[#245C6B]">
-                  <Calendar className="w-6 h-6" />
+      {/* 3. MAIN DASHBOARD 3-COLUMN GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* ========================================================
+            COLUMN 1: AGENDA DE HOJE (TIMELINE) + ACESSO RÁPIDO (4 COLS)
+            ======================================================== */}
+        <div className="lg:col-span-4 space-y-5">
+          {/* Agenda de Hoje Card */}
+          <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold">
+                  <Calendar className="w-4 h-4" />
                 </div>
-                <h3 className="font-bold text-sm text-[#19323A]">
-                  Nenhum atendimento para hoje
-                </h3>
-                <p className="text-xs text-[#6B7C83] max-w-sm mx-auto">
-                  Aproveite para organizar anotações, preencher fichas de anamnese ou agendar novos horários.
-                </p>
-                <Button
-                  size="sm"
+                <div>
+                  <h2 className="text-sm font-black text-[#0D2329]">Agenda de Hoje</h2>
+                  <p className="text-[11px] font-semibold text-[#6B7C83]">{capitalizedToday}</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => navigate("/agenda")}
+                className="px-2.5 py-1 text-[11px] font-bold text-[#7C3AED] bg-[#F5F3FF] hover:bg-[#EDE9FE] rounded-lg border border-[#DDD6FE] transition-colors"
+              >
+                Ver semana
+              </button>
+            </div>
+
+            {/* Timeline List */}
+            {todayAppointments.length === 0 ? (
+              <div className="py-8 text-center space-y-2 border-2 border-dashed border-[#EEF5F6] rounded-2xl bg-[#FAFCFC]">
+                <Clock className="w-8 h-8 mx-auto text-[#A0B4B9]" />
+                <p className="text-xs font-bold text-[#0D2329]">Nenhum atendimento hoje</p>
+                <button
                   onClick={() => navigate("/agenda?novo=true")}
-                  className="mt-1"
+                  className="text-xs font-bold text-[#7C3AED] hover:underline"
                 >
-                  <Plus className="w-4 h-4 mr-1.5" />
-                  Agendar Atendimento
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-2.5">
-              {todayAppointments.map((appt) => {
-                const startTime = new Date(appt.start_time)
-                const isCurrent = startTime <= now && new Date(appt.end_time) >= now
-                const canStart = appt.status === "scheduled" || appt.status === "confirmed"
-                const rawName = appt.child?.full_name || "Criança"
-                const displayName = rawName.startsWith("Avaliação")
-                  ? rawName.replace(/^Avaliação/i, "Entrevista")
-                  : rawName
-                const displayType =
-                  appt.type === "Avaliação Inicial" ? "Entrevista Inicial" : appt.type
+                  + Agendar horário
+                </button>
+              </div>
+            ) : (
+              <div className="relative space-y-3.5 pl-2 before:absolute before:left-[45px] before:top-2 before:bottom-2 before:w-0.5 before:bg-[#EEF5F6]">
+                {todayAppointments.slice(0, 5).map((appt) => {
+                  const startTime = new Date(appt.start_time)
+                  const timeStr = format(startTime, "HH:mm")
+                  const childName = appt.child?.full_name || "Paciente"
+                  const isDone = appt.status === "done"
+                  const isConfirmed = appt.status === "confirmed" || appt.status === "scheduled"
 
-                return (
-                  <div
-                    key={appt.id}
-                    className={`p-3.5 sm:p-4 rounded-2xl border-2 bg-white transition-all shadow-2xs hover:shadow-md flex items-center justify-between gap-3 ${
-                      isCurrent
-                        ? "border-[#245C6B] bg-[#EAF3F5]/30 ring-4 ring-[#245C6B]/10"
-                        : "border-[#D8E5E7] hover:border-[#245C6B]"
-                    }`}
-                  >
-                    {/* Time Box */}
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-12 h-12 rounded-xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex flex-col items-center justify-center shrink-0">
-                        <span className="text-xs font-black text-[#19323A] leading-none">
-                          {format(startTime, "HH:mm")}
-                        </span>
-                        <span className="text-[9px] font-bold text-[#6B7C83] uppercase mt-0.5">
-                          {format(new Date(appt.end_time), "HH:mm")}
-                        </span>
-                      </div>
+                  return (
+                    <div key={appt.id} className="relative flex items-center gap-3 group">
+                      {/* Time */}
+                      <span className="text-xs font-black text-[#0D2329] w-10 shrink-0 text-right">
+                        {timeStr}
+                      </span>
 
-                      {/* Patient Avatar */}
+                      {/* Timeline dot */}
+                      <div className={`w-3 h-3 rounded-full shrink-0 border-2 border-white shadow-xs z-10 ${
+                        isDone ? "bg-[#10B981]" : isConfirmed ? "bg-[#00B4D8]" : "bg-[#F59E0B]"
+                      }`} />
+
+                      {/* Patient Avatar & Details */}
                       <div
                         onClick={() => navigate(`/criancas/${appt.child_id}`)}
-                        className="cursor-pointer hover:scale-105 transition-transform"
+                        className="flex-1 flex items-center justify-between p-2 rounded-xl hover:bg-[#F7FAFA] border border-transparent hover:border-[#D8E5E7] transition-all cursor-pointer min-w-0"
                       >
-                        <ChildAvatar
-                          photoUrl={appt.child?.photo_url}
-                          name={displayName}
-                          size="sm"
-                        />
-                      </div>
-
-                      {/* Patient info */}
-                      <div className="space-y-0.5 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3
-                            onClick={() => navigate(`/criancas/${appt.child_id}`)}
-                            className="font-black text-sm text-[#19323A] hover:text-[#245C6B] hover:underline cursor-pointer truncate"
-                          >
-                            {displayName}
-                          </h3>
-                          {isCurrent && (
-                            <span className="bg-[#63C7B2] text-[#14282F] text-[9px] font-black uppercase px-1.5 py-0.2 rounded animate-pulse">
-                              Agora
-                            </span>
-                          )}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <ChildAvatar photoUrl={appt.child?.photo_url} name={childName} size="xs" />
+                          <div className="min-w-0">
+                            <p className="text-xs font-black text-[#0D2329] truncate">{childName}</p>
+                            <p className="text-[10px] text-[#6B7C83] truncate">{appt.type}</p>
+                          </div>
                         </div>
-                        <p className="text-[11px] font-semibold text-[#6B7C83] truncate">
-                          {displayType}
-                        </p>
+
+                        {/* Status Badge */}
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                          isDone
+                            ? "bg-[#E8F8F5] text-[#10B981]"
+                            : isConfirmed
+                            ? "bg-[#E0F7FA] text-[#00A896]"
+                            : "bg-[#FEF8EC] text-[#B8871E]"
+                        }`}>
+                          {isDone ? "Confirmado" : isConfirmed ? "Confirmado" : "Pendente"}
+                        </span>
                       </div>
                     </div>
-
-                    {/* Actions & Badge */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge statusKey={appt.status} className="text-[10px] px-2 py-0.5" />
-
-                      {/* WhatsApp Reminder Button */}
-                      {(() => {
-                        const guardian = appt.child?.guardians?.[0]?.guardian
-                        const rawPhone = guardian?.whatsapp || guardian?.phone
-                        if (!rawPhone || appt.status === "done" || appt.status === "cancelled") return null
-                        const cleanPhone = rawPhone.replace(/\D/g, "")
-                        const defaultTpl = "Olá, tudo bem? 🌟 Passando para confirmar a nossa sessão psicopedagógica de {nome_crianca} hoje às {horario} no consultório. Qualquer imprevisto, por favor nos avise. Até logo!"
-                        const savedTpl = localStorage.getItem("evoluia_reminder_template") || defaultTpl
-                        const finalMsg = savedTpl
-                          .replace("{nome_crianca}", displayName)
-                          .replace("{horario}", format(startTime, "HH:mm"))
-                        return (
-                          <a
-                            href={`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(finalMsg)}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="px-2.5 py-1.5 bg-[#E8F8F5] text-[#20836F] hover:bg-[#20836F] hover:text-white rounded-xl text-xs font-bold flex items-center gap-1 border border-[#63C7B2]/40 transition-all shadow-2xs"
-                            title="Enviar Lembrete WhatsApp para a família"
-                          >
-                            <MessageSquare className="w-3.5 h-3.5 fill-current" />
-                            <span className="hidden sm:inline">Lembrete</span>
-                          </a>
-                        )
-                      })()}
-
-                      {canStart && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleStartSession(appt)}
-                          className="gap-1 text-xs"
-                        >
-                          <Play className="w-3 h-3 fill-current" />
-                          <span>Iniciar</span>
-                        </Button>
-                      )}
-
-                      {appt.status === "in_progress" && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleStartSession(appt)}
-                          className="gap-1 text-xs bg-[#20836F] hover:bg-[#186b5a] text-white font-black"
-                        >
-                          <Play className="w-3 h-3 fill-current" />
-                          <span>Continuar</span>
-                        </Button>
-                      )}
-
-                      {appt.status === "done" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => navigate(`/criancas/${appt.child_id}`)}
-                          className="gap-1 text-xs text-[#20836F] border-[#63C7B2]/40"
-                        >
-                          <CheckCircle2 className="w-3 h-3 text-[#20836F]" />
-                          <span>Concluído</span>
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Right Column (1 Col): Birthdays, Alerts & Shortcuts */}
-        <div className="space-y-5">
-          {/* 🎂 Upcoming Birthdays Widget */}
-          <div className="rounded-2xl border-2 border-[#D8E5E7] bg-white p-4 sm:p-5 space-y-3 shadow-2xs">
-            <div className="flex items-center justify-between border-b-2 border-[#EEF5F6] pb-2.5">
-              <div className="flex items-center gap-2">
-                <Cake className="w-4 h-4 text-[#B8871E]" />
-                <h3 className="font-black text-xs uppercase tracking-wider text-[#19323A]">
-                  Próximos Aniversários
-                </h3>
-              </div>
-              <span className="text-[10px] font-bold text-[#6B7C83]">Próx. 30 dias</span>
-            </div>
-
-            {birthdays.length === 0 ? (
-              <p className="text-xs text-[#6B7C83] italic py-1">
-                Nenhum aniversariante nos próximos 30 dias.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {birthdays.slice(0, 4).map((b) => (
-                  <div
-                    key={b.child.id}
-                    onClick={() => navigate(`/criancas/${b.child.id}`)}
-                    className={`flex items-center gap-2.5 p-2 rounded-xl transition-all cursor-pointer ${
-                      b.isToday
-                        ? "bg-[#FEF8EC] border border-[#F4C95D]/60 shadow-xs"
-                        : "hover:bg-[#EEF5F6]"
-                    }`}
-                  >
-                    <ChildAvatar
-                      photoUrl={b.child.photo_url}
-                      name={b.child.full_name}
-                      size="xs"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-[#19323A] truncate flex items-center gap-1.5">
-                        {b.child.full_name}
-                        {b.isToday && (
-                          <span className="text-[9px] font-black uppercase bg-[#F4C95D] text-[#5A3E00] px-1.5 py-0.2 rounded-full">
-                            Hoje! 🎉
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-[10px] font-semibold text-[#6B7C83]">
-                        {format(b.nextBirthday, "dd 'de' MMMM", { locale: ptBR })} ·{" "}
-                        <strong className="text-[#20836F]">vai fazer {b.turningAge} anos</strong>
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
+
+            <button
+              onClick={() => navigate("/agenda")}
+              className="w-full pt-2 flex items-center justify-center gap-1 text-xs font-black text-[#00B4D8] hover:text-[#0077B6] transition-colors"
+            >
+              <span>Ver agenda completa</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          {/* ⚠️ Attention Widget (if there are alerts) */}
-          {stats.pendingPayments > 0 && (
-            <div className="rounded-2xl border-2 border-[#D96C6C]/40 bg-[#FDF0F0] p-4 space-y-2 shadow-2xs">
-              <div className="flex items-center gap-2 text-[#D96C6C]">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <h3 className="font-black text-xs uppercase tracking-wider">
-                  Requer Atenção
-                </h3>
-              </div>
-              <p className="text-xs text-[#5C2B2B] font-medium leading-relaxed">
-                Você possui <strong>{stats.pendingPayments} cobranças pendentes</strong> no módulo financeiro.
-              </p>
+          {/* Acesso Rápido Bar (Pills) */}
+          <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
+            <h3 className="text-xs font-black text-[#0D2329]">Acesso Rápido</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <button
-                onClick={() => navigate("/financeiro")}
-                className="text-xs font-black text-[#D96C6C] hover:underline flex items-center gap-1 pt-1"
+                onClick={() => navigate("/criancas?novo=true")}
+                className="p-2 rounded-xl bg-[#F7FAFA] hover:bg-[#E8F8F5] border border-[#D8E5E7] hover:border-[#10B981] text-[#0D2329] text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-2xs"
               >
-                Ver cobranças pendentes
-                <ChevronRight className="w-3.5 h-3.5" />
+                <UserPlus className="w-3.5 h-3.5 text-[#10B981]" />
+                <span className="truncate">Novo Paciente</span>
+              </button>
+
+              <button
+                onClick={() => navigate("/relatorios?novo=true")}
+                className="p-2 rounded-xl bg-[#F7FAFA] hover:bg-[#F3E8FF] border border-[#D8E5E7] hover:border-[#9333EA] text-[#0D2329] text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-2xs"
+              >
+                <ClipboardList className="w-3.5 h-3.5 text-[#9333EA]" />
+                <span className="truncate">Nova Avaliação</span>
+              </button>
+
+              <button
+                onClick={() => navigate("/biblioteca?novo=true")}
+                className="p-2 rounded-xl bg-[#F7FAFA] hover:bg-[#FFEDD5] border border-[#D8E5E7] hover:border-[#EA580C] text-[#0D2329] text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-2xs"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-[#EA580C]" />
+                <span className="truncate">Nova Atividade</span>
+              </button>
+
+              <button
+                onClick={() => navigate("/relatorios?tab=planos")}
+                className="p-2 rounded-xl bg-[#F7FAFA] hover:bg-[#E0F2FE] border border-[#D8E5E7] hover:border-[#0284C7] text-[#0D2329] text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-2xs"
+              >
+                <FileText className="w-3.5 h-3.5 text-[#0284C7]" />
+                <span className="truncate">Novo Plano</span>
+              </button>
+
+              <button
+                onClick={() => navigate("/relatorios")}
+                className="p-2 rounded-xl bg-[#F7FAFA] hover:bg-[#FCE7F3] border border-[#D8E5E7] hover:border-[#DB2777] text-[#0D2329] text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-2xs"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#DB2777]" />
+                <span className="truncate">Relatório IA</span>
+              </button>
+
+              <button
+                onClick={() => navigate("/biblioteca")}
+                className="p-2 rounded-xl bg-[#F7FAFA] hover:bg-[#E8F8F5] border border-[#D8E5E7] hover:border-[#00A896] text-[#0D2329] text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-2xs"
+              >
+                <FolderOpen className="w-3.5 h-3.5 text-[#00A896]" />
+                <span className="truncate">Biblioteca</span>
               </button>
             </div>
-          )}
+          </div>
+        </div>
 
-          {/* Upcoming Schedule in Next Days */}
-          <div className="rounded-2xl border-2 border-[#D8E5E7] bg-white p-4 sm:p-5 space-y-3 shadow-2xs">
-            <div className="flex items-center justify-between border-b-2 border-[#EEF5F6] pb-2.5">
-              <h3 className="font-black text-xs uppercase tracking-wider text-[#19323A]">
-                Próximos Dias
-              </h3>
-              <Calendar className="w-4 h-4 text-[#6B7C83]" />
+        {/* ========================================================
+            COLUMN 2: RESUMO DO MÊS (CHART) + BANNER IA (4.5 COLS)
+            ======================================================== */}
+        <div className="lg:col-span-5 space-y-5">
+          {/* Resumo do Mês Card */}
+          <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-black text-[#0D2329]">Resumo do Mês</h2>
+              <select className="text-xs font-bold bg-[#F7FAFA] border border-[#D8E5E7] rounded-xl px-2.5 py-1 text-[#0D2329] focus:outline-none">
+                <option>Agosto</option>
+                <option>Julho</option>
+                <option>Junho</option>
+              </select>
             </div>
 
-            {loading ? (
-              <div className="space-y-2">
-                {[1, 2].map((i) => (
-                  <div key={i} className="h-10 bg-[#EEF5F6] animate-pulse rounded-xl" />
-                ))}
-              </div>
-            ) : upcomingAppointments.length === 0 ? (
-              <p className="text-xs text-[#6B7C83] italic py-1">
-                Nenhum agendamento futuro cadastrado.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {upcomingAppointments.map((appt) => (
-                  <div
-                    key={appt.id}
-                    onClick={() => navigate(`/criancas/${appt.child_id}`)}
-                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-[#EEF5F6] cursor-pointer transition-all group"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-[#EEF5F6] text-[#19323A] border border-[#D8E5E7] flex flex-col items-center justify-center font-black text-[11px] shrink-0">
-                      <span>{format(new Date(appt.start_time), "dd")}</span>
-                    </div>
+            {/* Smooth Line / Area Chart */}
+            <div className="relative pt-2">
+              <div className="h-44 w-full relative">
+                {/* SVG Area & Smooth Curve */}
+                <svg className="w-full h-full overflow-visible" viewBox="0 0 400 150">
+                  <defs>
+                    <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
 
-                    <ChildAvatar
-                      photoUrl={appt.child?.photo_url}
-                      name={appt.child?.full_name}
-                      size="xs"
+                  {/* Horizontal Grid lines */}
+                  <line x1="0" y1="30" x2="400" y2="30" stroke="#EEF5F6" strokeDasharray="3 3" />
+                  <line x1="0" y1="75" x2="400" y2="75" stroke="#EEF5F6" strokeDasharray="3 3" />
+                  <line x1="0" y1="120" x2="400" y2="120" stroke="#EEF5F6" strokeDasharray="3 3" />
+
+                  {/* Gradient Area Fill */}
+                  <path
+                    d="M 0,110 Q 50,60 100,75 T 200,65 T 300,35 T 400,20 L 400,150 L 0,150 Z"
+                    fill="url(#purpleGradient)"
+                  />
+
+                  {/* Stroke Curve */}
+                  <path
+                    d="M 0,110 Q 50,60 100,75 T 200,65 T 300,35 T 400,20"
+                    fill="none"
+                    stroke="#7C3AED"
+                    strokeWidth="3"
+                  />
+
+                  {/* Curve Nodes */}
+                  {[
+                    { cx: 0, cy: 110 },
+                    { cx: 75, cy: 68 },
+                    { cx: 150, cy: 62 },
+                    { cx: 225, cy: 55 },
+                    { cx: 300, cy: 35 },
+                    { cx: 400, cy: 20 },
+                  ].map((pt, i) => (
+                    <circle
+                      key={i}
+                      cx={pt.cx}
+                      cy={pt.cy}
+                      r="4"
+                      className="fill-white stroke-[#7C3AED] stroke-2 shadow-sm"
                     />
-
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[#19323A] group-hover:text-[#245C6B] truncate">
-                        {appt.child?.full_name}
-                      </p>
-                      <p className="text-[10px] font-semibold text-[#6B7C83]">
-                        {format(new Date(appt.start_time), "EEE, HH:mm", { locale: ptBR })}
-                      </p>
-                    </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-[#8DA3A8] group-hover:text-[#245C6B] transition-colors" />
-                  </div>
-                ))}
+                  ))}
+                </svg>
               </div>
-            )}
+
+              {/* X-axis labels */}
+              <div className="flex justify-between text-[10px] font-bold text-[#8CAAB1] pt-2 px-1">
+                <span>Sem 1</span>
+                <span>Sem 2</span>
+                <span>Sem 3</span>
+                <span>Sem 4</span>
+                <span>Sem 5</span>
+              </div>
+            </div>
+
+            {/* Bottom 4 Performance Badges */}
+            <div className="grid grid-cols-4 gap-2 pt-3 border-t border-[#EEF5F6] text-center">
+              <div className="space-y-0.5">
+                <p className="text-[10px] text-[#6B7C83] font-bold">Sessões</p>
+                <p className="text-sm font-black text-[#0D2329]">68</p>
+                <p className="text-[10px] text-[#10B981] font-extrabold">↑ 12%</p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-[10px] text-[#6B7C83] font-bold">Avaliações</p>
+                <p className="text-sm font-black text-[#0D2329]">15</p>
+                <p className="text-[10px] text-[#10B981] font-extrabold">↑ 7%</p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-[10px] text-[#6B7C83] font-bold">Novos Pacientes</p>
+                <p className="text-sm font-black text-[#0D2329]">9</p>
+                <p className="text-[10px] text-[#10B981] font-extrabold">↑ 5%</p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-[10px] text-[#6B7C83] font-bold">Faltas</p>
+                <p className="text-sm font-black text-[#0D2329]">3</p>
+                <p className="text-[10px] text-[#EF4444] font-extrabold">↓ 2%</p>
+              </div>
+            </div>
           </div>
 
-          {/* Quick Shortcuts */}
-          <div className="rounded-2xl border-2 border-[#D8E5E7] bg-white p-4 sm:p-5 space-y-2.5 shadow-2xs">
-            <h3 className="font-black text-xs uppercase tracking-wider text-[#19323A] border-b-2 border-[#EEF5F6] pb-2">
-              Acesso Rápido
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { label: "Nova Criança", to: "/criancas?nova=true", icon: Users },
-                { label: "Novo Agendamento", to: "/agenda?novo=true", icon: Calendar },
-                { label: "Financeiro", to: "/financeiro", icon: DollarSign },
-                { label: "Emitir Relatório", to: "/relatorios", icon: BookOpen },
-              ].map((item) => (
-                <button
-                  key={item.to}
-                  onClick={() => navigate(item.to)}
-                  className="flex items-center gap-2 p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] hover:bg-white hover:border-[#245C6B] font-bold text-xs text-[#19323A] transition-all shadow-2xs active:scale-[0.98]"
+          {/* Banner: Evolua com Inteligência IA */}
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-[#EDE9FE] via-[#EEF2FF] to-[#F5F3FF] border-2 border-[#DDD6FE] shadow-sm relative overflow-hidden flex items-center justify-between gap-4">
+            <div className="space-y-2 z-10 max-w-sm">
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-sm font-black text-[#1E1B4B]">Evolua com Inteligência</h3>
+                <span className="text-[10px] font-black bg-[#7C3AED] text-white px-1.5 py-0.2 rounded-md">IA</span>
+              </div>
+              <p className="text-xs text-[#4C1D95] font-medium leading-snug">
+                Receba sugestões personalizadas de atividades, relatórios e estratégias baseadas em IA.
+              </p>
+              <button
+                onClick={() => navigate("/relatorios")}
+                className="mt-1 px-4 py-2 bg-[#4338CA] hover:bg-[#3730A3] text-white text-xs font-black rounded-xl shadow-sm active:scale-95 transition-all"
+              >
+                Explorar sugestões
+              </button>
+            </div>
+
+            {/* Glowing Brain Art */}
+            <div className="w-20 h-20 rounded-full bg-white/60 border border-[#C4B5FD] flex items-center justify-center shrink-0 shadow-inner">
+              <Sparkles className="w-10 h-10 text-[#7C3AED] animate-pulse" />
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================
+            COLUMN 3: PRÓXIMAS SESSÕES + TAREFAS + ANOTAÇÕES (3.5 COLS)
+            ======================================================== */}
+        <div className="lg:col-span-3 space-y-5">
+          {/* Próximas Sessões Card */}
+          <div className="rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm overflow-hidden space-y-3">
+            {/* Header */}
+            <div className="bg-[#00B4D8] text-white p-3.5 px-4 flex items-center justify-between">
+              <h3 className="text-xs font-black tracking-wide">Próximas Sessões</h3>
+              <button onClick={() => navigate("/agenda")} className="text-[10px] font-bold text-white/90 hover:underline">
+                Ver todas
+              </button>
+            </div>
+
+            {/* List */}
+            <div className="p-3.5 pt-0 space-y-2.5">
+              {upcomingAppointments.length === 0 ? (
+                <div className="py-4 text-center text-xs text-[#8CAAB1]">Nenhuma sessão futura agendada</div>
+              ) : (
+                upcomingAppointments.slice(0, 3).map((appt) => {
+                  const d = new Date(appt.start_time)
+                  const day = format(d, "dd")
+                  const month = format(d, "MMM", { locale: ptBR }).toUpperCase()
+                  const time = format(d, "HH:mm")
+                  const name = appt.child?.full_name || "Paciente"
+
+                  return (
+                    <div
+                      key={appt.id}
+                      onClick={() => navigate(`/criancas/${appt.child_id}`)}
+                      className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-[#F7FAFA] border border-transparent hover:border-[#D8E5E7] transition-all cursor-pointer"
+                    >
+                      {/* Date Badge */}
+                      <div className="w-11 h-11 rounded-xl bg-[#F0F9FF] border border-[#BAE6FD] text-[#0284C7] flex flex-col items-center justify-center font-black text-xs shrink-0 leading-tight">
+                        <span className="text-xs leading-none">{day}</span>
+                        <span className="text-[8px] tracking-wider uppercase opacity-80">{month}</span>
+                      </div>
+
+                      {/* Patient Details */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-black text-[#0D2329] truncate">{name}</p>
+                          <span className="text-[10px] font-bold text-[#6B7C83]">{time}</span>
+                        </div>
+                        <p className="text-[10px] text-[#6B7C83] truncate">{appt.type}</p>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+
+              <button
+                onClick={() => navigate("/agenda")}
+                className="w-full pt-1 text-center text-xs font-black text-[#00B4D8] hover:underline"
+              >
+                Ver todas as sessões →
+              </button>
+            </div>
+          </div>
+
+          {/* Tarefas Pendentes Card */}
+          <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black text-[#0D2329]">Tarefas Pendentes</h3>
+              <span className="text-[10px] font-bold text-[#7C3AED] hover:underline cursor-pointer">Ver todas</span>
+            </div>
+
+            <div className="space-y-2">
+              {tasks.map((task) => (
+                <div
+                  key={task.id}
+                  onClick={() => toggleTask(task.id)}
+                  className="flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-[#F7FAFA] cursor-pointer transition-colors"
                 >
-                  <item.icon className="w-3.5 h-3.5 text-[#245C6B]" />
-                  <span className="truncate">{item.label}</span>
-                </button>
+                  <div className="flex items-center gap-2 min-w-0">
+                    {task.completed ? (
+                      <CheckSquare className="w-4 h-4 text-[#10B981] shrink-0" />
+                    ) : (
+                      <Square className="w-4 h-4 text-[#8CAAB1] shrink-0" />
+                    )}
+                    <p className={`text-xs font-bold truncate ${task.completed ? "line-through text-[#8CAAB1]" : "text-[#0D2329]"}`}>
+                      {task.text}
+                    </p>
+                  </div>
+
+                  <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded shrink-0 ${
+                    task.dueColor === "red"
+                      ? "bg-[#FDF0F0] text-[#EF4444]"
+                      : task.dueColor === "orange"
+                      ? "bg-[#FEF8EC] text-[#F59E0B]"
+                      : task.dueColor === "green"
+                      ? "bg-[#E8F8F5] text-[#10B981]"
+                      : "bg-[#EEF5F6] text-[#6B7C83]"
+                  }`}>
+                    {task.dueText}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Anotações Rápidas (Post-its) */}
+          <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-[#7C3AED]" />
+                <h3 className="text-xs font-black text-[#0D2329]">Anotações Rápidas</h3>
+              </div>
+            </div>
+
+            {/* Input to save new note */}
+            <div className="flex items-center gap-1.5">
+              <input
+                type="text"
+                value={newNoteText}
+                onChange={(e) => setNewNoteText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddNote()}
+                placeholder="Escreva sua anotação..."
+                className="flex-1 px-3 py-1.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all"
+              />
+              <button
+                onClick={handleAddNote}
+                className="px-3 py-1.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black rounded-xl shadow-xs active:scale-95 transition-all"
+              >
+                Salvar
+              </button>
+            </div>
+
+            {/* Note Cards List */}
+            <div className="space-y-2 pt-1">
+              {notes.map((note) => (
+                <div
+                  key={note.id}
+                  className={`p-3 rounded-2xl border text-xs font-semibold space-y-1 relative group transition-all shadow-2xs ${
+                    note.color === "yellow"
+                      ? "bg-[#FEF9C3]/80 border-[#FDE047]/60 text-[#854D0E]"
+                      : "bg-[#E0F2FE]/80 border-[#BAE6FD]/70 text-[#075985]"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-1">
+                    <p className="leading-snug pr-4">{note.text}</p>
+                    <button
+                      onClick={() => handleDeleteNote(note.id)}
+                      className="opacity-0 group-hover:opacity-100 text-[#8CAAB1] hover:text-[#EF4444] p-0.5 rounded transition-opacity"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-end">
+                    <Star className="w-3 h-3 text-[#F59E0B] fill-current" />
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -798,4 +758,3 @@ export function DashboardPage() {
     </div>
   )
 }
-
