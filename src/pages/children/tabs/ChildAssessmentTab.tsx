@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useSearchParams } from "react-router-dom"
 import { Plus, CheckCircle, Clock, Save, Edit3, BookOpen, Printer, Sparkles } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
@@ -96,6 +97,9 @@ export const DEFAULT_ASSESSMENT_QUESTIONS = [
 
 export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
   const { user, professional } = useAuthStore()
+  const [searchParams] = useSearchParams()
+  const appointmentId = searchParams.get("appointmentId")
+
   const [assessment, setAssessment] = useState<InitialAssessment | null>(null)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
@@ -219,8 +223,17 @@ export function ChildAssessmentTab({ childId }: ChildAssessmentTabProps) {
         setAssessment(newAssessment)
       }
 
-      toast.success("Questionário de avaliação inicial salvo com sucesso!")
+      toast.success("Entrevista Inicial salva com sucesso! ✅")
       setIsEditing(false)
+
+      // If came from agenda (has appointmentId in URL), mark appointment as realizado
+      if (appointmentId) {
+        await supabase
+          .from("appointments")
+          .update({ status: "done" })
+          .eq("id", appointmentId)
+      }
+
       loadAssessmentData()
     } catch (err: any) {
       console.error(err)

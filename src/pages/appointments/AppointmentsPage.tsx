@@ -139,7 +139,8 @@ export function AppointmentsPage() {
       appt.type?.toLowerCase().includes("avaliação")
 
     if (isInterviewOrEval) {
-      navigate(`/criancas/${appt.child_id}?editar=true`)
+      // Pass appointmentId so the interview page can mark it as done after saving
+      navigate(`/criancas/${appt.child_id}?editar=true&appointmentId=${appt.id}`)
     } else {
       navigate(`/atendimento/${appt.id}`)
     }
