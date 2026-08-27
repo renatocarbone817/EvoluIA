@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Users,
@@ -117,10 +117,26 @@ export function DashboardPage() {
   const [newTaskText, setNewTaskText] = useState("")
   const [newTaskDueOption, setNewTaskDueOption] = useState<"hoje" | "amanha" | "data" | "sem_prazo">("hoje")
   const [newTaskSpecificDate, setNewTaskSpecificDate] = useState<string>(() => format(new Date(), "yyyy-MM-dd"))
+  const newTaskRef = useRef<HTMLDivElement>(null)
 
   // Drag and drop state for tasks
   const [draggedTaskIndex, setDraggedTaskIndex] = useState<number | null>(null)
   const [dragOverTaskIndex, setDragOverTaskIndex] = useState<number | null>(null)
+
+  // Click outside listener to cancel / close new task box
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (newTaskRef.current && !newTaskRef.current.contains(e.target as Node)) {
+        setShowNewTaskInput(false)
+      }
+    }
+    if (showNewTaskInput) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [showNewTaskInput])
 
   // Interactive Notes (persisted with 144 chars preview & expand/edit)
   const [notes, setNotes] = useState<NoteItem[]>(() => {
@@ -1301,7 +1317,10 @@ export function DashboardPage() {
             </div>
 
             {showNewTaskInput && (
-              <div className="p-2.5 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7] space-y-2.5">
+              <div
+                ref={newTaskRef}
+                className="p-3 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7] space-y-2.5 shadow-sm animate-in fade-in zoom-in-95"
+              >
                 <input
                   type="text"
                   value={newTaskText}
@@ -1312,46 +1331,42 @@ export function DashboardPage() {
                   autoFocus
                 />
                 
-                <div className="flex flex-wrap items-center justify-between gap-2">
+                {/* Linha 2: Prazo à esquerda, Salvar à direita */}
+                <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 text-[10px] font-bold">
                     <span className="text-[#6B7C83]">Prazo:</span>
                     <select
                       value={newTaskDueOption}
                       onChange={(e: any) => setNewTaskDueOption(e.target.value)}
-                      className="px-2 py-1 rounded-lg border border-[#D8E5E7] bg-white text-[#0D2329] text-xs font-semibold focus:outline-none"
+                      className="px-2 py-1 rounded-lg border border-[#D8E5E7] bg-white text-[#0D2329] text-xs font-semibold focus:outline-none focus:border-[#7C3AED]"
                     >
                       <option value="hoje">Hoje</option>
                       <option value="amanha">Amanhã</option>
                       <option value="data">Data específica...</option>
                       <option value="sem_prazo">Sem prazo</option>
                     </select>
-
-                    {/* Date Input if 'data' is selected */}
-                    {newTaskDueOption === "data" && (
-                      <input
-                        type="date"
-                        value={newTaskSpecificDate}
-                        onChange={(e) => setNewTaskSpecificDate(e.target.value)}
-                        className="px-2 py-0.5 rounded-lg border border-[#7C3AED] bg-white text-[#0D2329] text-xs font-semibold focus:outline-none"
-                      />
-                    )}
                   </div>
 
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setShowNewTaskInput(false)}
-                      className="px-2.5 py-1 text-[10px] font-bold text-[#6B7C83] hover:bg-[#EEF5F6] rounded-lg"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={handleAddTask}
-                      className="px-3.5 py-1 bg-[#7C3AED] text-white text-xs font-black rounded-lg shadow-xs active:scale-95 transition-all"
-                    >
-                      Salvar
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleAddTask}
+                    className="px-4 py-1.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black rounded-xl shadow-xs active:scale-95 transition-all"
+                  >
+                    Salvar
+                  </button>
                 </div>
+
+                {/* Linha 3: Seletor de data específica embaixo */}
+                {newTaskDueOption === "data" && (
+                  <div className="flex items-center gap-2 pt-1 border-t border-[#EEF5F6] animate-in fade-in">
+                    <span className="text-[10px] font-bold text-[#6B7C83]">Escolha o dia:</span>
+                    <input
+                      type="date"
+                      value={newTaskSpecificDate}
+                      onChange={(e) => setNewTaskSpecificDate(e.target.value)}
+                      className="px-2.5 py-1 rounded-lg border border-[#7C3AED] bg-white text-[#0D2329] text-xs font-bold focus:outline-none shadow-2xs"
+                    />
+                  </div>
+                )}
               </div>
             )}
 
