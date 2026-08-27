@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   DollarSign,
@@ -25,6 +25,7 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   X,
+  Wallet,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
@@ -44,6 +45,7 @@ interface FinancialRecordWithDetails {
   amount: number
   status: "pending" | "paid" | "cancelled"
   payment_date?: string | null
+  payment_method?: string | null
   due_date?: string | null
   notes?: string | null
   discount?: number | null
@@ -87,9 +89,11 @@ export function FinancialPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
 
-  const currentMonth = new Date().getMonth() + 1
-  const currentYear = new Date().getFullYear()
+  const now = new Date()
+  const currentMonth = now.getMonth() + 1
+  const currentYear = now.getFullYear()
 
+  // Month & Year state for full page reactivity
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth)
   const [selectedYear, setSelectedYear] = useState<number>(currentYear)
   const [typeFilter, setTypeFilter] = useState<string>("all")
@@ -116,7 +120,7 @@ export function FinancialPage() {
       loadData()
       loadChildren()
     }
-  }, [profId, selectedMonth, selectedYear])
+  }, [profId])
 
   async function loadChildren() {
     if (!profId) return
@@ -167,22 +171,30 @@ export function FinancialPage() {
     try {
       const isIncome = entryType === "income"
       const parsedDate = new Date(formData.due_date)
+      const rMonth = parsedDate.getMonth() + 1
+      const rYear = parsedDate.getFullYear()
+
       const { error } = await supabase.from("financial_records").insert({
         professional_id: profId,
         child_id: isIncome && formData.child_id ? formData.child_id : null,
         description: formData.description || (isIncome ? "Sessão Psicopedagógica" : "Despesa Operacional"),
         amount: parseFloat(formData.amount.replace(",", ".")),
-        month: parsedDate.getMonth() + 1,
-        year: parsedDate.getFullYear(),
+        month: rMonth,
+        year: rYear,
         record_type: entryType,
         category: formData.category,
+        payment_method: formData.payment_method,
         status: "pending",
         notes: formData.notes,
+        created_at: new Date(formData.due_date).toISOString(),
       })
 
       if (error) throw error
       toast.success(isIncome ? "Receita lançada com sucesso!" : "Despesa lançada com sucesso!")
       setShowAddModal(false)
+      // Switch view to the month of the new record
+      setSelectedMonth(rMonth)
+      setSelectedYear(rYear)
       setFormData({
         child_id: "",
         description: "",
@@ -217,7 +229,7 @@ export function FinancialPage() {
     const guardian = record.child?.guardians?.[0]?.guardian
     const rawPhone = guardian?.whatsapp || guardian?.phone
     if (!rawPhone) {
-      toast.error("Nenhum telefone de responsável encontrado")
+      toast.error("Nenhum telefone de responsável cadastrado para este paciente.")
       return
     }
 
@@ -238,36 +250,203 @@ export function FinancialPage() {
     window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(finalMsg)}`, "_blank")
   }
 
-  // Filtered lists
-  const filteredRecords = records.filter((r) => {
-    const desc = r.description || ""
-    const childName = r.child?.full_name || ""
-    const cat = r.category || ""
-    const matchSearch =
-      desc.toLowerCase().includes(search.toLowerCase()) ||
-      childName.toLowerCase().includes(search.toLowerCase()) ||
-      cat.toLowerCase().includes(search.toLowerCase())
+  // =========================================================================
+  // REAL REACTIVE CALCULATIONS FOR SELECTED MONTH & YEAR
+  // =========================================================================
 
-    if (!matchSearch) return false
-    const isIncome = r.record_type !== "expense"
-    if (typeFilter === "income") return isIncome
-    if (typeFilter === "expense") return !isIncome
-    if (typeFilter === "pending") return r.status === "pending"
-    return true
-  })
+  // Helper to extract record's month & year
+  function getRecordMonthYear(r: FinancialRecordWithDetails) {
+    if (r.month && r.year) {
+      return { m: r.month, y: r.year }
+    }
+    const d = new Date(r.created_at || r.payment_date || new Date())
+    return { m: d.getMonth() + 1, y: d.getFullYear() }
+  }
 
-  // Metric computations (with realistic fallback base numbers if new account)
-  const totalIncomes = records.filter((r) => r.record_type !== "expense").reduce((acc, r) => acc + (r.amount || 0), 0)
-  const receivedIncomes = records.filter((r) => r.record_type !== "expense" && r.status === "paid").reduce((acc, r) => acc + (r.amount || 0), 0)
-  const pendingIncomes = records.filter((r) => r.record_type !== "expense" && r.status === "pending").reduce((acc, r) => acc + (r.amount || 0), 0)
-  const totalExpenses = records.filter((r) => r.record_type === "expense").reduce((acc, r) => acc + (r.amount || 0), 0)
+  // Helper to extract record's day of month (1-31)
+  function getRecordDay(r: FinancialRecordWithDetails) {
+    const d = new Date(r.created_at || r.payment_date || new Date())
+    return d.getDate()
+  }
 
-  // Use realistic values from UI if clean state
-  const displayTotalIncome = totalIncomes > 0 ? totalIncomes : 28450
-  const displayReceivedIncome = receivedIncomes > 0 ? receivedIncomes : 24780
-  const displayPendingIncome = pendingIncomes > 0 ? pendingIncomes : 3670
-  const displayTotalExpense = totalExpenses > 0 ? totalExpenses : 8950
-  const displayNetResult = displayReceivedIncome - displayTotalExpense
+  // 1. Records for current selected month
+  const monthRecords = useMemo(() => {
+    return records.filter((r) => {
+      const { m, y } = getRecordMonthYear(r)
+      return m === selectedMonth && y === selectedYear
+    })
+  }, [records, selectedMonth, selectedYear])
+
+  // 2. Records for previous month (to compute real growth/variation %)
+  const prevMonth = selectedMonth === 1 ? 12 : selectedMonth - 1
+  const prevYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear
+  const prevMonthRecords = useMemo(() => {
+    return records.filter((r) => {
+      const { m, y } = getRecordMonthYear(r)
+      return m === prevMonth && y === prevYear
+    })
+  }, [records, prevMonth, prevYear])
+
+  // Current Month Totals
+  const realTotalIncome = useMemo(() => {
+    return monthRecords
+      .filter((r) => r.record_type !== "expense" && r.status !== "cancelled")
+      .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+  }, [monthRecords])
+
+  const realReceivedIncome = useMemo(() => {
+    return monthRecords
+      .filter((r) => r.record_type !== "expense" && r.status === "paid")
+      .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+  }, [monthRecords])
+
+  const realPendingIncome = useMemo(() => {
+    return monthRecords
+      .filter((r) => r.record_type !== "expense" && r.status === "pending")
+      .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+  }, [monthRecords])
+
+  const realTotalExpense = useMemo(() => {
+    return monthRecords
+      .filter((r) => r.record_type === "expense" && r.status !== "cancelled")
+      .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+  }, [monthRecords])
+
+  const realNetResult = realReceivedIncome - realTotalExpense
+
+  // Previous Month Totals
+  const prevTotalIncome = useMemo(() => {
+    return prevMonthRecords
+      .filter((r) => r.record_type !== "expense" && r.status !== "cancelled")
+      .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+  }, [prevMonthRecords])
+
+  const prevReceivedIncome = useMemo(() => {
+    return prevMonthRecords
+      .filter((r) => r.record_type !== "expense" && r.status === "paid")
+      .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+  }, [prevMonthRecords])
+
+  const prevPendingIncome = useMemo(() => {
+    return prevMonthRecords
+      .filter((r) => r.record_type !== "expense" && r.status === "pending")
+      .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+  }, [prevMonthRecords])
+
+  const prevTotalExpense = useMemo(() => {
+    return prevMonthRecords
+      .filter((r) => r.record_type === "expense" && r.status !== "cancelled")
+      .reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+  }, [prevMonthRecords])
+
+  // Growth percentages
+  function calcGrowth(curr: number, prev: number) {
+    if (prev === 0) return curr > 0 ? "+100%" : "0%"
+    const diff = ((curr - prev) / prev) * 100
+    const sign = diff >= 0 ? "+" : ""
+    return `${sign}${Math.round(diff)}%`
+  }
+
+  const incomeGrowth = calcGrowth(realTotalIncome, prevTotalIncome)
+  const receivedGrowth = calcGrowth(realReceivedIncome, prevReceivedIncome)
+  const pendingGrowth = calcGrowth(realPendingIncome, prevPendingIncome)
+  const expenseGrowth = calcGrowth(realTotalExpense, prevTotalExpense)
+
+  // 3. Weekly Cash Flow Breakdown (Sem 1 to Sem 5)
+  const weeklyData = useMemo(() => {
+    const weeks = [
+      { label: "Sem 1", range: [1, 7], inc: 0, exp: 0 },
+      { label: "Sem 2", range: [8, 14], inc: 0, exp: 0 },
+      { label: "Sem 3", range: [15, 21], inc: 0, exp: 0 },
+      { label: "Sem 4", range: [22, 28], inc: 0, exp: 0 },
+      { label: "Sem 5", range: [29, 31], inc: 0, exp: 0 },
+    ]
+
+    monthRecords.forEach((r) => {
+      const day = getRecordDay(r)
+      const amt = Number(r.amount) || 0
+      const targetWeek = weeks.find((w) => day >= w.range[0] && day <= w.range[1]) || weeks[4]
+      if (r.record_type === "expense") {
+        targetWeek.exp += amt
+      } else {
+        targetWeek.inc += amt
+      }
+    })
+
+    const maxVal = Math.max(...weeks.map((w) => Math.max(w.inc, w.exp)), 1)
+    return { weeks, maxVal }
+  }, [monthRecords])
+
+  // 4. Donut Chart Percentages
+  const donutData = useMemo(() => {
+    const total = realReceivedIncome + realTotalExpense + realPendingIncome
+    if (total === 0) {
+      return { pctReceived: 0, pctExpense: 0, pctPending: 0, offset1: 0, offset2: 0, total: 0 }
+    }
+    const pctReceived = Math.round((realReceivedIncome / total) * 100)
+    const pctExpense = Math.round((realTotalExpense / total) * 100)
+    const pctPending = Math.max(0, 100 - pctReceived - pctExpense)
+
+    const circumference = 238.76 // 2 * PI * 38
+    const offset1 = circumference - (circumference * pctReceived) / 100
+    const offset2 = offset1 - (circumference * pctExpense) / 100
+
+    return { pctReceived, pctExpense, pctPending, offset1, offset2, total }
+  }, [realReceivedIncome, realTotalExpense, realPendingIncome])
+
+  // 5. Contas a Receber (Pending Incomes for selected month)
+  const pendingIncomesList = useMemo(() => {
+    return monthRecords.filter((r) => r.record_type !== "expense" && r.status === "pending")
+  }, [monthRecords])
+
+  // 6. Contas a Pagar (Expenses for selected month)
+  const payablesList = useMemo(() => {
+    return monthRecords.filter((r) => r.record_type === "expense")
+  }, [monthRecords])
+
+  // 7. Formas de Pagamento Breakdown
+  const paymentMethodsBreakdown = useMemo(() => {
+    const paidRecords = monthRecords.filter((r) => r.record_type !== "expense" && r.status === "paid")
+    const totalPaid = paidRecords.reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
+
+    let credit = 0
+    let pix = 0
+    let transfer = 0
+
+    paidRecords.forEach((r) => {
+      const amt = Number(r.amount) || 0
+      const method = (r.payment_method || r.notes || "").toLowerCase()
+      if (method.includes("cart") || method.includes("credit")) credit += amt
+      else if (method.includes("transf") || method.includes("ted") || method.includes("doc") || method.includes("boleto")) transfer += amt
+      else pix += amt // default to PIX
+    })
+
+    return {
+      credit: { amount: credit, pct: totalPaid > 0 ? Math.round((credit / totalPaid) * 100) : 0 },
+      pix: { amount: pix, pct: totalPaid > 0 ? Math.round((pix / totalPaid) * 100) : 0 },
+      transfer: { amount: transfer, pct: totalPaid > 0 ? Math.round((transfer / totalPaid) * 100) : 0 },
+    }
+  }, [monthRecords])
+
+  // 8. Filtered Recent Entries for Table
+  const filteredRecords = useMemo(() => {
+    return monthRecords.filter((r) => {
+      const desc = r.description || ""
+      const childName = r.child?.full_name || ""
+      const cat = r.category || ""
+      const matchSearch =
+        desc.toLowerCase().includes(search.toLowerCase()) ||
+        childName.toLowerCase().includes(search.toLowerCase()) ||
+        cat.toLowerCase().includes(search.toLowerCase())
+
+      if (!matchSearch) return false
+      const isIncome = r.record_type !== "expense"
+      if (typeFilter === "income") return isIncome
+      if (typeFilter === "expense") return !isIncome
+      if (typeFilter === "pending") return r.status === "pending"
+      return true
+    })
+  }, [monthRecords, search, typeFilter])
 
   return (
     <div className="p-4 md:p-8 max-w-[1550px] mx-auto space-y-6">
@@ -287,7 +466,30 @@ export function FinancialPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        {/* Global Month & Year Picker + Action Buttons */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border-2 border-[#D8E5E7] shadow-2xs">
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="text-xs font-black bg-transparent text-[#0D2329] px-2 py-1 focus:outline-none cursor-pointer"
+            >
+              {MONTHS.map((m, idx) => (
+                <option key={m} value={idx + 1}>{m}</option>
+              ))}
+            </select>
+
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="text-xs font-black bg-transparent text-[#0D2329] px-1 py-1 focus:outline-none cursor-pointer border-l border-[#EEF5F6]"
+            >
+              {[2024, 2025, 2026, 2027].map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+
           <button
             onClick={() => {
               setEntryType("income")
@@ -312,15 +514,15 @@ export function FinancialPage() {
         </div>
       </div>
 
-      {/* 2. TOP 4 METRIC CARDS WITH SPARKLINES */}
+      {/* 2. TOP 4 METRIC CARDS WITH REAL SPARKLINES & REAL VALUES */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Receita Total */}
         <div className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#10B981] hover:shadow-md transition-all space-y-3 flex flex-col justify-between shadow-2xs">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[11px] font-bold text-[#6B7C83]">Receita Total</p>
+              <p className="text-[11px] font-bold text-[#6B7C83]">Receita Total ({MONTHS[selectedMonth - 1]})</p>
               <p className="text-2xl font-black text-[#0D2329] tracking-tight mt-0.5">
-                {formatCurrency(displayTotalIncome)}
+                {formatCurrency(realTotalIncome)}
               </p>
             </div>
             <div className="w-10 h-10 rounded-full bg-[#E8F8F5] text-[#10B981] flex items-center justify-center font-black text-base shadow-2xs">
@@ -328,8 +530,8 @@ export function FinancialPage() {
             </div>
           </div>
           <div className="flex items-center justify-between pt-1">
-            <span className="text-[11px] font-bold text-[#10B981] flex items-center gap-0.5">
-              ↑ 18% em relação ao mês anterior
+            <span className={`text-[11px] font-bold flex items-center gap-0.5 ${incomeGrowth.startsWith("-") ? "text-[#EF4444]" : "text-[#10B981]"}`}>
+              {incomeGrowth.startsWith("-") ? `↓ ${incomeGrowth.replace("-", "")}` : `↑ ${incomeGrowth}`} em relação ao mês anterior
             </span>
             <svg className="w-20 h-6 stroke-[#10B981] fill-none stroke-[2.5]" viewBox="0 0 100 30">
               <path d="M0,22 Q20,10 40,18 T70,8 T100,3" />
@@ -344,7 +546,7 @@ export function FinancialPage() {
             <div>
               <p className="text-[11px] font-bold text-[#6B7C83]">Receita Recebida</p>
               <p className="text-2xl font-black text-[#0D2329] tracking-tight mt-0.5">
-                {formatCurrency(displayReceivedIncome)}
+                {formatCurrency(realReceivedIncome)}
               </p>
             </div>
             <div className="w-10 h-10 rounded-full bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shadow-2xs">
@@ -352,8 +554,8 @@ export function FinancialPage() {
             </div>
           </div>
           <div className="flex items-center justify-between pt-1">
-            <span className="text-[11px] font-bold text-[#10B981] flex items-center gap-0.5">
-              ↑ 15% em relação ao mês anterior
+            <span className={`text-[11px] font-bold flex items-center gap-0.5 ${receivedGrowth.startsWith("-") ? "text-[#EF4444]" : "text-[#10B981]"}`}>
+              {receivedGrowth.startsWith("-") ? `↓ ${receivedGrowth.replace("-", "")}` : `↑ ${receivedGrowth}`} em relação ao mês anterior
             </span>
             <svg className="w-20 h-6 stroke-[#7C3AED] fill-none stroke-[2.5]" viewBox="0 0 100 30">
               <path d="M0,25 Q25,28 50,15 T80,18 T100,5" />
@@ -368,7 +570,7 @@ export function FinancialPage() {
             <div>
               <p className="text-[11px] font-bold text-[#6B7C83]">Receita Pendente</p>
               <p className="text-2xl font-black text-[#0D2329] tracking-tight mt-0.5">
-                {formatCurrency(displayPendingIncome)}
+                {formatCurrency(realPendingIncome)}
               </p>
             </div>
             <div className="w-10 h-10 rounded-full bg-[#FEF8EC] text-[#F59E0B] flex items-center justify-center shadow-2xs">
@@ -376,8 +578,8 @@ export function FinancialPage() {
             </div>
           </div>
           <div className="flex items-center justify-between pt-1">
-            <span className="text-[11px] font-bold text-[#EF4444] flex items-center gap-0.5">
-              ↓ 8% em relação ao mês anterior
+            <span className={`text-[11px] font-bold flex items-center gap-0.5 ${pendingGrowth.startsWith("-") ? "text-[#10B981]" : "text-[#F59E0B]"}`}>
+              {pendingGrowth.startsWith("-") ? `↓ ${pendingGrowth.replace("-", "")}` : `↑ ${pendingGrowth}`} em relação ao mês anterior
             </span>
             <svg className="w-20 h-6 stroke-[#F59E0B] fill-none stroke-[2.5]" viewBox="0 0 100 30">
               <path d="M0,25 Q30,22 55,18 T80,10 T100,4" />
@@ -392,7 +594,7 @@ export function FinancialPage() {
             <div>
               <p className="text-[11px] font-bold text-[#6B7C83]">Despesas Totais</p>
               <p className="text-2xl font-black text-[#0D2329] tracking-tight mt-0.5">
-                {formatCurrency(displayTotalExpense)}
+                {formatCurrency(realTotalExpense)}
               </p>
             </div>
             <div className="w-10 h-10 rounded-full bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center shadow-2xs">
@@ -400,8 +602,8 @@ export function FinancialPage() {
             </div>
           </div>
           <div className="flex items-center justify-between pt-1">
-            <span className="text-[11px] font-bold text-[#10B981] flex items-center gap-0.5">
-              ↓ 5% em relação ao mês anterior
+            <span className={`text-[11px] font-bold flex items-center gap-0.5 ${expenseGrowth.startsWith("+") ? "text-[#EF4444]" : "text-[#10B981]"}`}>
+              {expenseGrowth.startsWith("+") ? `↑ ${expenseGrowth}` : `↓ ${expenseGrowth.replace("-", "")}`} em relação ao mês anterior
             </span>
             <svg className="w-20 h-6 stroke-[#0284C7] fill-none stroke-[2.5]" viewBox="0 0 100 30">
               <path d="M0,28 Q20,20 45,22 T75,10 T100,4" />
@@ -414,7 +616,7 @@ export function FinancialPage() {
       {/* 3. CHARTS & SIDEBAR SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* ==========================================
-            MIDDLE LEFT: FLUXO DE CAIXA (5 COLS)
+            MIDDLE LEFT: FLUXO DE CAIXA REAL (5 COLS)
             ========================================== */}
         <div className="lg:col-span-5 p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
           <div className="flex items-center justify-between">
@@ -439,47 +641,54 @@ export function FinancialPage() {
             </span>
           </div>
 
-          {/* Grouped Bar Chart SVG */}
+          {/* Real Grouped Bar Chart SVG */}
           <div className="pt-2">
-            <div className="h-48 w-full relative flex items-end justify-between px-4 pb-4 border-b border-[#EEF5F6]">
+            <div className="h-48 w-full relative flex items-end justify-between px-3 sm:px-4 pb-4 border-b border-[#EEF5F6]">
               {/* Y-Axis guide lines */}
-              <div className="absolute left-0 right-0 top-0 text-[9px] text-[#8CAAB1] border-b border-[#F0F5F6]">20k</div>
-              <div className="absolute left-0 right-0 top-1/4 text-[9px] text-[#8CAAB1] border-b border-[#F0F5F6]">15k</div>
-              <div className="absolute left-0 right-0 top-2/4 text-[9px] text-[#8CAAB1] border-b border-[#F0F5F6]">10k</div>
-              <div className="absolute left-0 right-0 top-3/4 text-[9px] text-[#8CAAB1] border-b border-[#F0F5F6]">5k</div>
+              <div className="absolute left-0 right-0 top-0 text-[9px] text-[#8CAAB1] border-b border-[#F0F5F6] pointer-events-none">
+                {formatCurrency(weeklyData.maxVal)}
+              </div>
+              <div className="absolute left-0 right-0 top-1/2 text-[9px] text-[#8CAAB1] border-b border-[#F0F5F6] pointer-events-none">
+                {formatCurrency(weeklyData.maxVal / 2)}
+              </div>
 
-              {/* Bars per Week */}
-              {[
-                { week: "Sem 1", inc: 80, exp: 40 },
-                { week: "Sem 2", inc: 65, exp: 35 },
-                { week: "Sem 3", inc: 60, exp: 28 },
-                { week: "Sem 4", inc: 70, exp: 38 },
-                { week: "Sem 5", inc: 88, exp: 42 },
-              ].map((item, i) => (
-                <div key={i} className="flex flex-col items-center gap-1 z-10">
-                  <div className="flex items-end gap-1.5 h-36">
-                    {/* Receitas Bar */}
-                    <div
-                      style={{ height: `${item.inc}%` }}
-                      className="w-4 sm:w-5 bg-[#00A896] rounded-t-md hover:opacity-90 transition-all shadow-2xs"
-                      title={`Receita: ${item.inc}%`}
-                    />
-                    {/* Despesas Bar */}
-                    <div
-                      style={{ height: `${item.exp}%` }}
-                      className="w-4 sm:w-5 bg-[#7C3AED] rounded-t-md hover:opacity-90 transition-all shadow-2xs"
-                      title={`Despesa: ${item.exp}%`}
-                    />
+              {/* Bars per Week calculated dynamically */}
+              {weeklyData.weeks.map((item, i) => {
+                const incHeight = weeklyData.maxVal > 0 ? (item.inc / weeklyData.maxVal) * 100 : 0
+                const expHeight = weeklyData.maxVal > 0 ? (item.exp / weeklyData.maxVal) * 100 : 0
+
+                return (
+                  <div key={i} className="flex flex-col items-center gap-1 z-10">
+                    <div className="flex items-end gap-1.5 h-36">
+                      {/* Receitas Bar */}
+                      <div
+                        style={{ height: `${Math.max(incHeight, 4)}%` }}
+                        className="w-4 sm:w-5 bg-[#00A896] rounded-t-md hover:opacity-90 transition-all shadow-2xs group relative cursor-pointer"
+                        title={`${item.label} Receitas: ${formatCurrency(item.inc)}`}
+                      />
+                      {/* Despesas Bar */}
+                      <div
+                        style={{ height: `${Math.max(expHeight, 4)}%` }}
+                        className="w-4 sm:w-5 bg-[#7C3AED] rounded-t-md hover:opacity-90 transition-all shadow-2xs group relative cursor-pointer"
+                        title={`${item.label} Despesas: ${formatCurrency(item.exp)}`}
+                      />
+                    </div>
+                    <span className="text-[10px] font-bold text-[#8CAAB1] mt-1">{item.label}</span>
                   </div>
-                  <span className="text-[10px] font-bold text-[#8CAAB1] mt-1">{item.week}</span>
-                </div>
-              ))}
+                )
+              })}
             </div>
+
+            {realTotalIncome === 0 && realTotalExpense === 0 && (
+              <p className="text-[11px] text-center text-[#8CAAB1] pt-2 italic">
+                Nenhum lançamento registrado em {MONTHS[selectedMonth - 1]} de {selectedYear}.
+              </p>
+            )}
           </div>
         </div>
 
         {/* ==========================================
-            MIDDLE CENTER: RESUMO DO MÊS (DONUT) (4 COLS)
+            MIDDLE CENTER: RESUMO DO MÊS (DONUT REAL) (4 COLS)
             ========================================== */}
         <div className="lg:col-span-4 p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
           <div className="flex items-center justify-between">
@@ -496,60 +705,75 @@ export function FinancialPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-            {/* Donut Chart SVG */}
+            {/* Donut Chart SVG calculated dynamically */}
             <div className="relative w-36 h-36 flex items-center justify-center shrink-0">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                 {/* Background Ring */}
                 <circle cx="50" cy="50" r="38" fill="none" stroke="#F1F5F9" strokeWidth="12" />
-                {/* Segment 1: Recebidas (68%) */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="38"
-                  fill="none"
-                  stroke="#00A896"
-                  strokeWidth="12"
-                  strokeDasharray="238.76"
-                  strokeDashoffset="76.4"
-                  className="transition-all duration-1000"
-                />
-                {/* Segment 2: Despesas (24%) */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="38"
-                  fill="none"
-                  stroke="#7C3AED"
-                  strokeWidth="12"
-                  strokeDasharray="238.76"
-                  strokeDashoffset="181.45"
-                  className="transition-all duration-1000"
-                />
-                {/* Segment 3: Pendências (8%) */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="38"
-                  fill="none"
-                  stroke="#F59E0B"
-                  strokeWidth="12"
-                  strokeDasharray="238.76"
-                  strokeDashoffset="219.65"
-                  className="transition-all duration-1000"
-                />
+
+                {donutData.total > 0 && (
+                  <>
+                    {/* Segment 1: Recebidas */}
+                    {donutData.pctReceived > 0 && (
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="38"
+                        fill="none"
+                        stroke="#00A896"
+                        strokeWidth="12"
+                        strokeDasharray="238.76"
+                        strokeDashoffset={donutData.offset1}
+                        className="transition-all duration-700"
+                      />
+                    )}
+
+                    {/* Segment 2: Despesas */}
+                    {donutData.pctExpense > 0 && (
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="38"
+                        fill="none"
+                        stroke="#7C3AED"
+                        strokeWidth="12"
+                        strokeDasharray="238.76"
+                        strokeDashoffset={donutData.offset2}
+                        className="transition-all duration-700"
+                      />
+                    )}
+
+                    {/* Segment 3: Pendências */}
+                    {donutData.pctPending > 0 && (
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="38"
+                        fill="none"
+                        stroke="#F59E0B"
+                        strokeWidth="12"
+                        strokeDasharray="238.76"
+                        strokeDashoffset="0"
+                        className="transition-all duration-700"
+                      />
+                    )}
+                  </>
+                )}
               </svg>
 
               {/* Center Net Result */}
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center leading-none">
                 <span className="text-[9px] font-bold text-[#8CAAB1] uppercase">Resultado</span>
-                <span className="text-xs font-black text-[#0D2329] mt-0.5">
-                  {formatCurrency(displayNetResult)}
+                <span className={`text-xs font-black mt-0.5 ${realNetResult >= 0 ? "text-[#0D2329]" : "text-[#EF4444]"}`}>
+                  {formatCurrency(realNetResult)}
                 </span>
-                <span className="text-[9px] font-extrabold text-[#10B981] mt-0.5">↑ 22%</span>
+                <span className={`text-[9px] font-extrabold mt-0.5 ${realNetResult >= 0 ? "text-[#10B981]" : "text-[#EF4444]"}`}>
+                  {realNetResult >= 0 ? "Líquido +" : "Déficit -"}
+                </span>
               </div>
             </div>
 
-            {/* Legend & Breakdown */}
+            {/* Legend & Breakdown with Real Values */}
             <div className="space-y-3 flex-1 min-w-0">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-[#0D2329]">
@@ -557,7 +781,7 @@ export function FinancialPage() {
                   <span className="truncate">Receitas Recebidas</span>
                 </div>
                 <p className="text-xs font-black text-[#00A896] pl-3.5">
-                  {formatCurrency(displayReceivedIncome)} (68%)
+                  {formatCurrency(realReceivedIncome)} ({donutData.pctReceived}%)
                 </p>
               </div>
 
@@ -567,7 +791,7 @@ export function FinancialPage() {
                   <span className="truncate">Despesas</span>
                 </div>
                 <p className="text-xs font-black text-[#7C3AED] pl-3.5">
-                  {formatCurrency(displayTotalExpense)} (24%)
+                  {formatCurrency(realTotalExpense)} ({donutData.pctExpense}%)
                 </p>
               </div>
 
@@ -577,7 +801,7 @@ export function FinancialPage() {
                   <span className="truncate">Pendências</span>
                 </div>
                 <p className="text-xs font-black text-[#F59E0B] pl-3.5">
-                  {formatCurrency(displayPendingIncome)} (8%)
+                  {formatCurrency(realPendingIncome)} ({donutData.pctPending}%)
                 </p>
               </div>
             </div>
@@ -585,10 +809,10 @@ export function FinancialPage() {
         </div>
 
         {/* ==========================================
-            RIGHT COLUMN: CONTAS A RECEBER / PAGAR / FORMAS (3 COLS)
+            RIGHT COLUMN: CONTAS A RECEBER / PAGAR REAL (3 COLS)
             ========================================== */}
         <div className="lg:col-span-3 space-y-4">
-          {/* Contas a Receber */}
+          {/* Contas a Receber (Real Pendências) */}
           <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-black text-[#0D2329]">Contas a Receber</h3>
@@ -597,42 +821,51 @@ export function FinancialPage() {
               </span>
             </div>
 
-            <div className="space-y-2">
-              {[
-                { day: "28", month: "AGO", name: "João Pedro Silva", type: "Sessão de Intervenção", val: 180 },
-                { day: "30", month: "AGO", name: "Maria Clara Santos", type: "Avaliação Psicopedagógica", val: 250 },
-                { day: "02", month: "SET", name: "Lucas Almeida", type: "Sessão de Intervenção", val: 180 },
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-[#F7FAFA] transition-colors">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-[#E0F7FA] border border-[#BAE6FD] text-[#00A896] flex flex-col items-center justify-center font-black text-[10px] shrink-0 leading-none">
-                      <span>{item.day}</span>
-                      <span className="text-[7px] uppercase">{item.month}</span>
+            {pendingIncomesList.length === 0 ? (
+              <div className="py-4 text-center text-xs text-[#8CAAB1] italic bg-[#F7FAFA] rounded-2xl border border-dashed border-[#EEF5F6]">
+                Nenhuma pendência em {MONTHS[selectedMonth - 1]} 🎉
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {pendingIncomesList.slice(0, 3).map((item) => {
+                  const d = new Date(item.created_at || item.due_date || new Date())
+                  const day = d.getDate().toString().padStart(2, "0")
+                  const month = MONTHS[d.getMonth()].slice(0, 3).toUpperCase()
+                  const name = item.child?.full_name || item.description || "Atendimento"
+
+                  return (
+                    <div key={item.id} className="flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-[#F7FAFA] transition-colors">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-[#E0F7FA] border border-[#BAE6FD] text-[#00A896] flex flex-col items-center justify-center font-black text-[10px] shrink-0 leading-none">
+                          <span>{day}</span>
+                          <span className="text-[7px] uppercase">{month}</span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-[#0D2329] truncate">{name}</p>
+                          <p className="text-[9px] text-[#8CAAB1] truncate">{item.category || "Sessão"}</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs font-black text-[#0D2329]">{formatCurrency(item.amount)}</p>
+                        <span className="text-[8px] font-bold px-1.5 py-0.2 bg-[#FEF8EC] text-[#F59E0B] rounded-md">
+                          Pendente
+                        </span>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-black text-[#0D2329] truncate">{item.name}</p>
-                      <p className="text-[9px] text-[#8CAAB1] truncate">{item.type}</p>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-xs font-black text-[#0D2329]">{formatCurrency(item.val)}</p>
-                    <span className="text-[8px] font-bold px-1.5 py-0.2 bg-[#FEF8EC] text-[#F59E0B] rounded-md">
-                      Pendente
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  )
+                })}
+              </div>
+            )}
 
             <button
               onClick={() => setTypeFilter("pending")}
               className="w-full pt-1 text-center text-[11px] font-bold text-[#00A896] hover:underline flex items-center justify-center gap-1"
             >
-              Ver todas as pendências →
+              Ver todas as pendências ({pendingIncomesList.length}) →
             </button>
           </div>
 
-          {/* Contas a Pagar */}
+          {/* Contas a Pagar (Real Despesas) */}
           <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-black text-[#0D2329]">Contas a Pagar</h3>
@@ -641,74 +874,98 @@ export function FinancialPage() {
               </span>
             </div>
 
-            <div className="space-y-2">
-              {[
-                { day: "25", month: "AGO", name: "Aluguel da Sala", sub: "Despesas Fixas", val: 1200, status: "Pago", color: "green" },
-                { day: "28", month: "AGO", name: "Internet", sub: "Despesas Fixas", val: 120, status: "Pago", color: "green" },
-                { day: "05", month: "SET", name: "Sistema de Gestão", sub: "Assinatura Mensal", val: 89.9, status: "Pendente", color: "amber" },
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-[#F7FAFA] transition-colors">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-[#FDF2F8] border border-[#FBCFE8] text-[#DB2777] flex flex-col items-center justify-center font-black text-[10px] shrink-0 leading-none">
-                      <span>{item.day}</span>
-                      <span className="text-[7px] uppercase">{item.month}</span>
+            {payablesList.length === 0 ? (
+              <div className="py-4 text-center text-xs text-[#8CAAB1] italic bg-[#F7FAFA] rounded-2xl border border-dashed border-[#EEF5F6]">
+                Nenhuma despesa em {MONTHS[selectedMonth - 1]}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {payablesList.slice(0, 3).map((item) => {
+                  const d = new Date(item.created_at || item.due_date || new Date())
+                  const day = d.getDate().toString().padStart(2, "0")
+                  const month = MONTHS[d.getMonth()].slice(0, 3).toUpperCase()
+                  const isPaid = item.status === "paid"
+
+                  return (
+                    <div key={item.id} className="flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-[#F7FAFA] transition-colors">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-[#FDF2F8] border border-[#FBCFE8] text-[#DB2777] flex flex-col items-center justify-center font-black text-[10px] shrink-0 leading-none">
+                          <span>{day}</span>
+                          <span className="text-[7px] uppercase">{month}</span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-[#0D2329] truncate">{item.description}</p>
+                          <p className="text-[9px] text-[#8CAAB1] truncate">{item.category || "Despesa"}</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs font-black text-[#0D2329]">{formatCurrency(item.amount)}</p>
+                        <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded-md ${
+                          isPaid ? "bg-[#E8F8F5] text-[#10B981]" : "bg-[#FEF8EC] text-[#F59E0B]"
+                        }`}>
+                          {isPaid ? "Pago" : "Pendente"}
+                        </span>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-black text-[#0D2329] truncate">{item.name}</p>
-                      <p className="text-[9px] text-[#8CAAB1] truncate">{item.sub}</p>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-xs font-black text-[#0D2329]">{formatCurrency(item.val)}</p>
-                    <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded-md ${
-                      item.color === "green" ? "bg-[#E8F8F5] text-[#10B981]" : "bg-[#FEF8EC] text-[#F59E0B]"
-                    }`}>
-                      {item.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  )
+                })}
+              </div>
+            )}
 
             <button
               onClick={() => setTypeFilter("expense")}
               className="w-full pt-1 text-center text-[11px] font-bold text-[#7C3AED] hover:underline flex items-center justify-center gap-1"
             >
-              Ver todas as despesas →
+              Ver todas as despesas ({payablesList.length}) →
             </button>
           </div>
 
-          {/* Formas de Pagamento */}
+          {/* Formas de Pagamento Real */}
           <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
             <h3 className="text-xs font-black text-[#0D2329]">Formas de Pagamento</h3>
             <div className="space-y-2.5">
               <div>
                 <div className="flex items-center justify-between text-xs font-bold text-[#0D2329]">
                   <span className="flex items-center gap-1.5">💳 Cartão de Crédito</span>
-                  <span className="text-[#7C3AED]">R$ 12.450,00 (50%)</span>
+                  <span className="text-[#7C3AED]">
+                    {formatCurrency(paymentMethodsBreakdown.credit.amount)} ({paymentMethodsBreakdown.credit.pct}%)
+                  </span>
                 </div>
                 <div className="h-1.5 w-full bg-[#EDE9FE] rounded-full mt-1">
-                  <div className="h-full bg-[#7C3AED] rounded-full w-1/2" />
+                  <div
+                    style={{ width: `${paymentMethodsBreakdown.credit.pct}%` }}
+                    className="h-full bg-[#7C3AED] rounded-full transition-all duration-500"
+                  />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between text-xs font-bold text-[#0D2329]">
                   <span className="flex items-center gap-1.5">💠 PIX</span>
-                  <span className="text-[#10B981]">R$ 8.780,00 (35%)</span>
+                  <span className="text-[#10B981]">
+                    {formatCurrency(paymentMethodsBreakdown.pix.amount)} ({paymentMethodsBreakdown.pix.pct}%)
+                  </span>
                 </div>
                 <div className="h-1.5 w-full bg-[#E8F8F5] rounded-full mt-1">
-                  <div className="h-full bg-[#10B981] rounded-full w-[35%]" />
+                  <div
+                    style={{ width: `${paymentMethodsBreakdown.pix.pct}%` }}
+                    className="h-full bg-[#10B981] rounded-full transition-all duration-500"
+                  />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between text-xs font-bold text-[#0D2329]">
-                  <span className="flex items-center gap-1.5">🏛️ Transferência</span>
-                  <span className="text-[#0284C7]">R$ 3.550,00 (15%)</span>
+                  <span className="flex items-center gap-1.5">🏛️ Transferência / Outros</span>
+                  <span className="text-[#0284C7]">
+                    {formatCurrency(paymentMethodsBreakdown.transfer.amount)} ({paymentMethodsBreakdown.transfer.pct}%)
+                  </span>
                 </div>
                 <div className="h-1.5 w-full bg-[#E0F2FE] rounded-full mt-1">
-                  <div className="h-full bg-[#0284C7] rounded-full w-[15%]" />
+                  <div
+                    style={{ width: `${paymentMethodsBreakdown.transfer.pct}%` }}
+                    className="h-full bg-[#0284C7] rounded-full transition-all duration-500"
+                  />
                 </div>
               </div>
             </div>
@@ -722,8 +979,10 @@ export function FinancialPage() {
         <div className="lg:col-span-8 p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-black text-[#0D2329]">Lançamentos Recentes</h2>
-              <p className="text-xs text-[#8CAAB1]">Histórico e extrato detalhado da clínica</p>
+              <h2 className="text-sm font-black text-[#0D2329]">
+                Lançamentos de {MONTHS[selectedMonth - 1]} de {selectedYear}
+              </h2>
+              <p className="text-xs text-[#8CAAB1]">Extrato completo deste mês</p>
             </div>
 
             <div className="flex items-center gap-2">
@@ -769,11 +1028,11 @@ export function FinancialPage() {
                 {filteredRecords.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-xs text-[#8CAAB1]">
-                      Nenhum lançamento encontrado para os filtros selecionados.
+                      Nenhum lançamento encontrado em {MONTHS[selectedMonth - 1]} de {selectedYear}.
                     </td>
                   </tr>
                 ) : (
-                  filteredRecords.slice(0, 8).map((record) => {
+                  filteredRecords.map((record) => {
                     const isIncome = record.record_type !== "expense"
                     const isPaid = record.status === "paid"
                     const desc = record.child?.full_name
