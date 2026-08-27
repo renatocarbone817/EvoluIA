@@ -198,7 +198,7 @@ export function DashboardPage() {
     }).length
   }, [allChildren, currentMonthNum, currentYearNum])
 
-  // 2. Avaliações
+  // 2. Entrevistas / Avaliações
   const evaluationsCount = useMemo(() => {
     return allChildren.filter((c) => c.status === "initial_assessment").length ||
       allAppointments.filter((a) => {
@@ -215,13 +215,13 @@ export function DashboardPage() {
     }).length
   }, [allAppointments, currentMonthNum, currentYearNum])
 
-  // 3. Intervenções em Andamento
+  // 3. Acompanhamento Contínuo
   const interventionsCount = useMemo(() => {
     const inProgress = allChildren.filter((c) => c.status === "in_progress").length
     return inProgress > 0 ? inProgress : allChildren.length
   }, [allChildren])
 
-  // 4. Sessões Este Mês
+  // 4. Aulas Este Mês
   const sessionsThisMonth = useMemo(() => {
     return allAppointments.filter((a) => {
       const d = new Date(a.start_time)
@@ -230,7 +230,7 @@ export function DashboardPage() {
   }, [allAppointments, currentMonthNum, currentYearNum])
 
   // =========================================================================
-  // MONTHLY CHART & BADGES (FOR SELECTED MONTH)
+  // MONTHLY MULTI-SERIES CHART (AULAS, ENTREVISTAS & NOVOS PACIENTES JUNTOS)
   // =========================================================================
   const monthlyChartData = useMemo(() => {
     const monthAppts = allAppointments.filter((a) => {
@@ -250,34 +250,60 @@ export function DashboardPage() {
       return d.getMonth() + 1 === selectedMonth && d.getFullYear() === currentYearNum
     }).length
 
-    // Weekly distribution 1 to 5
+    // Weekly breakdown 1 to 5
     const weeks = [
-      { label: "Sem 1", range: [1, 7], count: 0 },
-      { label: "Sem 2", range: [8, 14], count: 0 },
-      { label: "Sem 3", range: [15, 21], count: 0 },
-      { label: "Sem 4", range: [22, 28], count: 0 },
-      { label: "Sem 5", range: [29, 31], count: 0 },
+      { label: "Sem 1", range: [1, 7], aulas: 0, entrevistas: 0, novos: 0 },
+      { label: "Sem 2", range: [8, 14], aulas: 0, entrevistas: 0, novos: 0 },
+      { label: "Sem 3", range: [15, 21], aulas: 0, entrevistas: 0, novos: 0 },
+      { label: "Sem 4", range: [22, 28], aulas: 0, entrevistas: 0, novos: 0 },
+      { label: "Sem 5", range: [29, 31], aulas: 0, entrevistas: 0, novos: 0 },
     ]
 
+    // Populate Appointments (Aulas vs Entrevistas)
     monthAppts.forEach((a) => {
       if (a.status === "cancelled") return
       const day = new Date(a.start_time).getDate()
       const targetWeek = weeks.find((w) => day >= w.range[0] && day <= w.range[1]) || weeks[4]
-      targetWeek.count++
+      const t = (a.type || "").toLowerCase()
+      if (t.includes("avalia") || t.includes("entrevista")) {
+        targetWeek.entrevistas++
+      } else {
+        targetWeek.aulas++
+      }
     })
 
-    const maxVal = Math.max(...weeks.map((w) => w.count), 1)
-
-    // Calculate Y coordinates for SVG curve (height 140px, padding 20px)
-    const points = weeks.map((w, idx) => {
-      const x = idx * 95 + 10
-      const y = 120 - (w.count / maxVal) * 90
-      return { x, y, count: w.count }
+    // Populate New Patients (Novos Pacientes)
+    allChildren.forEach((c) => {
+      if (!c.created_at) return
+      const d = new Date(c.created_at)
+      if (d.getMonth() + 1 === selectedMonth && d.getFullYear() === currentYearNum) {
+        const day = d.getDate()
+        const targetWeek = weeks.find((w) => day >= w.range[0] && day <= w.range[1]) || weeks[4]
+        targetWeek.novos++
+      }
     })
 
-    // SVG path string
-    const pathD = `M ${points[0].x},${points[0].y} Q ${(points[0].x + points[1].x) / 2},${(points[0].y + points[1].y) / 2} ${points[1].x},${points[1].y} T ${points[2].x},${points[2].y} T ${points[3].x},${points[3].y} T ${points[4].x},${points[4].y}`
-    const areaD = `${pathD} L ${points[4].x},140 L ${points[0].x},140 Z`
+    const maxVal = Math.max(
+      ...weeks.map((w) => Math.max(w.aulas, w.entrevistas, w.novos)),
+      1
+    )
+
+    // Helper to generate coordinates & smooth path for a metric
+    function buildCurve(getValue: (w: typeof weeks[0]) => number) {
+      const pts = weeks.map((w, idx) => {
+        const x = idx * 92 + 16
+        const y = 125 - (getValue(w) / maxVal) * 95
+        return { x, y, val: getValue(w) }
+      })
+
+      const path = `M ${pts[0].x},${pts[0].y} Q ${(pts[0].x + pts[1].x) / 2},${(pts[0].y + pts[1].y) / 2} ${pts[1].x},${pts[1].y} T ${pts[2].x},${pts[2].y} T ${pts[3].x},${pts[3].y} T ${pts[4].x},${pts[4].y}`
+      const area = `${path} L ${pts[4].x},145 L ${pts[0].x},145 Z`
+      return { pts, path, area }
+    }
+
+    const curveAulas = buildCurve((w) => w.aulas)
+    const curveEvals = buildCurve((w) => w.entrevistas)
+    const curveNovos = buildCurve((w) => w.novos)
 
     return {
       totalSessions,
@@ -285,10 +311,10 @@ export function DashboardPage() {
       newPatients,
       totalMissed,
       weeks,
-      points,
-      pathD,
-      areaD,
-      hasData: totalSessions > 0,
+      maxVal,
+      curveAulas,
+      curveEvals,
+      curveNovos,
     }
   }, [allAppointments, allChildren, selectedMonth, currentYearNum])
 
@@ -634,19 +660,20 @@ export function DashboardPage() {
         </div>
 
         {/* ========================================================
-            COLUMN 2: RESUMO DO MÊS (CHART DINÂMICO REAL) (5 COLS)
+            COLUMN 2: RESUMO DO MÊS (COMPARATIVO MULTI-LINHAS) (5 COLS)
             ======================================================== */}
         <div className="lg:col-span-5 space-y-5">
           <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <h2 className="text-sm font-black text-[#0D2329]">Resumo do Mês</h2>
-                <p className="text-[11px] font-semibold text-[#6B7C83]">Fluxo de atendimentos e desempenho</p>
+                <p className="text-[11px] font-semibold text-[#6B7C83]">Fluxo comparativo de atendimentos</p>
               </div>
+
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                className="text-xs font-bold bg-[#F7FAFA] border border-[#D8E5E7] rounded-xl px-2.5 py-1 text-[#0D2329] focus:outline-none"
+                className="text-xs font-bold bg-[#F7FAFA] border border-[#D8E5E7] rounded-xl px-2.5 py-1 text-[#0D2329] focus:outline-none self-start sm:self-auto"
               >
                 {MONTHS.map((m, idx) => (
                   <option key={m} value={idx + 1}>{m}</option>
@@ -654,13 +681,30 @@ export function DashboardPage() {
               </select>
             </div>
 
-            {/* Smooth Dynamic Line / Area Chart */}
+            {/* Legenda do Gráfico */}
+            <div className="flex items-center gap-4 text-xs font-bold">
+              <span className="flex items-center gap-1.5 text-[#10B981]">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" /> Aulas
+              </span>
+              <span className="flex items-center gap-1.5 text-[#7C3AED]">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#7C3AED]" /> Entrevistas
+              </span>
+              <span className="flex items-center gap-1.5 text-[#0284C7]">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#0284C7]" /> Novos Pacientes
+              </span>
+            </div>
+
+            {/* Multi-Series Smooth Line Chart */}
             <div className="relative pt-2">
               <div className="h-44 w-full relative">
                 <svg className="w-full h-full overflow-visible" viewBox="0 0 400 150">
                   <defs>
+                    <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10B981" stopOpacity="0.25" />
+                      <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
+                    </linearGradient>
                     <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.35" />
+                      <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.25" />
                       <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0.0" />
                     </linearGradient>
                   </defs>
@@ -670,56 +714,85 @@ export function DashboardPage() {
                   <line x1="0" y1="75" x2="400" y2="75" stroke="#EEF5F6" strokeDasharray="3 3" />
                   <line x1="0" y1="120" x2="400" y2="120" stroke="#EEF5F6" strokeDasharray="3 3" />
 
-                  {/* Gradient Area Fill */}
-                  <path d={monthlyChartData.areaD} fill="url(#purpleGradient)" />
+                  {/* Area Fills */}
+                  <path d={monthlyChartData.curveAulas.area} fill="url(#greenGradient)" />
+                  <path d={monthlyChartData.curveEvals.area} fill="url(#purpleGradient)" />
 
-                  {/* Stroke Curve */}
-                  <path d={monthlyChartData.pathD} fill="none" stroke="#7C3AED" strokeWidth="3" />
+                  {/* 1. Curva Aulas (Verde) */}
+                  <path d={monthlyChartData.curveAulas.path} fill="none" stroke="#10B981" strokeWidth="2.5" />
+                  {monthlyChartData.curveAulas.pts.map((pt, i) => (
+                    <circle
+                      key={`aulas-${i}`}
+                      cx={pt.x}
+                      cy={pt.y}
+                      r="4"
+                      className="fill-white stroke-[#10B981] stroke-2 shadow-xs cursor-pointer"
+                    />
+                  ))}
 
-                  {/* Curve Nodes with real counts */}
-                  {monthlyChartData.points.map((pt, i) => (
-                    <g key={i}>
-                      <circle
-                        cx={pt.x}
-                        cy={pt.y}
-                        r="5"
-                        className="fill-white stroke-[#7C3AED] stroke-[2.5] shadow-sm cursor-pointer"
-                      />
-                    </g>
+                  {/* 2. Curva Entrevistas (Roxa) */}
+                  <path d={monthlyChartData.curveEvals.path} fill="none" stroke="#7C3AED" strokeWidth="2.5" />
+                  {monthlyChartData.curveEvals.pts.map((pt, i) => (
+                    <circle
+                      key={`evals-${i}`}
+                      cx={pt.x}
+                      cy={pt.y}
+                      r="4"
+                      className="fill-white stroke-[#7C3AED] stroke-2 shadow-xs cursor-pointer"
+                    />
+                  ))}
+
+                  {/* 3. Curva Novos Pacientes (Azul) */}
+                  <path d={monthlyChartData.curveNovos.path} fill="none" stroke="#0284C7" strokeWidth="2" strokeDasharray="4 3" />
+                  {monthlyChartData.curveNovos.pts.map((pt, i) => (
+                    <circle
+                      key={`novos-${i}`}
+                      cx={pt.x}
+                      cy={pt.y}
+                      r="3.5"
+                      className="fill-white stroke-[#0284C7] stroke-2 shadow-xs cursor-pointer"
+                    />
                   ))}
                 </svg>
               </div>
 
-              {/* X-axis labels */}
-              <div className="flex justify-between text-[10px] font-bold text-[#8CAAB1] pt-2 px-1">
-                {monthlyChartData.weeks.map((w, idx) => (
-                  <span key={w.label} className="text-center">
-                    {w.label} <span className="block text-[9px] text-[#7C3AED] font-extrabold">{w.count} ses</span>
-                  </span>
+              {/* X-axis labels with values per series */}
+              <div className="flex justify-between text-[10px] font-bold text-[#8CAAB1] pt-3 px-1 border-t border-[#EEF5F6]">
+                {monthlyChartData.weeks.map((w) => (
+                  <div key={w.label} className="text-center space-y-0.5">
+                    <span className="font-extrabold text-[#0D2329] block text-xs">{w.label}</span>
+                    <div className="flex items-center justify-center gap-1 text-[9px]">
+                      <span className="text-[#10B981] font-black" title="Aulas">{w.aulas}</span>
+                      <span className="text-[#D8E5E7]">•</span>
+                      <span className="text-[#7C3AED] font-black" title="Entrevistas">{w.entrevistas}</span>
+                      <span className="text-[#D8E5E7]">•</span>
+                      <span className="text-[#0284C7] font-black" title="Novos">{w.novos}</span>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
 
             {/* Bottom 4 Performance Badges (REAL CALCULATED METRICS) */}
             <div className="grid grid-cols-4 gap-2 pt-3 border-t border-[#EEF5F6] text-center">
-              <div className="space-y-0.5 p-2 rounded-2xl bg-[#F7FAFA]">
-                <p className="text-[10px] text-[#6B7C83] font-bold">Aulas</p>
-                <p className="text-base font-black text-[#0D2329]">{monthlyChartData.totalSessions}</p>
+              <div className="space-y-0.5 p-2 rounded-2xl bg-[#E8F8F5] border border-[#A7F3D0]/60">
+                <p className="text-[10px] text-[#065F46] font-bold">Aulas</p>
+                <p className="text-base font-black text-[#065F46]">{monthlyChartData.totalSessions}</p>
                 <p className="text-[9px] text-[#10B981] font-extrabold">Realizadas</p>
               </div>
-              <div className="space-y-0.5 p-2 rounded-2xl bg-[#F7FAFA]">
-                <p className="text-[10px] text-[#6B7C83] font-bold">Entrevistas</p>
-                <p className="text-base font-black text-[#0D2329]">{monthlyChartData.totalEvals}</p>
+              <div className="space-y-0.5 p-2 rounded-2xl bg-[#F3E8FF] border border-[#DDD6FE]/60">
+                <p className="text-[10px] text-[#6B21A8] font-bold">Entrevistas</p>
+                <p className="text-base font-black text-[#6B21A8]">{monthlyChartData.totalEvals}</p>
                 <p className="text-[9px] text-[#7C3AED] font-extrabold">Iniciais</p>
               </div>
-              <div className="space-y-0.5 p-2 rounded-2xl bg-[#F7FAFA]">
-                <p className="text-[10px] text-[#6B7C83] font-bold">Novos Pacientes</p>
-                <p className="text-base font-black text-[#0D2329]">{monthlyChartData.newPatients}</p>
-                <p className="text-[9px] text-[#10B981] font-extrabold">Cadastros</p>
+              <div className="space-y-0.5 p-2 rounded-2xl bg-[#E0F2FE] border border-[#BAE6FD]/60">
+                <p className="text-[10px] text-[#0369A1] font-bold">Novos Pacientes</p>
+                <p className="text-base font-black text-[#0369A1]">{monthlyChartData.newPatients}</p>
+                <p className="text-[9px] text-[#0284C7] font-extrabold">Cadastros</p>
               </div>
-              <div className="space-y-0.5 p-2 rounded-2xl bg-[#F7FAFA]">
-                <p className="text-[10px] text-[#6B7C83] font-bold">Cancelamentos</p>
-                <p className="text-base font-black text-[#0D2329]">{monthlyChartData.totalMissed}</p>
+              <div className="space-y-0.5 p-2 rounded-2xl bg-[#FEF2F2] border border-[#FECACA]/60">
+                <p className="text-[10px] text-[#991B1B] font-bold">Cancelamentos</p>
+                <p className="text-base font-black text-[#991B1B]">{monthlyChartData.totalMissed}</p>
                 <p className="text-[9px] text-[#EF4444] font-extrabold">Faltas</p>
               </div>
             </div>
