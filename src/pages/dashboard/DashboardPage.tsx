@@ -453,7 +453,7 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Card 2: Entrevistas */}
+        {/* Card 2: Entrevistas no mês */}
         <div
           onClick={() => navigate("/agenda")}
           className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#9333EA] hover:shadow-md transition-all cursor-pointer space-y-3 flex flex-col justify-between group shadow-2xs"
@@ -463,18 +463,15 @@ export function DashboardPage() {
               <ClipboardList className="w-5 h-5" />
             </div>
             <div className="text-right">
-              <p className="text-[11px] font-bold text-[#6B7C83]">Entrevistas</p>
-              <div className="flex items-baseline justify-end gap-1">
-                <p className="text-2xl font-black text-[#0D2329] tracking-tight">{evaluationsThisMonth}</p>
-                <span className="text-[10px] font-extrabold text-[#6B7C83]">no mês</span>
-              </div>
+              <p className="text-[11px] font-bold text-[#6B7C83]">Entrevistas no mês</p>
+              <p className="text-2xl font-black text-[#0D2329] tracking-tight">{evaluationsThisMonth}</p>
             </div>
           </div>
 
           <div className="flex items-center justify-between pt-1">
-            <span className="text-xs font-bold text-[#9333EA] flex items-center gap-1">
+            <span className="text-xs font-bold text-[#9333EA] flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[#9333EA]" />
-              <span>{evaluationsPendingThisMonth} a atender ({evaluationsDoneThisMonth} feitas)</span>
+              <span>Falta atender {evaluationsPendingThisMonth}</span>
             </span>
             <svg className="w-20 h-7 stroke-[#9333EA] fill-none stroke-[2.5]" viewBox="0 0 100 30">
               <path d="M0,22 Q25,28 50,15 T80,20 T100,8" />
