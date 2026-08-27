@@ -30,6 +30,7 @@ interface NewAppointmentDialogProps {
   open: boolean
   onClose: () => void
   onSuccess: () => void
+  defaultDate?: string
 }
 
 const WEEK_DAYS = [
@@ -41,7 +42,7 @@ const WEEK_DAYS = [
   { id: 6, label: "Sáb", name: "Sábado" },
 ]
 
-export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmentDialogProps) {
+export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate }: NewAppointmentDialogProps) {
   const { user, professional } = useAuthStore()
   const [children, setChildren] = useState<Child[]>([])
   const [loading, setLoading] = useState(false)
@@ -60,7 +61,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
     new_child_name: "",
     new_guardian_name: "",
     new_guardian_phone: "",
-    date: new Date().toISOString().split("T")[0],
+    date: defaultDate || new Date().toISOString().split("T")[0],
     start_time: "14:00",
     duration_minutes: "60",
     type: "Sessão Psicopedagógica",
@@ -74,8 +75,11 @@ export function NewAppointmentDialog({ open, onClose, onSuccess }: NewAppointmen
       setConflictWarning(null)
       setIsRecurring(false)
       setDurationMonths(1)
+      if (defaultDate) {
+        setForm((prev) => ({ ...prev, date: defaultDate }))
+      }
     }
-  }, [open, professional, user])
+  }, [open, professional, user, defaultDate])
 
   // Sync selected day with initial date day of week
   useEffect(() => {
