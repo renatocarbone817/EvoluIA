@@ -401,7 +401,7 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Card 2: Avaliações Realizadas */}
+        {/* Card 2: Entrevistas */}
         <div
           onClick={() => navigate("/criancas")}
           className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#9333EA] hover:shadow-md transition-all cursor-pointer space-y-3 flex flex-col justify-between group shadow-2xs"
@@ -411,7 +411,7 @@ export function DashboardPage() {
               <ClipboardList className="w-5 h-5" />
             </div>
             <div className="text-right">
-              <p className="text-[11px] font-bold text-[#6B7C83]">Avaliações</p>
+              <p className="text-[11px] font-bold text-[#6B7C83]">Entrevistas</p>
               <p className="text-2xl font-black text-[#0D2329] tracking-tight">{evaluationsCount}</p>
             </div>
           </div>
@@ -427,7 +427,7 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Card 3: Intervenções em Andamento */}
+        {/* Card 3: Acompanhamento Contínuo */}
         <div
           onClick={() => navigate("/agenda")}
           className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#EA580C] hover:shadow-md transition-all cursor-pointer space-y-3 flex flex-col justify-between group shadow-2xs"
@@ -437,7 +437,7 @@ export function DashboardPage() {
               <Target className="w-5 h-5" />
             </div>
             <div className="text-right">
-              <p className="text-[11px] font-bold text-[#6B7C83]">Intervenções Ativas</p>
+              <p className="text-[11px] font-bold text-[#6B7C83]">Acompanhamento Contínuo</p>
               <p className="text-2xl font-black text-[#0D2329] tracking-tight">{interventionsCount}</p>
             </div>
           </div>
@@ -453,7 +453,7 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Card 4: Sessões Este Mês */}
+        {/* Card 4: Aulas Este Mês */}
         <div
           onClick={() => navigate("/agenda")}
           className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#0284C7] hover:shadow-md transition-all cursor-pointer space-y-3 flex flex-col justify-between group shadow-2xs"
@@ -463,7 +463,7 @@ export function DashboardPage() {
               <BarChart2 className="w-5 h-5" />
             </div>
             <div className="text-right">
-              <p className="text-[11px] font-bold text-[#6B7C83]">Sessões Este Mês</p>
+              <p className="text-[11px] font-bold text-[#6B7C83]">Aulas Este Mês</p>
               <p className="text-2xl font-black text-[#0D2329] tracking-tight">{sessionsThisMonth}</p>
             </div>
           </div>
@@ -703,14 +703,14 @@ export function DashboardPage() {
             {/* Bottom 4 Performance Badges (REAL CALCULATED METRICS) */}
             <div className="grid grid-cols-4 gap-2 pt-3 border-t border-[#EEF5F6] text-center">
               <div className="space-y-0.5 p-2 rounded-2xl bg-[#F7FAFA]">
-                <p className="text-[10px] text-[#6B7C83] font-bold">Sessões</p>
+                <p className="text-[10px] text-[#6B7C83] font-bold">Aulas</p>
                 <p className="text-base font-black text-[#0D2329]">{monthlyChartData.totalSessions}</p>
                 <p className="text-[9px] text-[#10B981] font-extrabold">Realizadas</p>
               </div>
               <div className="space-y-0.5 p-2 rounded-2xl bg-[#F7FAFA]">
-                <p className="text-[10px] text-[#6B7C83] font-bold">Avaliações</p>
+                <p className="text-[10px] text-[#6B7C83] font-bold">Entrevistas</p>
                 <p className="text-base font-black text-[#0D2329]">{monthlyChartData.totalEvals}</p>
-                <p className="text-[9px] text-[#7C3AED] font-extrabold">Diagnósticos</p>
+                <p className="text-[9px] text-[#7C3AED] font-extrabold">Iniciais</p>
               </div>
               <div className="space-y-0.5 p-2 rounded-2xl bg-[#F7FAFA]">
                 <p className="text-[10px] text-[#6B7C83] font-bold">Novos Pacientes</p>
