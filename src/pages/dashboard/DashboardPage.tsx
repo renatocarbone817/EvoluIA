@@ -20,9 +20,7 @@ import {
   Plus,
   Play,
   MessageCircle,
-  CheckCircle2,
-  XCircle,
-  ExternalLink,
+  GripVertical,
 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -89,7 +87,6 @@ export function DashboardPage() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        // Clean out legacy mock data if present
         return parsed.filter((t: TaskItem) => 
           !t.text.includes("João Pedro") && 
           !t.text.includes("Maria Clara") && 
@@ -106,13 +103,16 @@ export function DashboardPage() {
   const [newTaskText, setNewTaskText] = useState("")
   const [newTaskDue, setNewTaskDue] = useState<"hoje" | "amanha" | "semana" | "sem_prazo">("hoje")
 
+  // Drag and drop state for tasks
+  const [draggedTaskIndex, setDraggedTaskIndex] = useState<number | null>(null)
+  const [dragOverTaskIndex, setDragOverTaskIndex] = useState<number | null>(null)
+
   // Interactive Notes (persisted - clean of mock items)
   const [notes, setNotes] = useState<NoteItem[]>(() => {
     const saved = localStorage.getItem("evoluia_dashboard_notes")
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        // Clean out legacy mock data
         return parsed.filter((n: NoteItem) => 
           !n.text.includes("Maria Clara dia 29/08") && 
           !n.text.includes("kit de atividades")
@@ -124,6 +124,10 @@ export function DashboardPage() {
     return []
   })
   const [newNoteText, setNewNoteText] = useState("")
+
+  // Drag and drop state for notes
+  const [draggedNoteIndex, setDraggedNoteIndex] = useState<number | null>(null)
+  const [dragOverNoteIndex, setDragOverNoteIndex] = useState<number | null>(null)
 
   useEffect(() => {
     if (profId) loadDashboardData()
@@ -379,22 +383,29 @@ export function DashboardPage() {
     window.open(`https://wa.me/${fullPhone}?text=${msg}`, "_blank")
   }
 
-  async function updateAppointmentStatus(apptId: string, newStatus: string) {
-    try {
-      const { error } = await supabase
-        .from("appointments")
-        .update({ status: newStatus })
-        .eq("id", apptId)
-
-      if (error) throw error
-      toast.success(`Status atualizado para ${newStatus === "done" ? "Realizado" : "Confirmado"}!`)
-      loadDashboardData()
-    } catch (e: any) {
-      toast.error("Erro ao atualizar status.")
-    }
+  // =========================================================================
+  // TASK DRAG AND DROP HANDLERS (TRELLO STYLE)
+  // =========================================================================
+  function handleTaskDragStart(index: number) {
+    setDraggedTaskIndex(index)
   }
 
-  // Task handlers
+  function handleTaskDragEnter(index: number) {
+    setDragOverTaskIndex(index)
+  }
+
+  function handleTaskDragEnd() {
+    if (draggedTaskIndex !== null && dragOverTaskIndex !== null && draggedTaskIndex !== dragOverTaskIndex) {
+      const updated = [...tasks]
+      const [moved] = updated.splice(draggedTaskIndex, 1)
+      updated.splice(dragOverTaskIndex, 0, moved)
+      setTasks(updated)
+      localStorage.setItem("evoluia_dashboard_tasks", JSON.stringify(updated))
+    }
+    setDraggedTaskIndex(null)
+    setDragOverTaskIndex(null)
+  }
+
   function toggleTask(id: string) {
     const updated = tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
     setTasks(updated)
@@ -439,7 +450,29 @@ export function DashboardPage() {
     toast.success("Tarefa excluída!")
   }
 
-  // Note handlers
+  // =========================================================================
+  // NOTE DRAG AND DROP HANDLERS (TRELLO STYLE)
+  // =========================================================================
+  function handleNoteDragStart(index: number) {
+    setDraggedNoteIndex(index)
+  }
+
+  function handleNoteDragEnter(index: number) {
+    setDragOverNoteIndex(index)
+  }
+
+  function handleNoteDragEnd() {
+    if (draggedNoteIndex !== null && dragOverNoteIndex !== null && draggedNoteIndex !== dragOverNoteIndex) {
+      const updated = [...notes]
+      const [moved] = updated.splice(draggedNoteIndex, 1)
+      updated.splice(dragOverNoteIndex, 0, moved)
+      setNotes(updated)
+      localStorage.setItem("evoluia_dashboard_notes", JSON.stringify(updated))
+    }
+    setDraggedNoteIndex(null)
+    setDragOverNoteIndex(null)
+  }
+
   function handleAddNote() {
     if (!newNoteText.trim()) return
     const newNote: NoteItem = {
@@ -1093,7 +1126,7 @@ export function DashboardPage() {
             </div>
           </div>
 
-          {/* Tarefas Pendentes Card (100% REAL & INTERATIVO) */}
+          {/* Tarefas Pendentes Card (TRELLO STYLE DRAG AND DROP) */}
           <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
@@ -1155,56 +1188,75 @@ export function DashboardPage() {
 
             {tasks.length === 0 ? (
               <div className="py-4 text-center text-xs text-[#8CAAB1]">
-                Nenhuma tarefa pendente no momento.
+                Nenhuma tarefa pendente. Clique em <span className="font-bold text-[#7C3AED]">+ Nova tarefa</span> acima.
               </div>
             ) : (
               <div className="space-y-1.5">
-                {tasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-[#F7FAFA] transition-colors"
-                  >
-                    <div
-                      onClick={() => toggleTask(task.id)}
-                      className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
-                    >
-                      {task.completed ? (
-                        <CheckSquare className="w-4 h-4 text-[#10B981] shrink-0" />
-                      ) : (
-                        <Square className="w-4 h-4 text-[#8CAAB1] shrink-0" />
-                      )}
-                      <p className={`text-xs font-bold truncate ${task.completed ? "line-through text-[#8CAAB1]" : "text-[#0D2329]"}`}>
-                        {task.text}
-                      </p>
-                    </div>
+                {tasks.map((task, idx) => {
+                  const isDragging = draggedTaskIndex === idx
+                  const isDragOver = dragOverTaskIndex === idx && draggedTaskIndex !== idx
 
-                    <div className="flex items-center gap-1 shrink-0">
-                      <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
-                        task.dueColor === "red"
-                          ? "bg-[#FDF0F0] text-[#EF4444]"
-                          : task.dueColor === "orange"
-                          ? "bg-[#FEF8EC] text-[#F59E0B]"
-                          : task.dueColor === "green"
-                          ? "bg-[#E8F8F5] text-[#10B981]"
-                          : "bg-[#EEF5F6] text-[#6B7C83]"
-                      }`}>
-                        {task.dueText}
-                      </span>
-                      <button
-                        onClick={() => handleDeleteTask(task.id)}
-                        className="p-1 text-[#A0B4B9] hover:text-[#EF4444] rounded hover:bg-[#FEE2E2] transition-colors"
-                        title="Excluir tarefa"
+                  return (
+                    <div
+                      key={task.id}
+                      draggable={true}
+                      onDragStart={() => handleTaskDragStart(idx)}
+                      onDragEnter={() => handleTaskDragEnter(idx)}
+                      onDragEnd={handleTaskDragEnd}
+                      onDragOver={(e) => e.preventDefault()}
+                      className={`flex items-center justify-between gap-2 p-2 rounded-2xl border transition-all cursor-grab active:cursor-grabbing group ${
+                        isDragging
+                          ? "opacity-40 scale-95 border-dashed border-[#7C3AED] bg-[#EDE9FE]/40"
+                          : isDragOver
+                          ? "border-t-2 border-t-[#7C3AED] bg-[#F5F3FF] shadow-md"
+                          : "border-[#EEF5F6] hover:border-[#D8E5E7] bg-white hover:bg-[#F7FAFA]"
+                      }`}
+                    >
+                      {/* Drag Handle Grip Icon */}
+                      <GripVertical className="w-3.5 h-3.5 text-[#C4D5D8] group-hover:text-[#7C3AED] shrink-0 transition-colors" />
+
+                      <div
+                        onClick={() => toggleTask(task.id)}
+                        className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                        {task.completed ? (
+                          <CheckSquare className="w-4 h-4 text-[#10B981] shrink-0" />
+                        ) : (
+                          <Square className="w-4 h-4 text-[#8CAAB1] shrink-0" />
+                        )}
+                        <p className={`text-xs font-bold truncate ${task.completed ? "line-through text-[#8CAAB1]" : "text-[#0D2329]"}`}>
+                          {task.text}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
+                          task.dueColor === "red"
+                            ? "bg-[#FDF0F0] text-[#EF4444]"
+                            : task.dueColor === "orange"
+                            ? "bg-[#FEF8EC] text-[#F59E0B]"
+                            : task.dueColor === "green"
+                            ? "bg-[#E8F8F5] text-[#10B981]"
+                            : "bg-[#EEF5F6] text-[#6B7C83]"
+                        }`}>
+                          {task.dueText}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="p-1 text-[#A0B4B9] hover:text-[#EF4444] rounded hover:bg-[#FEE2E2] transition-colors"
+                          title="Excluir tarefa"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
 
-          {/* Anotações Rápidas (100% REAL & INTERATIVO) */}
+          {/* Anotações Rápidas (TRELLO STYLE DRAG AND DROP) */}
           <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
@@ -1232,31 +1284,46 @@ export function DashboardPage() {
 
             {notes.length === 0 ? (
               <div className="py-4 text-center text-xs text-[#8CAAB1]">
-                Nenhuma anotação salva.
+                Nenhuma anotação salva. Digite acima e clique em Salvar.
               </div>
             ) : (
               <div className="space-y-2 pt-1">
-                {notes.map((note) => (
-                  <div
-                    key={note.id}
-                    className={`p-3 rounded-2xl border text-xs font-semibold space-y-1 relative transition-all shadow-2xs ${
-                      note.color === "yellow"
-                        ? "bg-[#FEF9C3]/80 border-[#FDE047]/60 text-[#854D0E]"
-                        : "bg-[#E0F2FE]/80 border-[#BAE6FD]/70 text-[#075985]"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-1">
-                      <p className="leading-snug pr-2 flex-1">{note.text}</p>
-                      <button
-                        onClick={() => handleDeleteNote(note.id)}
-                        className="text-[#8CAAB1] hover:text-[#EF4444] p-1 rounded hover:bg-white/50 transition-all shrink-0"
-                        title="Excluir anotação"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                {notes.map((note, idx) => {
+                  const isDragging = draggedNoteIndex === idx
+                  const isDragOver = dragOverNoteIndex === idx && draggedNoteIndex !== idx
+
+                  return (
+                    <div
+                      key={note.id}
+                      draggable={true}
+                      onDragStart={() => handleNoteDragStart(idx)}
+                      onDragEnter={() => handleNoteDragEnter(idx)}
+                      onDragEnd={handleNoteDragEnd}
+                      onDragOver={(e) => e.preventDefault()}
+                      className={`p-3 rounded-2xl border text-xs font-semibold space-y-1 relative transition-all shadow-2xs cursor-grab active:cursor-grabbing group ${
+                        isDragging
+                          ? "opacity-40 scale-95 border-dashed border-[#7C3AED]"
+                          : isDragOver
+                          ? "border-t-2 border-t-[#7C3AED] shadow-md"
+                          : note.color === "yellow"
+                          ? "bg-[#FEF9C3]/80 border-[#FDE047]/60 text-[#854D0E]"
+                          : "bg-[#E0F2FE]/80 border-[#BAE6FD]/70 text-[#075985]"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-1.5">
+                        <GripVertical className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 shrink-0 mt-0.5 transition-opacity" />
+                        <p className="leading-snug pr-2 flex-1">{note.text}</p>
+                        <button
+                          onClick={() => handleDeleteNote(note.id)}
+                          className="text-[#8CAAB1] hover:text-[#EF4444] p-1 rounded hover:bg-white/60 transition-all shrink-0"
+                          title="Excluir anotação"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
