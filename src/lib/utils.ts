@@ -58,6 +58,8 @@ export const STATUS_LABELS: Record<string, string> = {
   initial_assessment: "📋 Entrevista Inicial",
   in_progress: "▶ Em Andamento",
   child_in_progress: "🌱 Em Acompanhamento",
+  report_in_progress: "📝 Em Relatório",
+  report_completed: "✅ Relatório Finalizado",
   paused: "⏸️ Pausado",
   closed: "🔒 Encerrado",
   archived: "📦 Arquivado",
@@ -74,6 +76,10 @@ export const STATUS_LABELS: Record<string, string> = {
 }
 
 export const STATUS_COLORS: Record<string, string> = {
+  // Roxo para Em Relatório e Azul para Relatório Finalizado
+  report_in_progress: "bg-[#EDE9FE] text-[#7C3AED] border-[#DDD6FE] font-black",
+  report_completed: "bg-[#E0F2FE] text-[#0284C7] border-[#BAE6FD] font-black",
+
   // Verde Menta para crescimento e sucesso
   in_progress: "bg-[#E8F8F5] text-[#20836F] border-[#63C7B2]/40 font-semibold",
   confirmed: "bg-[#E8F8F5] text-[#20836F] border-[#63C7B2]/40 font-semibold",

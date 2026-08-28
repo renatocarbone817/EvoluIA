@@ -51,6 +51,15 @@ export function ChildProfilePage() {
     if (searchParams.get("editar") === "true") {
       setShowEditDialog(true)
     }
+
+    const tabParam = searchParams.get("tab")
+    if (tabParam) {
+      if (tabParam === "relatorios" || tabParam === "relatorio") {
+        setActiveTab("relatorios")
+      } else if (["resumo", "avaliacao", "sessoes", "linha-do-tempo", "documentos", "financeiro"].includes(tabParam)) {
+        setActiveTab(tabParam as Tab)
+      }
+    }
   }, [searchParams])
 
   async function loadChild() {
@@ -206,7 +215,7 @@ export function ChildProfilePage() {
         {activeTab === "linha-do-tempo" && <ChildTimelineTab childId={child.id} />}
         {activeTab === "documentos" && <ChildDocumentsTab childId={child.id} />}
         {activeTab === "financeiro" && <ChildFinancialTab childId={child.id} childName={child.full_name} />}
-        {activeTab === "relatorios" && <ChildReportsTab childId={child.id} childName={child.full_name} />}
+        {activeTab === "relatorios" && <ChildReportsTab child={child} onReloadChild={loadChild} />}
       </div>
 
       {/* Edit Child Dialog */}

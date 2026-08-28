@@ -125,7 +125,7 @@ export interface Guardian {
   updated_at: string
 }
 
-export type ChildStatus = 'initial_assessment' | 'in_progress' | 'paused' | 'closed' | 'archived'
+export type ChildStatus = 'initial_assessment' | 'in_progress' | 'report_in_progress' | 'report_completed' | 'paused' | 'closed' | 'archived'
 
 export interface Child {
   id: string
@@ -321,7 +321,7 @@ export interface FinancialRecord {
   updated_at: string
 }
 
-export type ReportStatus = 'draft' | 'final'
+export type ReportStatus = 'draft' | 'final' | 'in_progress' | 'completed'
 
 export interface Report {
   id: string
