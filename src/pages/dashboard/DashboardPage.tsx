@@ -165,8 +165,37 @@ export function DashboardPage() {
   const [draggedNoteIndex, setDraggedNoteIndex] = useState<number | null>(null)
   const [dragOverNoteIndex, setDragOverNoteIndex] = useState<number | null>(null)
 
+  const taskStorageKey = profId ? `evoluia_dashboard_tasks_${profId}` : "evoluia_dashboard_tasks"
+  const noteStorageKey = profId ? `evoluia_dashboard_notes_${profId}` : "evoluia_dashboard_notes"
+
   useEffect(() => {
-    if (profId) loadDashboardData()
+    if (profId) {
+      loadDashboardData()
+
+      // Carregar tarefas individuais e privadas do profissional logado
+      const savedTasks = localStorage.getItem(`evoluia_dashboard_tasks_${profId}`)
+      if (savedTasks) {
+        try {
+          setTasks(JSON.parse(savedTasks))
+        } catch (e) {
+          setTasks([])
+        }
+      } else {
+        setTasks([])
+      }
+
+      // Carregar anotações rápidas individuais e privadas do profissional logado
+      const savedNotes = localStorage.getItem(`evoluia_dashboard_notes_${profId}`)
+      if (savedNotes) {
+        try {
+          setNotes(JSON.parse(savedNotes))
+        } catch (e) {
+          setNotes([])
+        }
+      } else {
+        setNotes([])
+      }
+    }
   }, [profId])
 
   async function loadDashboardData() {
@@ -489,7 +518,7 @@ export function DashboardPage() {
       const [moved] = updated.splice(draggedTaskIndex, 1)
       updated.splice(dragOverTaskIndex, 0, moved)
       setTasks(updated)
-      localStorage.setItem("evoluia_dashboard_tasks", JSON.stringify(updated))
+      localStorage.setItem(taskStorageKey, JSON.stringify(updated))
     }
     setDraggedTaskIndex(null)
     setDragOverTaskIndex(null)
@@ -519,7 +548,7 @@ export function DashboardPage() {
   function toggleTask(id: string) {
     const updated = tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
     setTasks(updated)
-    localStorage.setItem("evoluia_dashboard_tasks", JSON.stringify(updated))
+    localStorage.setItem(taskStorageKey, JSON.stringify(updated))
   }
 
   function handleAddTask() {
@@ -563,7 +592,7 @@ export function DashboardPage() {
 
     const updated = [newTask, ...tasks]
     setTasks(updated)
-    localStorage.setItem("evoluia_dashboard_tasks", JSON.stringify(updated))
+    localStorage.setItem(taskStorageKey, JSON.stringify(updated))
     setNewTaskText("")
     setShowNewTaskInput(false)
     toast.success("Tarefa adicionada!")
@@ -572,7 +601,7 @@ export function DashboardPage() {
   function handleDeleteTask(id: string) {
     const updated = tasks.filter((t) => t.id !== id)
     setTasks(updated)
-    localStorage.setItem("evoluia_dashboard_tasks", JSON.stringify(updated))
+    localStorage.setItem(taskStorageKey, JSON.stringify(updated))
     toast.success("Tarefa excluída!")
   }
 
@@ -593,7 +622,7 @@ export function DashboardPage() {
       const [moved] = updated.splice(draggedNoteIndex, 1)
       updated.splice(dragOverNoteIndex, 0, moved)
       setNotes(updated)
-      localStorage.setItem("evoluia_dashboard_notes", JSON.stringify(updated))
+      localStorage.setItem(noteStorageKey, JSON.stringify(updated))
     }
     setDraggedNoteIndex(null)
     setDragOverNoteIndex(null)
@@ -609,7 +638,7 @@ export function DashboardPage() {
     }
     const updated = [newNote, ...notes]
     setNotes(updated)
-    localStorage.setItem("evoluia_dashboard_notes", JSON.stringify(updated))
+    localStorage.setItem(noteStorageKey, JSON.stringify(updated))
     setNewNoteText("")
     toast.success("Anotação salva!")
   }
@@ -634,7 +663,7 @@ export function DashboardPage() {
     }
     const updated = notes.map((n) => (n.id === id ? { ...n, text: editingNoteText.trim() } : n))
     setNotes(updated)
-    localStorage.setItem("evoluia_dashboard_notes", JSON.stringify(updated))
+    localStorage.setItem(noteStorageKey, JSON.stringify(updated))
     setEditingNoteId(null)
     toast.success("Anotação atualizada!")
   }
@@ -642,13 +671,13 @@ export function DashboardPage() {
   function handleUpdateNoteColor(id: string, newColor: NoteColor) {
     const updated = notes.map((n) => (n.id === id ? { ...n, color: newColor } : n))
     setNotes(updated)
-    localStorage.setItem("evoluia_dashboard_notes", JSON.stringify(updated))
+    localStorage.setItem(noteStorageKey, JSON.stringify(updated))
   }
 
   function handleDeleteNote(id: string) {
     const updated = notes.filter((n) => n.id !== id)
     setNotes(updated)
-    localStorage.setItem("evoluia_dashboard_notes", JSON.stringify(updated))
+    localStorage.setItem(noteStorageKey, JSON.stringify(updated))
     toast.success("Anotação excluída!")
   }
 
