@@ -103,14 +103,14 @@ function parseInlineMarkdown(text: string) {
   return tokens.map((token, idx) => {
     if (token.startsWith("**") && token.endsWith("**")) {
       return (
-        <strong key={idx} className="font-black text-[#19323A]">
+        <strong key={idx} className="font-black text-[#0D2329]">
           {token.slice(2, -2)}
         </strong>
       )
     }
     if (token.startsWith("*") && token.endsWith("*") && token.length > 2) {
       return (
-        <span key={idx} className="font-bold text-[#1E4E5B] bg-[#245C6B]/10 px-1 py-0.5 rounded text-[13px]">
+        <span key={idx} className="font-bold text-[#7C3AED] bg-[#EDE9FE]/50 px-1 py-0.5 rounded text-[12px]">
           {token.slice(1, -1)}
         </span>
       )
@@ -120,37 +120,39 @@ function parseInlineMarkdown(text: string) {
 }
 
 function renderFormattedMarkdown(text: string) {
-  const lines = text.split("\n")
+  // Pre-process: fix any bullet-broken patterns like "* Subtitle:" followed by "* Relatos:"
+  const normalizedText = text
+    .replace(/^\*\s+([^:\n]+):\s*\n\s*\*\s+Relatos que justificam:/gm, '### $1\n**Relatos que justificam:**')
+    .replace(/^\*\s+([^:\n]+):\s*\n\s*\*\s+Análise:/gm, '### $1\n**Análise:**')
+    .replace(/^\*\s+([^:\n]+):\s*$/gm, '### $1')
+
+  const lines = normalizedText.split("\n")
   return lines.map((line, lineIdx) => {
     const trimmed = line.trim()
     if (!trimmed || trimmed === "---") return null
 
-    // H1 Headers (e.g. # RESUMO DA ENTREVISTA)
-    if (trimmed.startsWith("# ")) {
+    // H1 / H2 Section Headers (e.g. # RESUMO DA ENTREVISTA or ## PRINCIPAIS PADRÕES)
+    if (trimmed.startsWith("# ") || trimmed.startsWith("## ")) {
+      const cleanTitle = trimmed.replace(/^#{1,2}\s*/, "")
       return (
-        <div key={lineIdx} className="pt-4 pb-1 mt-4 border-b-2 border-[#D8E5E7] first:mt-0">
+        <div key={lineIdx} className="pt-5 pb-2 mt-5 border-b-2 border-[#D8E5E7] first:mt-0 first:pt-0">
           <h3 className="font-black text-sm sm:text-base text-[#0D2329] tracking-tight uppercase flex items-center gap-2">
-            {parseInlineMarkdown(trimmed.replace(/^#\s*/, ""))}
+            <span className="w-2.5 h-2.5 rounded-full bg-[#7C3AED] inline-block shrink-0" />
+            <span>{parseInlineMarkdown(cleanTitle)}</span>
           </h3>
         </div>
       )
     }
 
-    // H2 Headers (e.g. ## PONTOS DE ATENÇÃO)
-    if (trimmed.startsWith("## ")) {
-      return (
-        <h4 key={lineIdx} className="font-black text-xs sm:text-sm text-[#7C3AED] uppercase tracking-wider mt-3 mb-1">
-          {parseInlineMarkdown(trimmed.replace(/^##\s*/, ""))}
-        </h4>
-      )
-    }
-
-    // H3 Subheaders (e.g. ### Abordagem 1: ...)
+    // H3 Subtopics (e.g. ### Atenção Seletiva e Sustentada or ### Escola)
     if (trimmed.startsWith("### ")) {
+      const cleanSub = trimmed.replace(/^###\s*/, "")
       return (
-        <h5 key={lineIdx} className="font-black text-xs text-[#0D2329] mt-2.5 mb-1">
-          {parseInlineMarkdown(trimmed.replace(/^###\s*/, ""))}
-        </h5>
+        <div key={lineIdx} className="mt-4 mb-1">
+          <h4 className="font-black text-xs sm:text-sm text-[#7C3AED] flex items-center gap-1.5">
+            <span>{parseInlineMarkdown(cleanSub)}</span>
+          </h4>
+        </div>
       )
     }
 
@@ -160,7 +162,7 @@ function renderFormattedMarkdown(text: string) {
 
     if (isBullet) {
       return (
-        <li key={lineIdx} className="ml-5 list-disc text-xs sm:text-sm text-[#2E4A52] leading-relaxed my-1 pl-1">
+        <li key={lineIdx} className="ml-4 list-disc text-xs sm:text-sm text-[#2E4A52] leading-relaxed my-1 pl-1 font-medium">
           {parseInlineMarkdown(cleanLine)}
         </li>
       )
@@ -529,17 +531,24 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
         })}
       </div>
 
-      {/* ✨ AI ANALYSIS RESULT CARD (hidden on print — internal clinical tool) */}
+      {/* ✨ AI ANALYSIS RESULT CARD (Design Moderno & Hierárquico) */}
       {aiAnalysis && (
-        <div className="rounded-2xl border-2 border-[#245C6B]/30 bg-gradient-to-br from-[#EAF3F5] to-[#F0F7F9] p-6 space-y-5 print:hidden">
+        <div className="rounded-3xl border-2 border-[#D8E5E7] bg-white p-6 sm:p-8 space-y-6 shadow-sm print:hidden">
           {/* Card Header */}
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#245C6B] flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5 text-white" />
+          <div className="flex items-start justify-between gap-4 pb-4 border-b-2 border-[#EEF5F6]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 shadow-2xs">
+                <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-black text-[#19323A] text-base">Análise IA — Entrevista Inicial</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-black text-[#0D2329] text-base sm:text-lg tracking-tight">
+                    Análise Clínica Preliminar — Apoio Psicopedagógico
+                  </h3>
+                  <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0]">
+                    Gemini 3.6 Flash
+                  </span>
+                </div>
                 {aiAnalyzedAt && (
                   <p className="text-[11px] text-[#6B7C83] font-semibold mt-0.5">
                     Gerada em {new Date(aiAnalyzedAt).toLocaleDateString("pt-BR")} às{" "}
@@ -548,45 +557,30 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
                 )}
               </div>
             </div>
+
             <button
               type="button"
               onClick={handleAnalyzeWithAI}
               disabled={aiLoading}
-              className="flex items-center gap-1.5 text-[11px] font-bold text-[#245C6B] hover:bg-[#245C6B]/10 px-3 py-1.5 rounded-lg transition-colors shrink-0"
+              className="flex items-center gap-1.5 text-xs font-black text-[#7C3AED] bg-[#F7FAFA] hover:bg-[#EDE9FE] border-2 border-[#D8E5E7] hover:border-[#7C3AED] px-3.5 py-2 rounded-2xl transition-all shadow-2xs shrink-0 active:scale-95"
             >
               {aiLoading ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
                 <RotateCcw className="w-3.5 h-3.5" />
               )}
-              Reanalisar
+              <span>Reanalisar</span>
             </button>
           </div>
 
-          {/* AI Content — rendered as formatted markdown-like text */}
-          <div className="space-y-4">
-            {aiAnalysis.split(/\n(?=##\s)/).map((section, i) => {
-              const lines = section.trim().split("\n")
-              const title = lines[0].replace(/^##\s*/, "").trim()
-              const body = lines.slice(1).join("\n").trim()
-
-              return (
-                <div key={i} className="space-y-2">
-                  {title && (
-                    <h4 className="font-black text-sm text-[#19323A] flex items-center gap-1.5">
-                      {title}
-                    </h4>
-                  )}
-                  <div className="bg-white/70 rounded-xl p-4 border border-[#245C6B]/15">
-                    {renderFormattedMarkdown(body || section)}
-                  </div>
-                </div>
-              )
-            })}
+          {/* AI Content — Hierarchical Clean Container */}
+          <div className="bg-[#F8FAFB] rounded-3xl p-5 sm:p-7 border-2 border-[#D8E5E7] shadow-inner space-y-1">
+            {renderFormattedMarkdown(aiAnalysis)}
           </div>
 
-          <p className="text-[10px] text-[#8DA3A8] font-semibold border-t border-[#245C6B]/10 pt-3">
-            🔒 Conteúdo gerado por IA para uso interno clínico. Revisão profissional obrigatória antes de qualquer uso.
+          <p className="text-[11px] text-[#8CAAB1] font-bold border-t border-[#EEF5F6] pt-3 flex items-center gap-1.5">
+            <span>🔒</span>
+            <span>Documento preliminar gerado por IA para apoio ao planejamento da psicopedagoga. Não substitui a avaliação clínica presencial.</span>
           </p>
         </div>
       )}
