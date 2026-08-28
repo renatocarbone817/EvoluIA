@@ -260,40 +260,60 @@ export function EditChildDialog({ open, child, onClose, onSuccess }: EditChildDi
 
       if (childErr) throw childErr
 
-      // 2. If user entered data in "Cadastrar Novo Responsável", save and link it now
-      let extraLinked = [...linkedGuardians]
+      // 2. Processar Responsáveis (Novo ou Selecionado)
+      let finalLinked = [...linkedGuardians]
+
+      // Caso A: Usuário preencheu os campos de "Cadastrar Novo Responsável"
       if (guardianMode === "new" && newGuardianForm.full_name.trim()) {
         const { data: newG, error: newGErr } = await supabase
           .from("guardians")
           .insert({
-            professional_id: profId,
+            professional_id: child.professional_id || profId,
             full_name: newGuardianForm.full_name.trim(),
             phone: newGuardianForm.phone || null,
             whatsapp: newGuardianForm.phone || null,
             email: newGuardianForm.email || null,
             cpf: newGuardianForm.cpf || null,
-            profession: newGuardianForm.profession || null,
           })
           .select()
           .single()
 
-        if (!newGErr && newG) {
-          extraLinked.push({
+        if (newGErr) {
+          console.error("Erro ao criar novo responsável:", newGErr)
+        } else if (newG) {
+          finalLinked.push({
             guardian_id: newG.id,
-            relationship: newGuardianForm.relationship,
-            is_primary: newGuardianForm.is_primary,
+            relationship: newGuardianForm.relationship || "Mãe",
+            is_primary: newGuardianForm.is_primary ?? true,
             guardian: newG,
           })
         }
       }
 
-      // 3. Sync guardian_children links
-      // Delete existing links for this child
+      // Caso B: Usuário selecionou um responsável existente no dropdown mas não clicou no botão vincular antes de salvar
+      if (guardianMode === "existing" && selectedGuardianId) {
+        const alreadyInList = finalLinked.some((g) => g.guardian_id === selectedGuardianId)
+        if (!alreadyInList) {
+          const found = allGuardians.find((g) => g.id === selectedGuardianId)
+          finalLinked.push({
+            guardian_id: selectedGuardianId,
+            relationship: linkRelationship || "Mãe",
+            is_primary: linkIsPrimary ?? true,
+            guardian: found,
+          })
+        }
+      }
+
+      // 3. Sincronizar vínculos na tabela guardian_children
+      // Remover vínculos antigos
       await supabase.from("guardian_children").delete().eq("child_id", child.id)
 
-      // Re-insert all active links
-      if (extraLinked.length > 0) {
-        const linksToInsert = extraLinked.map((l) => ({
+      // Inserir todos os vínculos atualizados
+      if (finalLinked.length > 0) {
+        // Remover possíveis duplicados por guardian_id
+        const uniqueLinks = Array.from(new Map(finalLinked.map((item) => [item.guardian_id, item])).values())
+
+        const linksToInsert = uniqueLinks.map((l) => ({
           child_id: child.id,
           guardian_id: l.guardian_id,
           relationship: l.relationship || "Mãe",
@@ -304,7 +324,7 @@ export function EditChildDialog({ open, child, onClose, onSuccess }: EditChildDi
           .from("guardian_children")
           .insert(linksToInsert)
 
-        if (linksErr) console.warn("Error inserting guardian links:", linksErr)
+        if (linksErr) console.error("Erro ao vincular responsáveis:", linksErr)
       }
 
       toast.success("Dados da criança e responsáveis atualizados com sucesso!", { icon: "🎉" })
