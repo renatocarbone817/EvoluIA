@@ -1,11 +1,38 @@
 {
+  "functions": {
+    "api/**/*.js": {
+      "memory": 1024,
+      "maxDuration": 15
+    }
+  },
   "rewrites": [
+    {
+      "source": "/api/calendar/feed/:id.ics",
+      "destination": "/api/calendar/feed?id=:id"
+    },
+    {
+      "source": "/api/calendar/feed/:id",
+      "destination": "/api/calendar/feed?id=:id"
+    },
     {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
     {
       "source": "/index.html",
       "headers": [
