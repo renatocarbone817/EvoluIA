@@ -340,9 +340,9 @@ export async function generateInitialAssessmentAI(
     }
 
     try {
-      // 2. Chamar Google Gemini com o modelo flash mais recente
+      // 2. Chamar Google Gemini com o modelo recomendado (gemini-3.6-flash)
       const geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${api_key}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${api_key}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
