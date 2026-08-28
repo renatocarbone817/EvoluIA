@@ -30,6 +30,8 @@ import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
 import { getAccessibleProfessionalIds } from "@/lib/teamAccess"
 import { ChildAvatar } from "@/components/ui/ChildAvatar"
+import { RecordAbsenceModal } from "@/pages/appointments/RecordAbsenceModal"
+import { AlertTriangle } from "lucide-react"
 import toast from "react-hot-toast"
 
 interface TaskItem {
@@ -81,6 +83,7 @@ export function DashboardPage() {
   const profId = professional?.id || user?.id
 
   const [loading, setLoading] = useState(true)
+  const [absenceModalAppt, setAbsenceModalAppt] = useState<any | null>(null)
 
   // Real Database Lists
   const [allChildren, setAllChildren] = useState<any[]>([])
@@ -969,13 +972,30 @@ export function DashboardPage() {
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
                           </button>
-                          <button
-                            onClick={() => navigate(`/atendimento/${appt.id}`)}
-                            className="p-1.5 rounded-lg bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE] transition-colors font-bold text-[10px] flex items-center gap-1"
-                            title="Iniciar Atendimento"
-                          >
-                            <Play className="w-3 h-3 fill-current" />
-                          </button>
+
+                          {appt.status !== "missed" && appt.status !== "done" && (
+                            <button
+                              onClick={() => setAbsenceModalAppt(appt)}
+                              className="p-1.5 rounded-lg bg-[#FEF2F2] text-[#EF4444] hover:bg-[#FEE2E2] transition-colors"
+                              title="Registrar Falta / Paciente Não Veio"
+                            >
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
+                          {appt.status === "missed" ? (
+                            <span className="text-[10px] font-black text-[#EF4444] px-1.5 py-0.5 rounded bg-[#FEF2F2] border border-[#FECACA]">
+                              Faltou
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => navigate(`/atendimento/${appt.id}`)}
+                              className="p-1.5 rounded-lg bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE] transition-colors font-bold text-[10px] flex items-center gap-1"
+                              title="Iniciar Atendimento"
+                            >
+                              <Play className="w-3 h-3 fill-current" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

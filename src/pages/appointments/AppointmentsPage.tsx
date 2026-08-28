@@ -59,6 +59,7 @@ import { ChildAvatar } from "@/components/ui/ChildAvatar"
 import { formatTime, formatDate } from "@/lib/utils"
 import type { AppointmentWithChild, Child } from "@/types/database"
 import { NewAppointmentDialog } from "./NewAppointmentDialog"
+import { RecordAbsenceModal } from "./RecordAbsenceModal"
 
 type ViewMode = "dia" | "semana" | "mes" | "celular"
 type StatusFilter = "todos" | "agendados" | "realizados" | "cancelados"
@@ -112,6 +113,7 @@ export function AppointmentsPage() {
 
   // Quick Block Time Modal state
   const [showBlockModal, setShowBlockModal] = useState(false)
+  const [absenceModalAppt, setAbsenceModalAppt] = useState<AppointmentWithChild | null>(null)
   const [blockForm, setBlockForm] = useState({
     date: format(new Date(), "yyyy-MM-dd"),
     start_time: "12:00",
@@ -847,15 +849,34 @@ export function AppointmentsPage() {
                           {appt.child && (
                             <button
                               onClick={() => handleSendWhatsApp(appt)}
-                              className="p-2 text-[#10B981] hover:bg-white rounded-xl transition-all shadow-2xs border border-[#10B981]/30"
+                              className="p-2 text-[#10B981] bg-white/60 hover:bg-white rounded-xl transition-all shadow-2xs border border-[#10B981]/30"
                               title="WhatsApp"
                             >
                               <MessageSquare className="w-4 h-4" />
                             </button>
                           )}
-                          <Button size="sm" onClick={() => handleStartAppointment(appt)}>
-                            <Play className="w-3 h-3 fill-current mr-1" /> Iniciar
-                          </Button>
+
+                          {appt.status !== "missed" && appt.status !== "done" && (
+                            <button
+                              onClick={() => setAbsenceModalAppt(appt)}
+                              className="px-2.5 py-1.5 rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#DC2626] font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs active:scale-95"
+                              title="Registrar Falta / Não Comparecimento"
+                            >
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              <span>Faltou</span>
+                            </button>
+                          )}
+
+                          {appt.status === "missed" ? (
+                            <span className="px-2.5 py-1 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-[#991B1B] text-xs font-black flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" /> Falta Registrada
+                            </span>
+                          ) : (
+                            <Button size="sm" onClick={() => handleStartAppointment(appt)}>
+                              <Play className="w-3 h-3 fill-current mr-1" /> Iniciar
+                            </Button>
+                          )}
+
                           <button
                             onClick={(e) => handleDeleteAppointment(e, appt.id)}
                             className="p-2 text-[#8CAAB1] hover:text-[#EF4444] hover:bg-white rounded-xl transition-all"

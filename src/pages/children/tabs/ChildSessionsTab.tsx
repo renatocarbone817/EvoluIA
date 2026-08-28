@@ -88,57 +88,89 @@ export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) 
         </Card>
       ) : (
         <div className="space-y-4">
-          {filtered.map((s) => (
-            <Card
-              key={s.id}
-              className="cursor-pointer hover:border-foreground/40 transition-all hover:shadow-sm"
-              onClick={() => setSelectedSession(s)}
-            >
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1.5 flex-1 min-w-0">
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="font-bold text-base">
-                        Sessão #{s.session_number || "—"}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {formatDate(s.date)}
-                      </span>
-                      {s.start_time && (
-                        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                          {s.start_time.substring(0, 5)} {s.end_time ? `- ${s.end_time.substring(0, 5)}` : ""}
+          {filtered.map((s) => {
+            const isMissed = (s.objective || "").includes("Falta") || (s.professional_notes || "").includes("Motivo da ausência") || (s.professional_notes || "").includes("Motivo informado")
+
+            return (
+              <Card
+                key={s.id}
+                className={`cursor-pointer transition-all hover:shadow-sm ${
+                  isMissed
+                    ? "border-2 border-[#FECACA] bg-[#FEFDFD] hover:border-[#EF4444]"
+                    : "border-2 border-[#D8E5E7] hover:border-[#7C3AED]"
+                }`}
+                onClick={() => setSelectedSession(s)}
+              >
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-2 flex-1 min-w-0">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        {isMissed ? (
+                          <span className="px-2.5 py-0.5 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-[#991B1B] text-xs font-black flex items-center gap-1">
+                            ⚠️ Falta Registrada
+                          </span>
+                        ) : (
+                          <span className="font-black text-base text-[#0D2329]">
+                            Sessão #{s.session_number || "—"}
+                          </span>
+                        )}
+
+                        <span className="text-xs font-bold text-[#6B7C83]">
+                          {formatDate(s.date)}
                         </span>
+                        {s.start_time && (
+                          <span className="text-xs font-bold text-[#4F6C74] bg-[#EEF5F6] px-2 py-0.5 rounded-lg border border-[#D8E5E7]">
+                            {s.start_time.substring(0, 5)} {s.end_time ? `- ${s.end_time.substring(0, 5)}` : ""}
+                          </span>
+                        )}
+                        {!isMissed && (
+                          <Badge variant="secondary" className="capitalize text-xs">
+                            {s.status === "completed" ? "Finalizada" : "Em andamento"}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {isMissed ? (
+                        <div className="p-3 rounded-2xl bg-[#FEF8F8] border border-[#FECACA] space-y-1">
+                          <p className="text-xs font-black text-[#991B1B]">
+                            {s.what_was_worked || "Paciente não compareceu."}
+                          </p>
+                          {s.professional_notes && (
+                            <p className="text-xs text-[#B91C1C] font-semibold whitespace-pre-line">
+                              {s.professional_notes}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          {s.objective && (
+                            <p className="text-sm font-bold text-[#0D2329] line-clamp-1">
+                              🎯 {s.objective}
+                            </p>
+                          )}
+
+                          {s.what_was_worked && (
+                            <p className="text-xs text-[#6B7C83] font-medium line-clamp-2">
+                              {s.what_was_worked}
+                            </p>
+                          )}
+                        </>
                       )}
-                      <Badge variant="secondary" className="capitalize text-xs">
-                        {s.status === "completed" ? "Finalizada" : "Em andamento"}
-                      </Badge>
+
+                      {s.session_documents && s.session_documents.length > 0 && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
+                          <Paperclip className="w-3.5 h-3.5" />
+                          <span>{s.session_documents.length} anexo(s)</span>
+                        </div>
+                      )}
                     </div>
 
-                    {s.objective && (
-                      <p className="text-sm font-medium text-foreground line-clamp-1">
-                        🎯 {s.objective}
-                      </p>
-                    )}
-
-                    {s.what_was_worked && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {s.what_was_worked}
-                      </p>
-                    )}
-
-                    {s.session_documents && s.session_documents.length > 0 && (
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
-                        <Paperclip className="w-3.5 h-3.5" />
-                        <span>{s.session_documents.length} anexo(s)</span>
-                      </div>
-                    )}
+                    <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 mt-1" />
                   </div>
-
-                  <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 mt-1" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
 
