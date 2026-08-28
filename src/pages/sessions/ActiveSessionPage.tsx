@@ -1,11 +1,26 @@
 import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { ArrowLeft, Save, CheckCircle, Upload, Paperclip, X, Clock, User } from "lucide-react"
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Upload,
+  Paperclip,
+  X,
+  Clock,
+  Calendar,
+  Sparkles,
+  Target,
+  Brain,
+  Gamepad2,
+  BarChart3,
+  Lightbulb,
+  FileCheck2,
+  ChevronRight,
+  User,
+} from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
-import { Button } from "@/components/ui/Button"
-import { Input, Textarea } from "@/components/ui/Input"
+import { ChildAvatar } from "@/components/ui/ChildAvatar"
 import { formatDate } from "@/lib/utils"
 import toast from "react-hot-toast"
 import type { Child, Appointment } from "@/types/database"
@@ -148,7 +163,7 @@ export function ActiveSessionPage() {
           session_number: sessionNumber,
           date: form.date,
           start_time: form.start_time || null,
-          end_time: form.end_time || new Date().toTimeString().substring(0, 5),
+          end_time: form.end_time || null,
           objective: form.objective || null,
           what_was_worked: fullWhatWasWorked || null,
           activities: form.activities || null,
@@ -162,41 +177,34 @@ export function ActiveSessionPage() {
 
       if (sessionError) throw sessionError
 
-      // 2. Upload and insert files
-      for (const item of uploadedFiles) {
-        const fileExt = item.name.split(".").pop()
-        const fileName = `${Date.now()}_${item.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`
-        const filePath = `${profId}/${child.id}/${fileName}`
+      // 2. Upload files if any
+      if (uploadedFiles.length > 0 && sessionData) {
+        for (const uf of uploadedFiles) {
+          try {
+            const ext = uf.name.split(".").pop()
+            const path = `${profId}/${child.id}/sessions/${sessionData.id}/${Date.now()}.${ext}`
 
-        const { error: storageError } = await supabase.storage
-          .from("child-documents")
-          .upload(filePath, item.file)
+            const { error: uploadError } = await supabase.storage
+              .from("child-documents")
+              .upload(path, uf.file)
 
-        if (!storageError) {
-          const { data: urlData } = supabase.storage
-            .from("child-documents")
-            .getPublicUrl(filePath)
+            if (!uploadError) {
+              const { data: urlData } = supabase.storage
+                .from("child-documents")
+                .getPublicUrl(path)
 
-          await supabase.from("session_documents").insert({
-            session_id: sessionData.id,
-            professional_id: profId,
-            file_name: item.name,
-            file_url: urlData.publicUrl,
-            file_type: fileExt || null,
-            file_size: item.file.size,
-          })
-
-          // Also save in general documents
-          await supabase.from("documents").insert({
-            professional_id: profId,
-            child_id: child.id,
-            session_id: sessionData.id,
-            file_name: item.name,
-            file_url: urlData.publicUrl,
-            file_type: fileExt || null,
-            file_size: item.file.size,
-            category: "atividades",
-          })
+              await supabase.from("session_documents").insert({
+                session_id: sessionData.id,
+                professional_id: profId,
+                file_name: uf.name,
+                file_url: urlData.publicUrl,
+                file_size: uf.file.size,
+                file_type: uf.file.type,
+              })
+            }
+          } catch (fileErr) {
+            console.error("Error uploading file:", fileErr)
+          }
         }
       }
 
@@ -276,248 +284,332 @@ export function ActiveSessionPage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-4xl mx-auto space-y-4">
-        <div className="h-10 w-48 bg-muted animate-pulse rounded" />
-        <div className="h-64 bg-muted animate-pulse rounded-xl" />
+      <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6 animate-pulse">
+        <div className="h-20 bg-[#F7FAFA] border-2 border-[#D8E5E7] rounded-3xl" />
+        <div className="h-24 bg-[#F7FAFA] border-2 border-[#D8E5E7] rounded-3xl" />
+        <div className="h-64 bg-[#F7FAFA] border-2 border-[#D8E5E7] rounded-3xl" />
       </div>
     )
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6">
-      {/* Top Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold">Atendimento em Andamento</h1>
-              <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">
+    <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6 animate-in fade-in pb-16">
+      {/* 1. HERO HEADER */}
+      <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+        <div className="flex items-center gap-4 min-w-0">
+          <button
+            onClick={() => navigate(-1)}
+            className="w-11 h-11 rounded-2xl bg-[#F7FAFA] border-2 border-[#D8E5E7] hover:border-[#7C3AED] hover:bg-[#EDE9FE] text-[#0D2329] hover:text-[#7C3AED] flex items-center justify-center transition-all shrink-0 shadow-2xs group"
+            title="Voltar"
+          >
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+          </button>
+
+          <ChildAvatar photoUrl={child?.photo_url} name={child?.full_name || "Paciente"} size="lg" />
+
+          <div className="space-y-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-black text-[#0D2329] tracking-tight">
+                Atendimento Clínico
+              </h1>
+              <span className="px-3 py-0.5 rounded-xl bg-[#E8F8F5] border border-[#A7F3D0] text-[#065F46] text-xs font-black shadow-2xs">
                 Sessão #{sessionNumber}
               </span>
             </div>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Paciente: <strong>{child?.full_name}</strong> · {formatDate(form.date)}
+
+            <p className="text-xs sm:text-sm font-semibold text-[#6B7C83] truncate">
+              Paciente: <span className="font-black text-[#0D2329]">{child?.full_name}</span> · {formatDate(form.date)}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            size="lg"
-            loading={saving}
-            onClick={handleFinalizeSession}
-            className="gap-2 w-full sm:w-auto"
-          >
-            <CheckCircle className="w-4 h-4" />
-            Finalizar Atendimento
-          </Button>
-        </div>
+        {/* Finalize Button Top */}
+        <button
+          disabled={saving}
+          onClick={handleFinalizeSession}
+          className="h-12 px-6 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs sm:text-sm font-black flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all disabled:opacity-50 shrink-0"
+        >
+          {saving ? (
+            <span>Finalizando...</span>
+          ) : (
+            <>
+              <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
+              <span>Finalizar Atendimento</span>
+            </>
+          )}
+        </button>
       </div>
 
-      {/* Main Recording Form */}
-      <div className="space-y-6">
-        {/* Quick meta (Time) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <Input
-            label="Data da Sessão"
+      {/* 2. META INFO: DATA E HORÁRIOS */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-1.5">
+          <label className="text-[11px] font-black text-[#6B7C83] uppercase tracking-wider flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-[#7C3AED]" />
+            <span>Data da Sessão</span>
+          </label>
+          <input
             type="date"
             value={form.date}
             onChange={(e) => setForm({ ...form, date: e.target.value })}
-          />
-          <Input
-            label="Horário Início"
-            type="time"
-            value={form.start_time}
-            onChange={(e) => setForm({ ...form, start_time: e.target.value })}
-          />
-          <Input
-            label="Horário Término (opcional)"
-            type="time"
-            value={form.end_time}
-            onChange={(e) => setForm({ ...form, end_time: e.target.value })}
+            className="w-full p-2.5 rounded-2xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-black text-[#0D2329] focus:outline-none focus:border-[#7C3AED] focus:bg-white transition-all shadow-2xs"
           />
         </div>
 
-        {/* 1. Objective */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">1. Objetivo da Sessão</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              placeholder="Ex: Trabalhar a decodificação de sílabas complexas e a atenção sustentada..."
-              value={form.objective}
-              onChange={(e) => setForm({ ...form, objective: e.target.value })}
-              rows={2}
-            />
-          </CardContent>
-        </Card>
+        <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-1.5">
+          <label className="text-[11px] font-black text-[#6B7C83] uppercase tracking-wider flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-[#10B981]" />
+            <span>Horário Início</span>
+          </label>
+          <input
+            type="time"
+            value={form.start_time}
+            onChange={(e) => setForm({ ...form, start_time: e.target.value })}
+            className="w-full p-2.5 rounded-2xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-black text-[#0D2329] focus:outline-none focus:border-[#10B981] focus:bg-white transition-all shadow-2xs"
+          />
+        </div>
 
-        {/* 2. What was worked / Skill areas */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">2. O que foi trabalhado?</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">
-                Selecione as áreas trabalhadas nesta sessão:
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {SKILL_AREAS.map((area) => {
-                  const isSelected = selectedAreas.includes(area)
-                  return (
-                    <button
-                      key={area}
-                      type="button"
-                      onClick={() => toggleArea(area)}
-                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                        isSelected
-                          ? "bg-foreground text-background border-foreground font-semibold"
-                          : "bg-background border-border text-foreground hover:bg-muted"
-                      }`}
-                    >
-                      {area}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <Textarea
-              placeholder="Descreva detalhadamente o conteúdo trabalhado..."
-              value={form.what_was_worked}
-              onChange={(e) => setForm({ ...form, what_was_worked: e.target.value })}
-              rows={3}
-            />
-          </CardContent>
-        </Card>
-
-        {/* 3. Activities */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">3. Atividades e Jogos Realizados</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              placeholder="Ex: Jogo da memória com fonemas, leitura compartilhada de gibi, fichas de raciocínio..."
-              value={form.activities}
-              onChange={(e) => setForm({ ...form, activities: e.target.value })}
-              rows={3}
-            />
-          </CardContent>
-        </Card>
-
-        {/* 4. Test and Evaluations applied */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">4. Testes / Avaliações Aplicados & Resultados</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              placeholder="Se aplicou algum teste (ex: PROLEC, TDE, Teste de Atenção), anote aqui os resultados e escores..."
-              value={form.test_results}
-              onChange={(e) => setForm({ ...form, test_results: e.target.value })}
-              rows={3}
-            />
-          </CardContent>
-        </Card>
-
-        {/* 5. Professional observations */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">5. Observações Profissionais & Comportamento</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              placeholder="Engajamento da criança, cansaço, frustração, avanços notados, observações para os pais..."
-              value={form.professional_notes}
-              onChange={(e) => setForm({ ...form, professional_notes: e.target.value })}
-              rows={3}
-            />
-          </CardContent>
-        </Card>
-
-        {/* 6. Next objectives */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">6. Próximos Objetivos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              placeholder="O que planejar para o próximo encontro com esta criança..."
-              value={form.next_objectives}
-              onChange={(e) => setForm({ ...form, next_objectives: e.target.value })}
-              rows={2}
-            />
-          </CardContent>
-        </Card>
-
-        {/* 7. Attachments upload */}
-        <Card>
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-base">7. Anexos da Sessão (PDF, Fotos, Atividades)</CardTitle>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="w-3.5 h-3.5 mr-1" />
-              Adicionar Arquivo
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={handleFileSelect}
-            />
-
-            {uploadedFiles.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">
-                Nenhum arquivo adicionado para upload nesta sessão.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {uploadedFiles.map((f, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-2.5 bg-muted/40 rounded-lg border border-border"
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      <Paperclip className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <span className="text-xs font-medium truncate">{f.name}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeFile(idx)}
-                      className="p-1 hover:text-destructive text-muted-foreground transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-1.5">
+          <label className="text-[11px] font-black text-[#6B7C83] uppercase tracking-wider flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-[#00B4D8]" />
+            <span>Horário Término (opcional)</span>
+          </label>
+          <input
+            type="time"
+            value={form.end_time}
+            onChange={(e) => setForm({ ...form, end_time: e.target.value })}
+            className="w-full p-2.5 rounded-2xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-black text-[#0D2329] focus:outline-none focus:border-[#00B4D8] focus:bg-white transition-all shadow-2xs"
+          />
+        </div>
       </div>
 
-      {/* Bottom Floating Bar */}
-      <div className="flex justify-end gap-3 pt-4 border-t border-border">
-        <Button variant="outline" onClick={() => navigate(-1)}>
-          Cancelar
-        </Button>
-        <Button size="lg" loading={saving} onClick={handleFinalizeSession} className="gap-2">
-          <CheckCircle className="w-4 h-4" />
-          Finalizar Atendimento
-        </Button>
+      {/* 3. NUMBERED SECTIONS (1 TO 7) */}
+      <div className="space-y-5">
+        {/* 1. OBJETIVO DA SESSÃO */}
+        <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3.5 hover:border-[#7C3AED]/40 transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-black text-xs shadow-2xs">
+              1
+            </div>
+            <h3 className="font-black text-sm text-[#0D2329]">Objetivo da Sessão</h3>
+          </div>
+
+          <textarea
+            rows={2}
+            placeholder="Ex: Trabalhar a decodificação de sílabas complexas, atenção sustentada e raciocínio lógico..."
+            value={form.objective}
+            onChange={(e) => setForm({ ...form, objective: e.target.value })}
+            className="w-full p-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all resize-none shadow-2xs"
+          />
+        </div>
+
+        {/* 2. O QUE FOI TRABALHADO */}
+        <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4 hover:border-[#7C3AED]/40 transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#F3E8FF] text-[#9333EA] flex items-center justify-center font-black text-xs shadow-2xs">
+              2
+            </div>
+            <div>
+              <h3 className="font-black text-sm text-[#0D2329]">O que foi trabalhado?</h3>
+              <p className="text-[11px] font-semibold text-[#6B7C83]">
+                Selecione as áreas trabalhadas nesta sessão:
+              </p>
+            </div>
+          </div>
+
+          {/* Skill Pills */}
+          <div className="flex flex-wrap gap-2 pt-1">
+            {SKILL_AREAS.map((area) => {
+              const isSelected = selectedAreas.includes(area)
+              return (
+                <button
+                  key={area}
+                  type="button"
+                  onClick={() => toggleArea(area)}
+                  className={`text-xs px-3.5 py-1.5 rounded-xl border-2 font-black transition-all flex items-center gap-1.5 active:scale-95 ${
+                    isSelected
+                      ? "bg-[#7C3AED] text-white border-[#7C3AED] shadow-xs"
+                      : "bg-[#F8FAFB] text-[#4F6C74] border-[#D8E5E7] hover:border-[#7C3AED]/50 hover:bg-[#F3E8FF]/30"
+                  }`}
+                >
+                  <span>{area}</span>
+                  {isSelected && <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />}
+                </button>
+              )
+            })}
+          </div>
+
+          <textarea
+            rows={3}
+            placeholder="Descreva detalhadamente o conteúdo trabalhado..."
+            value={form.what_was_worked}
+            onChange={(e) => setForm({ ...form, what_was_worked: e.target.value })}
+            className="w-full p-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all resize-none shadow-2xs"
+          />
+        </div>
+
+        {/* 3. ATIVIDADES E JOGOS */}
+        <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3.5 hover:border-[#7C3AED]/40 transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#FEF3C7] text-[#D97706] flex items-center justify-center font-black text-xs shadow-2xs">
+              3
+            </div>
+            <h3 className="font-black text-sm text-[#0D2329]">Atividades e Jogos Realizados</h3>
+          </div>
+
+          <textarea
+            rows={3}
+            placeholder="Ex: Jogo da memória com fonemas, leitura compartilhada de gibi, fichas de raciocínio lógico..."
+            value={form.activities}
+            onChange={(e) => setForm({ ...form, activities: e.target.value })}
+            className="w-full p-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#D97706] transition-all resize-none shadow-2xs"
+          />
+        </div>
+
+        {/* 4. TESTES E AVALIAÇÕES */}
+        <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3.5 hover:border-[#7C3AED]/40 transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center font-black text-xs shadow-2xs">
+              4
+            </div>
+            <h3 className="font-black text-sm text-[#0D2329]">Testes / Avaliações Aplicados & Resultados</h3>
+          </div>
+
+          <textarea
+            rows={3}
+            placeholder="Se aplicou algum teste (ex: PROLEC, TDE, Teste de Atenção), anote aqui os resultados e escores observados..."
+            value={form.test_results}
+            onChange={(e) => setForm({ ...form, test_results: e.target.value })}
+            className="w-full p-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#0284C7] transition-all resize-none shadow-2xs"
+          />
+        </div>
+
+        {/* 5. OBSERVAÇÕES CLÍNICAS */}
+        <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3.5 hover:border-[#7C3AED]/40 transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#DCFCE7] text-[#166534] flex items-center justify-center font-black text-xs shadow-2xs">
+              5
+            </div>
+            <h3 className="font-black text-sm text-[#0D2329]">Observações Profissionais & Comportamento</h3>
+          </div>
+
+          <textarea
+            rows={3}
+            placeholder="Engajamento da criança, cansaço, frustração, avanços notados, observações para os pais..."
+            value={form.professional_notes}
+            onChange={(e) => setForm({ ...form, professional_notes: e.target.value })}
+            className="w-full p-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#10B981] transition-all resize-none shadow-2xs"
+          />
+        </div>
+
+        {/* 6. PRÓXIMOS OBJETIVOS */}
+        <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3.5 hover:border-[#7C3AED]/40 transition-all">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#FCE7F3] text-[#9D174D] flex items-center justify-center font-black text-xs shadow-2xs">
+              6
+            </div>
+            <h3 className="font-black text-sm text-[#0D2329]">Próximos Objetivos & Planejamento</h3>
+          </div>
+
+          <textarea
+            rows={2}
+            placeholder="O que planejar para o próximo encontro com esta criança..."
+            value={form.next_objectives}
+            onChange={(e) => setForm({ ...form, next_objectives: e.target.value })}
+            className="w-full p-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#DB2777] transition-all resize-none shadow-2xs"
+          />
+        </div>
+
+        {/* 7. ANEXOS */}
+        <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4 hover:border-[#7C3AED]/40 transition-all">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[#EEF5F6] text-[#4F6C74] flex items-center justify-center font-black text-xs shadow-2xs">
+                7
+              </div>
+              <h3 className="font-black text-sm text-[#0D2329]">Anexos da Sessão (PDF, Fotos, Atividades)</h3>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-3.5 py-1.5 rounded-xl bg-[#F3E8FF] border border-[#DDD6FE] hover:bg-[#EDE9FE] text-[#7C3AED] font-black text-xs flex items-center gap-1.5 transition-all shadow-2xs active:scale-95"
+            >
+              <Upload className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Adicionar Arquivo</span>
+            </button>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+
+          {uploadedFiles.length === 0 ? (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="p-6 border-2 border-dashed border-[#D8E5E7] hover:border-[#7C3AED] rounded-2xl text-center cursor-pointer bg-[#F8FAFB] hover:bg-[#F3E8FF]/20 transition-all group"
+            >
+              <Upload className="w-6 h-6 mx-auto text-[#8CAAB1] group-hover:text-[#7C3AED] transition-colors mb-1.5" />
+              <p className="text-xs font-bold text-[#0D2329]">
+                Clique aqui para selecionar arquivos ou fotos desta sessão
+              </p>
+              <p className="text-[11px] text-[#8CAAB1]">Formatos aceitos: PDF, JPG, PNG, DOCX</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {uploadedFiles.map((f, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-3 bg-[#F8FAFB] rounded-2xl border border-[#D8E5E7] shadow-2xs"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 font-bold text-xs">
+                      <Paperclip className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-bold text-[#0D2329] truncate">{f.name}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(idx)}
+                    className="p-1.5 hover:text-[#EF4444] text-[#8CAAB1] hover:bg-[#FEE2E2] rounded-xl transition-all"
+                    title="Remover anexo"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 4. FLOATING FOOTER ACTION BAR */}
+      <div className="p-4 bg-white/90 backdrop-blur-md rounded-3xl border-2 border-[#D8E5E7] shadow-lg sticky bottom-4 flex items-center justify-between gap-4">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="px-5 py-2.5 rounded-2xl border-2 border-[#D8E5E7] hover:bg-[#F7FAFA] text-xs font-black text-[#6B7C83] hover:text-[#0D2329] transition-all"
+        >
+          Voltar / Cancelar
+        </button>
+
+        <button
+          disabled={saving}
+          onClick={handleFinalizeSession}
+          className="h-11 px-6 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-black flex items-center gap-2 shadow-sm active:scale-95 transition-all disabled:opacity-50"
+        >
+          {saving ? (
+            <span>Finalizando sessão...</span>
+          ) : (
+            <>
+              <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+              <span>Finalizar e Salvar Atendimento</span>
+            </>
+          )}
+        </button>
       </div>
     </div>
   )
