@@ -459,11 +459,11 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
                 <span>{aiLoading ? "Analisando..." : aiAnalysis ? "Reanalisar com IA" : "✨ Analisar com IA"}</span>
               </button>
 
-              {/* 4. Agendar Sessão (do lado direito de tudo) */}
+              {/* 4. Agendar Sessão (do lado direito de tudo - Destaque Azul Vibrante) */}
               <button
                 type="button"
                 onClick={() => setShowAppointmentModal(true)}
-                className="px-3.5 py-2 rounded-2xl bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#0284C7] border-2 border-[#BAE6FD] text-xs font-black transition-all shadow-2xs active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
+                className="px-4 py-2 rounded-2xl bg-gradient-to-r from-[#0284C7] to-[#0369A1] hover:from-[#0369A1] hover:to-[#075985] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 whitespace-nowrap"
                 title="Agendar sessões para esta criança"
               >
                 <Calendar className="w-4 h-4 shrink-0" />
