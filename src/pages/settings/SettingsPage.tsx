@@ -1192,10 +1192,10 @@ export function SettingsPage() {
       )}
 
       {/* =========================================================================
-          TAB 3: HORÁRIOS DE ATENDIMENTO
+          TAB 3: HORÁRIOS DE ATENDIMENTO (RESPONSIVO & ESPAÇOSO)
           ========================================================================= */}
       {activeTab === "agenda" && (
-        <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6 animate-in fade-in max-w-4xl">
+        <div className="p-4 sm:p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6 animate-in fade-in max-w-4xl">
           <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-[#E8F8F5] text-[#10B981] flex items-center justify-center font-bold shadow-2xs">
@@ -1210,15 +1210,16 @@ export function SettingsPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-[#F7FAFA] border-2 border-[#D8E5E7]">
-            <div>
+          {/* Duração Padrão */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl bg-[#F8FAFB] border-2 border-[#D8E5E7]">
+            <div className="space-y-0.5">
               <p className="text-xs font-black text-[#0D2329]">Duração Padrão da Sessão</p>
               <p className="text-[11px] font-semibold text-[#6B7C83]">Tempo estimado de cada atendimento clínico na agenda</p>
             </div>
             <select
               value={sessionDuration}
               onChange={(e) => setSessionDuration(Number(e.target.value))}
-              className="px-3.5 py-2 rounded-xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#10B981]"
+              className="px-4 py-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#10B981] shadow-2xs w-full sm:w-auto"
             >
               <option value={45}>45 minutos</option>
               <option value={50}>50 minutos (Padrão)</option>
@@ -1227,49 +1228,69 @@ export function SettingsPage() {
             </select>
           </div>
 
+          {/* Lista de Dias de Funcionamento */}
           <div className="space-y-3">
-            <p className="text-xs font-black uppercase tracking-wider text-[#6B7C83]">
-              Dias de Funcionamento:
+            <p className="text-xs font-black uppercase tracking-wider text-[#6B7C83] flex items-center gap-1.5">
+              <span>📅</span>
+              <span>Dias de Atendimento:</span>
             </p>
 
             <div className="divide-y divide-[#EEF5F6] border-2 border-[#D8E5E7] rounded-3xl overflow-hidden bg-white shadow-2xs">
               {schedule.map((item, idx) => (
                 <div
                   key={item.day}
-                  className={`p-4 flex items-center justify-between gap-3 transition-colors ${
-                    item.active ? "bg-white" : "bg-[#F7FAFA] opacity-60"
+                  className={`p-4 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                    item.active ? "bg-white" : "bg-[#F8FAFB]/70"
                   }`}
                 >
-                  <label className="flex items-center gap-3 cursor-pointer select-none min-w-[140px]">
-                    <input
-                      type="checkbox"
-                      checked={item.active}
-                      onChange={() => toggleDay(idx)}
-                      className="w-4 h-4 rounded text-[#10B981] focus:ring-[#10B981] accent-[#10B981]"
-                    />
-                    <span className={`text-xs font-bold ${item.active ? "text-[#0D2329]" : "text-[#8DA3A8]"}`}>
-                      {item.label}
-                    </span>
-                  </label>
+                  {/* Top / Left: Checkbox + Dia da Semana */}
+                  <div className="flex items-center justify-between sm:justify-start gap-3 select-none">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={item.active}
+                        onChange={() => toggleDay(idx)}
+                        className="w-5 h-5 rounded-lg text-[#10B981] focus:ring-[#10B981] accent-[#10B981] cursor-pointer"
+                      />
+                      <span className={`text-xs sm:text-sm font-black ${item.active ? "text-[#0D2329]" : "text-[#8DA3A8]"}`}>
+                        {item.label}
+                      </span>
+                    </label>
 
+                    {!item.active && (
+                      <span className="sm:hidden text-[10px] font-black uppercase tracking-wider text-[#8DA3A8] bg-[#EEF5F6] px-2 py-0.5 rounded-md">
+                        Fechado
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Horários (Espaçosos e confortáveis para o toque no celular) */}
                   {item.active ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="time"
-                        value={item.start}
-                        onChange={(e) => updateDayHours(idx, "start", e.target.value)}
-                        className="px-2.5 py-1 text-xs font-bold border-2 border-[#D8E5E7] rounded-xl bg-white text-[#0D2329] focus:outline-none focus:border-[#10B981]"
-                      />
-                      <span className="text-xs text-[#8DA3A8] font-bold">às</span>
-                      <input
-                        type="time"
-                        value={item.end}
-                        onChange={(e) => updateDayHours(idx, "end", e.target.value)}
-                        className="px-2.5 py-1 text-xs font-bold border-2 border-[#D8E5E7] rounded-xl bg-white text-[#0D2329] focus:outline-none focus:border-[#10B981]"
-                      />
+                    <div className="flex items-center gap-2 w-full sm:w-auto bg-[#F8FAFB] sm:bg-transparent p-2.5 sm:p-0 rounded-2xl border sm:border-none border-[#D8E5E7]">
+                      <div className="flex-1 sm:flex-initial flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-[#6B7C83] sm:hidden">De:</span>
+                        <input
+                          type="time"
+                          value={item.start}
+                          onChange={(e) => updateDayHours(idx, "start", e.target.value)}
+                          className="w-full sm:w-auto px-3 py-2 text-xs font-mono font-bold border-2 border-[#D8E5E7] rounded-xl bg-white text-[#0D2329] focus:outline-none focus:border-[#10B981] shadow-2xs text-center"
+                        />
+                      </div>
+
+                      <span className="text-xs text-[#8DA3A8] font-bold px-1">até</span>
+
+                      <div className="flex-1 sm:flex-initial flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-[#6B7C83] sm:hidden">Às:</span>
+                        <input
+                          type="time"
+                          value={item.end}
+                          onChange={(e) => updateDayHours(idx, "end", e.target.value)}
+                          className="w-full sm:w-auto px-3 py-2 text-xs font-mono font-bold border-2 border-[#D8E5E7] rounded-xl bg-white text-[#0D2329] focus:outline-none focus:border-[#10B981] shadow-2xs text-center"
+                        />
+                      </div>
                     </div>
                   ) : (
-                    <span className="text-xs text-[#8DA3A8] italic font-semibold">
+                    <span className="hidden sm:inline text-xs text-[#8DA3A8] italic font-semibold">
                       Consultório fechado
                     </span>
                   )}
