@@ -608,35 +608,32 @@ export function SettingsPage() {
                   <span>1. Identificação da Profissional</span>
                 </h3>
 
-                {/* Avatar Row */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl bg-[#F7FAFA] border-2 border-[#D8E5E7]">
-                  <div className="relative group shrink-0 w-16 h-16 rounded-full bg-[#EDE9FE] text-[#7C3AED] font-black text-xl flex items-center justify-center overflow-hidden border-2 border-[#7C3AED]/40 shadow-sm">
+                {/* Avatar Row (Centered & Larger) */}
+                <div className="flex flex-col items-center justify-center text-center p-6 rounded-3xl bg-[#F8FAFB] border-2 border-[#D8E5E7] space-y-3">
+                  <div className="relative group w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#EDE9FE] text-[#7C3AED] font-black text-3xl flex items-center justify-center overflow-hidden border-2 border-[#DDD6FE] shadow-md cursor-pointer"
+                       onClick={() => fileInputRef.current?.click()}
+                       title="Clique para alterar foto">
                     {professional?.logo_url ? (
                       <img src={professional.logo_url} alt="Foto" className="w-full h-full object-cover" />
                     ) : (
                       form.full_name.charAt(0).toUpperCase()
                     )}
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Alterar foto"
-                    >
-                      <Camera className="w-5 h-5" />
-                    </button>
+                    <div className="absolute inset-0 bg-black/40 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                      <Camera className="w-6 h-6" />
+                      <span className="text-[10px] font-bold">Alterar</span>
+                    </div>
                   </div>
 
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs font-black text-[#0D2329]">Foto de Perfil ou Logo</p>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="px-2.5 py-1 text-[11px] font-bold text-[#7C3AED] bg-white border border-[#DDD6FE] hover:bg-[#EDE9FE] rounded-lg transition-colors"
-                      >
-                        Trocar Foto
-                      </button>
-                    </div>
-                    <p className="text-[11px] font-medium text-[#6B7C83]">
+                  <div className="space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-4 py-2 text-xs font-black text-[#7C3AED] bg-white border-2 border-[#DDD6FE] hover:bg-[#EDE9FE] rounded-2xl transition-all shadow-2xs active:scale-95 flex items-center gap-1.5 mx-auto"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>{uploadingLogo ? "Enviando..." : "Trocar Foto de Perfil"}</span>
+                    </button>
+                    <p className="text-[11px] font-semibold text-[#6B7C83] max-w-xs mx-auto">
                       Formatos JPG ou PNG. Usado em relatórios clínicos e cabeçalhos.
                     </p>
                     <input
