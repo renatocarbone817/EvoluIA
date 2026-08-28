@@ -1286,6 +1286,19 @@ export function AppointmentsPage() {
       />
 
       {/* =========================================================================
+          MODAL: RECORD ABSENCE / FALTOU
+          ========================================================================= */}
+      <RecordAbsenceModal
+        open={Boolean(absenceModalAppt)}
+        appointment={absenceModalAppt}
+        onClose={() => setAbsenceModalAppt(null)}
+        onSuccess={() => {
+          setAbsenceModalAppt(null)
+          loadAppointments()
+        }}
+      />
+
+      {/* =========================================================================
           MODAL 2: QUICK BLOCK TIME SLOT
           ========================================================================= */}
       {showBlockModal && (
