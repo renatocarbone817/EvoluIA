@@ -98,8 +98,8 @@ export const DEFAULT_ASSESSMENT_QUESTIONS = [
 ]
 
 function parseInlineMarkdown(text: string) {
-  // Matches **bold** or *italic*
-  const tokens = text.split(/(\*\*.*?\*\*|\*[^*]+?\*)/g)
+  const clean = text.replace(/^`+|`+$/g, "")
+  const tokens = clean.split(/(\*\*.*?\*\*|\*[^*]+?\*)/g)
   return tokens.map((token, idx) => {
     if (token.startsWith("**") && token.endsWith("**")) {
       return (
@@ -120,22 +120,28 @@ function parseInlineMarkdown(text: string) {
 }
 
 function renderFormattedMarkdown(text: string) {
-  // Pre-process: fix any bullet-broken patterns like "* Subtitle:" followed by "* Relatos:"
-  const normalizedText = text
-    .replace(/^\*\s+([^:\n]+):\s*\n\s*\*\s+Relatos que justificam:/gm, '### $1\n**Relatos que justificam:**')
-    .replace(/^\*\s+([^:\n]+):\s*\n\s*\*\s+Análise:/gm, '### $1\n**Análise:**')
-    .replace(/^\*\s+([^:\n]+):\s*$/gm, '### $1')
+  if (!text) return null
 
-  const lines = normalizedText.split("\n")
+  const normalized = text
+    .replace(/^[\s•*–-]*`+(#{1,4}\s*[^`\n]+)`+/gm, "$1")
+    .replace(/^[\s•*–-]+(#{1,4}\s+)/gm, "$1")
+    .replace(/`+(#{1,4}\s*[^`\n]+)`+/g, "$1")
+    .replace(/^(#{1,4}\s+[^`\n]+)`+/gm, "$1")
+    .replace(/^`+(#{1,4}\s+)/gm, "$1")
+    .replace(/^[\s•*–-]+\s*(#{1,4}\s+)/gm, "$1")
+    .replace(/^\*\s+([^:\n]+):\s*\n\s*\*\s+Relatos que justificam:/gm, "### $1\n**Relatos que justificam:**")
+    .replace(/^\*\s+([^:\n]+):\s*\n\s*\*\s+Análise:/gm, "### $1\n**Análise:**")
+    .replace(/^\*\s+([^:\n]+):\s*$/gm, "### $1")
+
+  const lines = normalized.split("\n")
   return lines.map((line, lineIdx) => {
     const trimmed = line.trim()
     if (!trimmed || trimmed === "---") return null
 
-    // H1 / H2 Section Headers (e.g. # RESUMO DA ENTREVISTA or ## PRINCIPAIS PADRÕES)
     if (trimmed.startsWith("# ") || trimmed.startsWith("## ")) {
-      const cleanTitle = trimmed.replace(/^#{1,2}\s*/, "")
+      const cleanTitle = trimmed.replace(/^#{1,2}\s*/, "").replace(/^`+|`+$/g, "")
       return (
-        <div key={lineIdx} className="pt-5 pb-2 mt-5 border-b-2 border-[#D8E5E7] first:mt-0 first:pt-0">
+        <div key={lineIdx} className="pt-6 pb-2 mt-6 border-b-2 border-[#D8E5E7] first:mt-0 first:pt-0">
           <h3 className="font-black text-sm sm:text-base text-[#0D2329] tracking-tight uppercase flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#7C3AED] inline-block shrink-0" />
             <span>{parseInlineMarkdown(cleanTitle)}</span>
@@ -144,9 +150,8 @@ function renderFormattedMarkdown(text: string) {
       )
     }
 
-    // H3 Subtopics (e.g. ### Atenção Seletiva e Sustentada or ### Escola)
     if (trimmed.startsWith("### ")) {
-      const cleanSub = trimmed.replace(/^###\s*/, "")
+      const cleanSub = trimmed.replace(/^###\s*/, "").replace(/^`+|`+$/g, "")
       return (
         <div key={lineIdx} className="mt-4 mb-1">
           <h4 className="font-black text-xs sm:text-sm text-[#7C3AED] flex items-center gap-1.5">
@@ -156,9 +161,9 @@ function renderFormattedMarkdown(text: string) {
       )
     }
 
-    const isBullet = trimmed.startsWith("* ") || trimmed.startsWith("- ")
+    const isBullet = trimmed.startsWith("* ") || trimmed.startsWith("- ") || trimmed.startsWith("• ")
     const isNumbered = /^\d+\.\s/.test(trimmed)
-    const cleanLine = isBullet ? trimmed.substring(2) : trimmed
+    const cleanLine = isBullet ? trimmed.replace(/^[\*\-•]\s+/, "") : trimmed
 
     if (isBullet) {
       return (
@@ -285,7 +290,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
         .from("children")
         .select("full_name")
         .eq("id", childId)
-        .single()
+        .maybeSingle()
 
       const childFullName = childName || childData?.full_name || "paciente"
 

@@ -72,13 +72,14 @@ PROIBIÇÕES ABSOLUTAS
 
 ESTRUTURA E FORMATAÇÃO OBRIGATÓRIA DO MARKDOWN
 
-ATENÇÃO: Respeite rigorosamente a hierarquia Markdown abaixo:
-- Use '## ' para as Seções Principais.
-- Use '### ' para os Subtópicos (NÃO use bullets '*' ou listas numeradas para títulos de subtópicos).
-- Coloque o texto normal logo abaixo do subtópico.
-- 'Relatos que justificam:' e 'Análise:' devem aparecer em negrito (**Relatos que justificam:** e **Análise:**) no início do parágrafo de texto normal, NUNCA como um bullet separado.
+REGRAS ESTRITAS DE FORMATAÇÃO:
+1. Escreva em texto Markdown limpo e direto. NUNCA use crases de código ao redor de títulos.
+2. Cada seção principal DEVE começar exatamente com: ## NOME DA SEÇÃO
+3. Cada subtópico DEVE começar exatamente com: ### Nome do Subtópico (NUNCA coloque marcadores de lista, pontos ou números antes de ###).
+4. O texto explicativo deve vir logo abaixo do subtópico em parágrafo normal.
+5. Inicie o parágrafo explicativo com **Relatos que justificam:** ou **Análise:** ou **Justificativa:** em negrito na mesma linha do texto.
 
-Siga este formato estrutural:
+Siga exatamente esta estrutura:
 
 ## RESUMO DA ENTREVISTA
 [3 a 4 parágrafos de texto corrido objetivo descrevendo os relatos dos pais]
