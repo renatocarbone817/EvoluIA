@@ -957,6 +957,55 @@ export function SettingsPage() {
                 </div>
               </div>
 
+              {/* GUIA EXPLICATIVO: COMO ESCOLHER O MODO DE TRABALHO */}
+              <div className="p-5 sm:p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-[#0D2329]">Como funciona o Acesso aos Dados da Equipe?</h3>
+                    <p className="text-[11px] font-semibold text-[#6B7C83]">
+                      Entenda quando deixar o compartilhamento ativado ou desativado para cada profissional da sua clínica.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+                  {/* Card 1: Compartilhamento Ativado */}
+                  <div className="p-4 rounded-2xl bg-[#F5F3FF] border-2 border-[#DDD6FE] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-[#6B21A8] flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-[#7C3AED]" />
+                        <span>1. Clínica Integrada (Colaborativa)</span>
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-[#DCFCE7] text-[#166534] border border-[#86EFAC]">
+                        ATIVADO
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-medium text-[#4C1D95] leading-relaxed">
+                      <strong>Para profissionais que atendem juntas:</strong> Ambas visualizam e atualizam os mesmos pacientes, agenda e relatórios em tempo real na mesma base, com logins e senhas individuais.
+                    </p>
+                  </div>
+
+                  {/* Card 2: Compartilhamento Desativado */}
+                  <div className="p-4 rounded-2xl bg-[#F7FAFA] border-2 border-[#D8E5E7] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-[#0D2329] flex items-center gap-1.5">
+                        <ShieldCheck className="w-4 h-4 text-[#0284C7]" />
+                        <span>2. Consultório Independente (Privado)</span>
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-[#F3F4F6] text-[#4B5563] border border-[#D1D5DB]">
+                        DESATIVADO
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-medium text-[#4F6C74] leading-relaxed">
+                      <strong>Para espaços compartilhados / coworking:</strong> Cada profissional possui um ambiente 100% isolado (seus próprios pacientes, agenda e faturamento sem que uma veja os dados da outra).
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* LISTA DE MEMBROS DA EQUIPE */}
               <div className="space-y-4">
                 <h3 className="text-xs font-black uppercase tracking-wider text-[#6B7C83] flex items-center gap-2 px-1">
