@@ -888,11 +888,11 @@ export function DashboardPage() {
       </div>
 
       {/* 3. MAIN DASHBOARD 3-COLUMN GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[3.4fr_5.1fr_3.5fr] gap-6 items-start">
         {/* ========================================================
             COLUMN 1: AGENDA DE HOJE (TIMELINE) + ACESSO RÁPIDO (3 COLS)
             ======================================================== */}
-        <div className="lg:col-span-3 xl:col-span-3 space-y-5">
+        <div className="space-y-5 min-w-0">
           {/* Agenda de Hoje Card */}
           <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
             <div className="flex items-center justify-between">
@@ -1051,7 +1051,7 @@ export function DashboardPage() {
         {/* ========================================================
             COLUMN 2: RESUMO DO MÊS + PRÓXIMAS SESSÕES (5 COLS)
             ======================================================== */}
-        <div className="lg:col-span-5 xl:col-span-5 space-y-5">
+        <div className="space-y-5 min-w-0">
           {/* Resumo do Mês Card */}
           <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -1386,7 +1386,7 @@ export function DashboardPage() {
         {/* ========================================================
             COLUMN 3: TAREFAS + ANOTAÇÕES (4 COLS - MAIS ESPAÇOSA E LARGA)
             ======================================================== */}
-        <div className="lg:col-span-4 xl:col-span-4 space-y-5">
+        <div className="space-y-5 min-w-0">
           {/* Tarefas Pendentes Card (SELEÇÃO DE DATA, FILTRO/ORDENAÇÃO POR DATA & TRELLO DRAG AND DROP) */}
           <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
             <div className="flex items-center justify-between">
