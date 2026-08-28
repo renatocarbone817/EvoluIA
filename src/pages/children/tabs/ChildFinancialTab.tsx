@@ -29,6 +29,77 @@ const BILLING_LABEL: Record<string, string> = {
   por_sessao: "🎯 Por Sessão",
   pacote: "📦 Pacote",
 }
+export const INCOME_CATEGORIES = [
+  { value: "Sessões", label: "⚡ Sessão / Atendimento", color: "bg-[#E8F8F5] text-[#065F46] border-[#A7F3D0]" },
+  { value: "Material Didático", label: "📚 Material Didático / Livro / Jogo", color: "bg-[#EDE9FE] text-[#6D28D9] border-[#DDD6FE]" },
+  { value: "Avaliações", label: "📋 Avaliação / Anamnese Inicial", color: "bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]" },
+  { value: "Relatórios & Devolutivas", label: "📑 Relatório / Devolutiva", color: "bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]" },
+  { value: "Reposição / Aula Extra", label: "🔄 Reposição / Aula Extra", color: "bg-[#F3E8FF] text-[#7E22CE] border-[#E9D5FF]" },
+  { value: "Taxa / Ressarcimento", label: "⚠️ Taxa / Ressarcimento / Dano", color: "bg-[#FEE2E2] text-[#B91C1C] border-[#FECACA]" },
+  { value: "Outros", label: "🏷️ Outros Lançamentos", color: "bg-[#F1F5F9] text-[#475569] border-[#E2E8F0]" },
+]
+
+export function parseRecordInfo(r: any) {
+  const rawNotes = (r.notes || "").trim()
+
+  if (rawNotes.includes("[RECEITA:")) {
+    const match = rawNotes.match(/\[RECEITA:\s*([^\]]+)\]\s*(.*)/)
+    if (match) {
+      const cat = match[1].trim()
+      const desc = match[2].trim()
+      const catObj = INCOME_CATEGORIES.find(c => c.value === cat) || INCOME_CATEGORIES[6]
+      return {
+        category: cat,
+        categoryLabel: catObj.label,
+        categoryColor: catObj.color,
+        description: desc || "Cobrança Avulsa",
+      }
+    }
+  }
+
+  if (rawNotes.toLowerCase().includes("sessão") || rawNotes.toLowerCase().includes("atendimento") || rawNotes.toLowerCase().includes("presença")) {
+    return {
+      category: "Sessões",
+      categoryLabel: "⚡ Sessão",
+      categoryColor: "bg-[#E8F8F5] text-[#065F46] border-[#A7F3D0]",
+      description: rawNotes || "Sessão Psicopedagógica",
+    }
+  }
+
+  if (rawNotes) {
+    let inferredCat = "Outros"
+    let catObj = INCOME_CATEGORIES[6]
+    const lower = rawNotes.toLowerCase()
+    if (lower.includes("livro") || lower.includes("material") || lower.includes("jogo") || lower.includes("rasgou") || lower.includes("danific")) {
+      inferredCat = "Material Didático"
+      catObj = INCOME_CATEGORIES[1]
+    } else if (lower.includes("avalia") || lower.includes("anamnese")) {
+      inferredCat = "Avaliações"
+      catObj = INCOME_CATEGORIES[2]
+    } else if (lower.includes("relat") || lower.includes("devolut")) {
+      inferredCat = "Relatórios & Devolutivas"
+      catObj = INCOME_CATEGORIES[3]
+    } else if (lower.includes("reposi") || lower.includes("extra")) {
+      inferredCat = "Reposição / Aula Extra"
+      catObj = INCOME_CATEGORIES[4]
+    }
+
+    return {
+      category: inferredCat,
+      categoryLabel: catObj.label,
+      categoryColor: catObj.color,
+      description: rawNotes,
+    }
+  }
+
+  return {
+    category: "Sessões",
+    categoryLabel: "⚡ Sessão",
+    categoryColor: "bg-[#E8F8F5] text-[#065F46] border-[#A7F3D0]",
+    description: "Sessão / Mensalidade",
+  }
+}
+
 
 export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFinancialTabProps) {
   const { professional } = useAuthStore()
@@ -44,6 +115,8 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
     month: String(new Date().getMonth() + 1),
     year: String(new Date().getFullYear()),
     amount: localStorage.getItem("evoluia_default_price") || (professional as any)?.default_price || "180",
+    category: "Sessões",
+    description: "",
     status: "pending",
     notes: "",
   })
@@ -98,6 +171,9 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
     if (!professional) return
     setSaving(true)
     try {
+      const desc = (form.description || form.notes || "").trim() || "Cobrança avulsa"
+      const noteTag = `[RECEITA: ${form.category || "Sessões"}] ${desc}`
+
       const { error } = await supabase.from("financial_records").insert({
         professional_id: professional.id,
         child_id: childId,
@@ -106,11 +182,11 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
         amount: Number(form.amount) || 0,
         status: form.status as any,
         payment_date: form.status === "paid" ? new Date().toISOString().split("T")[0] : null,
-        notes: form.notes || null,
+        notes: noteTag,
       })
 
       if (error) throw error
-      toast.success("Lançamento financeiro registrado!")
+      toast.success("Lançamento financeiro registrado com sucesso!")
       setShowAddModal(false)
       loadAll()
     } catch (err: any) {
@@ -153,6 +229,8 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
       month: String(new Date().getMonth() + 1),
       year: String(new Date().getFullYear()),
       amount: carePlan?.price_per_session ? String(carePlan.price_per_session) : "0",
+      category: "Material Didático",
+      description: "",
       status: "pending",
       notes: "",
     })
@@ -377,70 +455,110 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
         }}
       />
 
-      {/* New Record Modal */}
+      {/* New Record Modal with Category & Description */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border-2 border-[#D8E5E7] max-w-md w-full p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-md w-full p-6 sm:p-7 space-y-4 shadow-2xl">
             <div>
-              <h3 className="text-lg font-black text-[#19323A]">Novo Lançamento Financeiro</h3>
-              {carePlan && (
-                <p className="text-xs text-[#6B7C83] mt-0.5">
-                  Plano: {BILLING_LABEL[carePlan.payment_type]} · Valor padrão:{" "}
-                  <strong>{formatCurrency(carePlan.price_per_session)}</strong>
-                </p>
-              )}
+              <h3 className="text-lg font-black text-[#0D2329]">Novo Lançamento Financeiro</h3>
+              <p className="text-xs text-[#6B7C83] mt-0.5">
+                Crie uma cobrança de sessão, material didático, taxa ou avaliação para <strong>{childName}</strong>.
+              </p>
+            </div>
+
+            {/* Categoria */}
+            <div className="space-y-1">
+              <label className="text-xs font-black text-[#0D2329]">Categoria do Lançamento *</label>
+              <select
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                className="w-full p-3 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] shadow-2xs"
+              >
+                {INCOME_CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Descrição / Detalhe */}
+            <div className="space-y-1">
+              <label className="text-xs font-black text-[#0D2329]">Descrição / Detalhe *</label>
+              <input
+                type="text"
+                required
+                placeholder="Ex: Livro que o aluno rasgou, Material didático, Sessão avulsa..."
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                className="w-full p-3 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] shadow-2xs placeholder:text-[#8CAAB1]"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Select
-                label="Mês de Referência"
-                value={form.month}
-                onChange={(e) => setForm({ ...form, month: e.target.value })}
-                options={months.map((m, idx) => ({
-                  value: String(idx + 1),
-                  label: m,
-                }))}
-              />
-              <Input
-                label="Ano"
-                type="number"
-                value={form.year}
-                onChange={(e) => setForm({ ...form, year: e.target.value })}
-              />
+              <div className="space-y-1">
+                <label className="text-xs font-black text-[#0D2329]">Mês</label>
+                <select
+                  value={form.month}
+                  onChange={(e) => setForm({ ...form, month: e.target.value })}
+                  className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold focus:outline-none focus:border-[#7C3AED]"
+                >
+                  {months.map((m, idx) => (
+                    <option key={m} value={String(idx + 1)}>{m}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-black text-[#0D2329]">Ano</label>
+                <input
+                  type="number"
+                  value={form.year}
+                  onChange={(e) => setForm({ ...form, year: e.target.value })}
+                  className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold focus:outline-none focus:border-[#7C3AED]"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Input
-                label="Valor (R$)"
-                type="number"
-                value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              />
-              <Select
-                label="Status Inicial"
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value })}
-                options={[
-                  { value: "pending", label: "Pendente" },
-                  { value: "paid", label: "Pago" },
-                ]}
-              />
+              <div className="space-y-1">
+                <label className="text-xs font-black text-[#0D2329]">Valor (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={form.amount}
+                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                  className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-black text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-black text-[#0D2329]">Status Inicial</label>
+                <select
+                  value={form.status}
+                  onChange={(e) => setForm({ ...form, status: e.target.value })}
+                  className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold focus:outline-none focus:border-[#7C3AED]"
+                >
+                  <option value="pending">⏳ Pendente</option>
+                  <option value="paid">✓ Pago</option>
+                </select>
+              </div>
             </div>
 
-            <Input
-              label="Observações / Detalhes"
-              placeholder="Ex: Ref. 4 sessões de agosto..."
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            />
-
-            <div className="flex justify-end gap-3 pt-2">
-              <Button variant="outline" onClick={() => setShowAddModal(false)}>
+            <div className="flex justify-end gap-3 pt-3 border-t border-[#EEF5F6]">
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2.5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:bg-[#F8FAFB] text-xs font-black text-[#6B7C83] transition-all"
+              >
                 Cancelar
-              </Button>
-              <Button loading={saving} onClick={handleAddRecord}>
-                Salvar Lançamento
-              </Button>
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleAddRecord}
+                className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all disabled:opacity-50"
+              >
+                {saving ? "Salvando..." : "Salvar Lançamento"}
+              </button>
             </div>
           </div>
         </div>

@@ -201,9 +201,10 @@ export function FinancialPage() {
   }
 
   function getRecordInfo(r: FinancialRecordWithDetails) {
-    const rawNotes = r.notes || ""
+    const rawNotes = (r.notes || "").trim()
 
-    if (rawNotes.includes("[DESPESA:") || (!r.child_id && !r.child)) {
+    // 1. DESPESA
+    if (rawNotes.includes("[DESPESA:") || (!r.child_id && !r.child && rawNotes.includes("[DESPESA]"))) {
       const match = rawNotes.match(/\[DESPESA:\s*([^\]]+)\]\s*(.*)/)
       if (match) {
         return {
@@ -219,21 +220,55 @@ export function FinancialPage() {
       }
     }
 
+    // 2. RECEITA com tag explícita [RECEITA: Categoria] Descrição
     if (rawNotes.includes("[RECEITA:")) {
       const match = rawNotes.match(/\[RECEITA:\s*([^\]]+)\]\s*(.*)/)
       if (match) {
+        const cat = match[1].trim()
+        const desc = match[2].trim()
         return {
           isExpense: false,
-          category: match[1].trim(),
-          description: match[2].trim() || (r.child?.full_name ? `Sessão - ${r.child.full_name}` : "Atendimento"),
+          category: cat,
+          description: desc || (r.child?.full_name ? `Atendimento - ${r.child.full_name}` : "Receita"),
         }
       }
     }
 
+    // 3. RECEITA de Sessão automática
+    if (rawNotes.toLowerCase().includes("sessão") || rawNotes.toLowerCase().includes("atendimento") || rawNotes.toLowerCase().includes("presença")) {
+      return {
+        isExpense: false,
+        category: "Sessões",
+        description: rawNotes || (r.child?.full_name ? `Sessão - ${r.child.full_name}` : "Sessão Psicopedagógica"),
+      }
+    }
+
+    // 4. Se tiver notas personalizadas (ex: "Livro que o seu filho rasgou"), usar as notas como descrição!
+    if (rawNotes) {
+      let inferredCat = "Outros"
+      const lower = rawNotes.toLowerCase()
+      if (lower.includes("livro") || lower.includes("material") || lower.includes("jogo") || lower.includes("rasgou") || lower.includes("danific")) {
+        inferredCat = "Material Didático"
+      } else if (lower.includes("avalia") || lower.includes("anamnese")) {
+        inferredCat = "Avaliações"
+      } else if (lower.includes("relat") || lower.includes("devolut")) {
+        inferredCat = "Relatórios & Devolutivas"
+      } else if (lower.includes("reposi") || lower.includes("extra")) {
+        inferredCat = "Reposição / Aula Extra"
+      }
+
+      return {
+        isExpense: false,
+        category: inferredCat,
+        description: r.child?.full_name ? `${rawNotes} (${r.child.full_name})` : rawNotes,
+      }
+    }
+
+    // 5. Default fallback
     return {
       isExpense: false,
       category: "Sessões",
-      description: r.child?.full_name ? `Sessão - ${r.child.full_name}` : rawNotes || "Sessão Psicopedagógica",
+      description: r.child?.full_name ? `Sessão - ${r.child.full_name}` : "Sessão Psicopedagógica",
     }
   }
 
@@ -1485,18 +1520,37 @@ export function FinancialPage() {
 
             <form onSubmit={handleCreateRecord} className="space-y-4 text-xs">
               {entryType === "income" ? (
-                <div>
-                  <label className="font-bold text-[#0D2329] block mb-1">Paciente / Criança (Opcional)</label>
-                  <select
-                    value={formData.child_id}
-                    onChange={(e) => setFormData({ ...formData, child_id: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none focus:border-[#00A896]"
-                  >
-                    <option value="">Selecione um paciente...</option>
-                    {children.map((c) => (
-                      <option key={c.id} value={c.id}>{c.full_name}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-[#0D2329] block mb-1">Paciente / Criança (Opcional)</label>
+                    <select
+                      value={formData.child_id}
+                      onChange={(e) => setFormData({ ...formData, child_id: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none focus:border-[#00A896]"
+                    >
+                      <option value="">Selecione um paciente...</option>
+                      {children.map((c) => (
+                        <option key={c.id} value={c.id}>{c.full_name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-[#0D2329] block mb-1">Categoria da Receita *</label>
+                    <select
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold focus:outline-none focus:border-[#00A896]"
+                    >
+                      <option value="Sessões">⚡ Sessão / Atendimento</option>
+                      <option value="Material Didático">📚 Material Didático / Livro / Jogo</option>
+                      <option value="Avaliações">📋 Avaliação / Anamnese Inicial</option>
+                      <option value="Relatórios & Devolutivas">📑 Relatório / Devolutiva</option>
+                      <option value="Reposição / Aula Extra">🔄 Reposição / Aula Extra</option>
+                      <option value="Taxa / Ressarcimento">⚠️ Taxa / Ressarcimento / Dano</option>
+                      <option value="Outros">🏷️ Outros Lançamentos</option>
+                    </select>
+                  </div>
                 </div>
               ) : (
                 <div>
