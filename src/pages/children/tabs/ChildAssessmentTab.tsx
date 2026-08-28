@@ -1,3 +1,4 @@
+import { generateInitialAssessmentAI } from "@/lib/geminiAnalysis"
 import { useState, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
 import { Plus, CheckCircle, Clock, Save, Edit3, BookOpen, Printer, Sparkles, RotateCcw, Loader2, AlertCircle } from "lucide-react"
@@ -278,33 +279,20 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
     if (!assessment?.id) return
     setAiLoading(true)
     try {
-      // Get child name from the parent component context via childId
       const { data: childData } = await supabase
         .from("children")
         .select("full_name")
         .eq("id", childId)
         .single()
 
-      const { data, error } = await supabase.functions.invoke("ai-analyze-interview", {
-        body: {
-          assessment_id: assessment.id,
-          child_name: childData?.full_name || "paciente",
-        },
-      })
+      const childFullName = childName || childData?.full_name || "paciente"
 
-      if (error) {
-        console.error("Supabase function error:", error)
-        throw new Error(error.message || "Erro ao invocar a função de IA")
-      }
+      // Chama diretamente o serviço Gemini com rotação de chaves e o novo prompt oficial
+      const result = await generateInitialAssessmentAI(assessment.id, childFullName, answers)
 
-      if (data?.error) {
-        toast.error(data.error || "Erro ao gerar análise. Tente novamente.")
-        return
-      }
-
-      setAiAnalysis(data.analysis)
+      setAiAnalysis(result.analysis)
       setAiAnalyzedAt(new Date().toISOString())
-      toast.success("Análise gerada com sucesso! ✨")
+      toast.success("Análise gerada com sucesso com as novas diretrizes clínicas! ✨")
     } catch (err: any) {
       console.error("AI Analysis error:", err)
       toast.error(err.message || "Erro ao conectar com a IA. Tente novamente.")
