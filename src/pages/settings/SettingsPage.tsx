@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from "react"
 import {
   Upload,
+  Smartphone,
+  Laptop,
+  HelpCircle,
+  Info,
   Save,
   User,
   Building,
@@ -90,6 +94,8 @@ export function SettingsPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [copied, setCopied] = useState(false)
   const [syncingNow, setSyncingNow] = useState(false)
+  const [calendarGuideDevice, setCalendarGuideDevice] = useState<"android" | "iphone" | "computador">("android")
+  const [faqOpen, setFaqOpen] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const profId = professional?.id || user?.id
@@ -1391,28 +1397,28 @@ export function SettingsPage() {
       )}
 
       {/* =========================================================================
-          TAB 5: INTEGRAÇÕES (GOOGLE AGENDA & DADOS)
+          TAB 5: INTEGRAÇÕES (GOOGLE AGENDA & CALENDÁRIO DIDÁTICO)
           ========================================================================= */}
       {activeTab === "integracoes" && (
-        <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6 animate-in fade-in max-w-4xl">
-          {/* Live Status Banner */}
-          <div className="p-5 rounded-3xl border-2 border-[#10B981]/40 bg-[#E8F8F5] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-6 animate-in fade-in max-w-4xl">
+          {/* Header de Status Real do Link */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-[#10B981] text-white flex items-center justify-center shrink-0 shadow-sm font-bold">
-                <Calendar className="w-6 h-6" />
+              <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] border-2 border-[#DDD6FE] flex items-center justify-center shrink-0 shadow-2xs font-black">
+                <Calendar className="w-6 h-6 stroke-[2.5]" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-black text-sm text-[#0D2329]">
-                    Google Agenda Conectado
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-black text-base text-[#0D2329]">
+                    Sincronização com Google Agenda & Celular
                   </h3>
-                  <span className="text-[10px] bg-[#10B981] text-white font-black px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                    Sincronizado
+                  <span className="text-[10px] bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+                    Link Ativo & Pronto
                   </span>
                 </div>
-                <p className="text-xs text-[#065F46] font-semibold mt-0.5">
-                  Conta vinculada: <strong>{form.email}</strong>
+                <p className="text-xs text-[#6B7C83] font-semibold leading-relaxed">
+                  Conta da profissional: <strong>{form.email}</strong> · Suas sessões são sincronizadas diretamente no seu aplicativo favorito.
                 </p>
               </div>
             </div>
@@ -1421,34 +1427,38 @@ export function SettingsPage() {
               type="button"
               disabled={syncingNow}
               onClick={handleSyncNow}
-              className="px-4 py-2 text-xs font-black bg-white hover:bg-[#F5F3FF] border border-[#7C3AED]/30 text-[#7C3AED] rounded-2xl flex items-center gap-1.5 shrink-0 shadow-2xs transition-all active:scale-95"
+              className="px-4 py-2.5 text-xs font-black bg-[#F8FAFB] hover:bg-[#EDE9FE] border-2 border-[#D8E5E7] hover:border-[#7C3AED] text-[#0D2329] hover:text-[#7C3AED] rounded-2xl flex items-center gap-2 shrink-0 shadow-2xs transition-all active:scale-95 self-start sm:self-auto"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${syncingNow ? "animate-spin" : ""}`} />
-              <span>Sincronizar Agora</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${syncingNow ? "animate-spin text-[#7C3AED]" : "text-[#6B7C83]"}`} />
+              <span>{syncingNow ? "Verificando..." : "Testar Conexão"}</span>
             </button>
           </div>
 
-          <div className="p-5 rounded-3xl bg-[#F7FAFA] border-2 border-[#D8E5E7] space-y-4">
+          {/* Card do Link da Agenda */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] space-y-4 shadow-xs">
             <div>
-              <h3 className="text-xs font-black text-[#0D2329]">Link da Agenda (iCal / Google)</h3>
-              <p className="text-[11px] font-semibold text-[#6B7C83]">
-                Cole este link nas configurações do seu Google Calendar no celular ou computador:
+              <h3 className="text-sm font-black text-[#0D2329] flex items-center gap-2">
+                <span>🔗</span>
+                <span>Seu Link Exclusivo da Agenda (Feed iCal)</span>
+              </h3>
+              <p className="text-xs font-semibold text-[#6B7C83] mt-0.5">
+                Copie este link para conectar suas sessões ao Google Agenda, iPhone ou Outlook:
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <input
                 type="text"
                 readOnly
                 value={calendarFeedUrl}
-                className="flex-1 bg-white px-3.5 py-2 text-xs font-mono font-bold rounded-xl border-2 border-[#D8E5E7] select-all text-[#0D2329] focus:outline-none"
+                className="flex-1 bg-[#F8FAFB] px-4 py-2.5 text-xs font-mono font-bold rounded-2xl border-2 border-[#D8E5E7] select-all text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
               />
               <button
                 onClick={handleCopyCalendarUrl}
-                className="px-3.5 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-xs transition-all shrink-0"
+                className="px-5 py-2.5 bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black rounded-2xl flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all shrink-0"
               >
-                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? "Copiado!" : "Copiar"}</span>
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                <span>{copied ? "Copiado com Sucesso! ✓" : "Copiar Link da Agenda"}</span>
               </button>
             </div>
 
@@ -1459,19 +1469,276 @@ export function SettingsPage() {
                 )}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-black px-4 py-2 bg-[#0284C7] hover:bg-[#0369A1] text-white rounded-xl transition-all shadow-xs"
+                className="inline-flex items-center gap-2 text-xs font-black px-4 py-2.5 bg-[#0284C7] hover:bg-[#0369A1] text-white rounded-2xl transition-all shadow-xs active:scale-95"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Abrir no Google Calendar Web</span>
+                <ExternalLink className="w-4 h-4" />
+                <span>Adicionar no Google Calendar Web (1 Clique)</span>
               </a>
 
               <button
                 onClick={handleDownloadICS}
-                className="inline-flex items-center gap-1.5 text-xs font-black px-4 py-2 bg-white hover:bg-[#F7FAFA] text-[#0D2329] border border-[#D8E5E7] rounded-xl transition-all shadow-2xs"
+                className="inline-flex items-center gap-2 text-xs font-black px-4 py-2.5 bg-white hover:bg-[#F8FAFB] text-[#0D2329] border-2 border-[#D8E5E7] hover:border-[#7C3AED] rounded-2xl transition-all shadow-2xs active:scale-95"
               >
-                <Download className="w-3.5 h-3.5 text-[#6B7C83]" />
+                <Download className="w-4 h-4 text-[#6B7C83]" />
                 <span>Baixar Arquivo (.ics)</span>
               </button>
+            </div>
+          </div>
+
+          {/* Guia Didático Passo a Passo por Dispositivo */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] space-y-5 shadow-xs">
+            <div>
+              <h3 className="text-base font-black text-[#0D2329] flex items-center gap-2">
+                <span>📖</span>
+                <span>Passo a Passo: Como Ativar no seu Celular</span>
+              </h3>
+              <p className="text-xs font-semibold text-[#6B7C83] mt-0.5">
+                Escolha o seu aparelho abaixo para ver as instruções ilustradas e fáceis de seguir:
+              </p>
+            </div>
+
+            {/* Abas de Dispositivo */}
+            <div className="flex items-center gap-2 p-1.5 bg-[#F8FAFB] rounded-2xl border-2 border-[#D8E5E7] w-full sm:w-fit">
+              <button
+                type="button"
+                onClick={() => setCalendarGuideDevice("android")}
+                className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+                  calendarGuideDevice === "android"
+                    ? "bg-[#7C3AED] text-white shadow-xs"
+                    : "text-[#6B7C83] hover:text-[#0D2329]"
+                }`}
+              >
+                <Smartphone className="w-4 h-4" />
+                <span>No Celular Android</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCalendarGuideDevice("iphone")}
+                className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+                  calendarGuideDevice === "iphone"
+                    ? "bg-[#7C3AED] text-white shadow-xs"
+                    : "text-[#6B7C83] hover:text-[#0D2329]"
+                }`}
+              >
+                <span>🍏</span>
+                <span>No iPhone / iPad</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCalendarGuideDevice("computador")}
+                className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+                  calendarGuideDevice === "computador"
+                    ? "bg-[#7C3AED] text-white shadow-xs"
+                    : "text-[#6B7C83] hover:text-[#0D2329]"
+                }`}
+              >
+                <Laptop className="w-4 h-4" />
+                <span>No Computador</span>
+              </button>
+            </div>
+
+            {/* Conteúdo Didático: ANDROID */}
+            {calendarGuideDevice === "android" && (
+              <div className="p-5 rounded-3xl bg-[#F8FAFB] border-2 border-[#EEF5F6] space-y-4 animate-in fade-in">
+                <div className="flex items-center gap-2 text-xs font-black text-[#0284C7] bg-[#E0F2FE] px-3 py-1.5 rounded-xl w-fit">
+                  <Smartphone className="w-4 h-4" />
+                  <span>Configuração para Celulares Android (Samsung, Motorola, Xiaomi, etc.)</span>
+                </div>
+
+                <div className="space-y-3 text-xs font-semibold text-[#2E4A52]">
+                  <div className="flex items-start gap-3 p-3 bg-white rounded-2xl border border-[#D8E5E7]">
+                    <div className="w-6 h-6 rounded-full bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 font-black text-xs">
+                      1
+                    </div>
+                    <div>
+                      <p className="font-bold text-[#0D2329]">Copie o link da sua agenda</p>
+                      <p className="text-[11px] text-[#6B7C83]">
+                        Clique no botão roxo <strong>"Copiar Link da Agenda"</strong> acima.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 bg-white rounded-2xl border border-[#D8E5E7]">
+                    <div className="w-6 h-6 rounded-full bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 font-black text-xs">
+                      2
+                    </div>
+                    <div>
+                      <p className="font-bold text-[#0D2329]">Abra o Google Agenda no navegador ou computador</p>
+                      <p className="text-[11px] text-[#6B7C83]">
+                        Clique no botão azul <strong>"Adicionar no Google Calendar Web"</strong> ou acesse{" "}
+                        <a href="https://calendar.google.com" target="_blank" rel="noreferrer" className="text-[#7C3AED] underline font-bold">
+                          calendar.google.com
+                        </a>
+                        .
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 bg-white rounded-2xl border border-[#D8E5E7]">
+                    <div className="w-6 h-6 rounded-full bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 font-black text-xs">
+                      3
+                    </div>
+                    <div>
+                      <p className="font-bold text-[#0D2329]">Adicione a agenda por URL</p>
+                      <p className="text-[11px] text-[#6B7C83]">
+                        Na coluna esquerda, clique no sinal de <strong>+</strong> ao lado de <em>"Outras agendas"</em>, escolha <strong>"Do URL"</strong>, cole o link e clique em <strong>Adicionar Agenda</strong>.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-4 bg-[#E8F8F5] rounded-2xl border-2 border-[#A7F3D0]">
+                    <div className="w-6 h-6 rounded-full bg-[#10B981] text-white flex items-center justify-center shrink-0 font-black text-xs">
+                      4
+                    </div>
+                    <div>
+                      <p className="font-black text-[#065F46] text-xs">
+                        ⭐ O PULO DO GATO: Ative a Sincronização no Celular!
+                      </p>
+                      <p className="text-[11px] text-[#065F46] mt-0.5 leading-relaxed">
+                        Abra o aplicativo <strong>Google Agenda</strong> no seu celular, toque no menu lateral (os 3 tracinhos), vá em <strong>⚙️ Configurações</strong>, toque no nome da agenda do EvoluIA e <strong>ative a chavinha "Sincronizar"</strong>. Pronto! Suas sessões aparecerão instantaneamente.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Conteúdo Didático: IPHONE */}
+            {calendarGuideDevice === "iphone" && (
+              <div className="p-5 rounded-3xl bg-[#F8FAFB] border-2 border-[#EEF5F6] space-y-4 animate-in fade-in">
+                <div className="flex items-center gap-2 text-xs font-black text-[#7C3AED] bg-[#EDE9FE] px-3 py-1.5 rounded-xl w-fit">
+                  <span>🍏</span>
+                  <span>Configuração para iPhone e iPad (App Calendário da Apple)</span>
+                </div>
+
+                <div className="space-y-3 text-xs font-semibold text-[#2E4A52]">
+                  <div className="flex items-start gap-3 p-3 bg-white rounded-2xl border border-[#D8E5E7]">
+                    <div className="w-6 h-6 rounded-full bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 font-black text-xs">
+                      1
+                    </div>
+                    <div>
+                      <p className="font-bold text-[#0D2329]">Copie o link acima</p>
+                      <p className="text-[11px] text-[#6B7C83]">
+                        Clique no botão roxo <strong>"Copiar Link da Agenda"</strong>.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 bg-white rounded-2xl border border-[#D8E5E7]">
+                    <div className="w-6 h-6 rounded-full bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 font-black text-xs">
+                      2
+                    </div>
+                    <div>
+                      <p className="font-bold text-[#0D2329]">Abra os Ajustes do seu iPhone</p>
+                      <p className="text-[11px] text-[#6B7C83]">
+                        Vá em <strong>Ajustes</strong> &gt; toque em <strong>Apps</strong> &gt; <strong>Calendário</strong> (ou direto em <em>Calendário</em> no iOS antigo).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 bg-white rounded-2xl border border-[#D8E5E7]">
+                    <div className="w-6 h-6 rounded-full bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 font-black text-xs">
+                      3
+                    </div>
+                    <div>
+                      <p className="font-bold text-[#0D2329]">Adicione um Calendário Assinado</p>
+                      <p className="text-[11px] text-[#6B7C83]">
+                        Toque em <strong>Contas</strong> &gt; <strong>Adicionar Conta</strong> &gt; Escolha <strong>Outra</strong> &gt; Toque em <strong>Adicionar Calendário Assinado</strong>.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 bg-white rounded-2xl border border-[#D8E5E7]">
+                    <div className="w-6 h-6 rounded-full bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 font-black text-xs">
+                      4
+                    </div>
+                    <div>
+                      <p className="font-bold text-[#0D2329]">Cole o link e Salve</p>
+                      <p className="text-[11px] text-[#6B7C83]">
+                        Cole o link no campo <strong>Servidor</strong> e toque em <strong>Salvar</strong>. Suas sessões psicopedagógicas já vão aparecer no aplicativo Calendário do iPhone com lembretes automáticos!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Conteúdo Didático: COMPUTADOR */}
+            {calendarGuideDevice === "computador" && (
+              <div className="p-5 rounded-3xl bg-[#F8FAFB] border-2 border-[#EEF5F6] space-y-4 animate-in fade-in">
+                <div className="flex items-center gap-2 text-xs font-black text-[#0D2329] bg-white border border-[#D8E5E7] px-3 py-1.5 rounded-xl w-fit">
+                  <Laptop className="w-4 h-4" />
+                  <span>Configuração Rápida no Computador (Google Calendar)</span>
+                </div>
+
+                <div className="space-y-3 text-xs font-semibold text-[#2E4A52]">
+                  <div className="flex items-start gap-3 p-3 bg-white rounded-2xl border border-[#D8E5E7]">
+                    <div className="w-6 h-6 rounded-full bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 font-black text-xs">
+                      1
+                    </div>
+                    <div>
+                      <p className="font-bold text-[#0D2329]">Clique no botão de atalho</p>
+                      <p className="text-[11px] text-[#6B7C83]">
+                        Clique no botão azul <strong>"Adicionar no Google Calendar Web (1 Clique)"</strong> acima.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 bg-white rounded-2xl border border-[#D8E5E7]">
+                    <div className="w-6 h-6 rounded-full bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 font-black text-xs">
+                      2
+                    </div>
+                    <div>
+                      <p className="font-bold text-[#0D2329]">Confirme no Google</p>
+                      <p className="text-[11px] text-[#6B7C83]">
+                        O Google Agenda abrirá com o link já preenchido. Basta clicar no botão <strong>"Adicionar Agenda"</strong>.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 bg-white rounded-2xl border border-[#D8E5E7]">
+                    <div className="w-6 h-6 rounded-full bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 font-black text-xs">
+                      3
+                    </div>
+                    <div>
+                      <p className="font-bold text-[#0D2329]">Tudo Pronto!</p>
+                      <p className="text-[11px] text-[#6B7C83]">
+                        Suas sessões agendadas no EvoluIA aparecerão na grade de horários com cor exclusiva.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Dúvidas Frequentes (FAQ Acordeão) */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-[#F7FAFA] border-2 border-[#D8E5E7] space-y-3">
+            <h3 className="text-xs font-black text-[#0D2329] uppercase tracking-wide flex items-center gap-1.5">
+              <HelpCircle className="w-4 h-4 text-[#7C3AED]" />
+              <span>Dúvidas Frequentes sobre a Sincronização</span>
+            </h3>
+
+            <div className="space-y-2 text-xs">
+              <div className="p-3 bg-white rounded-2xl border border-[#D8E5E7] space-y-1">
+                <p className="font-bold text-[#0D2329]">
+                  ❓ Criei uma sessão no EvoluIA, quanto tempo demora para aparecer no celular?
+                </p>
+                <p className="text-[11px] text-[#6B7C83] leading-relaxed">
+                  O Google e a Apple sincronizam automaticamente em segundo plano a cada poucas horas. Se você quiser ver na hora, basta abrir o app do Google Agenda no celular, tocar nos 3 pontinhos no canto superior direito e clicar em <strong>"Atualizar"</strong>.
+                </p>
+              </div>
+
+              <div className="p-3 bg-white rounded-2xl border border-[#D8E5E7] space-y-1">
+                <p className="font-bold text-[#0D2329]">
+                  ❓ Meus compromissos pessoais do Google vão aparecer para outras pessoas?
+                </p>
+                <p className="text-[11px] text-[#6B7C83] leading-relaxed">
+                  Não! O link do EvoluIA é 100% unilateral e seguro: ele apenas envia os seus atendimentos clínicos para a sua agenda pessoal. Ninguém tem acesso aos seus compromissos particulares.
+                </p>
+              </div>
             </div>
           </div>
         </div>
