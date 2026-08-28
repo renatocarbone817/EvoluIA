@@ -18,6 +18,7 @@ import {
   Clock,
   Filter,
 } from "lucide-react"
+import { getAccessibleProfessionalIds } from "@/lib/teamAccess"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { supabase } from "@/lib/supabase"
@@ -88,7 +89,7 @@ export function ChildrenPage() {
             guardian:guardians(id, full_name, phone, whatsapp)
           )
         `)
-        .eq("professional_id", profId)
+        .in("professional_id", getAccessibleProfessionalIds(professional, profId))
 
       let { data: childrenData, error } = sortBy === "az"
         ? await query.order("full_name", { ascending: true })
@@ -98,7 +99,7 @@ export function ChildrenPage() {
         const { data: fallback } = await supabase
           .from("children")
           .select("*")
-          .eq("professional_id", profId)
+          .in("professional_id", getAccessibleProfessionalIds(professional, profId))
         childrenData = fallback || []
       }
 
@@ -106,7 +107,7 @@ export function ChildrenPage() {
       const { data: apptsData } = await supabase
         .from("appointments")
         .select("id, child_id, start_time, type, status")
-        .eq("professional_id", profId)
+        .in("professional_id", getAccessibleProfessionalIds(professional, profId))
         .order("start_time", { ascending: true })
 
       const now = new Date()

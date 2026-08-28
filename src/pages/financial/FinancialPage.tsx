@@ -30,6 +30,7 @@ import {
   Globe,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { getAccessibleProfessionalIds } from "@/lib/teamAccess"
 import { useAuthStore } from "@/store/authStore"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import toast from "react-hot-toast"
@@ -140,7 +141,7 @@ export function FinancialPage() {
     const { data } = await supabase
       .from("children")
       .select("id, full_name")
-      .eq("professional_id", profId)
+      .in("professional_id", getAccessibleProfessionalIds(professional, profId))
       .order("full_name")
     setChildren(data || [])
     if (data && data.length > 0 && !formData.child_id) {
@@ -166,7 +167,7 @@ export function FinancialPage() {
             )
           )
         `)
-        .eq("professional_id", profId)
+        .in("professional_id", getAccessibleProfessionalIds(professional, profId))
         .order("year", { ascending: false })
         .order("month", { ascending: false })
         .order("created_at", { ascending: false })

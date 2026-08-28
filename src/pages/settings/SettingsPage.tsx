@@ -39,17 +39,31 @@ import {
   Sliders,
   Mail,
   Award,
+  Users,
+  Crown,
+  KeyRound,
+  Eye,
+  EyeOff,
+  UserPlus,
+  ShieldAlert,
 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
 import { generateICalFeed } from "@/lib/calendarSync"
-import type { AppointmentWithChild } from "@/types/database"
+import { getAccessibleProfessionalIds, isMasterUser } from "@/lib/teamAccess"
+import {
+  listTeamMembers,
+  createTeamMember,
+  updateTeamMember,
+  removeTeamMember,
+} from "@/lib/teamService"
+import type { AppointmentWithChild, Professional } from "@/types/database"
 import { ImageCropperModal } from "@/components/ui/ImageCropperModal"
 import toast from "react-hot-toast"
 
-type SettingsTab = "consultorio" | "geral" | "agenda" | "notificacoes" | "integracoes"
+type SettingsTab = "consultorio" | "equipe" | "agenda" | "notificacoes" | "integracoes"
 
 interface DaySchedule {
   day: string
@@ -79,6 +93,7 @@ export function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const profId = professional?.id || user?.id
+  const isMaster = isMasterUser(professional)
 
   // Profile, Clinic & Address Form State
   const [form, setForm] = useState({
@@ -95,6 +110,38 @@ export function SettingsPage() {
     pix_type: (professional as any)?.pix_type || localStorage.getItem("evoluia_pix_type") || "Celular",
     pix_key: (professional as any)?.pix_key || localStorage.getItem("evoluia_pix_key") || "17 99758-0663",
   })
+
+  // Team Management State
+  const [teamMembers, setTeamMembers] = useState<Professional[]>([])
+  const [loadingTeam, setLoadingTeam] = useState(false)
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false)
+  const [showEditMemberModal, setShowEditMemberModal] = useState(false)
+  const [showRemoveMemberModal, setShowRemoveMemberModal] = useState(false)
+  const [memberToEdit, setMemberToEdit] = useState<Professional | null>(null)
+  const [memberToRemove, setMemberToRemove] = useState<Professional | null>(null)
+
+  // Add Member Form
+  const [addMemberForm, setAddMemberForm] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    allowMasterDataAccess: true,
+  })
+  const [showAddPassword, setShowAddPassword] = useState(false)
+  const [showAddConfirmPassword, setShowAddConfirmPassword] = useState(false)
+  const [creatingMember, setCreatingMember] = useState(false)
+
+  // Edit Member Form
+  const [editMemberForm, setEditMemberForm] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    allowMasterDataAccess: true,
+  })
+  const [showEditPassword, setShowEditPassword] = useState(false)
+  const [updatingMember, setUpdatingMember] = useState(false)
+  const [removingMember, setRemovingMember] = useState(false)
 
   // Working Hours State
   const [schedule, setSchedule] = useState<DaySchedule[]>(() => {
@@ -121,6 +168,26 @@ export function SettingsPage() {
   const [imageToCrop, setImageToCrop] = useState<string | null>(null)
 
   const calendarFeedUrl = `${window.location.origin}/api/calendar/feed/${profId}.ics`
+
+  // Load team members on mount or tab change
+  useEffect(() => {
+    if (profId && isMaster) {
+      loadTeam()
+    }
+  }, [profId, isMaster, activeTab])
+
+  async function loadTeam() {
+    if (!profId) return
+    setLoadingTeam(true)
+    try {
+      const list = await listTeamMembers(profId)
+      setTeamMembers(list)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoadingTeam(false)
+    }
+  }
 
   // Image Upload Handlers
   function handleLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -222,6 +289,169 @@ export function SettingsPage() {
     }
   }
 
+  // Handle Team Member Creation
+  async function handleCreateMember(e: React.FormEvent) {
+    e.preventDefault()
+    if (!profId) return
+
+    if (!addMemberForm.fullName.trim()) {
+      toast.error("Por favor, preencha o nome completo.")
+      return
+    }
+
+    const emailRegex = /^[^s@]+@[^s@]+.[^s@]+$/
+    if (!emailRegex.test(addMemberForm.email.trim())) {
+      toast.error("Por favor, informe um e-mail válido.")
+      return
+    }
+
+    if (!addMemberForm.password) {
+      toast.error("Por favor, digite uma senha de acesso.")
+      return
+    }
+
+    if (addMemberForm.password.length < 6) {
+      toast.error("A senha deve ter no mínimo 6 caracteres.")
+      return
+    }
+
+    if (addMemberForm.password !== addMemberForm.confirmPassword) {
+      toast.error("As senhas não coincidem.")
+      return
+    }
+
+    if (teamMembers.length >= 5) {
+      toast.error("Você atingiu o limite máximo de 5 psicopedagogas adicionais.")
+      return
+    }
+
+    setCreatingMember(true)
+    try {
+      await createTeamMember({
+        masterId: profId,
+        fullName: addMemberForm.fullName,
+        email: addMemberForm.email,
+        password: addMemberForm.password,
+        allowMasterDataAccess: addMemberForm.allowMasterDataAccess,
+      })
+
+      toast.success("Acesso criado com sucesso! A psicopedagoga já pode entrar no sistema.", { icon: "🎉" })
+      setShowAddMemberModal(false)
+      setAddMemberForm({
+        fullName: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        allowMasterDataAccess: true,
+      })
+      await loadTeam()
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao criar acesso da psicopedagoga.")
+    } finally {
+      setCreatingMember(false)
+    }
+  }
+
+  // Handle Open Edit Modal
+  function handleOpenEditMember(member: Professional) {
+    setMemberToEdit(member)
+    setEditMemberForm({
+      fullName: member.full_name,
+      email: member.email,
+      password: "",
+      allowMasterDataAccess: !!member.allow_master_data_access,
+    })
+    setShowEditMemberModal(true)
+  }
+
+  // Handle Team Member Update
+  async function handleUpdateMember(e: React.FormEvent) {
+    e.preventDefault()
+    if (!profId || !memberToEdit) return
+
+    if (!editMemberForm.fullName.trim()) {
+      toast.error("Por favor, preencha o nome completo.")
+      return
+    }
+
+    const emailRegex = /^[^s@]+@[^s@]+.[^s@]+$/
+    if (!emailRegex.test(editMemberForm.email.trim())) {
+      toast.error("Por favor, informe um e-mail válido.")
+      return
+    }
+
+    setUpdatingMember(true)
+    try {
+      await updateTeamMember(
+        {
+          id: memberToEdit.id,
+          fullName: editMemberForm.fullName,
+          email: editMemberForm.email,
+          password: editMemberForm.password || undefined,
+          allowMasterDataAccess: editMemberForm.allowMasterDataAccess,
+        },
+        profId
+      )
+
+      toast.success("Dados da psicopedagoga atualizados com sucesso!", { icon: "✅" })
+      setShowEditMemberModal(false)
+      setMemberToEdit(null)
+      await loadTeam()
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar dados.")
+    } finally {
+      setUpdatingMember(false)
+    }
+  }
+
+  // Handle Quick Toggle Direct on Card
+  async function handleToggleMemberAccess(member: Professional) {
+    if (!profId) return
+    const newAccess = !member.allow_master_data_access
+    try {
+      await updateTeamMember(
+        {
+          id: member.id,
+          fullName: member.full_name,
+          email: member.email,
+          allowMasterDataAccess: newAccess,
+        },
+        profId
+      )
+      toast.success(
+        newAccess
+          ? `Acesso aos dados da conta principal ATIVADO para ${member.full_name}.`
+          : `Acesso aos dados da conta principal DESATIVADO para ${member.full_name}.`
+      )
+      await loadTeam()
+    } catch (err: any) {
+      toast.error("Erro ao alterar acesso.")
+    }
+  }
+
+  // Handle Open Remove Modal
+  function handleOpenRemoveMember(member: Professional) {
+    setMemberToRemove(member)
+    setShowRemoveMemberModal(true)
+  }
+
+  // Handle Remove Team Member
+  async function handleConfirmRemoveMember() {
+    if (!profId || !memberToRemove) return
+    setRemovingMember(true)
+    try {
+      await removeTeamMember(memberToRemove.id, profId)
+      toast.success(`Acesso de ${memberToRemove.full_name} removido da equipe.`, { icon: "🗑️" })
+      setShowRemoveMemberModal(false)
+      setMemberToRemove(null)
+      await loadTeam()
+    } catch (err: any) {
+      toast.error("Erro ao remover psicopedagoga.")
+    } finally {
+      setRemovingMember(false)
+    }
+  }
+
   function handleCopyCalendarUrl() {
     navigator.clipboard.writeText(calendarFeedUrl)
     setCopied(true)
@@ -271,6 +501,9 @@ export function SettingsPage() {
     setSchedule(updated)
   }
 
+  const totalUsedUsers = 1 + teamMembers.length
+  const isLimitReached = teamMembers.length >= 5
+
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
       {/* 1. TOP TITLE HEADER */}
@@ -285,7 +518,7 @@ export function SettingsPage() {
             </div>
           </div>
           <p className="text-xs sm:text-sm font-semibold text-[#6B7C83]">
-            Gerencie o perfil da profissional, dados do consultório, chave PIX, horários e integrações.
+            Gerencie o perfil da profissional, dados do consultório, chave PIX, equipe e horários.
           </p>
         </div>
 
@@ -304,7 +537,7 @@ export function SettingsPage() {
       <div className="flex bg-white p-1.5 rounded-2xl border-2 border-[#D8E5E7] shadow-xs overflow-x-auto gap-1">
         {[
           { id: "consultorio", label: "🏢 Consultório, Perfil & PIX", icon: Building },
-          { id: "geral", label: "⚡ Categorias & Geral", icon: Sliders },
+          { id: "equipe", label: "👥 Equipe & Acessos", icon: Users },
           { id: "agenda", label: "📅 Horários de Atendimento", icon: Calendar },
           { id: "notificacoes", label: "💬 Mensagens WhatsApp", icon: MessageSquare },
           { id: "integracoes", label: "🔗 Google Agenda & Dados", icon: Globe },
@@ -328,7 +561,7 @@ export function SettingsPage() {
       </div>
 
       {/* =========================================================================
-          TAB 1: CONSULTÓRIO, PERFIL & PIX (ENQUADRAMENTO EQUILIBRADO E PERFEITO)
+          TAB 1: CONSULTÓRIO, PERFIL & PIX
           ========================================================================= */}
       {activeTab === "consultorio" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-in fade-in">
@@ -567,7 +800,7 @@ export function SettingsPage() {
             </div>
           </div>
 
-          {/* Sidebar Live Preview (4 Cols - Enquadramento Perfeito & Equilibrado) */}
+          {/* Sidebar Live Preview (4 Cols) */}
           <div className="lg:col-span-4 space-y-5">
             <div className="rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm overflow-hidden space-y-4">
               <div className="bg-white p-5 border-b-2 border-[#D8E5E7] flex items-center gap-3.5">
@@ -651,17 +884,236 @@ export function SettingsPage() {
       )}
 
       {/* =========================================================================
-          TAB 2: GERAL (ESPAÇO RESERVADO LIMPO)
+          TAB 2: EQUIPE & ACESSOS (CENTRO DE COMANDO DA EQUIPE)
           ========================================================================= */}
-      {activeTab === "geral" && (
-        <div className="min-h-[350px] p-10 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm animate-in fade-in flex flex-col items-center justify-center text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7] text-[#8CAAB1] flex items-center justify-center">
-            <Sliders className="w-6 h-6" />
-          </div>
-          <p className="text-sm font-black text-[#0D2329]">Espaço Geral</p>
-          <p className="text-xs font-semibold text-[#8CAAB1]">
-            Área reservada para adicionarmos novas preferências e recursos do sistema.
-          </p>
+      {activeTab === "equipe" && (
+        <div className="space-y-6 animate-in fade-in max-w-5xl">
+          {/* Validação de Segurança: Apenas MASTER pode gerenciar a equipe */}
+          {!isMaster ? (
+            <div className="p-8 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm text-center space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-[#FEF2F2] border border-[#FCA5A5] text-[#DC2626] flex items-center justify-center mx-auto shadow-xs">
+                <ShieldAlert className="w-7 h-7" />
+              </div>
+              <h2 className="text-base font-black text-[#0D2329]">Área Exclusiva da Administradora (MASTER)</h2>
+              <p className="text-xs font-semibold text-[#6B7C83] max-w-md mx-auto">
+                Apenas a proprietária da conta principal pode gerenciar psicopedagogas e controlar permissões de equipe.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* CARD SUPERIOR DE CONTROLE & CONTADOR DE USUÁRIOS */}
+              <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold shadow-2xs">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-base sm:text-lg font-black text-[#0D2329]">
+                          Centro de Comando da Equipe
+                        </h2>
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-[#EDE9FE] text-[#7C3AED] border border-[#DDD6FE]">
+                          {totalUsedUsers} de 6 usuários utilizados
+                        </span>
+                      </div>
+                      <p className="text-xs font-semibold text-[#6B7C83]">
+                        Gerencie as psicopedagogas que utilizam sua conta e controle o acesso aos dados da conta principal.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-[11px] font-bold text-[#6B7C83]">
+                      Você pode adicionar até <strong>5 psicopedagogas adicionais</strong> à sua conta.
+                    </span>
+                  </div>
+                </div>
+
+                {/* Botão Adicionar */}
+                <div className="shrink-0 w-full md:w-auto">
+                  {isLimitReached ? (
+                    <div className="p-3 rounded-2xl bg-[#FEF2F2] border border-[#FCA5A5] text-[#DC2626] text-xs font-bold flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>Você atingiu o limite máximo de 5 psicopedagogas adicionais.</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowAddMemberModal(true)}
+                      className="w-full md:w-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white text-xs font-black flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
+                    >
+                      <UserPlus className="w-4 h-4 stroke-[2.5]" />
+                      <span>+ Adicionar psicopedagoga</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* LISTA DE MEMBROS DA EQUIPE */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black uppercase tracking-wider text-[#6B7C83] flex items-center gap-2 px-1">
+                  <span>Membros da Equipe ({totalUsedUsers})</span>
+                </h3>
+
+                {/* 1. CARD DA MASTER (CONTA PRINCIPAL) */}
+                <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#FAF5FF] via-white to-[#F5F3FF] border-2 border-[#DDD6FE] shadow-sm relative overflow-hidden">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-[#7C3AED] text-white flex items-center justify-center font-black text-xl shadow-md shrink-0 relative">
+                        {form.full_name ? form.full_name.charAt(0).toUpperCase() : "P"}
+                        <span className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#F59E0B] text-white flex items-center justify-center shadow-xs border-2 border-white">
+                          <Crown className="w-3.5 h-3.5 fill-current" />
+                        </span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="text-base font-black text-[#0D2329]">
+                            {form.full_name || "Priscila Souza"}
+                          </h4>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#7C3AED] text-white shadow-2xs flex items-center gap-1">
+                            <Crown className="w-3 h-3 fill-current" />
+                            <span>MASTER</span>
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F8F5] text-[#065F46] border border-[#10B981]/30">
+                            Conta Principal
+                          </span>
+                        </div>
+                        <p className="text-xs font-semibold text-[#6B7C83]">
+                          {form.email || user?.email || "priscila@evolui.com.br"}
+                        </p>
+                        <p className="text-[11px] font-medium text-[#7C3AED]">
+                          Proprietária da conta • Acesso total e gerenciamento
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. CARDS DAS PSICOPEDAGOGAS ADICIONAIS */}
+                {teamMembers.map((member, index) => {
+                  const memberNum = String(index + 1).padStart(2, "0")
+                  const hasMasterAccess = !!member.allow_master_data_access
+
+                  return (
+                    <div
+                      key={member.id}
+                      className="p-5 sm:p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4 hover:border-[#7C3AED]/40 transition-all"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        {/* Info Header */}
+                        <div className="flex items-center gap-4">
+                          <div className="w-13 h-13 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-black text-lg border-2 border-[#DDD6FE] shadow-2xs shrink-0">
+                            {member.full_name ? member.full_name.charAt(0).toUpperCase() : "P"}
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className="text-base font-black text-[#0D2329]">
+                                {member.full_name}
+                              </h4>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#F7FAFA] text-[#6B7C83] border border-[#D8E5E7]">
+                                PSICOPEDAGOGA {memberNum}
+                              </span>
+                            </div>
+                            <p className="text-xs font-semibold text-[#6B7C83]">{member.email}</p>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 self-end sm:self-center">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditMember(member)}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold text-[#7C3AED] bg-[#F5F3FF] hover:bg-[#EDE9FE] border border-[#DDD6FE] transition-colors flex items-center gap-1.5"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span>Editar</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenRemoveMember(member)}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold text-[#DC2626] bg-[#FEF2F2] hover:bg-[#FEE2E2] border border-[#FCA5A5] transition-colors flex items-center gap-1.5"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Remover</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Toggle de Acesso aos Dados da Conta Principal */}
+                      <div className="p-4 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-[#0D2329]">
+                              Acesso aos dados da conta principal:
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                                hasMasterAccess
+                                  ? "bg-[#DCFCE7] text-[#166534] border border-[#86EFAC]"
+                                  : "bg-[#F3F4F6] text-[#4B5563] border border-[#D1D5DB]"
+                              }`}
+                            >
+                              {hasMasterAccess ? "ATIVADO" : "DESATIVADO"}
+                            </span>
+                          </div>
+                          <p className="text-[11px] font-medium text-[#6B7C83]">
+                            {hasMasterAccess
+                              ? "Esta profissional pode visualizar os pacientes e relatórios da conta principal."
+                              : "Esta profissional possui um espaço independente, com seus próprios pacientes e informações."}
+                          </p>
+                        </div>
+
+                        {/* Switch Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleMemberAccess(member)}
+                          className={`w-12 h-6 rounded-full transition-colors relative shrink-0 ${
+                            hasMasterAccess ? "bg-[#7C3AED]" : "bg-[#CBD5E1]"
+                          }`}
+                          title="Alternar acesso aos dados da conta principal"
+                        >
+                          <span
+                            className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform shadow-sm ${
+                              hasMasterAccess ? "left-6" : "left-0.5"
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {/* Empty State se nenhuma psicopedagoga adicional foi adicionada */}
+                {teamMembers.length === 0 && (
+                  <div className="p-8 rounded-3xl bg-white border-2 border-dashed border-[#D8E5E7] text-center space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-[#F7FAFA] text-[#8CAAB1] flex items-center justify-center mx-auto border border-[#D8E5E7]">
+                      <Users className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-black text-[#0D2329]">
+                        Nenhuma psicopedagoga adicional adicionada ainda
+                      </p>
+                      <p className="text-xs font-semibold text-[#6B7C83] max-w-md mx-auto">
+                        Adicione até 5 profissionais para utilizarem o EvoluIA com você, com controle total de acesso aos dados.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddMemberModal(true)}
+                      className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black rounded-xl shadow-xs transition-all inline-flex items-center gap-1.5"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>Adicionar Primeira Psicopedagoga</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -953,6 +1405,332 @@ export function SettingsPage() {
               >
                 <Download className="w-3.5 h-3.5 text-[#6B7C83]" />
                 <span>Baixar Arquivo (.ics)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 1: ADICIONAR PSICOPEDAGOGA
+          ========================================================================= */}
+      {showAddMemberModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95">
+            <div className="p-6 border-b border-[#EEF5F6] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-[#0D2329]">Adicionar Psicopedagoga</h3>
+                  <p className="text-xs font-semibold text-[#6B7C83]">
+                    Crie um novo acesso adicional para sua equipe.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAddMemberModal(false)}
+                className="w-8 h-8 rounded-full bg-[#F7FAFA] text-[#6B7C83] hover:text-[#0D2329] flex items-center justify-center transition-colors font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateMember} className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-[#0D2329]">Nome Completo *</label>
+                <input
+                  type="text"
+                  required
+                  value={addMemberForm.fullName}
+                  onChange={(e) => setAddMemberForm({ ...addMemberForm, fullName: e.target.value })}
+                  placeholder="Ex: Ana Oliveira"
+                  className="w-full px-4 py-2.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-[#0D2329]">E-mail de Acesso *</label>
+                <input
+                  type="email"
+                  required
+                  value={addMemberForm.email}
+                  onChange={(e) => setAddMemberForm({ ...addMemberForm, email: e.target.value })}
+                  placeholder="ana@email.com"
+                  className="w-full px-4 py-2.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-[#0D2329]">Senha *</label>
+                  <div className="relative">
+                    <input
+                      type={showAddPassword ? "text" : "password"}
+                      required
+                      value={addMemberForm.password}
+                      onChange={(e) => setAddMemberForm({ ...addMemberForm, password: e.target.value })}
+                      placeholder="Mínimo 6 dígitos"
+                      className="w-full px-4 py-2.5 pr-10 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAddPassword(!showAddPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8CAAB1] hover:text-[#0D2329]"
+                    >
+                      {showAddPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-[#0D2329]">Confirmar Senha *</label>
+                  <div className="relative">
+                    <input
+                      type={showAddConfirmPassword ? "text" : "password"}
+                      required
+                      value={addMemberForm.confirmPassword}
+                      onChange={(e) => setAddMemberForm({ ...addMemberForm, confirmPassword: e.target.value })}
+                      placeholder="Repita a senha"
+                      className="w-full px-4 py-2.5 pr-10 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAddConfirmPassword(!showAddConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8CAAB1] hover:text-[#0D2329]"
+                    >
+                      {showAddConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* TOGGLE ACESSO AOS DADOS DA CONTA PRINCIPAL */}
+              <div className="p-4 rounded-2xl bg-[#FEF8EC] border-2 border-[#F4C95D]/60 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-black text-[#8B6514]">
+                      Permitir acesso aos dados da conta principal
+                    </p>
+                    <p className="text-[11px] font-semibold text-[#8B6514]/80">
+                      {addMemberForm.allowMasterDataAccess
+                        ? "Ativado: Esta profissional poderá visualizar os pacientes e informações da conta principal."
+                        : "Desativado: Esta profissional terá um espaço independente com seus próprios pacientes."}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAddMemberForm({
+                        ...addMemberForm,
+                        allowMasterDataAccess: !addMemberForm.allowMasterDataAccess,
+                      })
+                    }
+                    className={`w-12 h-6 rounded-full transition-colors relative shrink-0 ${
+                      addMemberForm.allowMasterDataAccess ? "bg-[#7C3AED]" : "bg-[#CBD5E1]"
+                    }`}
+                  >
+                    <span
+                      className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform shadow-sm ${
+                        addMemberForm.allowMasterDataAccess ? "left-6" : "left-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#EEF5F6]">
+                <button
+                  type="button"
+                  onClick={() => setShowAddMemberModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-[#D8E5E7] text-xs font-bold text-[#6B7C83] hover:bg-[#F7FAFA] transition-colors"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={creatingMember}
+                  className="px-5 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black shadow-md active:scale-95 transition-all flex items-center gap-2"
+                >
+                  {creatingMember ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                  <span>{creatingMember ? "Criando Acesso..." : "Criar Acesso"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 2: EDITAR PSICOPEDAGOGA
+          ========================================================================= */}
+      {showEditMemberModal && memberToEdit && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95">
+            <div className="p-6 border-b border-[#EEF5F6] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold">
+                  <Edit2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-[#0D2329]">Editar Psicopedagoga</h3>
+                  <p className="text-xs font-semibold text-[#6B7C83]">
+                    Atualize os dados e permissão de acesso.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowEditMemberModal(false)}
+                className="w-8 h-8 rounded-full bg-[#F7FAFA] text-[#6B7C83] hover:text-[#0D2329] flex items-center justify-center transition-colors font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateMember} className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-[#0D2329]">Nome Completo *</label>
+                <input
+                  type="text"
+                  required
+                  value={editMemberForm.fullName}
+                  onChange={(e) => setEditMemberForm({ ...editMemberForm, fullName: e.target.value })}
+                  className="w-full px-4 py-2.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-[#0D2329]">E-mail de Acesso *</label>
+                <input
+                  type="email"
+                  required
+                  value={editMemberForm.email}
+                  onChange={(e) => setEditMemberForm({ ...editMemberForm, email: e.target.value })}
+                  className="w-full px-4 py-2.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-[#0D2329]">Nova Senha (Opcional)</label>
+                <div className="relative">
+                  <input
+                    type={showEditPassword ? "text" : "password"}
+                    value={editMemberForm.password}
+                    onChange={(e) => setEditMemberForm({ ...editMemberForm, password: e.target.value })}
+                    placeholder="Deixe em branco para não alterar"
+                    className="w-full px-4 py-2.5 pr-10 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword(!showEditPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8CAAB1] hover:text-[#0D2329]"
+                  >
+                    {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* TOGGLE ACESSO AOS DADOS DA CONTA PRINCIPAL */}
+              <div className="p-4 rounded-2xl bg-[#FEF8EC] border-2 border-[#F4C95D]/60 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-black text-[#8B6514]">
+                      Permitir acesso aos dados da conta principal
+                    </p>
+                    <p className="text-[11px] font-semibold text-[#8B6514]/80">
+                      {editMemberForm.allowMasterDataAccess
+                        ? "Ativado: Esta profissional poderá visualizar os pacientes e informações da conta principal."
+                        : "Desativado: Esta profissional terá um espaço independente com seus próprios pacientes."}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditMemberForm({
+                        ...editMemberForm,
+                        allowMasterDataAccess: !editMemberForm.allowMasterDataAccess,
+                      })
+                    }
+                    className={`w-12 h-6 rounded-full transition-colors relative shrink-0 ${
+                      editMemberForm.allowMasterDataAccess ? "bg-[#7C3AED]" : "bg-[#CBD5E1]"
+                    }`}
+                  >
+                    <span
+                      className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform shadow-sm ${
+                        editMemberForm.allowMasterDataAccess ? "left-6" : "left-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#EEF5F6]">
+                <button
+                  type="button"
+                  onClick={() => setShowEditMemberModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-[#D8E5E7] text-xs font-bold text-[#6B7C83] hover:bg-[#F7FAFA] transition-colors"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={updatingMember}
+                  className="px-5 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black shadow-md active:scale-95 transition-all flex items-center gap-2"
+                >
+                  {updatingMember ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  <span>{updatingMember ? "Salvando..." : "Salvar Alterações"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 3: CONFIRMAÇÃO DE REMOÇÃO DE PSICOPEDAGOGA
+          ========================================================================= */}
+      {showRemoveMemberModal && memberToRemove && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-3xl border-2 border-[#FCA5A5] shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 p-6 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#FEF2F2] border border-[#FCA5A5] text-[#DC2626] flex items-center justify-center font-bold">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-base font-black text-[#0D2329]">
+                Remover psicopedagoga da equipe?
+              </h3>
+              <p className="text-xs font-semibold text-[#6B7C83] leading-relaxed">
+                Tem certeza que deseja remover <strong>{memberToRemove.full_name}</strong> ({memberToRemove.email}) da sua equipe? O acesso dela ao sistema será cancelado, e todos os registros e pacientes existentes permanecerão preservados com segurança.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#EEF5F6]">
+              <button
+                type="button"
+                onClick={() => setShowRemoveMemberModal(false)}
+                className="px-4 py-2.5 rounded-xl border border-[#D8E5E7] text-xs font-bold text-[#6B7C83] hover:bg-[#F7FAFA] transition-colors"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                disabled={removingMember}
+                onClick={handleConfirmRemoveMember}
+                className="px-5 py-2.5 rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-black shadow-md active:scale-95 transition-all flex items-center gap-2"
+              >
+                {removingMember ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                <span>{removingMember ? "Removendo..." : "Sim, Remover Acesso"}</span>
               </button>
             </div>
           </div>

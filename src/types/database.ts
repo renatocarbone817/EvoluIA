@@ -87,7 +87,13 @@ export interface Database {
   }
 }
 
+export type ProfessionalRole = 'master' | 'professional'
+
 export interface Professional {
+  role?: ProfessionalRole
+  master_id?: string | null
+  allow_master_data_access?: boolean
+  is_active?: boolean
   id: string
   full_name: string
   email: string

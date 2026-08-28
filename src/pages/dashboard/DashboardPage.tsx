@@ -28,6 +28,7 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
+import { getAccessibleProfessionalIds } from "@/lib/teamAccess"
 import { ChildAvatar } from "@/components/ui/ChildAvatar"
 import toast from "react-hot-toast"
 
@@ -183,7 +184,7 @@ export function DashboardPage() {
         supabase
           .from("children")
           .select("*")
-          .eq("professional_id", profId)
+          .in("professional_id", getAccessibleProfessionalIds(professional, profId))
           .order("created_at", { ascending: false }),
 
         supabase
@@ -199,7 +200,7 @@ export function DashboardPage() {
               )
             )
           `)
-          .eq("professional_id", profId)
+          .in("professional_id", getAccessibleProfessionalIds(professional, profId))
           .order("start_time", { ascending: true }),
 
         supabase
@@ -215,7 +216,7 @@ export function DashboardPage() {
               )
             )
           `)
-          .eq("professional_id", profId)
+          .in("professional_id", getAccessibleProfessionalIds(professional, profId))
           .gte("start_time", `${todayStr}T00:00:00`)
           .lte("start_time", `${todayStr}T23:59:59`)
           .order("start_time", { ascending: true }),
@@ -233,7 +234,7 @@ export function DashboardPage() {
               )
             )
           `)
-          .eq("professional_id", profId)
+          .in("professional_id", getAccessibleProfessionalIds(professional, profId))
           .gt("start_time", `${todayStr}T23:59:59`)
           .neq("status", "cancelled")
           .order("start_time", { ascending: true })

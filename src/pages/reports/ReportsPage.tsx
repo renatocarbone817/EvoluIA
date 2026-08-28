@@ -12,6 +12,7 @@ import {
   ExternalLink,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { getAccessibleProfessionalIds } from "@/lib/teamAccess"
 import { useAuthStore } from "@/store/authStore"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
@@ -43,7 +44,7 @@ export function ReportsPage() {
       const { data } = await supabase
         .from("reports")
         .select("*, child:children(id, full_name)")
-        .eq("professional_id", professional!.id)
+        .in("professional_id", getAccessibleProfessionalIds(professional, professional?.id))
         .order("created_at", { ascending: false })
 
       setReports((data || []) as ReportWithChild[])

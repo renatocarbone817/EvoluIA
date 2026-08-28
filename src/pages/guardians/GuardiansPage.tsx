@@ -19,6 +19,7 @@ import {
   Calendar,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { getAccessibleProfessionalIds } from "@/lib/teamAccess"
 import { useAuthStore } from "@/store/authStore"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
@@ -96,7 +97,7 @@ export function GuardiansPage() {
             child:children(id, full_name, photo_url, status, birth_date)
           )
         `)
-        .eq("professional_id", profId)
+        .in("professional_id", getAccessibleProfessionalIds(professional, profId))
 
       const { data, error } = sortBy === "recent"
         ? await query.order("created_at", { ascending: false })

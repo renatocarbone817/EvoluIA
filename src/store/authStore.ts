@@ -35,12 +35,19 @@ export const useAuthStore = create<AuthState>((set) => ({
       } else {
         const { data: userData } = await supabase.auth.getUser()
         const email = userData.user?.email || ''
+        const role = userData.user?.user_metadata?.role || 'master'
+        const master_id = userData.user?.user_metadata?.master_id || null
+        const allow_master_data_access = userData.user?.user_metadata?.allow_master_data_access || false
         const fullName = userData.user?.user_metadata?.full_name || 'Priscila Carbone'
         const newProf = {
           id: userId,
           full_name: fullName,
           email: email,
           specialty: 'Psicopedagogia',
+          role,
+          master_id,
+          allow_master_data_access,
+          is_active: true,
         }
         await supabase.from('professionals').insert(newProf)
         set({ professional: newProf as any })

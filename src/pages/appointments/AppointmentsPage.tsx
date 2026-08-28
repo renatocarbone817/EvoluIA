@@ -50,6 +50,7 @@ import {
 } from "lucide-react"
 import toast from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
+import { getAccessibleProfessionalIds } from "@/lib/teamAccess"
 import { useAuthStore } from "@/store/authStore"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
@@ -122,7 +123,7 @@ export function AppointmentsPage() {
       const { data } = await supabase
         .from("children")
         .select("*")
-        .eq("professional_id", profId)
+        .in("professional_id", getAccessibleProfessionalIds(professional, profId))
         .order("full_name")
       setChildren((data || []) as Child[])
     } catch (e) {
@@ -167,7 +168,7 @@ export function AppointmentsPage() {
             )
           )
         `)
-        .eq("professional_id", profId)
+        .in("professional_id", getAccessibleProfessionalIds(professional, profId))
         .gte("start_time", startStr)
         .lte("start_time", endStr)
         .order("start_time", { ascending: true })
