@@ -989,9 +989,27 @@ export function DashboardPage() {
                             </span>
                           ) : (
                             <button
-                              onClick={() => navigate(`/atendimento/${appt.id}`)}
+                              onClick={() => {
+                                const typeLower = (appt.type || "").toLowerCase()
+                                const isInterviewOrEval =
+                                  typeLower.includes("entrevista") ||
+                                  typeLower.includes("avalia") ||
+                                  typeLower.includes("anamnese")
+
+                                if (isInterviewOrEval && appt.child_id) {
+                                  navigate(`/criancas/${appt.child_id}`)
+                                } else if (typeLower.includes("devolutiva") && appt.child_id) {
+                                  navigate(`/criancas/${appt.child_id}?tab=relatorios`)
+                                } else {
+                                  navigate(`/atendimento/${appt.id}`)
+                                }
+                              }}
                               className="p-1.5 rounded-lg bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE] transition-colors font-bold text-[10px] flex items-center gap-1"
-                              title="Iniciar Atendimento"
+                              title={
+                                (appt.type || "").toLowerCase().includes("entrevista") || (appt.type || "").toLowerCase().includes("avalia")
+                                  ? "Abrir Ficha / Resumo da Criança"
+                                  : "Iniciar Atendimento Clínico"
+                              }
                             >
                               <Play className="w-3 h-3 fill-current" />
                             </button>

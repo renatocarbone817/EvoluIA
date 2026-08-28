@@ -221,15 +221,20 @@ export function AppointmentsPage() {
   }
 
   function handleStartAppointment(appt: AppointmentWithChild) {
+    const typeLower = (appt.type || "").toLowerCase()
     const isInterviewOrEval =
-      appt.type === "Entrevista Inicial" ||
-      appt.type === "Avaliação Inicial" ||
-      appt.type?.toLowerCase().includes("entrevista") ||
-      appt.type?.toLowerCase().includes("avaliação")
+      typeLower.includes("entrevista") ||
+      typeLower.includes("avalia") ||
+      typeLower.includes("anamnese")
 
     if (isInterviewOrEval && appt.child_id) {
-      navigate(`/criancas/${appt.child_id}?editar=true&appointmentId=${appt.id}`)
+      // Entrevista / Avaliação Inicial -> abre a Ficha / Resumo da Criança
+      navigate(`/criancas/${appt.child_id}`)
+    } else if (typeLower.includes("devolutiva") && appt.child_id) {
+      // Devolutiva -> abre a aba de Relatórios da Criança
+      navigate(`/criancas/${appt.child_id}?tab=relatorios`)
     } else {
+      // Sessão Psicopedagógica / Intervenção / Aula -> abre o Atendimento Clínico
       navigate(`/atendimento/${appt.id}`)
     }
   }
