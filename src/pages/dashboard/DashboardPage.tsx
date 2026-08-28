@@ -120,6 +120,21 @@ export function DashboardPage() {
   const [newTaskSpecificDate, setNewTaskSpecificDate] = useState<string>(() => format(new Date(), "yyyy-MM-dd"))
   const newTaskRef = useRef<HTMLDivElement>(null)
 
+  // Listener to reload tasks when created from reports or other pages
+  useEffect(() => {
+    function handleTasksUpdated() {
+      const profKey = profId ? `evoluia_dashboard_tasks_${profId}` : null
+      const saved = (profKey && localStorage.getItem(profKey)) || localStorage.getItem("evoluia_dashboard_tasks")
+      if (saved) {
+        try {
+          setTasks(JSON.parse(saved))
+        } catch (e) {}
+      }
+    }
+    window.addEventListener("evoluia_tasks_updated", handleTasksUpdated)
+    return () => window.removeEventListener("evoluia_tasks_updated", handleTasksUpdated)
+  }, [profId])
+
   // Drag and drop state for tasks
   const [draggedTaskIndex, setDraggedTaskIndex] = useState<number | null>(null)
   const [dragOverTaskIndex, setDragOverTaskIndex] = useState<number | null>(null)

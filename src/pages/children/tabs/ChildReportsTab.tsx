@@ -28,6 +28,7 @@ import { Input, Textarea } from "@/components/ui/Input"
 import { formatDate } from "@/lib/utils"
 import toast from "react-hot-toast"
 import type { Report, Document, Child } from "@/types/database"
+import { addDashboardTask, completeDashboardTaskForChild } from "@/lib/dashboardTasks"
 
 interface ChildReportsTabProps {
   child: Child
@@ -61,10 +62,13 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const todayStr = new Date().toISOString().split("T")[0]
+  const twoDaysAheadStr = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+
   const [form, setForm] = useState({
     title: `Relatório Psicopedagógico - ${child.full_name}`,
-    period_start: child.created_at ? child.created_at.split("T")[0] : "",
-    period_end: new Date().toISOString().split("T")[0],
+    period_start: todayStr,
+    period_end: twoDaysAheadStr,
     introduction: "",
     development: "",
     conclusion: "",
@@ -152,7 +156,14 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
 
       if (childError) console.warn("Could not update child status:", childError)
 
-      toast.success("Relatório iniciado! Status da criança atualizado para 'Em Relatório'.", { icon: "📝" })
+      // PASSO 3: Criar automaticamente a tarefa na Clínica com data limite de finalização
+      const reportDueDate = form.period_end || new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+      addDashboardTask(professional?.id, {
+        text: `Finalizar relatório ${child.full_name}`,
+        dueDate: reportDueDate,
+      })
+
+      toast.success(`Relatório iniciado! Tarefa "Finalizar relatório ${child.full_name}" criada no painel da clínica.`, { icon: "📝" })
       onReloadChild?.()
       await loadReports()
       setShowEditorModal(true)
@@ -233,7 +244,10 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
 
       if (childError) console.warn("Could not update child status:", childError)
 
-      toast.success("Relatório finalizado com sucesso! Status da criança atualizado.", { icon: "🎉" })
+      // Completar automaticamente a tarefa de finalizar relatório da criança
+      completeDashboardTaskForChild(professional?.id, child.full_name)
+
+      toast.success("Relatório finalizado com sucesso! Tarefa concluída no painel.", { icon: "🎉" })
       setShowFinalizeModal(false)
       setShowEditorModal(false)
       onReloadChild?.()

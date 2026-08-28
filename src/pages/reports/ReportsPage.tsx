@@ -25,6 +25,7 @@ import { getAccessibleProfessionalIds } from "@/lib/teamAccess"
 import { useAuthStore } from "@/store/authStore"
 import { formatDate } from "@/lib/utils"
 import type { Report, Child } from "@/types/database"
+import { addDashboardTask } from "@/lib/dashboardTasks"
 import toast from "react-hot-toast"
 
 interface ReportWithChild extends Report {
@@ -126,8 +127,8 @@ export function ReportsPage() {
           conclusion: "",
           attachments: [],
         },
-        period_start: selectedChild.created_at ? selectedChild.created_at.split("T")[0] : null,
-        period_end: new Date().toISOString().split("T")[0],
+        period_start: new Date().toISOString().split("T")[0],
+        period_end: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       })
 
       if (reportError) throw reportError
@@ -138,7 +139,14 @@ export function ReportsPage() {
         .update({ status: "report_in_progress" })
         .eq("id", selectedChild.id)
 
-      toast.success("Relatório iniciado com sucesso! Redirecionando para a ficha...", { icon: "📝" })
+      // Criar automaticamente a tarefa no dashboard da clínica
+      const due = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+      addDashboardTask(profId, {
+        text: `Finalizar relatório ${selectedChild.full_name}`,
+        dueDate: due,
+      })
+
+      toast.success(`Relatório iniciado! Tarefa criada na clínica.`, { icon: "📝" })
       setShowNewReportModal(false)
       navigate(`/criancas/${selectedChild.id}?tab=relatorios`)
     } catch (err: any) {
