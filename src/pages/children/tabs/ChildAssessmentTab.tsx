@@ -124,10 +124,30 @@ function renderFormattedMarkdown(text: string) {
     const trimmed = line.trim()
     if (!trimmed || trimmed === "---") return null
 
-    // Subheaders (e.g. ### Abordagem 1: ...)
+    // H1 Headers (e.g. # RESUMO DA ENTREVISTA)
+    if (trimmed.startsWith("# ")) {
+      return (
+        <div key={lineIdx} className="pt-4 pb-1 mt-4 border-b-2 border-[#D8E5E7] first:mt-0">
+          <h3 className="font-black text-sm sm:text-base text-[#0D2329] tracking-tight uppercase flex items-center gap-2">
+            {parseInlineMarkdown(trimmed.replace(/^#\s*/, ""))}
+          </h3>
+        </div>
+      )
+    }
+
+    // H2 Headers (e.g. ## PONTOS DE ATENÇÃO)
+    if (trimmed.startsWith("## ")) {
+      return (
+        <h4 key={lineIdx} className="font-black text-xs sm:text-sm text-[#7C3AED] uppercase tracking-wider mt-3 mb-1">
+          {parseInlineMarkdown(trimmed.replace(/^##\s*/, ""))}
+        </h4>
+      )
+    }
+
+    // H3 Subheaders (e.g. ### Abordagem 1: ...)
     if (trimmed.startsWith("### ")) {
       return (
-        <h5 key={lineIdx} className="font-black text-sm text-[#19323A] mt-3 mb-1.5">
+        <h5 key={lineIdx} className="font-black text-xs text-[#0D2329] mt-2.5 mb-1">
           {parseInlineMarkdown(trimmed.replace(/^###\s*/, ""))}
         </h5>
       )
@@ -139,7 +159,7 @@ function renderFormattedMarkdown(text: string) {
 
     if (isBullet) {
       return (
-        <li key={lineIdx} className="ml-5 list-disc text-sm text-[#2E4A52] leading-relaxed my-1.5 pl-1">
+        <li key={lineIdx} className="ml-5 list-disc text-xs sm:text-sm text-[#2E4A52] leading-relaxed my-1 pl-1">
           {parseInlineMarkdown(cleanLine)}
         </li>
       )
@@ -147,14 +167,14 @@ function renderFormattedMarkdown(text: string) {
 
     if (isNumbered) {
       return (
-        <div key={lineIdx} className="text-sm text-[#2E4A52] leading-relaxed my-2 font-medium">
+        <div key={lineIdx} className="text-xs sm:text-sm text-[#2E4A52] leading-relaxed my-1.5 font-bold">
           {parseInlineMarkdown(cleanLine)}
         </div>
       )
     }
 
     return (
-      <p key={lineIdx} className="text-sm text-[#2E4A52] leading-relaxed my-2">
+      <p key={lineIdx} className="text-xs sm:text-sm text-[#2E4A52] leading-relaxed my-1.5 font-medium">
         {parseInlineMarkdown(cleanLine)}
       </p>
     )
