@@ -1016,9 +1016,15 @@ export function SettingsPage() {
                 <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#FAF5FF] via-white to-[#F5F3FF] border-2 border-[#DDD6FE] shadow-sm relative overflow-hidden">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-[#7C3AED] text-white flex items-center justify-center font-black text-xl shadow-md shrink-0 relative">
-                        {form.full_name ? form.full_name.charAt(0).toUpperCase() : "P"}
-                        <span className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#F59E0B] text-white flex items-center justify-center shadow-xs border-2 border-white">
+                      <div className="relative shrink-0">
+                        <div className="w-14 h-14 rounded-2xl bg-[#7C3AED] text-white flex items-center justify-center font-black text-xl shadow-md overflow-hidden border-2 border-[#DDD6FE]">
+                          {professional?.logo_url ? (
+                            <img src={professional.logo_url} alt="Foto da Master" className="w-full h-full object-cover" />
+                          ) : (
+                            form.full_name ? form.full_name.charAt(0).toUpperCase() : "P"
+                          )}
+                        </div>
+                        <span className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#F59E0B] text-white flex items-center justify-center shadow-xs border-2 border-white z-10">
                           <Crown className="w-3.5 h-3.5 fill-current" />
                         </span>
                       </div>
@@ -1060,8 +1066,12 @@ export function SettingsPage() {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         {/* Info Header */}
                         <div className="flex items-center gap-4">
-                          <div className="w-13 h-13 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-black text-lg border-2 border-[#DDD6FE] shadow-2xs shrink-0">
-                            {member.full_name ? member.full_name.charAt(0).toUpperCase() : "P"}
+                          <div className="w-13 h-13 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-black text-lg border-2 border-[#DDD6FE] shadow-2xs shrink-0 overflow-hidden">
+                            {member.logo_url ? (
+                              <img src={member.logo_url} alt={member.full_name} className="w-full h-full object-cover" />
+                            ) : (
+                              member.full_name ? member.full_name.charAt(0).toUpperCase() : "P"
+                            )}
                           </div>
 
                           <div className="space-y-1">
