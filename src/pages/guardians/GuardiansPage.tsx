@@ -965,6 +965,89 @@ export function GuardiansPage() {
           loadGuardians()
         }}
       />
+    
+      {/* Modal de Confirmação Segura de Exclusão do Responsável */}
+      <Dialog open={Boolean(guardianToDelete)} onOpenChange={(open) => !open && setGuardianToDelete(null)}>
+        <DialogContent className="max-w-md p-0 overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
+          <DialogHeader className="p-6 pb-4 border-b border-[#EEF5F6] flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 border-2 border-red-200 flex items-center justify-center shrink-0 shadow-xs">
+              <AlertTriangle className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <div>
+              <DialogTitle className="text-lg font-black text-[#0D2329]">
+                Excluir responsável?
+              </DialogTitle>
+              <p className="text-xs font-semibold text-[#6B7C83] mt-0.5">
+                {guardianToDelete?.full_name}
+              </p>
+            </div>
+          </DialogHeader>
+
+          <DialogBody className="p-6 space-y-4 text-xs font-semibold text-[#2E4A52]">
+            {(() => {
+              const linked = guardianToDelete?.children?.filter((c) => c.child) || []
+              if (linked.length === 0) {
+                return (
+                  <p className="leading-relaxed">
+                    Tem certeza que deseja excluir o cadastro de <strong>{guardianToDelete?.full_name}</strong>? Esta ação não poderá ser desfeita.
+                  </p>
+                )
+              }
+              return (
+                <div className="space-y-3">
+                  <p className="leading-relaxed">
+                    Este responsável possui <strong>{linked.length} {linked.length === 1 ? "criança vinculada" : "crianças vinculadas"}</strong>:
+                  </p>
+                  
+                  <div className="p-3 bg-[#F8FAFB] rounded-2xl border border-[#D8E5E7] space-y-1.5">
+                    {linked.map((link, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs font-bold text-[#0D2329]">
+                        <span>🧒</span>
+                        <span>{link.child?.full_name}</span>
+                        {link.relationship && (
+                          <span className="text-[10px] text-[#6B7C83] font-normal">({link.relationship})</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-[#E8F8F5] border-2 border-[#A7F3D0] space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs font-black text-[#065F46]">
+                      <ShieldCheck className="w-4 h-4 text-[#10B981]" />
+                      <span>Proteção dos Pacientes / Crianças</span>
+                    </div>
+                    <p className="text-[11px] text-[#065F46] leading-relaxed">
+                      Ao excluir este responsável, <strong>as crianças continuarão salvas normalmente no sistema</strong>. Apenas o vínculo de parentesco será removido.
+                    </p>
+                  </div>
+                </div>
+              )
+            })()}
+          </DialogBody>
+
+          <DialogFooter className="p-4 bg-[#F8FAFB] border-t border-[#EEF5F6] flex items-center justify-end gap-2.5">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={deletingGuardian}
+              onClick={() => setGuardianToDelete(null)}
+              className="rounded-2xl border-2 border-[#D8E5E7] font-bold text-xs"
+            >
+              Cancelar
+            </Button>
+
+            <button
+              type="button"
+              disabled={deletingGuardian}
+              onClick={handleConfirmDeleteGuardian}
+              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#EF4444] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+            >
+              {deletingGuardian ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              <span>{deletingGuardian ? "Excluindo..." : "Excluir Responsável"}</span>
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

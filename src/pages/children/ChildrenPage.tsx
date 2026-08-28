@@ -2,6 +2,10 @@ import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import {
   Plus,
+  Trash2,
+  AlertTriangle,
+  ShieldCheck,
+  Loader2,
   Search,
   Users,
   ChevronRight,
@@ -35,6 +39,16 @@ import { ChildAvatar } from "@/components/ui/ChildAvatar"
 import { calculateAge, formatDate, formatPhone } from "@/lib/utils"
 import type { Child, Guardian } from "@/types/database"
 import { NewChildDialog } from "./NewChildDialog"
+import { checkChildFinancialRecords, deleteChildSafely } from "@/lib/deletionService"
+import toast from "react-hot-toast"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogBody,
+} from "@/components/ui/Dialog"
 import { NewAppointmentDialog } from "@/pages/appointments/NewAppointmentDialog"
 
 interface ChildWithDetails extends Child {
@@ -87,12 +101,48 @@ export function ChildrenPage() {
 
   // Fast schedule appointment for a specific child
   const [scheduleForChildId, setScheduleForChildId] = useState<string | null>(null)
+  const [childToDelete, setChildToDelete] = useState<ChildWithDetails | null>(null)
+  const [deletingChild, setDeletingChild] = useState(false)
+  const [financialCount, setFinancialCount] = useState<number>(0)
+  const [checkingFinance, setCheckingFinance] = useState(false)
 
   const profId = professional?.id || user?.id
 
   useEffect(() => {
     if (profId) loadChildren()
   }, [profId, sortBy])
+
+  
+  async function handleOpenDeleteChild(e: React.MouseEvent, child: ChildWithDetails) {
+    e.stopPropagation()
+    setChildToDelete(child)
+    setCheckingFinance(true)
+    try {
+      const count = await checkChildFinancialRecords(child.id)
+      setFinancialCount(count)
+    } finally {
+      setCheckingFinance(false)
+    }
+  }
+
+  async function handleConfirmDeleteChild() {
+    if (!childToDelete || !profId) return
+    setDeletingChild(true)
+    try {
+      const res = await deleteChildSafely(childToDelete.id, profId, childToDelete.full_name)
+      if (res.success) {
+        toast.success("Paciente excluído com sucesso!", { icon: "🗑️" })
+        setChildToDelete(null)
+        await loadChildren()
+      } else {
+        toast.error(res.error || "Erro ao excluir paciente.")
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro inesperado ao excluir paciente.")
+    } finally {
+      setDeletingChild(false)
+    }
+  }
 
   async function loadChildren() {
     if (!profId) return
@@ -578,6 +628,15 @@ export function ChildrenPage() {
                     <span>Agendar</span>
                   </button>
 
+                  <button
+                    type="button"
+                    onClick={(e) => handleOpenDeleteChild(e, child)}
+                    className="p-2 text-[#8CAAB1] hover:text-red-600 hover:bg-red-50 rounded-xl border border-[#D8E5E7] hover:border-red-200 transition-all text-xs"
+                    title="Excluir paciente"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+
                   <div className="w-8 h-8 rounded-xl bg-[#F7FAFA] group-hover:bg-[#EDE9FE] text-[#6B7C83] group-hover:text-[#7C3AED] flex items-center justify-center transition-colors">
                     <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                   </div>
@@ -638,19 +697,30 @@ export function ChildrenPage() {
                       </div>
                     </div>
 
-                    {/* Quick WhatsApp Button */}
-                    {cleanPhone && (
-                      <a
-                        href={`https://wa.me/55${cleanPhone}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-2 bg-[#E8F8F5] text-[#10B981] border border-[#10B981]/30 hover:bg-[#10B981] hover:text-white rounded-xl transition-all shadow-2xs shrink-0"
-                        title="Enviar WhatsApp para o responsável"
+                    {/* Quick WhatsApp & Delete Buttons */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {cleanPhone && (
+                        <a
+                          href={`https://wa.me/55${cleanPhone}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-2 bg-[#E8F8F5] text-[#10B981] border border-[#10B981]/30 hover:bg-[#10B981] hover:text-white rounded-xl transition-all shadow-2xs"
+                          title="Enviar WhatsApp para o responsável"
+                        >
+                          <MessageSquare className="w-4 h-4 fill-current" />
+                        </a>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleOpenDeleteChild(e, child)}
+                        className="p-2 bg-[#F7FAFA] hover:bg-red-50 text-[#8CAAB1] hover:text-red-600 border border-[#D8E5E7] hover:border-red-200 rounded-xl transition-all shadow-2xs"
+                        title="Excluir paciente"
                       >
-                        <MessageSquare className="w-4 h-4 fill-current" />
-                      </a>
-                    )}
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* 2. Next / Last Session Badge Banner */}
@@ -763,6 +833,70 @@ export function ChildrenPage() {
           loadChildren()
         }}
       />
+    
+      {/* Modal de Confirmação Segura de Exclusão da Criança */}
+      <Dialog open={Boolean(childToDelete)} onOpenChange={(open) => !open && setChildToDelete(null)}>
+        <DialogContent className="max-w-md p-0 overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
+          <DialogHeader className="p-6 pb-4 border-b border-[#EEF5F6] flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 border-2 border-red-200 flex items-center justify-center shrink-0 shadow-xs">
+              <AlertTriangle className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <div>
+              <DialogTitle className="text-lg font-black text-[#0D2329]">
+                Excluir paciente?
+              </DialogTitle>
+              <p className="text-xs font-semibold text-[#6B7C83] mt-0.5">
+                {childToDelete?.full_name}
+              </p>
+            </div>
+          </DialogHeader>
+
+          <DialogBody className="p-6 space-y-4 text-xs font-semibold text-[#2E4A52]">
+            <p className="leading-relaxed">
+              Esta ação removerá a criança <strong>{childToDelete?.full_name}</strong> e todos os registros relacionados ao acompanhamento, sessões, avaliações, relatórios e histórico clínico/psicopedagógico. <span className="text-red-600 font-bold">Esta ação não poderá ser desfeita.</span>
+            </p>
+
+            {/* Aviso Contábil de Preservação Financeira */}
+            {financialCount > 0 ? (
+              <div className="p-4 rounded-2xl bg-[#E8F8F5] border-2 border-[#A7F3D0] space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-black text-[#065F46]">
+                  <ShieldCheck className="w-4 h-4 text-[#10B981]" />
+                  <span>Histórico Financeiro Preservado ({financialCount} lançamentos)</span>
+                </div>
+                <p className="text-[11px] text-[#065F46] leading-relaxed">
+                  Os registros de pagamentos e mensalidades continuarão salvos no módulo <strong>Financeiro</strong> com a identificação do paciente para o seu controle contábil.
+                </p>
+              </div>
+            ) : (
+              <div className="p-3 bg-[#F8FAFB] rounded-2xl border border-[#D8E5E7] text-[11px] text-[#6B7C83]">
+                🛡️ Os responsáveis cadastrados e outros pacientes vinculados não serão afetados.
+              </div>
+            )}
+          </DialogBody>
+
+          <DialogFooter className="p-4 bg-[#F8FAFB] border-t border-[#EEF5F6] flex items-center justify-end gap-2.5">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={deletingChild}
+              onClick={() => setChildToDelete(null)}
+              className="rounded-2xl border-2 border-[#D8E5E7] font-bold text-xs"
+            >
+              Cancelar
+            </Button>
+
+            <button
+              type="button"
+              disabled={deletingChild}
+              onClick={handleConfirmDeleteChild}
+              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#EF4444] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+            >
+              {deletingChild ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              <span>{deletingChild ? "Excluindo..." : "Excluir definitivamente"}</span>
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
