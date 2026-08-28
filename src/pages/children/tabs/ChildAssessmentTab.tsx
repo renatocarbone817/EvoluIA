@@ -1,7 +1,8 @@
 import { generateInitialAssessmentAI } from "@/lib/geminiAnalysis"
 import { useState, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
-import { Plus, CheckCircle, Clock, Save, Edit3, BookOpen, Printer, Sparkles, RotateCcw, Loader2, AlertCircle } from "lucide-react"
+import { Plus, CheckCircle, Clock, Save, Edit3, BookOpen, Printer, Sparkles, RotateCcw, Loader2, AlertCircle, Calendar } from "lucide-react"
+import { NewAppointmentDialog } from "@/pages/appointments/NewAppointmentDialog"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
@@ -199,6 +200,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(true)
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false)
 
   // AI analysis state
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null)
@@ -408,41 +410,54 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
       </div>
 
       {/* Top action bar (hidden on print) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border print:hidden">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b-2 border-[#EEF5F6] print:hidden">
         <div>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <BookOpen className="w-5 h-5" />
-            Entrevista Inicial (Anamnese com os Pais)
+          <h2 className="text-lg sm:text-xl font-black text-[#0D2329] flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-[#7C3AED]" />
+            <span>Entrevista Inicial (Anamnese com os Pais)</span>
           </h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-xs font-semibold text-[#6B7C83] mt-0.5">
             13 perguntas estruturadas para a primeira entrevista com os pais e responsáveis.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           {assessment && !isEditing ? (
             <>
+              {/* Botão para Agendar Sessões com a Criança Imediatamente */}
+              <button
+                type="button"
+                onClick={() => setShowAppointmentModal(true)}
+                className="px-3.5 py-2 rounded-2xl bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#0284C7] border-2 border-[#BAE6FD] text-xs font-black transition-all shadow-2xs active:scale-95 flex items-center gap-1.5"
+                title="Agendar sessões para esta criança"
+              >
+                <Calendar className="w-4 h-4" />
+                <span>+ Agendar Sessões</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="px-4 py-2 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#7C3AED] hover:bg-[#F8FAFB] text-xs font-black text-[#0D2329] transition-all shadow-2xs active:scale-95 flex items-center gap-1.5"
+                className="px-3.5 py-2 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#7C3AED] hover:bg-[#F8FAFB] text-xs font-black text-[#0D2329] transition-all shadow-2xs active:scale-95 flex items-center gap-1.5"
               >
                 <Printer className="w-4 h-4 text-[#6B7C83]" />
                 <span>Imprimir</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => setIsEditing(true)}
-                className="px-4 py-2 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] border-2 border-[#C4B5FD] font-black text-xs transition-all shadow-2xs active:scale-95 flex items-center gap-1.5"
+                className="px-3.5 py-2 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] border-2 border-[#C4B5FD] font-black text-xs transition-all shadow-2xs active:scale-95 flex items-center gap-1.5"
               >
                 <Edit3 className="w-4 h-4" />
                 <span>Editar Respostas</span>
               </button>
+
               <button
                 type="button"
                 onClick={handleAnalyzeWithAI}
                 disabled={aiLoading}
-                className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+                className="px-4 py-2 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 disabled:opacity-50"
               >
                 {aiLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -637,6 +652,16 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
           </Button>
         </div>
       )}
+      {/* Dialog de Novo Agendamento Direto da Entrevista Inicial */}
+      <NewAppointmentDialog
+        open={showAppointmentModal}
+        onClose={() => setShowAppointmentModal(false)}
+        onSuccess={() => {
+          setShowAppointmentModal(false)
+          toast.success("Sessão agendada com sucesso! 📅", { icon: "🎉" })
+        }}
+        defaultChildId={childId}
+      />
     </div>
   )
 }
