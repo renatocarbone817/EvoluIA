@@ -88,11 +88,50 @@ export function RecordAbsenceModal({
         })
 
         if (sessErr) console.warn("Could not insert missed session record:", sessErr)
+
+        // 3. Integração com o Módulo Financeiro
+        if (shouldCharge) {
+          // Buscar valor configurado no Plano de Cuidado do paciente ou padrão da clínica
+          let chargeAmount = 180
+          try {
+            const { data: planData } = await supabase
+              .from("care_plans")
+              .select("price_per_session")
+              .eq("child_id", appointment.child_id)
+              .single()
+
+            if (planData?.price_per_session) {
+              chargeAmount = Number(planData.price_per_session)
+            } else if ((professional as any)?.default_price) {
+              chargeAmount = Number((professional as any).default_price)
+            }
+          } catch (e) {
+            // fallback to default
+          }
+
+          const { error: finErr } = await supabase.from("financial_records").insert({
+            professional_id: appointment.professional_id || profId,
+            child_id: appointment.child_id,
+            month: startTime.getMonth() + 1,
+            year: startTime.getFullYear(),
+            amount: chargeAmount,
+            status: "pending",
+            record_type: "income",
+            category: "Sessão Psicopedagógica",
+            description: `Falta com Cobrança - ${childName}`,
+            notes: `Falta em ${format(startTime, "dd/MM/yyyy")}: ${reasonText}`,
+          })
+
+          if (finErr) console.warn("Could not create financial record:", finErr)
+        }
       }
 
-      toast.success(`Falta de ${childName} registrada e documentada no prontuário!`, {
-        icon: "⚠️",
-      })
+      toast.success(
+        shouldCharge
+          ? `Falta de ${childName} registrada e cobrança pendente gerada no Financeiro!`
+          : `Falta de ${childName} registrada como isenta (sem cobrança)!`,
+        { icon: "⚠️" }
+      )
       onSuccess()
       onClose()
     } catch (err: any) {
