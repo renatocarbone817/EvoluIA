@@ -890,9 +890,9 @@ export function DashboardPage() {
       {/* 3. MAIN DASHBOARD 3-COLUMN GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* ========================================================
-            COLUMN 1: AGENDA DE HOJE (TIMELINE) + ACESSO RÁPIDO (4 COLS)
+            COLUMN 1: AGENDA DE HOJE (TIMELINE) + ACESSO RÁPIDO (3 COLS)
             ======================================================== */}
-        <div className="lg:col-span-4 space-y-5">
+        <div className="lg:col-span-3 xl:col-span-3 space-y-5">
           {/* Agenda de Hoje Card */}
           <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
             <div className="flex items-center justify-between">
@@ -1051,7 +1051,7 @@ export function DashboardPage() {
         {/* ========================================================
             COLUMN 2: RESUMO DO MÊS + PRÓXIMAS SESSÕES (5 COLS)
             ======================================================== */}
-        <div className="lg:col-span-5 space-y-5">
+        <div className="lg:col-span-5 xl:col-span-5 space-y-5">
           {/* Resumo do Mês Card */}
           <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -1384,9 +1384,9 @@ export function DashboardPage() {
         </div>
 
         {/* ========================================================
-            COLUMN 3: TAREFAS + ANOTAÇÕES (3 COLS)
+            COLUMN 3: TAREFAS + ANOTAÇÕES (4 COLS - MAIS ESPAÇOSA E LARGA)
             ======================================================== */}
-        <div className="lg:col-span-3 space-y-5">
+        <div className="lg:col-span-4 xl:col-span-4 space-y-5">
           {/* Tarefas Pendentes Card (SELEÇÃO DE DATA, FILTRO/ORDENAÇÃO POR DATA & TRELLO DRAG AND DROP) */}
           <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
             <div className="flex items-center justify-between">
@@ -1507,7 +1507,7 @@ export function DashboardPage() {
                         ) : (
                           <Square className="w-4 h-4 text-[#8CAAB1] shrink-0" />
                         )}
-                        <p className={`text-xs font-bold truncate ${task.completed ? "line-through text-[#8CAAB1]" : "text-[#0D2329]"}`}>
+                        <p title={task.text} className={`text-xs font-bold truncate ${task.completed ? "line-through text-[#8CAAB1]" : "text-[#0D2329]"}`}>
                           {task.text}
                         </p>
                       </div>
