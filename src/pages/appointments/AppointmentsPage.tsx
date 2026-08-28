@@ -88,7 +88,20 @@ export function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentWithChild[]>([])
   const [children, setChildren] = useState<Child[]>([])
   const [loading, setLoading] = useState(true)
-  const [showNewModal, setShowNewModal] = useState(searchParams.get("novo") === "true")
+  const [showNewModal, setShowNewModal] = useState(
+    searchParams.get("novo") === "true" || searchParams.get("nova") === "true" || searchParams.get("new") === "true"
+  )
+
+  // Abrir automaticamente a janela de novo agendamento quando vindo do botão "+ Novo"
+  useEffect(() => {
+    if (
+      searchParams.get("novo") === "true" ||
+      searchParams.get("nova") === "true" ||
+      searchParams.get("new") === "true"
+    ) {
+      setShowNewModal(true)
+    }
+  }, [searchParams])
   const [selectedDateForNew, setSelectedDateForNew] = useState<string | undefined>(undefined)
 
   // Search feature

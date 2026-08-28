@@ -172,7 +172,7 @@ export function TopHeader() {
               <button
                 onClick={() => {
                   setMenuNovoOpen(false)
-                  navigate("/agenda?novo=true")
+                  navigate(`/agenda?novo=true&t=${Date.now()}`)
                 }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-[#0D2329] hover:bg-[#F7FAFA] hover:text-[#6366F1] transition-colors text-left"
               >
@@ -183,7 +183,7 @@ export function TopHeader() {
               <button
                 onClick={() => {
                   setMenuNovoOpen(false)
-                  navigate("/criancas?novo=true")
+                  navigate(`/criancas?novo=true&t=${Date.now()}`)
                 }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-[#0D2329] hover:bg-[#F7FAFA] hover:text-[#00B4D8] transition-colors text-left"
               >

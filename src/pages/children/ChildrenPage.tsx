@@ -62,7 +62,20 @@ export function ChildrenPage() {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("todos")
   const [viewType, setViewType] = useState<ViewType>("cards")
-  const [showNewDialog, setShowNewDialog] = useState(searchParams.get("nova") === "true")
+  const [showNewDialog, setShowNewDialog] = useState(
+    searchParams.get("novo") === "true" || searchParams.get("nova") === "true" || searchParams.get("new") === "true"
+  )
+
+  // Abrir automaticamente a janela de cadastro de novo paciente quando vindo do botão "+ Novo"
+  useEffect(() => {
+    if (
+      searchParams.get("novo") === "true" ||
+      searchParams.get("nova") === "true" ||
+      searchParams.get("new") === "true"
+    ) {
+      setShowNewDialog(true)
+    }
+  }, [searchParams])
   const [sortBy, setSortBy] = useState<"recent" | "az" | "next_appt">("recent")
 
   // Fast schedule appointment for a specific child
