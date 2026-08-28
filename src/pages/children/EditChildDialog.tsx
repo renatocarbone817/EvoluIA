@@ -1,15 +1,31 @@
 import { useState, useEffect, useRef } from "react"
-import { Camera, X, Loader2, Crop } from "lucide-react"
+import {
+  Camera,
+  X,
+  Loader2,
+  Crop,
+  User,
+  Users,
+  Calendar,
+  School,
+  GraduationCap,
+  Target,
+  FileText,
+  Plus,
+  Trash2,
+  Search,
+  Phone,
+  Mail,
+  CheckCircle2,
+  Sparkles,
+  Link2,
+  HeartHandshake,
+} from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogBody,
-} from "@/components/ui/Dialog"
-import { Button } from "@/components/ui/Button"
-import { Input, Textarea } from "@/components/ui/Input"
-import { Select } from "@/components/ui/Select"
+import { calculateAge } from "@/lib/utils"
 import toast from "react-hot-toast"
-import type { Child, ChildStatus } from "@/types/database"
+import type { Child, ChildStatus, Guardian } from "@/types/database"
 import { ImageCropperModal } from "@/components/ui/ImageCropperModal"
 
 interface EditChildDialogProps {
@@ -27,9 +43,21 @@ const STATUS_OPTIONS = [
   { value: "paused", label: "⏸️ Pausado" },
 ]
 
+const RELATIONSHIPS = [
+  "Mãe",
+  "Pai",
+  "Avó",
+  "Avô",
+  "Tia / Tio",
+  "Responsável Legal",
+  "Irmã / Irmão",
+  "Outro",
+]
+
 export function EditChildDialog({ open, child, onClose, onSuccess }: EditChildDialogProps) {
   const { professional, user } = useAuthStore()
   const profId = professional?.id || user?.id
+
   const [loading, setLoading] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
@@ -39,32 +67,91 @@ export function EditChildDialog({ open, child, onClose, onSuccess }: EditChildDi
   const [cropperOpen, setCropperOpen] = useState(false)
   const [imageToCrop, setImageToCrop] = useState<string | null>(null)
 
+  // Child Form
   const [form, setForm] = useState({
     full_name: "",
     birth_date: "",
     school: "",
     grade: "",
     main_complaint: "",
-    status: "in_progress" as ChildStatus,
+    status: "initial_assessment" as ChildStatus,
     notes: "",
   })
 
+  // Guardians State
+  const [allGuardians, setAllGuardians] = useState<Guardian[]>([])
+  const [linkedGuardians, setLinkedGuardians] = useState<
+    { id?: string; guardian_id: string; relationship: string; is_primary: boolean; guardian?: Guardian }[]
+  >([])
+  const [guardianMode, setGuardianMode] = useState<"existing" | "new">("existing")
+
+  // Link existing guardian form
+  const [selectedGuardianId, setSelectedGuardianId] = useState("")
+  const [linkRelationship, setLinkRelationship] = useState("Mãe")
+  const [linkIsPrimary, setLinkIsPrimary] = useState(true)
+
+  // Create new guardian form
+  const [newGuardianForm, setNewGuardianForm] = useState({
+    full_name: "",
+    relationship: "Mãe",
+    phone: "",
+    email: "",
+    cpf: "",
+    profession: "",
+    is_primary: true,
+  })
+
   useEffect(() => {
-    if (open && child) {
+    if (open && child && profId) {
       setForm({
         full_name: child.full_name || "",
         birth_date: child.birth_date ? child.birth_date.split("T")[0] : "",
         school: child.school || "",
         grade: child.grade || "",
         main_complaint: child.main_complaint || "",
-        status: child.status,
+        status: child.status || "initial_assessment",
         notes: child.notes || "",
       })
       setPhotoUrl(child.photo_url || null)
+      loadGuardiansData()
     }
-  }, [open, child])
+  }, [open, child, profId])
 
-  // When user picks a file, open the interactive cropper
+  async function loadGuardiansData() {
+    if (!profId || !child) return
+    try {
+      // 1. Load all clinic guardians
+      const { data: allG } = await supabase
+        .from("guardians")
+        .select("*")
+        .eq("professional_id", profId)
+        .order("full_name", { ascending: true })
+
+      setAllGuardians(allG || [])
+
+      // 2. Load linked guardians for this child
+      const { data: linked } = await supabase
+        .from("guardian_children")
+        .select("id, guardian_id, relationship, is_primary, guardian:guardians(*)")
+        .eq("child_id", child.id)
+
+      if (linked) {
+        setLinkedGuardians(
+          linked.map((l: any) => ({
+            id: l.id,
+            guardian_id: l.guardian_id,
+            relationship: l.relationship || "Mãe",
+            is_primary: l.is_primary ?? true,
+            guardian: l.guardian,
+          }))
+        )
+      }
+    } catch (err) {
+      console.error("Error loading guardians:", err)
+    }
+  }
+
+  // File crop logic
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files || !e.target.files[0] || !profId) return
     const file = e.target.files[0]
@@ -84,7 +171,6 @@ export function EditChildDialog({ open, child, onClose, onSuccess }: EditChildDi
     if (photoInputRef.current) photoInputRef.current.value = ""
   }
 
-  // When crop is confirmed in the cropper modal
   async function handleCropComplete(croppedBlob: Blob) {
     setCropperOpen(false)
     if (!profId) return
@@ -115,6 +201,39 @@ export function EditChildDialog({ open, child, onClose, onSuccess }: EditChildDi
     }
   }
 
+  // Quick action: Add existing guardian to list
+  function handleAddExistingGuardianToList() {
+    if (!selectedGuardianId) {
+      toast.error("Selecione um responsável no banco de dados.")
+      return
+    }
+
+    const exists = linkedGuardians.some((g) => g.guardian_id === selectedGuardianId)
+    if (exists) {
+      toast.error("Este responsável já está vinculado a esta criança.")
+      return
+    }
+
+    const found = allGuardians.find((g) => g.id === selectedGuardianId)
+    setLinkedGuardians([
+      ...linkedGuardians,
+      {
+        guardian_id: selectedGuardianId,
+        relationship: linkRelationship,
+        is_primary: linkIsPrimary,
+        guardian: found,
+      },
+    ])
+    setSelectedGuardianId("")
+    toast.success("Responsável adicionado à lista!")
+  }
+
+  // Quick action: Remove linked guardian from list
+  function handleRemoveLinkedGuardian(guardianId: string) {
+    setLinkedGuardians(linkedGuardians.filter((g) => g.guardian_id !== guardianId))
+  }
+
+  // Main Submit: Save Child + Sync Guardians
   async function handleSubmit() {
     if (!form.full_name.trim()) {
       toast.error("Nome da criança é obrigatório")
@@ -123,7 +242,8 @@ export function EditChildDialog({ open, child, onClose, onSuccess }: EditChildDi
 
     setLoading(true)
     try {
-      const { error } = await supabase
+      // 1. Update Child Data
+      const { error: childErr } = await supabase
         .from("children")
         .update({
           full_name: form.full_name.trim(),
@@ -138,155 +258,507 @@ export function EditChildDialog({ open, child, onClose, onSuccess }: EditChildDi
         })
         .eq("id", child.id)
 
-      if (error) throw error
+      if (childErr) throw childErr
 
-      toast.success("Dados da criança atualizados com sucesso!")
+      // 2. If user entered data in "Cadastrar Novo Responsável", save and link it now
+      let extraLinked = [...linkedGuardians]
+      if (guardianMode === "new" && newGuardianForm.full_name.trim()) {
+        const { data: newG, error: newGErr } = await supabase
+          .from("guardians")
+          .insert({
+            professional_id: profId,
+            full_name: newGuardianForm.full_name.trim(),
+            phone: newGuardianForm.phone || null,
+            whatsapp: newGuardianForm.phone || null,
+            email: newGuardianForm.email || null,
+            cpf: newGuardianForm.cpf || null,
+            profession: newGuardianForm.profession || null,
+          })
+          .select()
+          .single()
+
+        if (!newGErr && newG) {
+          extraLinked.push({
+            guardian_id: newG.id,
+            relationship: newGuardianForm.relationship,
+            is_primary: newGuardianForm.is_primary,
+            guardian: newG,
+          })
+        }
+      }
+
+      // 3. Sync guardian_children links
+      // Delete existing links for this child
+      await supabase.from("guardian_children").delete().eq("child_id", child.id)
+
+      // Re-insert all active links
+      if (extraLinked.length > 0) {
+        const linksToInsert = extraLinked.map((l) => ({
+          child_id: child.id,
+          guardian_id: l.guardian_id,
+          relationship: l.relationship || "Mãe",
+          is_primary: l.is_primary ?? false,
+        }))
+
+        const { error: linksErr } = await supabase
+          .from("guardian_children")
+          .insert(linksToInsert)
+
+        if (linksErr) console.warn("Error inserting guardian links:", linksErr)
+      }
+
+      toast.success("Dados da criança e responsáveis atualizados com sucesso!", { icon: "🎉" })
       onSuccess()
+      onClose()
     } catch (err: any) {
-      toast.error(err.message || "Erro ao atualizar dados")
+      console.error(err)
+      toast.error(err.message || "Erro ao salvar dados")
     } finally {
       setLoading(false)
     }
   }
 
+  const ageText = form.birth_date ? calculateAge(form.birth_date) : ""
+
+  if (!open) return null
+
   return (
-    <>
-      <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Editar Dados da Criança</DialogTitle>
-          </DialogHeader>
-          <DialogBody className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
-            {/* Photo with Cropper trigger */}
-            <div className="flex flex-col items-center gap-3 py-2">
-              <div className="relative group">
-                <div className="w-24 h-24 rounded-3xl border-4 border-[#D8E5E7] bg-[#EEF5F6] overflow-hidden flex items-center justify-center shadow-md">
-                  {uploadingPhoto ? (
-                    <Loader2 className="w-8 h-8 text-[#245C6B] animate-spin" />
-                  ) : photoUrl ? (
-                    <img src={photoUrl} alt="Foto" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-3xl font-black text-[#245C6B]">
-                      {child.full_name.charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </div>
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+      <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95">
+        {/* Header Moderno */}
+        <div className="p-5 border-b border-[#EEF5F6] bg-[#F7FAFA] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold shadow-2xs">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-[#0D2329] tracking-tight">
+                Editar Dados da Criança & Família
+              </h2>
+              <p className="text-xs font-semibold text-[#6B7C83]">
+                Atualize o cadastro do paciente e gerencie os responsáveis
+              </p>
+            </div>
+          </div>
 
-                {/* Camera button */}
-                <button
-                  type="button"
-                  onClick={() => photoInputRef.current?.click()}
-                  className="absolute -bottom-1.5 -right-1.5 w-8 h-8 bg-[#245C6B] text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-[#19323A] transition-colors border-2 border-white"
-                  title="Alterar e enquadrar foto"
-                >
-                  <Camera className="w-4 h-4" />
-                </button>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-xl bg-white border border-[#D8E5E7] text-[#6B7C83] hover:text-[#0D2329] hover:bg-[#EEF5F6] flex items-center justify-center transition-colors shadow-2xs"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-                {/* Remove photo button */}
-                {photoUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setPhotoUrl(null)}
-                    className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-red-500 text-white rounded-lg flex items-center justify-center shadow hover:bg-red-600 transition-colors border-2 border-white"
-                    title="Remover foto"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
+        {/* Scrollable Body */}
+        <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(92vh-140px)] custom-scrollbar">
+          {/* 1. FOTO COM CROPPER */}
+          <div className="flex flex-col items-center gap-3 p-4 rounded-3xl bg-[#F8FAFB] border border-[#D8E5E7]">
+            <div className="relative group">
+              <div className="w-24 h-24 rounded-3xl border-4 border-white bg-[#EDE9FE] overflow-hidden flex items-center justify-center shadow-md">
+                {uploadingPhoto ? (
+                  <Loader2 className="w-8 h-8 text-[#7C3AED] animate-spin" />
+                ) : photoUrl ? (
+                  <img src={photoUrl} alt="Foto" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-3xl font-black text-[#7C3AED]">
+                    {form.full_name ? form.full_name.charAt(0).toUpperCase() : "C"}
+                  </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* Botão de Câmera */}
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                className="absolute -bottom-1.5 -right-1.5 w-8 h-8 bg-[#7C3AED] text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-[#6D28D9] transition-colors border-2 border-white"
+                title="Alterar e enquadrar foto"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+
+              {/* Remover foto */}
+              {photoUrl && (
                 <button
                   type="button"
-                  onClick={() => photoInputRef.current?.click()}
-                  className="text-xs font-bold text-[#245C6B] hover:underline flex items-center gap-1"
+                  onClick={() => setPhotoUrl(null)}
+                  className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-[#EF4444] text-white rounded-lg flex items-center justify-center shadow hover:bg-[#DC2626] transition-colors border-2 border-white"
+                  title="Remover foto"
                 >
-                  <Crop className="w-3.5 h-3.5" />
-                  {photoUrl ? "Trocar / Enquadrar foto" : "Adicionar foto"}
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              className="text-xs font-bold text-[#7C3AED] hover:underline flex items-center gap-1.5"
+            >
+              <Crop className="w-3.5 h-3.5" />
+              <span>{photoUrl ? "Trocar / Enquadrar foto" : "Adicionar foto do paciente"}</span>
+            </button>
+
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+          </div>
+
+          {/* 2. DADOS DA CRIANÇA */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-black text-[#0D2329] uppercase tracking-wider flex items-center gap-1.5">
+              <User className="w-4 h-4 text-[#7C3AED]" />
+              <span>Informações Pessoais & Escola</span>
+            </h3>
+
+            {/* Nome Completo */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-[#0D2329]">Nome Completo da Criança *</label>
+              <input
+                type="text"
+                value={form.full_name}
+                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                placeholder="Ex: Gustavo Henrique da Silva"
+                className="w-full p-3 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all shadow-2xs"
+              />
+            </div>
+
+            {/* Data Nasc + Status */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-[#0D2329] flex items-center justify-between">
+                  <span>Data de Nascimento</span>
+                  {ageText && <span className="text-[11px] font-bold text-[#7C3AED]">🎂 {ageText}</span>}
+                </label>
+                <input
+                  type="date"
+                  value={form.birth_date}
+                  onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
+                  className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all shadow-2xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-[#0D2329]">Status do Acompanhamento</label>
+                <select
+                  value={form.status}
+                  onChange={(e) => setForm({ ...form, status: e.target.value as ChildStatus })}
+                  className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all shadow-2xs"
+                >
+                  {STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Escola + Série */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-[#0D2329] flex items-center gap-1">
+                  <School className="w-3.5 h-3.5 text-[#6B7C83]" />
+                  <span>Escola</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Percio Puccini"
+                  value={form.school}
+                  onChange={(e) => setForm({ ...form, school: e.target.value })}
+                  className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all shadow-2xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-[#0D2329] flex items-center gap-1">
+                  <GraduationCap className="w-3.5 h-3.5 text-[#6B7C83]" />
+                  <span>Ano / Série</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: 4ª série Fundamental"
+                  value={form.grade}
+                  onChange={(e) => setForm({ ...form, grade: e.target.value })}
+                  className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all shadow-2xs"
+                />
+              </div>
+            </div>
+
+            {/* Queixa Principal */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-[#0D2329] flex items-center gap-1">
+                <Target className="w-3.5 h-3.5 text-[#EA580C]" />
+                <span>Queixa Principal / Motivo da Consulta</span>
+              </label>
+              <textarea
+                rows={2}
+                placeholder="Dificuldade relatada pela família ou escola..."
+                value={form.main_complaint}
+                onChange={(e) => setForm({ ...form, main_complaint: e.target.value })}
+                className="w-full p-3 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#EA580C] transition-all resize-none shadow-2xs"
+              />
+            </div>
+
+            {/* Observações Gerais */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-[#0D2329] flex items-center gap-1">
+                <FileText className="w-3.5 h-3.5 text-[#7C3AED]" />
+                <span>Observações Gerais & Histórico</span>
+              </label>
+              <textarea
+                rows={2}
+                placeholder="Anotações internas, diagnósticos prévios, alergias, etc..."
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                className="w-full p-3 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all resize-none shadow-2xs"
+              />
+            </div>
+          </div>
+
+          {/* 3. SEÇÃO DE RESPONSÁVEIS & FAMÍLIA (INTEGRADA) */}
+          <div className="space-y-4 pt-4 border-t-2 border-[#EEF5F6]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center font-black shadow-2xs">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black text-[#0D2329] uppercase tracking-wider">
+                    Responsáveis & Família
+                  </h3>
+                  <p className="text-[10px] font-semibold text-[#6B7C83]">
+                    Vincule os pais ou cadastre novos diretamente aqui
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Lista de Responsáveis Já Vinculados */}
+            {linkedGuardians.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[11px] font-black text-[#0D2329]">Responsáveis Vinculados ({linkedGuardians.length}):</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {linkedGuardians.map((lg) => (
+                    <div
+                      key={lg.guardian_id}
+                      className="p-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] flex items-center justify-between gap-2 shadow-2xs group"
+                    >
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-black text-[#0D2329] truncate">
+                            {lg.guardian?.full_name || "Responsável"}
+                          </p>
+                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-[#EDE9FE] text-[#7C3AED] border border-[#DDD6FE]">
+                            {lg.relationship}
+                          </span>
+                        </div>
+                        {lg.guardian?.phone && (
+                          <p className="text-[10px] text-[#6B7C83] flex items-center gap-1 font-semibold truncate">
+                            <Phone className="w-3 h-3 text-[#10B981]" />
+                            <span>{lg.guardian.phone}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveLinkedGuardian(lg.guardian_id)}
+                        className="p-1.5 text-[#A0B4B9] hover:text-[#EF4444] hover:bg-[#FEE2E2] rounded-xl transition-all"
+                        title="Desvincular responsável"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tabs de Seleção / Cadastro de Responsável */}
+            <div className="p-4 rounded-3xl bg-[#F7FAFA] border-2 border-[#D8E5E7] space-y-3.5">
+              <div className="flex items-center gap-2 border-b border-[#D8E5E7] pb-2.5">
+                <button
+                  type="button"
+                  onClick={() => setGuardianMode("existing")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                    guardianMode === "existing"
+                      ? "bg-[#0284C7] text-white shadow-xs"
+                      : "bg-white text-[#6B7C83] border border-[#D8E5E7] hover:bg-[#EEF5F6]"
+                  }`}
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>Selecionar do Banco de Dados</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setGuardianMode("new")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                    guardianMode === "new"
+                      ? "bg-[#7C3AED] text-white shadow-xs"
+                      : "bg-white text-[#6B7C83] border border-[#D8E5E7] hover:bg-[#EEF5F6]"
+                  }`}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Cadastrar Novo Responsável</span>
                 </button>
               </div>
 
-              <input
-                ref={photoInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileSelect}
-              />
+              {/* OPÇÃO 1: SELECIONAR DO BANCO DE DADOS */}
+              {guardianMode === "existing" && (
+                <div className="space-y-3 animate-in fade-in">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-[#0D2329]">Escolha o Responsável:</label>
+                      <select
+                        value={selectedGuardianId}
+                        onChange={(e) => setSelectedGuardianId(e.target.value)}
+                        className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#0284C7]"
+                      >
+                        <option value="">-- Selecione um responsável --</option>
+                        {allGuardians.map((g) => (
+                          <option key={g.id} value={g.id}>
+                            {g.full_name} {g.phone ? `(${g.phone})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-[#0D2329]">Parentesco:</label>
+                      <select
+                        value={linkRelationship}
+                        onChange={(e) => setLinkRelationship(e.target.value)}
+                        className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#0284C7]"
+                      >
+                        {RELATIONSHIPS.map((r) => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-[#0D2329]">
+                      <input
+                        type="checkbox"
+                        checked={linkIsPrimary}
+                        onChange={(e) => setLinkIsPrimary(e.target.checked)}
+                        className="rounded text-[#0284C7] focus:ring-[#0284C7]"
+                      />
+                      <span>Responsável Principal</span>
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={handleAddExistingGuardianToList}
+                      className="px-3.5 py-1.5 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-black flex items-center gap-1 shadow-2xs active:scale-95 transition-all"
+                    >
+                      <Link2 className="w-3.5 h-3.5" />
+                      <span>Vincular Responsável</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* OPÇÃO 2: CADASTRAR NOVO RESPONSÁVEL */}
+              {guardianMode === "new" && (
+                <div className="space-y-3 animate-in fade-in">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-[#0D2329]">Nome do Responsável *</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Maria Aparecida"
+                        value={newGuardianForm.full_name}
+                        onChange={(e) => setNewGuardianForm({ ...newGuardianForm, full_name: e.target.value })}
+                        className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-[#0D2329]">Parentesco:</label>
+                      <select
+                        value={newGuardianForm.relationship}
+                        onChange={(e) => setNewGuardianForm({ ...newGuardianForm, relationship: e.target.value })}
+                        className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                      >
+                        {RELATIONSHIPS.map((r) => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-[#0D2329]">Telefone / WhatsApp:</label>
+                      <input
+                        type="text"
+                        placeholder="(11) 99999-9999"
+                        value={newGuardianForm.phone}
+                        onChange={(e) => setNewGuardianForm({ ...newGuardianForm, phone: e.target.value })}
+                        className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-[#0D2329]">E-mail (opcional):</label>
+                      <input
+                        type="email"
+                        placeholder="maria@email.com"
+                        value={newGuardianForm.email}
+                        onChange={(e) => setNewGuardianForm({ ...newGuardianForm, email: e.target.value })}
+                        className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
+          </div>
+        </div>
 
-            <Input
-              label="Nome Completo *"
-              value={form.full_name}
-              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-            />
+        {/* Footer */}
+        <div className="p-4 border-t border-[#EEF5F6] bg-[#F7FAFA] flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="px-5 py-2.5 rounded-2xl border-2 border-[#D8E5E7] hover:bg-white text-xs font-black text-[#6B7C83] hover:text-[#0D2329] transition-all"
+          >
+            Cancelar
+          </button>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Input
-                label="Data de Nascimento"
-                type="date"
-                value={form.birth_date}
-                onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
-              />
+          <button
+            type="button"
+            disabled={loading}
+            onClick={handleSubmit}
+            className="h-11 px-6 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs sm:text-sm font-black flex items-center gap-2 shadow-sm active:scale-95 transition-all disabled:opacity-50"
+          >
+            {loading ? (
+              <span>Salvando dados...</span>
+            ) : (
+              <>
+                <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                <span>Salvar Alterações</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
 
-              <Select
-                label="Status do Acompanhamento"
-                options={STATUS_OPTIONS}
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value as ChildStatus })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Input
-                label="Escola"
-                placeholder="Ex: Percio Puccini"
-                value={form.school}
-                onChange={(e) => setForm({ ...form, school: e.target.value })}
-              />
-
-              <Input
-                label="Ano / Série"
-                placeholder="Ex: 4ª série Fundamental"
-                value={form.grade}
-                onChange={(e) => setForm({ ...form, grade: e.target.value })}
-              />
-            </div>
-
-            <Textarea
-              label="Queixa Principal / Motivo"
-              placeholder="Dificuldade relatada pela família ou escola..."
-              value={form.main_complaint}
-              onChange={(e) => setForm({ ...form, main_complaint: e.target.value })}
-              rows={2}
-            />
-
-            <Textarea
-              label="Observações Gerais"
-              placeholder="Anotações internas, diagnósticos prévios, etc..."
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              rows={2}
-            />
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button loading={loading} onClick={handleSubmit}>
-              Salvar Alterações
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Interactive Crop & Reframe Modal */}
+      {/* Interactive Crop Modal */}
       <ImageCropperModal
         open={cropperOpen}
         imageSrc={imageToCrop}
         onClose={() => setCropperOpen(false)}
         onCropComplete={handleCropComplete}
       />
-    </>
+    </div>
   )
 }
