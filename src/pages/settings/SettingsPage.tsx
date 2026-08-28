@@ -546,31 +546,36 @@ export function SettingsPage() {
         </button>
       </div>
 
-      {/* 2. STRUCTURED TAB BAR */}
-      <div className="flex bg-white p-1.5 rounded-2xl border-2 border-[#D8E5E7] shadow-xs overflow-x-auto gap-1">
-        {[
-          { id: "consultorio", label: "🏢 Consultório, Perfil & PIX", icon: Building },
-          ...(isMaster ? [{ id: "equipe", label: "👥 Equipe & Acessos", icon: Users }] : []),
-          { id: "agenda", label: "📅 Horários de Atendimento", icon: Calendar },
-          { id: "notificacoes", label: "💬 Mensagens WhatsApp", icon: MessageSquare },
-          { id: "integracoes", label: "🔗 Google Agenda & Dados", icon: Globe },
-        ].map((tab) => {
-          const isActive = activeTab === tab.id
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as SettingsTab)}
-              className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all shrink-0 flex items-center gap-2 ${
-                isActive
-                  ? "bg-[#7C3AED] text-white shadow-sm"
-                  : "text-[#4F6C74] hover:text-[#0D2329] hover:bg-[#F7FAFA]"
-              }`}
-            >
-              <tab.icon className="w-3.5 h-3.5" />
-              <span>{tab.label}</span>
-            </button>
-          )
-        })}
+      {/* 2. MODERN RESPONSIVE TAB BAR (Native Mobile Chips + Clean Desktop Tabs) */}
+      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none pb-1">
+        <div className="flex items-center gap-2 p-1.5 bg-white rounded-full sm:rounded-2xl border-2 border-[#D8E5E7] shadow-xs w-max sm:w-full">
+          {[
+            { id: "consultorio", label: "Consultório, Perfil & PIX", shortLabel: "Perfil & PIX", icon: Building },
+            ...(isMaster ? [{ id: "equipe", label: "Equipe & Acessos", shortLabel: "Equipe", icon: Users }] : []),
+            { id: "agenda", label: "Horários de Atendimento", shortLabel: "Horários", icon: Calendar },
+            { id: "notificacoes", label: "Mensagens WhatsApp", shortLabel: "Mensagens", icon: MessageSquare },
+            { id: "integracoes", label: "Google Agenda & Dados", shortLabel: "Google Agenda", icon: Globe },
+          ].map((tab) => {
+            const isActive = activeTab === tab.id
+            const Icon = tab.icon
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as SettingsTab)}
+                className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full sm:rounded-xl text-xs font-black transition-all shrink-0 flex items-center gap-2 active:scale-95 ${
+                  isActive
+                    ? "bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white shadow-md"
+                    : "text-[#4F6C74] hover:text-[#0D2329] hover:bg-[#F7FAFA] bg-transparent"
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-white" : "text-[#7C3AED]"}`} />
+                <span className="sm:hidden whitespace-nowrap">{tab.shortLabel}</span>
+                <span className="hidden sm:inline whitespace-nowrap">{tab.label}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* =========================================================================
