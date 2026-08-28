@@ -41,6 +41,10 @@ interface Attachment {
   size?: number
 }
 
+const DEFAULT_INTRO = "O presente relatório tem como objetivo apresentar a evolução psicopedagógica, os aspectos cognitivos observados e o desempenho nas atividades propostas durante o período de atendimento."
+const DEFAULT_DEV = "Durante os atendimentos realizados no período, foram trabalhadas habilidades de leitura, escrita, raciocínio lógico-matemático, atenção concentrada e funções executivas. A criança demonstrou engajamento nas intervenções lúdicas e psicopedagógicas."
+const DEFAULT_CONCL = "Com base nas atividades e estímulos aplicados, recomenda-se a continuidade dos atendimentos psicopedagógicos com foco no fortalecimento da autonomia e estratégias de aprendizagem."
+
 export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) {
   const { professional } = useAuthStore()
   const [reports, setReports] = useState<Report[]>([])
@@ -61,12 +65,9 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
     title: `Relatório Psicopedagógico - ${child.full_name}`,
     period_start: child.created_at ? child.created_at.split("T")[0] : "",
     period_end: new Date().toISOString().split("T")[0],
-    introduction:
-      "O presente relatório tem como objetivo apresentar a evolução psicopedagógica, os aspectos cognitivos observados e o desempenho nas atividades propostas durante o período de atendimento.",
-    development:
-      "Durante os atendimentos realizados no período, foram trabalhadas habilidades de leitura, escrita, raciocínio lógico-matemático, atenção concentrada e funções executivas. A criança demonstrou engajamento nas intervenções lúdicas e psicopedagógicas.",
-    conclusion:
-      "Com base nas atividades e estímulos aplicados, recomenda-se a continuidade dos atendimentos psicopedagógicos com foco no fortalecimento da autonomia e estratégias de aprendizagem.",
+    introduction: "",
+    development: "",
+    conclusion: "",
     attachments: [] as Attachment[],
   })
 
@@ -93,9 +94,9 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
           title: active.title || `Relatório Psicopedagógico - ${child.full_name}`,
           period_start: active.period_start || (child.created_at ? child.created_at.split("T")[0] : ""),
           period_end: active.period_end || new Date().toISOString().split("T")[0],
-          introduction: content.introduction || form.introduction,
-          development: content.development || form.development,
-          conclusion: content.conclusion || form.conclusion,
+          introduction: content.introduction || "",
+          development: content.development || "",
+          conclusion: content.conclusion || "",
           attachments: Array.isArray(content.attachments) ? content.attachments : [],
         })
       }
@@ -120,9 +121,9 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
     setStartingReport(true)
     try {
       const contentJson = {
-        introduction: form.introduction,
-        development: form.development,
-        conclusion: form.conclusion,
+        introduction: form.introduction || "",
+        development: form.development || "",
+        conclusion: form.conclusion || "",
         attachments: form.attachments,
       }
 
@@ -476,21 +477,21 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
               <div className="p-3.5 rounded-2xl bg-white border border-[#D8E5E7] space-y-1">
                 <p className="text-[10px] font-black uppercase text-[#6B7C83] tracking-wider">1. Introdução</p>
                 <p className="text-[#0D2329] font-medium line-clamp-3 italic">
-                  "{form.introduction}"
+                  "{form.introduction || DEFAULT_INTRO}"
                 </p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-white border border-[#D8E5E7] space-y-1">
                 <p className="text-[10px] font-black uppercase text-[#6B7C83] tracking-wider">2. Desenvolvimento</p>
                 <p className="text-[#0D2329] font-medium line-clamp-3 italic">
-                  "{form.development}"
+                  "{form.development || DEFAULT_DEV}"
                 </p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-white border border-[#D8E5E7] space-y-1">
                 <p className="text-[10px] font-black uppercase text-[#6B7C83] tracking-wider">3. Conclusão</p>
                 <p className="text-[#0D2329] font-medium line-clamp-3 italic">
-                  "{form.conclusion}"
+                  "{form.conclusion || DEFAULT_CONCL}"
                 </p>
               </div>
             </div>
@@ -584,7 +585,8 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
                   rows={3}
                   value={form.introduction}
                   onChange={(e) => setForm({ ...form, introduction: e.target.value })}
-                  className="w-full p-3.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] text-[#0D2329] resize-none"
+                  placeholder={DEFAULT_INTRO}
+                  className="w-full p-3.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] text-[#0D2329] placeholder:text-[#8DA3A8]/75 placeholder:font-normal resize-none leading-relaxed transition-all"
                 />
               </div>
 
@@ -594,7 +596,8 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
                   rows={4}
                   value={form.development}
                   onChange={(e) => setForm({ ...form, development: e.target.value })}
-                  className="w-full p-3.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] text-[#0D2329] resize-none"
+                  placeholder={DEFAULT_DEV}
+                  className="w-full p-3.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] text-[#0D2329] placeholder:text-[#8DA3A8]/75 placeholder:font-normal resize-none leading-relaxed transition-all"
                 />
               </div>
 
@@ -604,7 +607,8 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
                   rows={3}
                   value={form.conclusion}
                   onChange={(e) => setForm({ ...form, conclusion: e.target.value })}
-                  className="w-full p-3.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] text-[#0D2329] resize-none"
+                  placeholder={DEFAULT_CONCL}
+                  className="w-full p-3.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] text-[#0D2329] placeholder:text-[#8DA3A8]/75 placeholder:font-normal resize-none leading-relaxed transition-all"
                 />
               </div>
 
@@ -801,7 +805,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
                     1. Introdução & Objetivos
                   </h4>
                   <p className="whitespace-pre-wrap text-[#0D2329] text-justify leading-relaxed">
-                    {form.introduction}
+                    {form.introduction || DEFAULT_INTRO}
                   </p>
                 </div>
 
@@ -810,7 +814,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
                     2. Desenvolvimento das Sessões & Habilidades
                   </h4>
                   <p className="whitespace-pre-wrap text-[#0D2329] text-justify leading-relaxed">
-                    {form.development}
+                    {form.development || DEFAULT_DEV}
                   </p>
                 </div>
 
@@ -819,7 +823,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
                     3. Conclusão & Recomendações Pedagógicas
                   </h4>
                   <p className="whitespace-pre-wrap text-[#0D2329] text-justify leading-relaxed">
-                    {form.conclusion}
+                    {form.conclusion || DEFAULT_CONCL}
                   </p>
                 </div>
 

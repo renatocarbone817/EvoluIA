@@ -121,12 +121,9 @@ export function ReportsPage() {
         title: `Relatório Psicopedagógico - ${selectedChild.full_name}`,
         status: "draft",
         content: {
-          introduction:
-            "O presente relatório tem como objetivo apresentar a evolução psicopedagógica, os aspectos cognitivos observados e o desempenho nas atividades propostas durante o período de atendimento.",
-          development:
-            "Durante os atendimentos realizados no período, foram trabalhadas habilidades de leitura, escrita, raciocínio lógico-matemático, atenção concentrada e funções executivas. A criança demonstrou engajamento nas intervenções lúdicas e psicopedagógicas.",
-          conclusion:
-            "Com base nas atividades e estímulos aplicados, recomenda-se a continuidade dos atendimentos psicopedagógicos com foco no fortalecimento da autonomia e estratégias de aprendizagem.",
+          introduction: "",
+          development: "",
+          conclusion: "",
           attachments: [],
         },
         period_start: selectedChild.created_at ? selectedChild.created_at.split("T")[0] : null,
