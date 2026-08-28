@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Plus, Search, Calendar, FileText, Paperclip, ChevronRight, Activity } from "lucide-react"
+import { Plus, Search, Calendar, FileText, Paperclip, ChevronRight, Activity, X } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
@@ -15,6 +15,7 @@ interface ChildSessionsTabProps {
 
 interface SessionWithDocs extends Session {
   session_documents?: SessionDocument[]
+  areas_worked?: string[] | null
 }
 
 export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) {
@@ -187,112 +188,160 @@ export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) 
         </div>
       )}
 
-      {/* Session Details Modal */}
+      {/* Session Details Modal (Design Moderno & Colorido) */}
       {selectedSession && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-background rounded-xl border border-border max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl">
-            <div className="p-6 border-b border-border flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold">
-                  Sessão #{selectedSession.session_number} — {childName}
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {formatDate(selectedSession.date)}
-                  {selectedSession.start_time && ` às ${selectedSession.start_time.substring(0, 5)}`}
-                </p>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="p-5 sm:p-6 border-b-2 border-[#EEF5F6] flex items-center justify-between gap-3 bg-white">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] border-2 border-[#DDD6FE] flex items-center justify-center shrink-0 shadow-2xs">
+                  <Activity className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base sm:text-lg font-black text-[#0D2329] truncate">
+                      Sessão #{selectedSession.session_number || "—"} — {childName}
+                    </h2>
+                    <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0]">
+                      ✓ Realizada
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-[#6B7C83] mt-0.5">
+                    {formatDate(selectedSession.date)}
+                    {selectedSession.start_time && ` às ${selectedSession.start_time.substring(0, 5)}`}
+                  </p>
+                </div>
               </div>
-              <Button size="sm" variant="ghost" onClick={() => setSelectedSession(null)}>
-                Fechar
-              </Button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedSession(null)}
+                className="w-9 h-9 rounded-2xl bg-[#F8FAFB] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] transition-all flex items-center justify-center border border-[#D8E5E7] shrink-0"
+                title="Fechar"
+              >
+                <X className="w-4 h-4 stroke-[2.5]" />
+              </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-5 text-sm">
+            {/* Scrollable Body with Clean Pastel Cards */}
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
+              {/* 1. Objetivo da Sessão */}
               {selectedSession.objective && (
-                <div>
-                  <h4 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-1">
-                    Objetivo da Sessão
+                <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#EEF5F6] space-y-1.5">
+                  <h4 className="font-black text-xs text-[#0D2329] uppercase tracking-wide flex items-center gap-1.5">
+                    <span>🎯</span>
+                    <span>Objetivo da Sessão</span>
                   </h4>
-                  <p className="bg-muted/40 p-3 rounded-lg leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs sm:text-sm font-medium text-[#2E4A52] leading-relaxed whitespace-pre-wrap">
                     {selectedSession.objective}
                   </p>
                 </div>
               )}
 
-              {selectedSession.what_was_worked && (
-                <div>
-                  <h4 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-1">
-                    O que foi trabalhado
+              {/* 2. O que foi trabalhado / Habilidades */}
+              {(selectedSession.what_was_worked || (selectedSession.areas_worked && selectedSession.areas_worked.length > 0)) && (
+                <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#EEF5F6] space-y-2">
+                  <h4 className="font-black text-xs text-[#0D2329] uppercase tracking-wide flex items-center gap-1.5">
+                    <span>⚡</span>
+                    <span>O que foi trabalhado</span>
                   </h4>
-                  <p className="bg-muted/40 p-3 rounded-lg leading-relaxed whitespace-pre-wrap">
-                    {selectedSession.what_was_worked}
-                  </p>
+
+                  {selectedSession.areas_worked && selectedSession.areas_worked.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-0.5 pb-1">
+                      {selectedSession.areas_worked.map((area: string) => (
+                        <span
+                          key={area}
+                          className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0]"
+                        >
+                          {area}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedSession.what_was_worked && (
+                    <p className="text-xs sm:text-sm font-medium text-[#2E4A52] leading-relaxed whitespace-pre-wrap">
+                      {selectedSession.what_was_worked}
+                    </p>
+                  )}
                 </div>
               )}
 
+              {/* 3. Atividades Realizadas */}
               {selectedSession.activities && (
-                <div>
-                  <h4 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-1">
-                    Atividades Realizadas
+                <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#EEF5F6] space-y-1.5">
+                  <h4 className="font-black text-xs text-[#0D2329] uppercase tracking-wide flex items-center gap-1.5">
+                    <span>🎲</span>
+                    <span>Atividades e Jogos Realizados</span>
                   </h4>
-                  <p className="bg-muted/40 p-3 rounded-lg leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs sm:text-sm font-medium text-[#2E4A52] leading-relaxed whitespace-pre-wrap">
                     {selectedSession.activities}
                   </p>
                 </div>
               )}
 
+              {/* 4. Testes e Resultados */}
               {selectedSession.test_results && (
-                <div>
-                  <h4 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-1">
-                    Testes e Resultados
+                <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#EEF5F6] space-y-1.5">
+                  <h4 className="font-black text-xs text-[#0D2329] uppercase tracking-wide flex items-center gap-1.5">
+                    <span>📋</span>
+                    <span>Testes e Resultados</span>
                   </h4>
-                  <p className="bg-muted/40 p-3 rounded-lg leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs sm:text-sm font-medium text-[#2E4A52] leading-relaxed whitespace-pre-wrap">
                     {selectedSession.test_results}
                   </p>
                 </div>
               )}
 
+              {/* 5. Observações Profissionais */}
               {selectedSession.professional_notes && (
-                <div>
-                  <h4 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-1">
-                    Observações Profissionais
+                <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#EEF5F6] space-y-1.5">
+                  <h4 className="font-black text-xs text-[#0D2329] uppercase tracking-wide flex items-center gap-1.5">
+                    <span>📝</span>
+                    <span>Observações Profissionais & Comportamento</span>
                   </h4>
-                  <p className="bg-muted/40 p-3 rounded-lg leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs sm:text-sm font-medium text-[#2E4A52] leading-relaxed whitespace-pre-wrap">
                     {selectedSession.professional_notes}
                   </p>
                 </div>
               )}
 
+              {/* 6. Próximos Objetivos */}
               {selectedSession.next_objectives && (
-                <div>
-                  <h4 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-1">
-                    Próximos Objetivos
+                <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#EEF5F6] space-y-1.5">
+                  <h4 className="font-black text-xs text-[#0D2329] uppercase tracking-wide flex items-center gap-1.5">
+                    <span>🚀</span>
+                    <span>Próximos Objetivos & Planejamento</span>
                   </h4>
-                  <p className="bg-muted/40 p-3 rounded-lg leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs sm:text-sm font-medium text-[#2E4A52] leading-relaxed whitespace-pre-wrap">
                     {selectedSession.next_objectives}
                   </p>
                 </div>
               )}
 
+              {/* 7. Anexos */}
               {selectedSession.session_documents && selectedSession.session_documents.length > 0 && (
-                <div>
-                  <h4 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                    Anexos da Sessão ({selectedSession.session_documents.length})
+                <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#EEF5F6] space-y-2">
+                  <h4 className="font-black text-xs text-[#0D2329] uppercase tracking-wide flex items-center gap-1.5">
+                    <span>📎</span>
+                    <span>Anexos da Sessão ({selectedSession.session_documents.length})</span>
                   </h4>
-                  <div className="space-y-2">
-                    {selectedSession.session_documents.map((doc) => (
+                  <div className="space-y-1.5">
+                    {selectedSession.session_documents.map((doc: any) => (
                       <div
                         key={doc.id}
-                        className="flex items-center justify-between p-2.5 bg-muted/40 rounded-lg border border-border/50"
+                        className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-[#D8E5E7]"
                       >
                         <div className="flex items-center gap-2 truncate">
-                          <Paperclip className="w-4 h-4 text-muted-foreground shrink-0" />
-                          <span className="truncate text-xs font-medium">{doc.file_name}</span>
+                          <Paperclip className="w-4 h-4 text-[#7C3AED] shrink-0" />
+                          <span className="truncate text-xs font-bold text-[#0D2329]">{doc.file_name}</span>
                         </div>
                         <a
                           href={doc.file_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-xs font-medium text-foreground underline hover:opacity-75 shrink-0 ml-2"
+                          className="text-xs font-black text-[#7C3AED] hover:underline shrink-0 ml-2"
                         >
                           Visualizar
                         </a>
@@ -303,8 +352,18 @@ export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) 
               )}
             </div>
 
-            <div className="p-4 border-t border-border bg-muted/20 flex justify-end">
-              <Button onClick={() => setSelectedSession(null)}>Fechar</Button>
+            {/* Footer */}
+            <div className="p-4 sm:p-5 border-t-2 border-[#EEF5F6] bg-white flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-[#8CAAB1]">
+                🔒 Registro clínico confidencial
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedSession(null)}
+                className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all"
+              >
+                Fechar
+              </button>
             </div>
           </div>
         </div>
