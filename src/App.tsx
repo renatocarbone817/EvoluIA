@@ -29,41 +29,20 @@ const queryClient = new QueryClient()
 export function App() {
   const { setUser, setProfessional, setLoading, fetchProfessional } = useAuthStore()
 
-  useEffect(() => {
-    // 1. Initial session check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser({ id: session.user.id, email: session.user.email || "" })
-        fetchProfessional(session.user.id).finally(() => setLoading(false))
-      } else {
-        setUser(null)
-        setProfessional(null)
-        setLoading(false)
-      }
-    })
-
-    // 2. Auth state changes listener (Blindado contra Alt+Tab / TOKEN_REFRESHED)
+    useEffect(() => {
+    // Auth state changes listener (Manipula INITIAL_SESSION no F5 e evita re-renders no Alt+Tab)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === "SIGNED_IN") {
-          if (session?.user) {
-            const currentUser = useAuthStore.getState().user
-            if (!currentUser || currentUser.id !== session.user.id) {
-              setUser({ id: session.user.id, email: session.user.email || "" })
-              await fetchProfessional(session.user.id)
-            }
+        if (session?.user) {
+          const currentUser = useAuthStore.getState().user
+          // Se o usuário ainda não estiver na memória (ex: F5) ou mudou de conta
+          if (!currentUser || currentUser.id !== session.user.id) {
+            setUser({ id: session.user.id, email: session.user.email || "" })
+            await fetchProfessional(session.user.id)
           }
         } else if (event === "SIGNED_OUT") {
           setUser(null)
           setProfessional(null)
-        } else if (event === "TOKEN_REFRESHED") {
-          // Renovação silenciosa de token em segundo plano: não reseta o estado nem recarrega perfis
-          if (session?.user) {
-            const currentUser = useAuthStore.getState().user
-            if (!currentUser) {
-              setUser({ id: session.user.id, email: session.user.email || "" })
-            }
-          }
         }
         setLoading(false)
       }
