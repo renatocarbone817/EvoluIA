@@ -263,22 +263,29 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
           ))}
         </div>
       ) : records.length === 0 ? (
-        <Card className="border-2 border-dashed border-[#D8E5E7] text-center py-12">
-          <CardContent className="space-y-3">
-            <DollarSign className="w-10 h-10 text-[#8DA3A8] mx-auto" />
-            <p className="font-black text-base text-[#19323A]">Nenhum lançamento registrado</p>
-            <p className="text-xs text-[#6B7C83] max-w-sm mx-auto">
-              Crie cobranças mensais ou lançamentos avulsos para este paciente.
+        <div className="p-8 sm:p-12 rounded-3xl bg-white border-2 border-dashed border-[#D8E5E7] text-center space-y-4 shadow-xs">
+          <div className="w-16 h-16 rounded-3xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center mx-auto shadow-xs">
+            <DollarSign className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-1.5 max-w-md mx-auto">
+            <h3 className="text-lg font-black text-[#0D2329]">Nenhum lançamento registrado</h3>
+            <p className="text-xs font-semibold text-[#6B7C83] leading-relaxed">
+              Crie cobranças mensais, pacotes de sessões ou lançamentos avulsos para <strong>{childName || "este paciente"}</strong>.
             </p>
+          </div>
+
+          <div className="pt-2">
             <button
+              type="button"
               onClick={openAddModal}
-              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all inline-flex items-center gap-2 mt-2"
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black inline-flex items-center gap-2 shadow-md active:scale-95 transition-all"
             >
-              <Plus className="w-4 h-4" />
-              <span>Lançar Cobrança</span>
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>+ Lançar Cobrança</span>
             </button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
         <div className="space-y-3">
           {records.map((r) => (

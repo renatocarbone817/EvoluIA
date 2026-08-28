@@ -50,13 +50,13 @@ export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) 
       {/* Action Header */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8CAAB1]" />
           <input
             type="text"
             placeholder="Buscar nas anotações das sessões..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 h-10 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full pl-10 pr-4 py-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all shadow-2xs placeholder:text-[#8CAAB1]"
           />
         </div>
         <button
@@ -76,22 +76,29 @@ export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) 
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Activity className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-            <p className="font-semibold text-base">Nenhuma sessão registrada</p>
-            <p className="text-sm text-muted-foreground mt-1 mb-4">
-              Comece a registrar as sessões de acompanhamento para construir o histórico.
+        <div className="p-8 sm:p-12 rounded-3xl bg-white border-2 border-dashed border-[#D8E5E7] text-center space-y-4 shadow-xs">
+          <div className="w-16 h-16 rounded-3xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center mx-auto shadow-xs">
+            <Activity className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-1.5 max-w-md mx-auto">
+            <h3 className="text-lg font-black text-[#0D2329]">Nenhuma sessão registrada</h3>
+            <p className="text-xs font-semibold text-[#6B7C83] leading-relaxed">
+              Comece a registrar as sessões de acompanhamento para construir o histórico clínico e pedagógico de <strong>{childName || "este paciente"}</strong>.
             </p>
+          </div>
+
+          <div className="pt-2">
             <button
+              type="button"
               onClick={() => navigate(`/atendimento/nova/${childId}`)}
-              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all inline-flex items-center gap-2"
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black inline-flex items-center gap-2 shadow-md active:scale-95 transition-all"
             >
-              <Plus className="w-4 h-4" />
-              <span>Registrar Primeira Sessão</span>
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>+ Registrar Primeira Sessão</span>
             </button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
         <div className="space-y-4">
           {filtered.map((s) => {

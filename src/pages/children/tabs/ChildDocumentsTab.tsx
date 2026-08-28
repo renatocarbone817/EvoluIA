@@ -147,22 +147,29 @@ export function ChildDocumentsTab({ childId }: ChildDocumentsTabProps) {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-            <p className="font-semibold text-base">Nenhum documento anexado</p>
-            <p className="text-sm text-muted-foreground mt-1 mb-4">
-              Faça upload de atividades, testes escaneados, laudos ou relatórios.
+        <div className="p-8 sm:p-12 rounded-3xl bg-white border-2 border-dashed border-[#D8E5E7] text-center space-y-4 shadow-xs">
+          <div className="w-16 h-16 rounded-3xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center mx-auto shadow-xs">
+            <FileText className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-1.5 max-w-md mx-auto">
+            <h3 className="text-lg font-black text-[#0D2329]">Nenhum documento anexado</h3>
+            <p className="text-xs font-semibold text-[#6B7C83] leading-relaxed">
+              Faça upload de atividades, testes escaneados, laudos médicos ou relatórios complementares.
             </p>
+          </div>
+
+          <div className="pt-2">
             <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all inline-flex items-center gap-2"
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black inline-flex items-center gap-2 shadow-md active:scale-95 transition-all"
             >
-              <Upload className="w-4 h-4" />
-              <span>Fazer Upload</span>
+              <Upload className="w-4 h-4 stroke-[2.5]" />
+              <span>+ Fazer Upload de Documento</span>
             </button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
         <div className="grid sm:grid-cols-2 gap-3">
           {filtered.map((doc) => (
