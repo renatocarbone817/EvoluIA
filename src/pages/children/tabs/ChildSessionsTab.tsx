@@ -59,10 +59,13 @@ export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) 
             className="w-full pl-9 pr-3 h-10 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
-        <Button onClick={() => navigate(`/atendimento/nova/${childId}`)}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          Registrar Nova Sessão
-        </Button>
+        <button
+          onClick={() => navigate(`/atendimento/nova/${childId}`)}
+          className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Registrar Nova Sessão</span>
+        </button>
       </div>
 
       {/* Sessions List */}
@@ -80,10 +83,13 @@ export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) 
             <p className="text-sm text-muted-foreground mt-1 mb-4">
               Comece a registrar as sessões de acompanhamento para construir o histórico.
             </p>
-            <Button onClick={() => navigate(`/atendimento/nova/${childId}`)}>
-              <Plus className="w-4 h-4 mr-1.5" />
-              Registrar Primeira Sessão
-            </Button>
+            <button
+              onClick={() => navigate(`/atendimento/nova/${childId}`)}
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all inline-flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Registrar Primeira Sessão</span>
+            </button>
           </CardContent>
         </Card>
       ) : (

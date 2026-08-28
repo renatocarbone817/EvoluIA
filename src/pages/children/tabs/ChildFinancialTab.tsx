@@ -170,10 +170,13 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
             Acompanhe pagamentos, mensalidades e comprovantes de WhatsApp.
           </p>
         </div>
-        <Button onClick={openAddModal} className="gap-1.5 font-bold text-xs">
+        <button
+          onClick={openAddModal}
+          className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 shrink-0"
+        >
           <Plus className="w-4 h-4" />
-          Novo Lançamento
-        </Button>
+          <span>Novo Lançamento</span>
+        </button>
       </div>
 
       {/* ── Care Plan Info Card ─────────────────────────────── */}
@@ -244,7 +247,7 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
             </div>
             <button
               onClick={() => setShowCarePlanDialog(true)}
-              className="shrink-0 text-xs font-black text-amber-700 hover:text-amber-900 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-xl transition-all border border-amber-300"
+              className="shrink-0 text-xs font-black text-white bg-amber-500 hover:bg-amber-600 px-4 py-2 rounded-xl transition-all shadow-xs active:scale-95"
             >
               Configurar
             </button>
@@ -267,10 +270,13 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
             <p className="text-xs text-[#6B7C83] max-w-sm mx-auto">
               Crie cobranças mensais ou lançamentos avulsos para este paciente.
             </p>
-            <Button onClick={openAddModal} className="mt-2">
-              <Plus className="w-4 h-4 mr-1.5" />
-              Lançar Cobrança
-            </Button>
+            <button
+              onClick={openAddModal}
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all inline-flex items-center gap-2 mt-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Lançar Cobrança</span>
+            </button>
           </CardContent>
         </Card>
       ) : (

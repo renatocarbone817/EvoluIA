@@ -419,37 +419,49 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap">
           {assessment && !isEditing ? (
             <>
-              <Button variant="outline" size="sm" onClick={() => window.print()}>
-                <Printer className="w-4 h-4 mr-1.5" />
-                Imprimir
-              </Button>
-              <Button size="sm" onClick={() => setIsEditing(true)}>
-                <Edit3 className="w-4 h-4 mr-1.5" />
-                Editar Respostas
-              </Button>
-              {/* AI Analyze Button */}
-              <Button
-                size="sm"
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-4 py-2 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#7C3AED] hover:bg-[#F8FAFB] text-xs font-black text-[#0D2329] transition-all shadow-2xs active:scale-95 flex items-center gap-1.5"
+              >
+                <Printer className="w-4 h-4 text-[#6B7C83]" />
+                <span>Imprimir</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="px-4 py-2 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] border-2 border-[#C4B5FD] font-black text-xs transition-all shadow-2xs active:scale-95 flex items-center gap-1.5"
+              >
+                <Edit3 className="w-4 h-4" />
+                <span>Editar Respostas</span>
+              </button>
+              <button
+                type="button"
                 onClick={handleAnalyzeWithAI}
                 disabled={aiLoading}
-                className="gap-1.5 bg-gradient-to-r from-[#245C6B] to-[#1a4a58] hover:from-[#1a4a58] hover:to-[#132f3a] text-white border-0"
+                className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
               >
                 {aiLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Sparkles className="w-4 h-4" />
                 )}
-                {aiLoading ? "Analisando..." : aiAnalysis ? "Reanalisar com IA" : "✨ Analisar com IA"}
-              </Button>
+                <span>{aiLoading ? "Analisando..." : aiAnalysis ? "Reanalisar com IA" : "✨ Analisar com IA"}</span>
+              </button>
             </>
           ) : (
-            <Button loading={saving} onClick={handleSaveAssessment}>
-              <Save className="w-4 h-4 mr-1.5" />
-              Salvar Entrevista
-            </Button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleSaveAssessment}
+              className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#00C48C] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              <span>Salvar Entrevista</span>
+            </button>
           )}
         </div>
       </div>

@@ -128,14 +128,14 @@ export function ChildDocumentsTab({ childId }: ChildDocumentsTabProps) {
             className="hidden"
             onChange={handleFileUpload}
           />
-          <Button
-            loading={uploading}
+          <button
+            disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
-            className="w-full sm:w-auto"
+            className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 w-full sm:w-auto disabled:opacity-50"
           >
-            <Upload className="w-4 h-4 mr-1.5" />
-            Novo Documento / Anexo
-          </Button>
+            <Upload className="w-4 h-4" />
+            <span>{uploading ? "Enviando..." : "Novo Documento / Anexo"}</span>
+          </button>
         </div>
       </div>
 
@@ -154,10 +154,13 @@ export function ChildDocumentsTab({ childId }: ChildDocumentsTabProps) {
             <p className="text-sm text-muted-foreground mt-1 mb-4">
               Faça upload de atividades, testes escaneados, laudos ou relatórios.
             </p>
-            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-              <Upload className="w-4 h-4 mr-1.5" />
-              Fazer Upload
-            </Button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all inline-flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Fazer Upload</span>
+            </button>
           </CardContent>
         </Card>
       ) : (
