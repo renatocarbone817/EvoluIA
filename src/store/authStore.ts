@@ -32,6 +32,21 @@ export const useAuthStore = create<AuthState>((set) => ({
       
       if (data) {
         set({ professional: data })
+        // Se for Master, carregar em cache os membros para compartilhamento bidirecional em tempo real
+        if (data.role !== 'professional' || !data.master_id) {
+          try {
+            const { data: team } = await supabase
+              .from('professionals')
+              .select('*')
+              .eq('master_id', userId)
+              .eq('is_active', true)
+            if (team) {
+              localStorage.setItem(`evoluia_team_members_${userId}`, JSON.stringify(team))
+            }
+          } catch (err) {
+            console.warn('Could not preload team:', err)
+          }
+        }
       } else {
         const { data: userData } = await supabase.auth.getUser()
         const email = userData.user?.email || ''
