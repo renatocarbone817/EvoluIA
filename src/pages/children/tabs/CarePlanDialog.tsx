@@ -37,7 +37,7 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
     if (open && professional) {
       loadPlan()
     }
-  }, [open, professional, childId])
+  }, [open, professional?.id, childId])
 
   async function loadPlan() {
     const { data } = await supabase

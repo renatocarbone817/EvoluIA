@@ -70,11 +70,12 @@ export function ActiveSessionPage() {
 
   useEffect(() => {
     loadContext()
-  }, [appointmentId, paramChildId, professional])
+  }, [appointmentId, paramChildId, professional?.id])
 
   async function loadContext() {
-    if (!professional) return
-    setLoading(true)
+    const profId = professional?.id || useAuthStore.getState().user?.id
+    if (!profId) return
+    if (!child) setLoading(true)
     try {
       let resolvedChildId = paramChildId
 

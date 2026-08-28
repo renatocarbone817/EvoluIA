@@ -60,8 +60,8 @@ export function ChildProfilePage() {
   const [showEditDialog, setShowEditDialog] = useState(false)
 
   useEffect(() => {
-    if (id && professional) loadChild()
-  }, [id, professional])
+    if (id) loadChild()
+  }, [id, professional?.id])
 
   useEffect(() => {
     if (searchParams.get("editar") === "true") {
@@ -79,7 +79,7 @@ export function ChildProfilePage() {
   }, [searchParams])
 
   async function loadChild() {
-    setLoading(true)
+    if (!child) setLoading(true)
     try {
       const [childRes, guardianRes, apptRes, sessionRes] = await Promise.all([
         supabase.from("children").select("*").eq("id", id).single(),

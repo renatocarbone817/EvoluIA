@@ -40,7 +40,7 @@ export function AddGuardianDialog({ open, childId, onClose, onSuccess }: AddGuar
     if (open && professional) {
       loadGuardians()
     }
-  }, [open, professional])
+  }, [open, professional?.id])
 
   async function loadGuardians() {
     const { data } = await supabase

@@ -31,7 +31,10 @@ export const useAuthStore = create<AuthState>((set) => ({
         .single()
       
       if (data) {
-        set({ professional: data })
+        const current = useAuthStore.getState().professional
+        if (!current || JSON.stringify(current) !== JSON.stringify(data)) {
+          set({ professional: data })
+        }
         // Se for Master, carregar em cache os membros para compartilhamento bidirecional em tempo real
         if (data.role !== 'professional' || !data.master_id) {
           try {

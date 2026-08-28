@@ -42,15 +42,28 @@ export function App() {
       }
     })
 
-    // 2. Auth state changes listener
+    // 2. Auth state changes listener (Blindado contra Alt+Tab / TOKEN_REFRESHED)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          setUser({ id: session.user.id, email: session.user.email || "" })
-          await fetchProfessional(session.user.id)
-        } else {
+      async (event, session) => {
+        if (event === "SIGNED_IN") {
+          if (session?.user) {
+            const currentUser = useAuthStore.getState().user
+            if (!currentUser || currentUser.id !== session.user.id) {
+              setUser({ id: session.user.id, email: session.user.email || "" })
+              await fetchProfessional(session.user.id)
+            }
+          }
+        } else if (event === "SIGNED_OUT") {
           setUser(null)
           setProfessional(null)
+        } else if (event === "TOKEN_REFRESHED") {
+          // Renovação silenciosa de token em segundo plano: não reseta o estado nem recarrega perfis
+          if (session?.user) {
+            const currentUser = useAuthStore.getState().user
+            if (!currentUser) {
+              setUser({ id: session.user.id, email: session.user.email || "" })
+            }
+          }
         }
         setLoading(false)
       }
