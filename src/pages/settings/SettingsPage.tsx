@@ -176,6 +176,13 @@ export function SettingsPage() {
     }
   }, [profId, isMaster, activeTab])
 
+  // Proteção de Rota/Aba: Se uma psicopedagoga adicional tentar acessar a aba equipe, redireciona imediatamente para consultório
+  useEffect(() => {
+    if (!isMaster && activeTab === "equipe") {
+      setActiveTab("consultorio")
+    }
+  }, [isMaster, activeTab])
+
   async function loadTeam() {
     if (!profId) return
     setLoadingTeam(true)
@@ -537,7 +544,7 @@ export function SettingsPage() {
       <div className="flex bg-white p-1.5 rounded-2xl border-2 border-[#D8E5E7] shadow-xs overflow-x-auto gap-1">
         {[
           { id: "consultorio", label: "🏢 Consultório, Perfil & PIX", icon: Building },
-          { id: "equipe", label: "👥 Equipe & Acessos", icon: Users },
+          ...(isMaster ? [{ id: "equipe", label: "👥 Equipe & Acessos", icon: Users }] : []),
           { id: "agenda", label: "📅 Horários de Atendimento", icon: Calendar },
           { id: "notificacoes", label: "💬 Mensagens WhatsApp", icon: MessageSquare },
           { id: "integracoes", label: "🔗 Google Agenda & Dados", icon: Globe },
@@ -886,7 +893,7 @@ export function SettingsPage() {
       {/* =========================================================================
           TAB 2: EQUIPE & ACESSOS (CENTRO DE COMANDO DA EQUIPE)
           ========================================================================= */}
-      {activeTab === "equipe" && (
+      {activeTab === "equipe" && isMaster && (
         <div className="space-y-6 animate-in fade-in max-w-5xl">
           {/* Validação de Segurança: Apenas MASTER pode gerenciar a equipe */}
           {!isMaster ? (

@@ -29,9 +29,13 @@ export function getAccessibleProfessionalIds(
 }
 
 /**
- * Retorna se o profissional atual é a MASTER / Proprietária da conta.
+ * Retorna se o profissional atual é a MASTER / Proprietária original da conta.
+ * Apenas a MASTER tem permissão para visualizar a aba Equipe & Acessos e gerenciar usuárias.
  */
 export function isMasterUser(professional: Professional | null): boolean {
-  if (!professional) return true
-  return professional.role === "master" || !professional.master_id
+  if (!professional) return false
+  if (professional.role === "professional" || professional.master_id) {
+    return false
+  }
+  return true
 }
