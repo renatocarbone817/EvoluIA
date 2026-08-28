@@ -43,6 +43,7 @@ interface ChildWithDetails extends Child {
     is_primary: boolean
     guardian: Guardian | null
   }[]
+  hasFinalReport?: boolean
   nextAppointment?: {
     id: string
     start_time: string
@@ -129,6 +130,21 @@ export function ChildrenPage() {
         .in("professional_id", getAccessibleProfessionalIds(professional, profId))
         .order("start_time", { ascending: true })
 
+      // 3. Fetch reports to synchronize finalized reports automatically
+      const { data: reportsData } = await supabase
+        .from("reports")
+        .select("id, child_id, status")
+        .in("professional_id", getAccessibleProfessionalIds(professional, profId))
+
+      const reportsByChild: Record<string, any> = {}
+      if (reportsData) {
+        for (const r of reportsData) {
+          if (!reportsByChild[r.child_id] || r.status === "final" || r.status === "completed") {
+            reportsByChild[r.child_id] = r
+          }
+        }
+      }
+
       const now = new Date()
       const apptsByChild: Record<string, { next?: any; last?: any }> = {}
 
@@ -149,11 +165,27 @@ export function ChildrenPage() {
         }
       }
 
-      const enriched: ChildWithDetails[] = (childrenData as any[]).map((c) => ({
-        ...c,
-        nextAppointment: apptsByChild[c.id]?.next || null,
-        lastAppointment: apptsByChild[c.id]?.last || null,
-      }))
+      const enriched: ChildWithDetails[] = (childrenData as any[]).map((c) => {
+        const childReport = reportsByChild[c.id]
+        let effectiveStatus = c.status
+        const hasFinal = Boolean(childReport && (childReport.status === "final" || childReport.status === "completed"))
+
+        if (hasFinal) {
+          effectiveStatus = "report_completed"
+        } else if (childReport && (childReport.status === "draft" || childReport.status === "in_progress")) {
+          if (effectiveStatus !== "report_completed") {
+            effectiveStatus = "report_in_progress"
+          }
+        }
+
+        return {
+          ...c,
+          status: effectiveStatus,
+          hasFinalReport: hasFinal,
+          nextAppointment: apptsByChild[c.id]?.next || null,
+          lastAppointment: apptsByChild[c.id]?.last || null,
+        }
+      })
 
       if (sortBy === "next_appt") {
         enriched.sort((a, b) => {
@@ -176,9 +208,9 @@ export function ChildrenPage() {
   const filtered = children.filter((c) => {
     const q = search.toLowerCase().trim()
     let matchStatus = true
-    if (statusFilter === "in_progress") matchStatus = c.status === "in_progress" || c.status === "report_in_progress"
-    else if (statusFilter === "initial_assessment") matchStatus = c.status === "initial_assessment"
-    else if (statusFilter === "outros") matchStatus = c.status === "report_completed" || c.status === "paused" || c.status === "closed" || c.status === "archived" || (c.status !== "in_progress" && c.status !== "initial_assessment" && c.status !== "report_in_progress")
+    if (statusFilter === "in_progress") matchStatus = (c.status === "in_progress" || c.status === "report_in_progress") && !c.hasFinalReport
+    else if (statusFilter === "initial_assessment") matchStatus = c.status === "initial_assessment" && !c.hasFinalReport
+    else if (statusFilter === "outros") matchStatus = c.status === "report_completed" || Boolean(c.hasFinalReport) || c.status === "paused" || c.status === "closed" || c.status === "archived" || (c.status !== "in_progress" && c.status !== "initial_assessment" && c.status !== "report_in_progress")
 
     if (!matchStatus) return false
     if (!q) return true
@@ -196,10 +228,10 @@ export function ChildrenPage() {
   })
 
   // Counts for status tabs
-  const countInProgress = children.filter((c) => c.status === "in_progress" || c.status === "report_in_progress").length
-  const countInitial = children.filter((c) => c.status === "initial_assessment").length
+  const countInProgress = children.filter((c) => (c.status === "in_progress" || c.status === "report_in_progress") && !c.hasFinalReport).length
+  const countInitial = children.filter((c) => c.status === "initial_assessment" && !c.hasFinalReport).length
   const countOthers = children.filter(
-    (c) => c.status === "report_completed" || c.status === "paused" || c.status === "closed" || c.status === "archived" || (c.status !== "in_progress" && c.status !== "initial_assessment" && c.status !== "report_in_progress")
+    (c) => c.status === "report_completed" || Boolean(c.hasFinalReport) || c.status === "paused" || c.status === "closed" || c.status === "archived" || (c.status !== "in_progress" && c.status !== "initial_assessment" && c.status !== "report_in_progress")
   ).length
   const countWithUpcoming = children.filter((c) => c.nextAppointment).length
 
