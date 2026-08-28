@@ -20,11 +20,11 @@ interface EditChildDialogProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: "initial_assessment", label: "Entrevista Inicial" },
-  { value: "in_progress", label: "Em Acompanhamento" },
-  { value: "paused", label: "Pausado" },
-  { value: "closed", label: "Encerrado" },
-  { value: "archived", label: "Arquivado" },
+  { value: "initial_assessment", label: "📋 Entrevista Inicial" },
+  { value: "in_progress", label: "🌱 Em Acompanhamento" },
+  { value: "report_in_progress", label: "📝 Em Relatório" },
+  { value: "report_completed", label: "✅ Finalizado" },
+  { value: "paused", label: "⏸️ Pausado" },
 ]
 
 export function EditChildDialog({ open, child, onClose, onSuccess }: EditChildDialogProps) {

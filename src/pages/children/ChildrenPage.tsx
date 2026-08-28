@@ -57,7 +57,7 @@ interface ChildWithDetails extends Child {
 }
 
 type ViewType = "cards" | "list"
-type StatusFilterType = "todos" | "in_progress" | "initial_assessment" | "outros"
+type StatusFilterType = "todos" | "in_progress" | "initial_assessment" | "finalizado" | "pausado"
 
 export function ChildrenPage() {
   const navigate = useNavigate()
@@ -210,7 +210,8 @@ export function ChildrenPage() {
     let matchStatus = true
     if (statusFilter === "in_progress") matchStatus = (c.status === "in_progress" || c.status === "report_in_progress") && !c.hasFinalReport
     else if (statusFilter === "initial_assessment") matchStatus = c.status === "initial_assessment" && !c.hasFinalReport
-    else if (statusFilter === "outros") matchStatus = c.status === "report_completed" || Boolean(c.hasFinalReport) || c.status === "paused" || c.status === "closed" || c.status === "archived" || (c.status !== "in_progress" && c.status !== "initial_assessment" && c.status !== "report_in_progress")
+    else if (statusFilter === "finalizado") matchStatus = c.status === "report_completed" || Boolean(c.hasFinalReport) || c.status === "closed"
+    else if (statusFilter === "pausado") matchStatus = c.status === "paused" || c.status === "archived"
 
     if (!matchStatus) return false
     if (!q) return true
@@ -230,9 +231,8 @@ export function ChildrenPage() {
   // Counts for status tabs
   const countInProgress = children.filter((c) => (c.status === "in_progress" || c.status === "report_in_progress") && !c.hasFinalReport).length
   const countInitial = children.filter((c) => c.status === "initial_assessment" && !c.hasFinalReport).length
-  const countOthers = children.filter(
-    (c) => c.status === "report_completed" || Boolean(c.hasFinalReport) || c.status === "paused" || c.status === "closed" || c.status === "archived" || (c.status !== "in_progress" && c.status !== "initial_assessment" && c.status !== "report_in_progress")
-  ).length
+  const countFinalizado = children.filter((c) => c.status === "report_completed" || Boolean(c.hasFinalReport) || c.status === "closed").length
+  const countPausado = children.filter((c) => c.status === "paused" || c.status === "archived").length
   const countWithUpcoming = children.filter((c) => c.nextAppointment).length
 
   return (
@@ -395,10 +395,11 @@ export function ChildrenPage() {
           </div>
 
           {[
-            { id: "todos", label: "Todos", count: children.length, color: "border-[#7C3AED] text-[#7C3AED] bg-[#EDE9FE]" },
-            { id: "in_progress", label: "Em Acompanhamento", count: countInProgress, color: "border-[#10B981] text-[#065F46] bg-[#E8F8F5]" },
-            { id: "initial_assessment", label: "Entrevista Inicial", count: countInitial, color: "border-[#F59E0B] text-[#8B6514] bg-[#FEF8EC]" },
-            { id: "outros", label: "Pausado / Encerrado / Finalizado", count: countOthers, color: "border-[#94A3B8] text-[#475569] bg-[#F1F5F9]" },
+            { id: "todos", label: "Todos", count: children.length },
+            { id: "in_progress", label: "Em Acompanhamento", count: countInProgress },
+            { id: "initial_assessment", label: "Entrevista Inicial", count: countInitial },
+            { id: "finalizado", label: "Finalizado", count: countFinalizado },
+            { id: "pausado", label: "Pausado", count: countPausado },
           ].map((f) => {
             const isSelected = statusFilter === f.id
             return (

@@ -59,7 +59,7 @@ export const STATUS_LABELS: Record<string, string> = {
   in_progress: "▶ Em Andamento",
   child_in_progress: "🌱 Em Acompanhamento",
   report_in_progress: "📝 Em Relatório",
-  report_completed: "✅ Relatório Finalizado",
+  report_completed: "✅ Finalizado",
   paused: "⏸️ Pausado",
   closed: "🔒 Encerrado",
   archived: "📦 Arquivado",
