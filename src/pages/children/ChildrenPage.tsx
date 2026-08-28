@@ -176,9 +176,9 @@ export function ChildrenPage() {
   const filtered = children.filter((c) => {
     const q = search.toLowerCase().trim()
     let matchStatus = true
-    if (statusFilter === "in_progress") matchStatus = c.status === "in_progress"
+    if (statusFilter === "in_progress") matchStatus = c.status === "in_progress" || c.status === "report_in_progress"
     else if (statusFilter === "initial_assessment") matchStatus = c.status === "initial_assessment"
-    else if (statusFilter === "outros") matchStatus = c.status !== "in_progress" && c.status !== "initial_assessment"
+    else if (statusFilter === "outros") matchStatus = c.status === "report_completed" || c.status === "paused" || c.status === "closed" || c.status === "archived" || (c.status !== "in_progress" && c.status !== "initial_assessment" && c.status !== "report_in_progress")
 
     if (!matchStatus) return false
     if (!q) return true
@@ -196,10 +196,10 @@ export function ChildrenPage() {
   })
 
   // Counts for status tabs
-  const countInProgress = children.filter((c) => c.status === "in_progress").length
+  const countInProgress = children.filter((c) => c.status === "in_progress" || c.status === "report_in_progress").length
   const countInitial = children.filter((c) => c.status === "initial_assessment").length
   const countOthers = children.filter(
-    (c) => c.status !== "in_progress" && c.status !== "initial_assessment"
+    (c) => c.status === "report_completed" || c.status === "paused" || c.status === "closed" || c.status === "archived" || (c.status !== "in_progress" && c.status !== "initial_assessment" && c.status !== "report_in_progress")
   ).length
   const countWithUpcoming = children.filter((c) => c.nextAppointment).length
 
@@ -366,7 +366,7 @@ export function ChildrenPage() {
             { id: "todos", label: "Todos", count: children.length, color: "border-[#7C3AED] text-[#7C3AED] bg-[#EDE9FE]" },
             { id: "in_progress", label: "Em Acompanhamento", count: countInProgress, color: "border-[#10B981] text-[#065F46] bg-[#E8F8F5]" },
             { id: "initial_assessment", label: "Entrevista Inicial", count: countInitial, color: "border-[#F59E0B] text-[#8B6514] bg-[#FEF8EC]" },
-            { id: "outros", label: "Pausado / Encerrado", count: countOthers, color: "border-[#94A3B8] text-[#475569] bg-[#F1F5F9]" },
+            { id: "outros", label: "Pausado / Encerrado / Finalizado", count: countOthers, color: "border-[#94A3B8] text-[#475569] bg-[#F1F5F9]" },
           ].map((f) => {
             const isSelected = statusFilter === f.id
             return (
