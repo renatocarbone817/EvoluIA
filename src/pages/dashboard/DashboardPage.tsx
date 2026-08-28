@@ -87,6 +87,7 @@ export function DashboardPage() {
   const [allAppointments, setAllAppointments] = useState<any[]>([])
   const [todayAppointments, setTodayAppointments] = useState<any[]>([])
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([])
+  const [allReports, setAllReports] = useState<any[]>([])
 
   // Month selector for the chart
   const currentMonthNum = new Date().getMonth() + 1
@@ -224,6 +225,7 @@ export function DashboardPage() {
         { data: appointmentsData },
         { data: todayAppts },
         { data: upcomingAppts },
+        { data: reportsData },
       ] = await Promise.all([
         supabase
           .from("children")
@@ -283,12 +285,19 @@ export function DashboardPage() {
           .neq("status", "cancelled")
           .order("start_time", { ascending: true })
           .limit(4),
+
+        supabase
+          .from("reports")
+          .select("id, child_id, status, created_at, updated_at")
+          .in("professional_id", getAccessibleProfessionalIds(professional, profId))
+          .order("created_at", { ascending: false }),
       ])
 
       setAllChildren(childrenData || [])
       setAllAppointments(appointmentsData || [])
       setTodayAppointments(todayAppts || [])
       setUpcomingAppointments(upcomingAppts || [])
+      setAllReports(reportsData || [])
     } catch (e) {
       console.error(e)
     } finally {
@@ -348,7 +357,21 @@ export function DashboardPage() {
     return inProgress > 0 ? inProgress : allChildren.length
   }, [allChildren])
 
-  // 4. Aulas Este Mês
+  // 4. Relatórios do Mês
+  const reportsThisMonth = useMemo(() => {
+    const monthReports = allReports.filter((r) => {
+      if (!r.created_at) return false
+      const d = new Date(r.created_at)
+      return d.getMonth() + 1 === currentMonthNum && d.getFullYear() === currentYearNum
+    })
+    return monthReports.length > 0 ? monthReports.length : allReports.length
+  }, [allReports, currentMonthNum, currentYearNum])
+
+  const reportsPendingCount = useMemo(() => {
+    return allReports.filter((r) => r.status === "draft" || r.status === "in_progress").length
+  }, [allReports])
+
+  // 5. Aulas Este Mês
   const sessionsThisMonth = useMemo(() => {
     return allAppointments.filter((a) => {
       const d = new Date(a.start_time)
@@ -726,7 +749,7 @@ export function DashboardPage() {
       </div>
 
       {/* 2. TOP 4 METRIC CARDS WITH REAL SPARKLINES & REAL NUMBERS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Card 1: Pacientes Ativos */}
         <div
           onClick={() => navigate("/criancas")}
@@ -782,7 +805,7 @@ export function DashboardPage() {
 
         {/* Card 3: Acompanhamento Contínuo */}
         <div
-          onClick={() => navigate("/agenda")}
+          onClick={() => navigate("/criancas")}
           className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#EA580C] hover:shadow-md transition-all cursor-pointer space-y-3 flex flex-col justify-between group shadow-2xs"
         >
           <div className="flex items-start justify-between">
@@ -806,7 +829,38 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Card 4: Aulas Este Mês */}
+        {/* Card 4: Relatórios do Mês */}
+        <div
+          onClick={() => navigate("/relatorios")}
+          className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#6366F1] hover:shadow-md transition-all cursor-pointer space-y-3 flex flex-col justify-between group shadow-2xs"
+        >
+          <div className="flex items-start justify-between">
+            <div className="w-11 h-11 rounded-2xl bg-[#EDE9FE] text-[#6366F1] flex items-center justify-center font-bold shadow-2xs">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div className="text-right">
+              <p className="text-[11px] font-bold text-[#6B7C83]">Relatórios do Mês</p>
+              <p className="text-2xl font-black text-[#0D2329] tracking-tight">{reportsThisMonth}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-xs font-bold text-[#6366F1] flex items-center gap-1.5 truncate">
+              <span className="w-2 h-2 rounded-full bg-[#6366F1] shrink-0" />
+              <span className="truncate">
+                {reportsPendingCount === 0
+                  ? "✓ Todos finalizados"
+                  : `Falta finalizar ${reportsPendingCount} ${reportsPendingCount === 1 ? "relatório" : "relatórios"}`}
+              </span>
+            </span>
+            <svg className="w-20 h-7 stroke-[#6366F1] fill-none stroke-[2.5]" viewBox="0 0 100 30">
+              <path d="M0,24 Q25,12 50,22 T80,8 T100,14" />
+              <circle cx="100" cy="14" r="3" className="fill-[#6366F1]" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Card 5: Aulas Este Mês */}
         <div
           onClick={() => navigate("/agenda")}
           className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#0284C7] hover:shadow-md transition-all cursor-pointer space-y-3 flex flex-col justify-between group shadow-2xs"
