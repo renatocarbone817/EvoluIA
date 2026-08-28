@@ -424,17 +424,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
           {assessment && !isEditing ? (
             <>
-              {/* Botão para Agendar Sessões com a Criança Imediatamente */}
-              <button
-                type="button"
-                onClick={() => setShowAppointmentModal(true)}
-                className="px-3.5 py-2 rounded-2xl bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#0284C7] border-2 border-[#BAE6FD] text-xs font-black transition-all shadow-2xs active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
-                title="Agendar sessões para esta criança"
-              >
-                <Calendar className="w-4 h-4 shrink-0" />
-                <span>+ Agendar Sessões</span>
-              </button>
-
+              {/* 1. Imprimir */}
               <button
                 type="button"
                 onClick={() => window.print()}
@@ -444,6 +434,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
                 <span>Imprimir</span>
               </button>
 
+              {/* 2. Editar Respostas */}
               <button
                 type="button"
                 onClick={() => setIsEditing(true)}
@@ -453,6 +444,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
                 <span>Editar Respostas</span>
               </button>
 
+              {/* 3. Reanalisar com IA */}
               <button
                 type="button"
                 onClick={handleAnalyzeWithAI}
@@ -466,17 +458,39 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
                 )}
                 <span>{aiLoading ? "Analisando..." : aiAnalysis ? "Reanalisar com IA" : "✨ Analisar com IA"}</span>
               </button>
+
+              {/* 4. Agendar Sessão (do lado direito de tudo) */}
+              <button
+                type="button"
+                onClick={() => setShowAppointmentModal(true)}
+                className="px-3.5 py-2 rounded-2xl bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#0284C7] border-2 border-[#BAE6FD] text-xs font-black transition-all shadow-2xs active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
+                title="Agendar sessões para esta criança"
+              >
+                <Calendar className="w-4 h-4 shrink-0" />
+                <span>+ Agendar Sessões</span>
+              </button>
             </>
           ) : (
-            <button
-              type="button"
-              disabled={saving}
-              onClick={handleSaveAssessment}
-              className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#00C48C] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 whitespace-nowrap"
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Save className="w-4 h-4 shrink-0" />}
-              <span>Salvar Entrevista</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {assessment && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:bg-[#F8FAFB] text-xs font-bold text-[#6B7C83] transition-all"
+                >
+                  Cancelar
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleSaveAssessment}
+                className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#00C48C] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 whitespace-nowrap"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Save className="w-4 h-4 shrink-0" />}
+                <span>Salvar Entrevista</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
