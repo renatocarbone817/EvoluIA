@@ -17,6 +17,12 @@ import {
   Check,
   Edit2,
   Calendar,
+  Sparkles,
+  Heart,
+  Smile,
+  CheckCircle2,
+  UserPlus,
+  FileText,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { getAccessibleProfessionalIds } from "@/lib/teamAccess"
@@ -200,263 +206,337 @@ export function GuardiansPage() {
 
   const countWithWhatsapp = guardians.filter((g) => Boolean(g.whatsapp || g.phone)).length
   const countWithChildren = guardians.filter((g) => (g.children?.filter((c) => c.child) || []).length > 0).length
+  const totalChildrenLinked = guardians.reduce((acc, g) => acc + (g.children?.filter((c) => c.child)?.length || 0), 0)
 
   return (
-    <div className="p-4 md:p-8 max-w-[92%] mx-auto space-y-6">
-      {/* Header */}
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6 animate-in fade-in">
+      {/* 1. TOP HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black text-[#19323A] tracking-tight">
-            Responsáveis & Família
-          </h1>
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#6B7C83] mt-1">
-            {guardians.length} responsável(is) cadastrado(s) no consultório
+        <div className="space-y-1">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-black text-[#0D2329] tracking-tight">
+              Responsáveis & Família
+            </h1>
+            <div className="w-8 h-8 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center shadow-xs">
+              <UserCheck className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-xs sm:text-sm font-semibold text-[#6B7C83]">
+            Gerencie contatos, WhatsApp dos pais, vínculo familiar e dados cadastrais.
           </p>
         </div>
 
-        <Button
-          size="lg"
+        {/* Action Button */}
+        <button
           onClick={() => setShowNewChildDialog(true)}
-          className="gap-2 shadow-sm"
+          className="h-10 px-5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-md active:scale-95 transition-all shrink-0"
         >
-          <Plus className="w-5 h-5" />
-          Novo Responsável
-        </Button>
+          <UserPlus className="w-4 h-4 stroke-[2.5]" />
+          <span>+ Novo Responsável</span>
+        </button>
       </div>
 
-      {/* Search, Sort & View Mode Toolbar */}
-      <div className="space-y-3 bg-white p-3.5 rounded-2xl border-2 border-[#D8E5E7] shadow-sm">
-        <div className="flex gap-2.5 flex-wrap">
-          {/* Search input */}
-          <div className="relative flex-1 min-w-56">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8DA3A8]" />
+      {/* 2. COLORFUL SUMMARY METRIC CARDS (Dashboard-style) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Total Responsáveis */}
+        <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex items-center justify-between hover:border-[#7C3AED]/40 transition-all">
+          <div className="space-y-1">
+            <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider">
+              Total de Responsáveis
+            </p>
+            <h3 className="text-2xl font-black text-[#0D2329]">{guardians.length}</h3>
+            <span className="inline-block text-[11px] font-bold text-[#7C3AED]">
+              Cadastrados no consultório
+            </span>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center shrink-0 shadow-xs">
+            <UserCheck className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Card 2: Com WhatsApp */}
+        <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex items-center justify-between hover:border-[#10B981]/40 transition-all">
+          <div className="space-y-1">
+            <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider">
+              Com WhatsApp Ativo
+            </p>
+            <h3 className="text-2xl font-black text-[#0D2329]">{countWithWhatsapp}</h3>
+            <span className="inline-block text-[11px] font-bold text-[#10B981]">
+              Contato direto habilitado
+            </span>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-[#E8F8F5] border border-[#A7F3D0] text-[#10B981] flex items-center justify-center shrink-0 shadow-xs">
+            <MessageSquare className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Card 3: Com Filhos Vinculados */}
+        <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex items-center justify-between hover:border-[#0284C7]/40 transition-all">
+          <div className="space-y-1">
+            <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider">
+              Famílias com Filhos
+            </p>
+            <h3 className="text-2xl font-black text-[#0D2329]">{countWithChildren}</h3>
+            <span className="inline-block text-[11px] font-bold text-[#0284C7]">
+              Pacientes vinculados
+            </span>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-[#E0F2FE] border border-[#BAE6FD] text-[#0284C7] flex items-center justify-center shrink-0 shadow-xs">
+            <Baby className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Card 4: Total de Vínculos */}
+        <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex items-center justify-between hover:border-[#F59E0B]/40 transition-all">
+          <div className="space-y-1">
+            <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider">
+              Vínculos Familiares
+            </p>
+            <h3 className="text-2xl font-black text-[#0D2329]">{totalChildrenLinked}</h3>
+            <span className="inline-block text-[11px] font-bold text-[#EA580C]">
+              Relações mapeadas
+            </span>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-[#FEF8EC] border border-[#FDE68A] text-[#F59E0B] flex items-center justify-center shrink-0 shadow-xs">
+            <Users className="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. TOOLBAR: SEARCH, SORT, VIEW TOGGLE & FILTER CHIPS */}
+      <div className="bg-white p-4 sm:p-5 rounded-3xl border-2 border-[#D8E5E7] shadow-sm space-y-4">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8CAAB1]" />
             <input
               type="text"
               placeholder="Buscar por responsável, telefone, CPF ou nome do filho..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 h-10 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-xs font-semibold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] focus-visible:bg-white transition-all placeholder:text-[#8DA3A8]"
+              className="w-full pl-10 pr-4 py-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all placeholder:text-[#8CAAB1]"
             />
           </div>
 
-          {/* Sort By Dropdown */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="h-10 px-3 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] text-xs font-bold text-[#19323A] focus-visible:outline-none focus-visible:border-[#245C6B] transition-all"
-          >
-            <option value="recent">⏱️ Mais Recentes</option>
-            <option value="az">🔤 Ordem Alfabética (A - Z)</option>
-          </select>
+          <div className="flex items-center gap-2.5 self-end md:self-auto shrink-0">
+            {/* Sort By Dropdown */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="h-10 px-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] hover:bg-white text-xs font-black text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all"
+            >
+              <option value="recent">⏱️ Mais Recentes</option>
+              <option value="az">🔤 Ordem Alfabética (A - Z)</option>
+            </select>
 
-          {/* View Mode Toggle: Cards vs List */}
-          <div className="flex bg-[#EEF5F6] rounded-xl p-0.5 border-2 border-[#D8E5E7]">
-            <button
-              onClick={() => setViewType("cards")}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all ${
-                viewType === "cards"
-                  ? "bg-[#245C6B] text-white shadow-xs"
-                  : "text-[#19323A] hover:bg-white/60"
-              }`}
-              title="Visualização em Cards"
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Cards</span>
-            </button>
-            <button
-              onClick={() => setViewType("list")}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all ${
-                viewType === "list"
-                  ? "bg-[#245C6B] text-white shadow-xs"
-                  : "text-[#19323A] hover:bg-white/60"
-              }`}
-              title="Visualização em Lista / Tabela"
-            >
-              <List className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Lista</span>
-            </button>
+            {/* View Mode Toggle: Cards vs List */}
+            <div className="flex bg-[#F7FAFA] rounded-2xl p-1 border-2 border-[#D8E5E7] shrink-0 gap-1">
+              <button
+                onClick={() => setViewType("cards")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
+                  viewType === "cards"
+                    ? "bg-[#7C3AED] text-white shadow-xs"
+                    : "text-[#6B7C83] hover:text-[#0D2329] hover:bg-white"
+                }`}
+                title="Visualização em Cards"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Cards</span>
+              </button>
+              <button
+                onClick={() => setViewType("list")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
+                  viewType === "list"
+                    ? "bg-[#7C3AED] text-white shadow-xs"
+                    : "text-[#6B7C83] hover:text-[#0D2329] hover:bg-white"
+                }`}
+                title="Visualização em Lista / Tabela"
+              >
+                <List className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Lista</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Filter Chips */}
-        <div className="flex items-center gap-2 overflow-x-auto pt-1">
-          <div className="flex items-center gap-1 text-xs font-bold text-[#6B7C83] mr-1">
+        {/* Filter Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pt-2 border-t border-[#EEF5F6]">
+          <div className="flex items-center gap-1 text-xs font-black text-[#6B7C83] mr-1 shrink-0">
             <Filter className="w-3.5 h-3.5" />
-            <span>Filtro:</span>
+            <span>Filtrar:</span>
           </div>
+
           {[
             { id: "todos", label: "Todos", count: guardians.length },
-            { id: "with_whatsapp", label: "Com WhatsApp", count: countWithWhatsapp, dot: "bg-[#20836F]" },
-            { id: "with_children", label: "Com Filho Vinculado", count: countWithChildren, dot: "bg-[#245C6B]" },
-          ].map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setFilterType(f.id as FilterType)}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5 shrink-0 ${
-                filterType === f.id
-                  ? "bg-[#19323A] text-white border-[#19323A] shadow-xs"
-                  : "bg-white text-[#4F6C74] border-[#D8E5E7] hover:border-[#245C6B]"
-              }`}
-            >
-              {f.dot && (
-                <span
-                  className={`w-2 h-2 rounded-full ${filterType === f.id ? "bg-white" : f.dot}`}
-                />
-              )}
-              <span>{f.label}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-                  filterType === f.id ? "bg-white/20 text-white" : "bg-[#EEF5F6] text-[#6B7C83]"
+            { id: "with_whatsapp", label: "Com WhatsApp", count: countWithWhatsapp },
+            { id: "with_children", label: "Com Filhos Vinculados", count: countWithChildren },
+          ].map((f) => {
+            const isSelected = filterType === f.id
+            return (
+              <button
+                key={f.id}
+                onClick={() => setFilterType(f.id as FilterType)}
+                className={`px-3.5 py-1.5 rounded-xl border-2 text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
+                  isSelected
+                    ? "bg-[#7C3AED] text-white border-[#7C3AED] shadow-xs"
+                    : "bg-white text-[#4F6C74] border-[#D8E5E7] hover:border-[#7C3AED]/40 hover:bg-[#F7FAFA]"
                 }`}
               >
-                {f.count}
-              </span>
-            </button>
-          ))}
+                <span>{f.label}</span>
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                    isSelected ? "bg-white/25 text-white" : "bg-[#F7FAFA] text-[#6B7C83] border border-[#D8E5E7]"
+                  }`}
+                >
+                  {f.count}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      {/* Main Content: Loading, Empty or List/Grid View */}
+      {/* 4. MAIN CONTENT: GRID OR LIST VIEW */}
       {loading ? (
-        <div className={viewType === "cards" ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4" : "space-y-2"}>
+        <div className={viewType === "cards" ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4" : "space-y-3"}>
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <div key={i} className="h-48 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-2xl" />
+            <div key={i} className="h-56 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-3xl shadow-xs" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <Card className="border-2 border-dashed border-[#D8E5E7] text-center py-16">
-          <CardContent className="space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] flex items-center justify-center mx-auto text-[#245C6B]">
-              <UserCheck className="w-7 h-7" />
+        <div className="p-12 rounded-3xl bg-white border-2 border-dashed border-[#D8E5E7] text-center space-y-4">
+          <div className="w-16 h-16 rounded-3xl bg-[#EDE9FE] border-2 border-[#DDD6FE] flex items-center justify-center mx-auto text-[#7C3AED] shadow-xs">
+            <UserCheck className="w-8 h-8" />
+          </div>
+          {guardians.length === 0 ? (
+            <div className="space-y-2">
+              <h3 className="font-black text-lg text-[#0D2329]">Nenhum responsável cadastrado ainda</h3>
+              <p className="text-xs font-semibold text-[#6B7C83] max-w-md mx-auto">
+                Os dados dos pais e responsáveis são adicionados automaticamente ao cadastrar ou editar um paciente.
+              </p>
+              <button
+                onClick={() => setShowNewChildDialog(true)}
+                className="mt-3 px-5 py-2.5 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black inline-flex items-center gap-2 shadow-md transition-all active:scale-95"
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span>Cadastrar Criança & Responsável</span>
+              </button>
             </div>
-            {guardians.length === 0 ? (
-              <>
-                <h3 className="font-black text-lg text-[#19323A]">Nenhum responsável cadastrado ainda</h3>
-                <p className="text-xs text-[#6B7C83] max-w-sm mx-auto">
-                  Os dados dos pais e responsáveis são adicionados automaticamente ao cadastrar ou editar uma criança.
-                </p>
-                <Button size="lg" onClick={() => setShowNewChildDialog(true)} className="mt-2">
-                  <Plus className="w-4 h-4 mr-1.5" />
-                  Cadastrar Criança e Responsável
-                </Button>
-              </>
-            ) : (
-              <>
-                <h3 className="font-bold text-base text-[#19323A]">Nenhum responsável encontrado</h3>
-                <p className="text-xs text-[#6B7C83]">
-                  Não encontramos ninguém com o termo <strong>"{search}"</strong>.
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
+          ) : (
+            <div className="space-y-1">
+              <h3 className="font-black text-base text-[#0D2329]">Nenhum responsável encontrado</h3>
+              <p className="text-xs font-semibold text-[#6B7C83]">
+                Não encontramos ninguém com o termo <strong>"{search}"</strong>.
+              </p>
+            </div>
+          )}
+        </div>
       ) : viewType === "list" ? (
-        /* 1. LIST / TABLE VIEW (Dense, Contact-First & Scalable) */
-        <div className="bg-white rounded-2xl border-2 border-[#D8E5E7] shadow-sm overflow-hidden">
-          <div className="divide-y divide-[#EEF5F6]">
-            {filtered.map((g) => {
-              const rawPhone = g.whatsapp || g.phone || ""
-              const cleanPhone = rawPhone.replace(/\D/g, "")
-              const linkedChildren = g.children?.filter((c) => c.child) || []
-              const isCopied = copiedId === g.id
+        /* 1. LIST / TABLE VIEW (Clean & Modern) */
+        <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-sm overflow-hidden divide-y divide-[#EEF5F6]">
+          {filtered.map((g) => {
+            const rawPhone = g.whatsapp || g.phone || ""
+            const cleanPhone = rawPhone.replace(/\D/g, "")
+            const linkedChildren = g.children?.filter((c) => c.child) || []
+            const isCopied = copiedId === g.id
 
-              return (
-                <div
-                  key={g.id}
-                  className="p-3.5 sm:p-4 hover:bg-[#F7FAFA] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3 group"
-                >
-                  {/* Guardian Info */}
-                  <div className="flex items-center gap-3 min-w-0 md:w-1/3">
-                    <div className="w-10 h-10 rounded-xl bg-[#245C6B] text-white font-black text-sm flex items-center justify-center shrink-0 border border-[#63C7B2]/40 shadow-xs">
-                      {g.full_name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-black text-sm text-[#19323A] group-hover:text-[#245C6B] truncate">
-                        {g.full_name}
-                      </h3>
-                      <p className="text-xs text-[#8DA3A8] truncate mt-0.5">
-                        {g.cpf ? `CPF: ${g.cpf}` : "Responsável"}
-                      </p>
-                    </div>
+            return (
+              <div
+                key={g.id}
+                className="p-4 sm:p-5 hover:bg-[#FAF5FF] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4 group"
+              >
+                {/* Guardian Info */}
+                <div className="flex items-center gap-3.5 min-w-0 md:w-1/3">
+                  <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center font-black text-base shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                    {g.full_name.charAt(0).toUpperCase()}
                   </div>
-
-                  {/* Primary Phone & WhatsApp Actions */}
-                  <div className="min-w-0 md:w-1/4">
-                    {rawPhone ? (
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-xs text-[#19323A] font-mono">
-                          {formatPhone(rawPhone)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => handleCopyPhone(e, g.id, rawPhone)}
-                          className="p-1 text-[#8DA3A8] hover:text-[#245C6B] hover:bg-[#EEF5F6] rounded-md transition-colors text-[10px]"
-                          title="Copiar telefone"
-                        >
-                          {isCopied ? <Check className="w-3.5 h-3.5 text-[#20836F]" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-[#8DA3A8] italic">Sem telefone</span>
-                    )}
-                  </div>
-
-                  {/* Linked Children */}
-                  <div className="min-w-0 md:w-1/4">
-                    {linkedChildren.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {linkedChildren.map((link, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => navigate(`/criancas/${link.child!.id}`)}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#EEF5F6] hover:bg-[#245C6B] hover:text-white text-[#19323A] border border-[#D8E5E7] text-xs font-bold transition-all truncate max-w-[180px]"
-                            title="Abrir ficha da criança"
-                          >
-                            <span>🧒 {link.child!.full_name}</span>
-                            {link.relationship && (
-                              <span className="text-[10px] opacity-75">
-                                ({link.relationship})
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-[#8DA3A8] italic">Sem filho vinculado</span>
-                    )}
-                  </div>
-
-                  {/* Fast Action Buttons */}
-                  <div className="flex items-center gap-2 shrink-0 justify-end">
-                    {cleanPhone && (
-                      <a
-                        href={`https://wa.me/55${cleanPhone}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-2.5 py-1.5 text-[#20836F] bg-[#E8F8F5] hover:bg-[#20836F] hover:text-white rounded-xl border border-[#63C7B2]/40 transition-all text-xs font-bold flex items-center gap-1.5 shadow-2xs"
-                        title="Abrir WhatsApp"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5 fill-current" />
-                        <span className="text-xs">WhatsApp</span>
-                      </a>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => openEdit(g)}
-                      className="p-2 text-[#6B7C83] hover:text-[#245C6B] hover:bg-[#EEF5F6] rounded-xl border border-[#D8E5E7] transition-all text-xs"
-                      title="Editar dados"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-black text-sm text-[#0D2329] group-hover:text-[#7C3AED] truncate transition-colors">
+                      {g.full_name}
+                    </h3>
+                    <p className="text-xs font-semibold text-[#6B7C83] truncate mt-0.5">
+                      {g.cpf ? `CPF: ${g.cpf}` : "Responsável legal"}
+                    </p>
                   </div>
                 </div>
-              )
-            })}
-          </div>
+
+                {/* Primary Phone & WhatsApp Actions */}
+                <div className="min-w-0 md:w-1/4">
+                  {rawPhone ? (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-black text-xs text-[#0D2329] font-mono">
+                        {formatPhone(rawPhone)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => handleCopyPhone(e, g.id, rawPhone)}
+                        className="px-2 py-1 bg-[#F7FAFA] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] border border-[#D8E5E7] rounded-lg transition-colors text-[10px] font-bold"
+                        title="Copiar telefone"
+                      >
+                        {isCopied ? <Check className="w-3 h-3 text-[#10B981]" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-[#8DA3A8] italic font-semibold">Sem telefone</span>
+                  )}
+                </div>
+
+                {/* Linked Children */}
+                <div className="min-w-0 md:w-1/4">
+                  {linkedChildren.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {linkedChildren.map((link, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => navigate(`/criancas/${link.child!.id}`)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#F5F3FF] hover:bg-[#7C3AED] hover:text-white text-[#7C3AED] border border-[#DDD6FE] text-xs font-black transition-all truncate max-w-[180px]"
+                          title="Abrir ficha da criança"
+                        >
+                          <span>🧒 {link.child!.full_name}</span>
+                          {link.relationship && (
+                            <span className="text-[10px] opacity-75 font-normal">
+                              ({link.relationship})
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-[#8DA3A8] italic font-semibold">Sem filho vinculado</span>
+                  )}
+                </div>
+
+                {/* Fast Action Buttons */}
+                <div className="flex items-center gap-2 shrink-0 justify-end">
+                  {cleanPhone && (
+                    <a
+                      href={`https://wa.me/55${cleanPhone}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="px-3 py-1.5 text-[#065F46] bg-[#E8F8F5] hover:bg-[#10B981] hover:text-white rounded-xl border border-[#10B981]/30 transition-all text-xs font-black flex items-center gap-1.5 shadow-2xs"
+                      title="Abrir WhatsApp"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                      <span>WhatsApp</span>
+                    </a>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => openEdit(g)}
+                    className="p-2 text-[#6B7C83] hover:text-[#7C3AED] hover:bg-[#EDE9FE] rounded-xl border border-[#D8E5E7] transition-all text-xs"
+                    title="Editar dados"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )
+          })}
         </div>
       ) : (
-        /* 2. CARD VIEW (4 Columns on XL - Contact-First, Compact & Rich Family Relationships) */
+        /* 2. CARD VIEW (Lively, Colorful, Contact-First Family Cards) */
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((g) => {
             const rawPhone = g.whatsapp || g.phone || ""
@@ -467,21 +547,21 @@ export function GuardiansPage() {
             return (
               <div
                 key={g.id}
-                className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] hover:shadow-md transition-all space-y-3 flex flex-col justify-between group"
+                className="p-4 sm:p-5 rounded-3xl border-2 border-[#D8E5E7] bg-white hover:border-[#7C3AED]/50 hover:shadow-lg transition-all space-y-3.5 flex flex-col justify-between group relative overflow-hidden"
               >
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {/* 1. Header: Avatar + Name + Edit Button */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-[#245C6B] text-white font-black text-sm flex items-center justify-center shrink-0 border border-[#63C7B2]/40 shadow-xs group-hover:scale-105 transition-transform">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-13 h-13 min-w-[52px] min-h-[52px] max-w-[52px] max-h-[52px] rounded-2xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center font-black text-lg shrink-0 shadow-xs group-hover:scale-105 transition-transform">
                         {g.full_name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <h3 className="font-black text-sm sm:text-base text-[#19323A] group-hover:text-[#245C6B] transition-colors truncate leading-tight">
+                        <h3 className="font-black text-sm sm:text-base text-[#0D2329] group-hover:text-[#7C3AED] transition-colors truncate leading-tight">
                           {g.full_name}
                         </h3>
-                        <p className="text-[11px] font-semibold text-[#8DA3A8] mt-0.5 truncate">
-                          {g.cpf ? `CPF: ${g.cpf}` : "Responsável legal"}
+                        <p className="text-[10px] font-bold text-[#6B7C83] mt-0.5 truncate bg-[#F7FAFA] border border-[#D8E5E7] px-2 py-0.5 rounded-md inline-block">
+                          {g.cpf ? `CPF: ${g.cpf}` : "Responsável Legal"}
                         </p>
                       </div>
                     </div>
@@ -489,34 +569,34 @@ export function GuardiansPage() {
                     <button
                       type="button"
                       onClick={() => openEdit(g)}
-                      className="p-1.5 text-[#8DA3A8] hover:text-[#245C6B] hover:bg-[#EEF5F6] rounded-lg transition-colors shrink-0"
+                      className="w-8 h-8 rounded-xl bg-[#F7FAFA] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] flex items-center justify-center transition-colors shrink-0"
                       title="Editar responsável"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
-                  {/* 2. Primary Phone Banner (Super Visible + WhatsApp + Copy) */}
+                  {/* 2. Primary Phone Banner (WhatsApp + Copy) */}
                   {rawPhone ? (
-                    <div className="p-2.5 bg-[#F7FAFA] border border-[#D8E5E7] rounded-xl flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <Phone className="w-3.5 h-3.5 text-[#245C6B] shrink-0" />
-                        <span className="font-bold text-xs text-[#19323A] font-mono truncate">
+                    <div className="p-3 bg-[#E8F8F5] border-2 border-[#10B981]/30 rounded-2xl flex items-center justify-between gap-2 shadow-2xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Phone className="w-3.5 h-3.5 text-[#10B981] shrink-0" />
+                        <span className="font-black text-xs text-[#065F46] font-mono truncate">
                           {formatPhone(rawPhone)}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           type="button"
                           onClick={(e) => handleCopyPhone(e, g.id, rawPhone)}
-                          className="px-2 py-1 bg-white hover:bg-[#EEF5F6] border border-[#D8E5E7] rounded-lg text-[11px] font-bold text-[#6B7C83] flex items-center gap-1 transition-all shadow-2xs"
+                          className="px-2.5 py-1 bg-white hover:bg-[#F7FAFA] border border-[#10B981]/30 rounded-xl text-[11px] font-black text-[#065F46] flex items-center gap-1 transition-all shadow-2xs"
                           title="Copiar número"
                         >
                           {isCopied ? (
                             <>
-                              <Check className="w-3 h-3 text-[#20836F]" />
-                              <span className="text-[#20836F]">Copiado</span>
+                              <Check className="w-3 h-3 text-[#10B981]" />
+                              <span>Copiado</span>
                             </>
                           ) : (
                             <>
@@ -531,7 +611,7 @@ export function GuardiansPage() {
                             href={`https://wa.me/55${cleanPhone}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="p-1.5 bg-[#E8F8F5] text-[#20836F] border border-[#63C7B2]/40 hover:bg-[#63C7B2] hover:text-white rounded-lg transition-all shadow-2xs"
+                            className="p-1.5 bg-[#10B981] text-white hover:bg-[#059669] rounded-xl transition-all shadow-2xs"
                             title="Conversar no WhatsApp"
                           >
                             <MessageSquare className="w-3.5 h-3.5 fill-current" />
@@ -540,46 +620,46 @@ export function GuardiansPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="p-2 bg-[#F7FAFA] border border-[#D8E5E7] rounded-xl text-center text-xs text-[#8DA3A8] italic">
+                    <div className="p-2.5 bg-[#F7FAFA] border border-[#D8E5E7] rounded-2xl text-center text-xs text-[#8DA3A8] italic font-semibold">
                       Nenhum telefone cadastrado
                     </div>
                   )}
 
-                  {/* 3. Section: Linked Children & Family Concept */}
-                  <div className="pt-2 border-t border-[#EEF5F6] space-y-1.5">
+                  {/* 3. Linked Children & Family Section */}
+                  <div className="pt-2 border-t border-[#EEF5F6] space-y-2">
                     <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-[#6B7C83]">
                       <span className="flex items-center gap-1">
-                        <Baby className="w-3.5 h-3.5 text-[#245C6B]" />
-                        {linkedChildren.length > 1 ? "Família / Filhos:" : "Filho(a) Vinculado:"}
+                        <Baby className="w-3.5 h-3.5 text-[#7C3AED]" />
+                        <span>{linkedChildren.length > 1 ? "Família / Filhos:" : "Filho(a) Vinculado:"}</span>
                       </span>
-                      <span className="text-[10px] font-bold bg-[#EEF5F6] text-[#245C6B] px-1.5 py-0.2 rounded">
+                      <span className="text-[10px] font-black bg-[#EDE9FE] text-[#7C3AED] px-2 py-0.5 rounded-full border border-[#DDD6FE]">
                         {linkedChildren.length} {linkedChildren.length === 1 ? "criança" : "crianças"}
                       </span>
                     </div>
 
                     {linkedChildren.length > 0 ? (
-                      <div className="space-y-1 pt-0.5">
+                      <div className="space-y-1.5 pt-0.5">
                         {linkedChildren.map((link, idx) => (
                           <div
                             key={idx}
                             onClick={() => navigate(`/criancas/${link.child!.id}`)}
-                            className="p-1.5 rounded-xl bg-[#EEF5F6] hover:bg-[#245C6B] hover:text-white text-[#19323A] border border-[#D8E5E7] hover:border-[#245C6B] text-xs font-bold transition-all cursor-pointer flex items-center justify-between group/item"
+                            className="p-2.5 rounded-2xl bg-[#F5F3FF] hover:bg-[#7C3AED] hover:text-white text-[#0D2329] border border-[#DDD6FE] text-xs font-black transition-all cursor-pointer flex items-center justify-between group/item shadow-2xs"
                           >
-                            <span className="truncate flex items-center gap-1.5">
+                            <span className="truncate flex items-center gap-2">
                               <span>🧒</span>
-                              <span className="truncate">{link.child!.full_name}</span>
+                              <span className="truncate group-hover/item:text-white">{link.child!.full_name}</span>
                               {link.relationship && (
-                                <span className="text-[10px] opacity-75 font-normal">
+                                <span className="text-[10px] opacity-75 font-semibold">
                                   ({link.relationship})
                                 </span>
                               )}
                             </span>
-                            <ChevronRight className="w-3.5 h-3.5 opacity-60 group-hover/item:translate-x-0.5 transition-transform shrink-0" />
+                            <ChevronRight className="w-3.5 h-3.5 opacity-60 group-hover/item:text-white group-hover/item:translate-x-0.5 transition-transform shrink-0" />
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-[#8DA3A8] italic">
+                      <p className="text-xs text-[#8DA3A8] italic font-semibold">
                         Sem criança vinculada diretamente.
                       </p>
                     )}
@@ -587,20 +667,20 @@ export function GuardiansPage() {
                 </div>
 
                 {/* 4. Bottom: Email & Registration Date */}
-                <div className="pt-2.5 border-t border-[#EEF5F6] flex items-center justify-between text-[11px] text-[#8DA3A8]">
+                <div className="pt-3 border-t border-[#EEF5F6] flex items-center justify-between text-[11px] text-[#8DA3A8] font-bold">
                   <span className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3 text-[#8DA3A8]" />
-                    {formatDate(g.created_at)}
+                    <Calendar className="w-3.5 h-3.5 text-[#8CAAB1]" />
+                    <span>{formatDate(g.created_at)}</span>
                   </span>
 
                   {linkedChildren.length > 1 ? (
                     <button
                       type="button"
                       onClick={() => setSelectedFamilyGuardian(g)}
-                      className="text-[#245C6B] hover:underline font-black text-xs flex items-center gap-1"
+                      className="px-2.5 py-1 rounded-xl bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#7C3AED] hover:text-white font-black text-xs flex items-center gap-1 transition-colors"
                     >
                       <span>Ver família ({linkedChildren.length})</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
+                      <ChevronRight className="w-3 h-3" />
                     </button>
                   ) : g.email ? (
                     <span className="truncate max-w-[140px] text-right font-medium text-[#6B7C83]" title={g.email}>
@@ -619,49 +699,49 @@ export function GuardiansPage() {
         open={Boolean(selectedFamilyGuardian)}
         onOpenChange={(open) => !open && setSelectedFamilyGuardian(null)}
       >
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-xl rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Baby className="w-5 h-5 text-[#245C6B]" />
+            <DialogTitle className="flex items-center gap-2 text-base font-black text-[#0D2329]">
+              <div className="w-8 h-8 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center">
+                <Baby className="w-4 h-4" />
+              </div>
               <span>Visão da Família — {selectedFamilyGuardian?.full_name}</span>
             </DialogTitle>
           </DialogHeader>
 
-          <DialogBody className="space-y-4">
+          <DialogBody className="space-y-4 pt-2">
             {/* Guardian Quick Info */}
-            <div className="p-3.5 bg-[#F7FAFA] border-2 border-[#D8E5E7] rounded-2xl space-y-2">
+            <div className="p-4 bg-[#F7FAFA] border-2 border-[#D8E5E7] rounded-2xl space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-[#245C6B] text-white font-black text-xs flex items-center justify-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] font-black text-sm flex items-center justify-center border border-[#DDD6FE]">
                     {selectedFamilyGuardian?.full_name?.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <h4 className="font-black text-sm text-[#19323A]">
+                    <h4 className="font-black text-sm text-[#0D2329]">
                       {selectedFamilyGuardian?.full_name}
                     </h4>
-                    <p className="text-[11px] text-[#8DA3A8]">
+                    <p className="text-[11px] text-[#6B7C83] font-bold">
                       {selectedFamilyGuardian?.cpf ? `CPF: ${selectedFamilyGuardian.cpf}` : "Responsável legal"}
                     </p>
                   </div>
                 </div>
 
                 {selectedFamilyGuardian?.phone && (
-                  <div className="flex items-center gap-1.5">
-                    <a
-                      href={`https://wa.me/55${selectedFamilyGuardian.phone.replace(/\D/g, "")}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-2.5 py-1.5 bg-[#E8F8F5] text-[#20836F] hover:bg-[#20836F] hover:text-white rounded-xl text-xs font-bold flex items-center gap-1 border border-[#63C7B2]/40 transition-all shadow-2xs"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 fill-current" />
-                      <span>WhatsApp</span>
-                    </a>
-                  </div>
+                  <a
+                    href={`https://wa.me/55${selectedFamilyGuardian.phone.replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1.5 bg-[#E8F8F5] text-[#065F46] hover:bg-[#10B981] hover:text-white rounded-xl text-xs font-black flex items-center gap-1.5 border border-[#10B981]/30 transition-all shadow-2xs"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                    <span>WhatsApp</span>
+                  </a>
                 )}
               </div>
 
               {selectedFamilyGuardian?.notes && (
-                <p className="text-xs text-[#6B7C83] bg-white p-2 rounded-xl border border-[#D8E5E7] italic">
+                <p className="text-xs text-[#8B6514] bg-[#FEF8EC] p-2.5 rounded-xl border border-[#F4C95D]/50 italic font-semibold">
                   💬 "{selectedFamilyGuardian.notes}"
                 </p>
               )}
@@ -671,7 +751,7 @@ export function GuardiansPage() {
             <div className="space-y-2">
               <h5 className="text-xs font-black uppercase tracking-wider text-[#6B7C83] flex items-center justify-between">
                 <span>Filhos / Crianças no Consultório:</span>
-                <span className="text-[#245C6B]">
+                <span className="text-[#7C3AED] font-black">
                   {selectedFamilyGuardian?.children?.filter((c) => c.child)?.length || 0} vinculados
                 </span>
               </h5>
@@ -682,7 +762,7 @@ export function GuardiansPage() {
                   ?.map((link, idx) => (
                     <div
                       key={idx}
-                      className="p-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] transition-all flex items-center justify-between gap-3 shadow-2xs"
+                      className="p-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#7C3AED] transition-all flex items-center justify-between gap-3 shadow-2xs"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <ChildAvatar
@@ -692,47 +772,146 @@ export function GuardiansPage() {
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <h4 className="font-black text-sm text-[#19323A] truncate">
+                            <h4 className="font-black text-sm text-[#0D2329] truncate">
                               {link.child!.full_name}
                             </h4>
                             {link.relationship && (
-                              <span className="text-[10px] bg-[#EEF5F6] text-[#245C6B] px-1.5 py-0.2 rounded font-bold">
+                              <span className="text-[10px] bg-[#EDE9FE] text-[#7C3AED] px-2 py-0.5 rounded-md font-bold border border-[#DDD6FE]">
                                 {link.relationship}
                               </span>
                             )}
                           </div>
-                          <div className="mt-0.5">
-                            <Badge statusKey={link.child!.status} type="child" className="text-[10px] px-2 py-0.2" />
-                          </div>
+                          <Badge statusKey={link.child!.status} type="child" className="mt-1 text-[10px]" />
                         </div>
                       </div>
 
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setSelectedFamilyGuardian(null)
-                          navigate(`/criancas/${link.child!.id}`)
-                        }}
-                        className="gap-1 text-xs font-bold shrink-0"
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/criancas/${link.child!.id}`)}
+                        className="px-3 py-1.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl text-xs font-black flex items-center gap-1 transition-all shadow-2xs"
                       >
-                        <span>Abrir Ficha</span>
+                        <span>Ver Ficha</span>
                         <ChevronRight className="w-3.5 h-3.5" />
-                      </Button>
+                      </button>
                     </div>
                   ))}
               </div>
             </div>
           </DialogBody>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedFamilyGuardian(null)}>
+          <DialogFooter className="border-t border-[#EEF5F6] pt-3">
+            <Button
+              variant="outline"
+              onClick={() => setSelectedFamilyGuardian(null)}
+              className="rounded-xl text-xs font-bold"
+            >
               Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* New Child / Guardian Dialog */}
+      {/* Edit Guardian Dialog */}
+      <Dialog
+        open={Boolean(editingGuardian)}
+        onOpenChange={(open) => !open && setEditingGuardian(null)}
+      >
+        <DialogContent className="max-w-md rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-black text-[#0D2329]">
+              <div className="w-8 h-8 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center">
+                <Edit2 className="w-4 h-4" />
+              </div>
+              <span>Editar Responsável</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleSaveEdit()
+            }}
+            className="space-y-4 pt-2"
+          >
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-[#0D2329]">Nome Completo *</label>
+              <input
+                type="text"
+                required
+                value={editForm.full_name}
+                onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                className="w-full px-3.5 py-2.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] text-[#0D2329]"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-[#0D2329]">Telefone / WhatsApp</label>
+                <input
+                  type="text"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  placeholder="(11) 99999-9999"
+                  className="w-full px-3.5 py-2.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] text-[#0D2329]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-[#0D2329]">CPF</label>
+                <input
+                  type="text"
+                  value={editForm.cpf}
+                  onChange={(e) => setEditForm({ ...editForm, cpf: e.target.value })}
+                  placeholder="000.000.000-00"
+                  className="w-full px-3.5 py-2.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] text-[#0D2329]"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-[#0D2329]">E-mail</label>
+              <input
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                placeholder="exemplo@email.com"
+                className="w-full px-3.5 py-2.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] text-[#0D2329]"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-[#0D2329]">Observações / Recados</label>
+              <textarea
+                rows={2}
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                placeholder="Preferência de horário, restrições..."
+                className="w-full p-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] text-[#0D2329] resize-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#EEF5F6]">
+              <button
+                type="button"
+                onClick={() => setEditingGuardian(null)}
+                className="px-4 py-2 text-xs font-bold text-[#6B7C83] rounded-xl hover:bg-[#F7FAFA]"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="submit"
+                disabled={savingEdit}
+                className="px-5 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black shadow-md transition-all active:scale-95"
+              >
+                {savingEdit ? "Salvando..." : "Salvar Alterações"}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Child/Guardian Dialog */}
       <NewChildDialog
         open={showNewChildDialog}
         onClose={() => setShowNewChildDialog(false)}
@@ -741,98 +920,6 @@ export function GuardiansPage() {
           loadGuardians()
         }}
       />
-
-      {/* Edit Guardian Dialog */}
-      <Dialog open={Boolean(editingGuardian)} onOpenChange={(open) => !open && setEditingGuardian(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Editar Responsável</DialogTitle>
-          </DialogHeader>
-
-          <DialogBody className="space-y-4">
-            <div>
-              <label className="text-xs font-black uppercase text-[#6B7C83] tracking-wider mb-1 block">
-                Nome Completo *
-              </label>
-              <Input
-                value={editForm.full_name}
-                onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
-                placeholder="Ex: Maria Aparecida Silva"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-black uppercase text-[#6B7C83] tracking-wider mb-1 block">
-                  Telefone / Celular
-                </label>
-                <Input
-                  value={editForm.phone}
-                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                  placeholder="(11) 99999-9999"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-black uppercase text-[#6B7C83] tracking-wider mb-1 block">
-                  WhatsApp
-                </label>
-                <Input
-                  value={editForm.whatsapp}
-                  onChange={(e) => setEditForm({ ...editForm, whatsapp: e.target.value })}
-                  placeholder="(11) 99999-9999"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-black uppercase text-[#6B7C83] tracking-wider mb-1 block">
-                  E-mail
-                </label>
-                <Input
-                  type="email"
-                  value={editForm.email}
-                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                  placeholder="email@exemplo.com"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-black uppercase text-[#6B7C83] tracking-wider mb-1 block">
-                  CPF
-                </label>
-                <Input
-                  value={editForm.cpf}
-                  onChange={(e) => setEditForm({ ...editForm, cpf: e.target.value })}
-                  placeholder="000.000.000-00"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-black uppercase text-[#6B7C83] tracking-wider mb-1 block">
-                Observações
-              </label>
-              <textarea
-                value={editForm.notes}
-                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                rows={2}
-                className="w-full px-3 py-2 rounded-xl border-2 border-[#D8E5E7] bg-white text-xs font-medium text-[#19323A] focus:outline-none focus:border-[#245C6B]"
-                placeholder="Ex: Contatar preferencialmente no período da tarde..."
-              />
-            </div>
-          </DialogBody>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingGuardian(null)} disabled={savingEdit}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveEdit} disabled={savingEdit}>
-              {savingEdit ? "Salvando..." : "Salvar Alterações"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
-
