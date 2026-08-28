@@ -2,6 +2,10 @@ import { useEffect, useState } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import {
   ArrowLeft,
+  Trash2,
+  AlertTriangle,
+  ShieldCheck,
+  Loader2,
   Edit,
   Calendar,
   FileText,
@@ -22,6 +26,14 @@ import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogBody,
+} from "@/components/ui/Dialog"
 import { ChildAvatar } from "@/components/ui/ChildAvatar"
 import { calculateAge, formatDate, formatDateTime } from "@/lib/utils"
 import type { Child, Guardian, Session, Appointment } from "@/types/database"
@@ -33,6 +45,8 @@ import { ChildDocumentsTab } from "./tabs/ChildDocumentsTab"
 import { ChildFinancialTab } from "./tabs/ChildFinancialTab"
 import { ChildReportsTab } from "./tabs/ChildReportsTab"
 import { EditChildDialog } from "./EditChildDialog"
+import { checkChildFinancialRecords, deleteChildSafely } from "@/lib/deletionService"
+import toast from "react-hot-toast"
 
 type Tab = "resumo" | "avaliacao" | "sessoes" | "linha-do-tempo" | "documentos" | "financeiro" | "relatorios"
 
@@ -50,7 +64,8 @@ export function ChildProfilePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { professional } = useAuthStore()
+  const { user, professional } = useAuthStore()
+  const profId = professional?.id || user?.id
   const [child, setChild] = useState<Child | null>(null)
   const [guardians, setGuardians] = useState<Guardian[]>([])
   const [nextAppointment, setNextAppointment] = useState<Appointment | null>(null)
@@ -58,6 +73,10 @@ export function ChildProfilePage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>("resumo")
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletingChild, setDeletingChild] = useState(false)
+  const [financialCount, setFinancialCount] = useState<number>(0)
+  const [checkingFinance, setCheckingFinance] = useState(false)
 
   useEffect(() => {
     if (id) loadChild()
@@ -107,6 +126,37 @@ export function ChildProfilePage() {
       setSessionCount(sessionRes.data?.length || 0)
     } finally {
       setLoading(false)
+    }
+  }
+
+    async function handleOpenDeleteModal() {
+    if (!child) return
+    setCheckingFinance(true)
+    try {
+      const count = await checkChildFinancialRecords(child.id)
+      setFinancialCount(count)
+      setShowDeleteModal(true)
+    } finally {
+      setCheckingFinance(false)
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!child || !profId) return
+    setDeletingChild(true)
+    try {
+      const res = await deleteChildSafely(child.id, profId, child.full_name)
+      if (res.success) {
+        toast.success("Paciente excluído com sucesso!", { icon: "🗑️" })
+        setShowDeleteModal(false)
+        navigate("/criancas")
+      } else {
+        toast.error(res.error || "Erro ao excluir paciente")
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro inesperado ao excluir paciente")
+    } finally {
+      setDeletingChild(false)
     }
   }
 
@@ -229,6 +279,16 @@ export function ChildProfilePage() {
             >
               <Edit className="w-3.5 h-3.5" />
               <span>Editar</span>
+            </button>
+
+            <button
+              onClick={handleOpenDeleteModal}
+              disabled={checkingFinance}
+              className="h-10 px-3.5 rounded-2xl bg-[#F7FAFA] hover:bg-red-50 text-[#8CAAB1] hover:text-red-600 border-2 border-[#D8E5E7] hover:border-red-200 text-xs font-black flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
+              title="Excluir paciente"
+            >
+              {checkingFinance ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">Excluir</span>
             </button>
           </div>
         </div>

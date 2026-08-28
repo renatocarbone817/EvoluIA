@@ -2,6 +2,10 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Search,
+  Trash2,
+  AlertTriangle,
+  ShieldCheck,
+  Loader2,
   Plus,
   Phone,
   Mail,
@@ -44,6 +48,7 @@ import { formatPhone, formatDate } from "@/lib/utils"
 import toast from "react-hot-toast"
 import type { Guardian, Child } from "@/types/database"
 import { NewChildDialog } from "@/pages/children/NewChildDialog"
+import { deleteGuardianSafely } from "@/lib/deletionService"
 
 interface GuardianWithChildren extends Guardian {
   children?: {
@@ -67,6 +72,8 @@ export function GuardiansPage() {
   const [filterType, setFilterType] = useState<FilterType>("todos")
   const [showNewChildDialog, setShowNewChildDialog] = useState(false)
   const [selectedFamilyGuardian, setSelectedFamilyGuardian] = useState<GuardianWithChildren | null>(null)
+  const [guardianToDelete, setGuardianToDelete] = useState<GuardianWithChildren | null>(null)
+  const [deletingGuardian, setDeletingGuardian] = useState(false)
 
   // Edit Guardian State
   const [editingGuardian, setEditingGuardian] = useState<Guardian | null>(null)
@@ -125,6 +132,25 @@ export function GuardiansPage() {
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+    async function handleConfirmDeleteGuardian() {
+    if (!guardianToDelete || !profId) return
+    setDeletingGuardian(true)
+    try {
+      const res = await deleteGuardianSafely(guardianToDelete.id, profId)
+      if (res.success) {
+        toast.success("Responsável excluído com sucesso!", { icon: "🗑️" })
+        setGuardianToDelete(null)
+        await loadGuardians()
+      } else {
+        toast.error(res.error || "Erro ao excluir responsável.")
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro inesperado ao excluir responsável.")
+    } finally {
+      setDeletingGuardian(false)
     }
   }
 
@@ -530,6 +556,15 @@ export function GuardiansPage() {
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setGuardianToDelete(g)}
+                    className="p-2 text-[#8CAAB1] hover:text-red-600 hover:bg-red-50 rounded-xl border border-[#D8E5E7] hover:border-red-200 transition-all text-xs"
+                    title="Excluir responsável"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             )
@@ -566,14 +601,24 @@ export function GuardiansPage() {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => openEdit(g)}
-                      className="w-8 h-8 rounded-xl bg-[#F7FAFA] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] flex items-center justify-center transition-colors shrink-0"
-                      title="Editar responsável"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(g)}
+                        className="w-8 h-8 rounded-xl bg-[#F7FAFA] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] flex items-center justify-center transition-colors shrink-0"
+                        title="Editar responsável"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGuardianToDelete(g)}
+                        className="w-8 h-8 rounded-xl bg-[#F7FAFA] hover:bg-red-50 text-[#8CAAB1] hover:text-red-600 flex items-center justify-center transition-colors shrink-0"
+                        title="Excluir responsável"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* 2. Primary Phone Banner (WhatsApp + Copy) */}
