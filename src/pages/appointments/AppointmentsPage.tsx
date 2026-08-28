@@ -228,8 +228,8 @@ export function AppointmentsPage() {
       typeLower.includes("anamnese")
 
     if (isInterviewOrEval && appt.child_id) {
-      // Entrevista / Avaliação Inicial -> abre a Ficha / Resumo da Criança
-      navigate(`/criancas/${appt.child_id}`)
+      // Entrevista / Avaliação Inicial -> abre direto a Edição/Cadastro dos Dados da Criança
+      navigate(`/criancas/${appt.child_id}?editar=true`)
     } else if (typeLower.includes("devolutiva") && appt.child_id) {
       // Devolutiva -> abre a aba de Relatórios da Criança
       navigate(`/criancas/${appt.child_id}?tab=relatorios`)

@@ -951,8 +951,19 @@ export function DashboardPage() {
                       <div className="flex-1 flex items-center justify-between p-2.5 rounded-2xl hover:bg-[#F7FAFA] border border-[#EEF5F6] hover:border-[#D8E5E7] transition-all min-w-0">
                         <div
                           onClick={() => {
-                            if (appt.child_id) navigate(`/criancas/${appt.child_id}`)
-                            else navigate(`/atendimento/${appt.id}`)
+                            const typeLower = (appt.type || "").toLowerCase()
+                            const isInterviewOrEval =
+                              typeLower.includes("entrevista") ||
+                              typeLower.includes("avalia") ||
+                              typeLower.includes("anamnese")
+
+                            if (isInterviewOrEval && appt.child_id) {
+                              navigate(`/criancas/${appt.child_id}?editar=true`)
+                            } else if (appt.child_id) {
+                              navigate(`/criancas/${appt.child_id}`)
+                            } else {
+                              navigate(`/atendimento/${appt.id}`)
+                            }
                           }}
                           className="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1"
                         >
@@ -997,7 +1008,7 @@ export function DashboardPage() {
                                   typeLower.includes("anamnese")
 
                                 if (isInterviewOrEval && appt.child_id) {
-                                  navigate(`/criancas/${appt.child_id}`)
+                                  navigate(`/criancas/${appt.child_id}?editar=true`)
                                 } else if (typeLower.includes("devolutiva") && appt.child_id) {
                                   navigate(`/criancas/${appt.child_id}?tab=relatorios`)
                                 } else {
