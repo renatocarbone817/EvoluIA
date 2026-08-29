@@ -87,6 +87,7 @@ export function FinancialPage() {
   const [children, setChildren] = useState<{ id: string; full_name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [showMobileSearch, setShowMobileSearch] = useState(false)
 
   const now = new Date()
   const currentMonth = now.getMonth() + 1
