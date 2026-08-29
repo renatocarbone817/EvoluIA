@@ -410,92 +410,130 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
       </div>
 
       {/* Top action bar (hidden on print) */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b-2 border-[#EEF5F6] print:hidden w-full">
-        <div className="min-w-0">
-          <h2 className="text-lg sm:text-xl font-black text-[#0D2329] flex items-center gap-2 whitespace-nowrap">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 pb-4 border-b-2 border-[#EEF5F6] print:hidden w-full max-w-full">
+        <div className="space-y-0.5 min-w-0">
+          <h2 className="text-base sm:text-xl font-black text-[#0D2329] flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-[#7C3AED] shrink-0" />
             <span>Entrevista Inicial (Anamnese com os Pais)</span>
           </h2>
-          <p className="text-xs font-semibold text-[#6B7C83] mt-0.5">
+          <p className="text-xs font-semibold text-[#6B7C83]">
             13 perguntas estruturadas para a primeira entrevista com os pais e responsáveis.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-          {assessment && !isEditing ? (
-            <>
-              {/* 1. Imprimir */}
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="px-3.5 py-2 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#7C3AED] hover:bg-[#F8FAFB] text-xs font-black text-[#0D2329] transition-all shadow-2xs active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
-              >
-                <Printer className="w-4 h-4 text-[#6B7C83] shrink-0" />
-                <span>Imprimir</span>
-              </button>
-
-              {/* 2. Editar Respostas */}
-              <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                className="px-3.5 py-2 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] border-2 border-[#C4B5FD] font-black text-xs transition-all shadow-2xs active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
-              >
-                <Edit3 className="w-4 h-4 shrink-0" />
-                <span>Editar Respostas</span>
-              </button>
-
-              {/* 3. Reanalisar com IA */}
-              <button
-                type="button"
-                onClick={handleAnalyzeWithAI}
-                disabled={aiLoading}
-                className="px-4 py-2 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 disabled:opacity-50 whitespace-nowrap"
-              >
-                {aiLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                ) : (
-                  <Sparkles className="w-4 h-4 shrink-0" />
-                )}
-                <span>{aiLoading ? "Analisando..." : aiAnalysis ? "Reanalisar com IA" : "✨ Analisar com IA"}</span>
-              </button>
-
-              {/* 4. Agendar Sessão (do lado direito de tudo - Destaque Azul Vibrante) */}
-              <button
-                type="button"
-                onClick={() => setShowAppointmentModal(true)}
-                className="px-4 py-2 rounded-2xl bg-gradient-to-r from-[#0284C7] to-[#0369A1] hover:from-[#0369A1] hover:to-[#075985] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 whitespace-nowrap"
-                title="Agendar sessões para esta criança"
-              >
-                <Calendar className="w-4 h-4 shrink-0" />
-                <span>+ Agendar Sessões</span>
-              </button>
-            </>
-          ) : (
-            <div className="flex items-center gap-2">
-              {assessment && (
+        {/* Action Buttons Toolbar (Modern Scrollable Horizontal Bar) */}
+        <div className="overflow-x-auto -mx-1 px-1 scrollbar-none shrink-0 w-full sm:w-auto">
+          <div className="flex items-center gap-2 w-max sm:w-auto">
+            {assessment && !isEditing ? (
+              <>
+                {/* 1. Imprimir */}
                 <button
                   type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:bg-[#F8FAFB] text-xs font-bold text-[#6B7C83] transition-all"
+                  onClick={() => window.print()}
+                  className="px-3.5 py-2 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#7C3AED] hover:bg-[#F8FAFB] text-xs font-black text-[#0D2329] transition-all shadow-2xs active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
+                  title="Imprimir entrevista"
                 >
-                  Cancelar
+                  <Printer className="w-3.5 h-3.5 text-[#6B7C83]" />
+                  <span>Imprimir</span>
                 </button>
-              )}
-              <button
-                type="button"
-                disabled={saving}
-                onClick={handleSaveAssessment}
-                className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#00C48C] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 whitespace-nowrap"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Save className="w-4 h-4 shrink-0" />}
-                <span>Salvar Entrevista</span>
-              </button>
-            </div>
-          )}
+
+                {/* 2. Editar Respostas */}
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="px-3.5 py-2 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] border-2 border-[#DDD6FE] font-black text-xs transition-all shadow-2xs active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
+                  title="Editar perguntas e respostas"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Editar Respostas</span>
+                </button>
+
+                {/* 3. Reanalisar com IA */}
+                <button
+                  type="button"
+                  onClick={handleAnalyzeWithAI}
+                  disabled={aiLoading}
+                  className="px-4 py-2 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 disabled:opacity-50 whitespace-nowrap"
+                >
+                  {aiLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
+                  <span>{aiLoading ? "Analisando..." : aiAnalysis ? "Reanalisar com IA" : "✨ Analisar com IA"}</span>
+                </button>
+
+                {/* 4. Agendar Sessões */}
+                <button
+                  type="button"
+                  onClick={() => setShowAppointmentModal(true)}
+                  className="px-4 py-2 rounded-2xl bg-gradient-to-r from-[#0284C7] to-[#0369A1] hover:from-[#0369A1] hover:to-[#075985] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 whitespace-nowrap"
+                  title="Agendar sessões para esta criança"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>+ Agendar Sessões</span>
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                {assessment && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="px-4 py-2.5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:bg-[#F8FAFB] text-xs font-black text-[#6B7C83] transition-all active:scale-95"
+                  >
+                    Cancelar
+                  </button>
+                )}
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={handleSaveAssessment}
+                  className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 whitespace-nowrap"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Save className="w-4 h-4 stroke-[2.5]" />}
+                  <span>{saving ? "Salvando..." : "Salvar Entrevista"}</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* General info card */}
+      <div className="p-5 sm:p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4 w-full max-w-full">
+        <div className="border-b border-[#EEF5F6] pb-3 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[#7C3AED]" />
+          <h3 className="text-xs font-black uppercase tracking-wider text-[#0D2329]">
+            Dados Gerais da Entrevista Inicial
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Input
+            label="Data da Entrevista"
+            type="date"
+            disabled={!isEditing}
+            value={baseForm.date}
+            onChange={(e) => setBaseForm({ ...baseForm, date: e.target.value })}
+          />
+          <Input
+            label="Origem da Indicação"
+            placeholder="Ex: Escola, Professora, Neuropediatra..."
+            disabled={!isEditing}
+            value={baseForm.referral_source}
+            onChange={(e) => setBaseForm({ ...baseForm, referral_source: e.target.value })}
+          />
+          <Input
+            label="Escola / Contato"
+            placeholder="Nome da escola ou professora..."
+            disabled={!isEditing}
+            value={baseForm.school_name}
+            onChange={(e) => setBaseForm({ ...baseForm, school_name: e.target.value })}
+          />
+        </div>
+      </div>
+
+      {/* 13 Structured Questions */}
       <Card className="print:border print:border-[#D8E5E7] print:shadow-none">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">
@@ -534,21 +572,20 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
         {DEFAULT_ASSESSMENT_QUESTIONS.map((q) => {
           const value = answers[q.id] || ""
           return (
-            <Card
+            <div
               key={q.id}
-              className={`transition-colors print:break-inside-avoid print:border print:border-[#D8E5E7] print:shadow-none print:bg-white ${
-                isEditing ? "hover:border-foreground/40" : ""
+              className={`p-5 sm:p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm transition-all print:break-inside-avoid print:border print:border-[#D8E5E7] print:shadow-none print:bg-white w-full max-w-full space-y-3 ${
+                isEditing ? "hover:border-[#7C3AED]/40" : ""
               }`}
             >
-              <CardContent className="p-5 space-y-2.5 print:p-3.5">
-                <div className="flex items-start gap-2.5">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-foreground text-background font-bold text-xs flex items-center justify-center mt-0.5 print:bg-[#19323A] print:text-white">
-                    {q.num}
-                  </span>
-                  <label className="text-sm font-bold text-foreground leading-snug print:text-[#19323A]">
-                    {q.title}
-                  </label>
-                </div>
+              <div className="flex items-start gap-3">
+                <span className="shrink-0 w-7 h-7 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] font-black text-xs flex items-center justify-center shadow-2xs mt-0.5 print:bg-[#19323A] print:text-white">
+                  {q.num}
+                </span>
+                <label className="text-xs sm:text-sm font-black text-[#0D2329] leading-snug">
+                  {q.title}
+                </label>
+              </div>
 
                 {isEditing ? (
                   <Textarea
@@ -571,8 +608,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
                     )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+            </div>
           )
         })}
       </div>
