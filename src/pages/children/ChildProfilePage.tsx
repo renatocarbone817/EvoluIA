@@ -192,7 +192,7 @@ export function ChildProfilePage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-[1600px] mx-auto space-y-4">
+      <div className="p-8 max-w-7xl mx-auto space-y-4">
         <div className="h-24 w-full bg-white border-2 border-[#D8E5E7] animate-pulse rounded-3xl shadow-xs" />
         <div className="h-64 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-3xl shadow-xs" />
       </div>
@@ -201,7 +201,7 @@ export function ChildProfilePage() {
 
   if (!child) {
     return (
-      <div className="p-12 max-w-[1600px] mx-auto text-center space-y-4">
+      <div className="p-12 max-w-7xl mx-auto text-center space-y-4">
         <div className="w-16 h-16 rounded-3xl bg-[#FEF8EC] border-2 border-[#FDE68A] text-[#F59E0B] flex items-center justify-center mx-auto">
           <Users className="w-8 h-8" />
         </div>
@@ -217,7 +217,7 @@ export function ChildProfilePage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6 animate-in fade-in max-w-full overflow-x-hidden">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in max-w-full overflow-x-hidden">
       {/* 1. TOP HERO HEADER (Larger Photo, Top-Right Edit Button, No Back Button, Clean Alignment) */}
       <div className="bg-white p-4 sm:p-6 rounded-3xl border-2 border-[#D8E5E7] shadow-sm space-y-4">
         <div className="flex items-start justify-between gap-3">
