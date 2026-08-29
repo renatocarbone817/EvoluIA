@@ -204,7 +204,7 @@ export function ChildProfilePage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6 animate-in fade-in">
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6 animate-in fade-in max-w-full overflow-x-hidden">
       {/* 1. TOP HERO HEADER */}
       <div className="bg-white p-5 sm:p-6 rounded-3xl border-2 border-[#D8E5E7] shadow-sm space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -294,7 +294,7 @@ export function ChildProfilePage() {
         </div>
 
         {/* 2. MODERN TABS PILLS TOOLBAR */}
-        <div className="pt-3 border-t border-[#EEF5F6] flex items-center gap-2 overflow-x-auto">
+        <div className="pt-3 border-t border-[#EEF5F6] flex items-center gap-2 overflow-x-auto -mx-1 px-1 scrollbar-none">
           {TABS.map((tab) => {
             const Icon = tab.icon
             const isSelected = activeTab === tab.id

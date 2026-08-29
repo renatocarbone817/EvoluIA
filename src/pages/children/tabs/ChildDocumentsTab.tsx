@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from "react"
-import { Upload, FileText, Trash2, Download, Paperclip, Plus } from "lucide-react"
+import { Upload, FileText, Trash2, Download, Paperclip, Plus, FileSpreadsheet, Image as ImageIcon, File } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
-import { Card, CardContent } from "@/components/ui/Card"
-import { Button } from "@/components/ui/Button"
 import { Select } from "@/components/ui/Select"
 import { formatDate } from "@/lib/utils"
 import toast from "react-hot-toast"
@@ -109,11 +107,19 @@ export function ChildDocumentsTab({ childId }: ChildDocumentsTabProps) {
     return d.category === categoryFilter
   })
 
+  function getFileIcon(fileName: string) {
+    const ext = fileName.split(".").pop()?.toLowerCase() || ""
+    if (["jpg", "jpeg", "png", "webp", "gif"].includes(ext)) return <ImageIcon className="w-5 h-5 text-[#7C3AED]" />
+    if (["xls", "xlsx", "csv"].includes(ext)) return <FileSpreadsheet className="w-5 h-5 text-[#10B981]" />
+    if (["pdf", "doc", "docx"].includes(ext)) return <FileText className="w-5 h-5 text-[#0284C7]" />
+    return <File className="w-5 h-5 text-[#6B7C83]" />
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 max-w-full overflow-hidden">
       {/* Upload Controls */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="w-full sm:w-60">
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        <div className="w-full sm:w-64">
           <Select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
@@ -129,12 +135,13 @@ export function ChildDocumentsTab({ childId }: ChildDocumentsTabProps) {
             onChange={handleFileUpload}
           />
           <button
+            type="button"
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
             className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 w-full sm:w-auto disabled:opacity-50"
           >
-            <Upload className="w-4 h-4" />
-            <span>{uploading ? "Enviando..." : "Novo Documento / Anexo"}</span>
+            <Upload className="w-4 h-4 stroke-[2.5]" />
+            <span>{uploading ? "Enviando..." : "+ Novo Documento / Anexo"}</span>
           </button>
         </div>
       </div>
@@ -143,7 +150,7 @@ export function ChildDocumentsTab({ childId }: ChildDocumentsTabProps) {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 bg-muted animate-pulse rounded-xl" />
+            <div key={i} className="h-16 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-2xl" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -163,7 +170,7 @@ export function ChildDocumentsTab({ childId }: ChildDocumentsTabProps) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black inline-flex items-center gap-2 shadow-md active:scale-95 transition-all"
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black inline-flex items-center gap-2 shadow-md active:scale-95 transition-all"
             >
               <Upload className="w-4 h-4 stroke-[2.5]" />
               <span>+ Fazer Upload de Documento</span>
@@ -171,43 +178,52 @@ export function ChildDocumentsTab({ childId }: ChildDocumentsTabProps) {
           </div>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-full">
           {filtered.map((doc) => (
-            <Card key={doc.id} className="hover:border-foreground/30 transition-colors">
-              <CardContent className="p-4 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                    <FileText className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate">{doc.file_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDate(doc.created_at)}
-                      {doc.category ? ` · ${doc.category.replace("_", " ")}` : ""}
-                    </p>
-                  </div>
+            <div
+              key={doc.id}
+              className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#7C3AED]/40 hover:shadow-md transition-all flex items-center justify-between gap-3 w-full max-w-full overflow-hidden"
+            >
+              {/* Icon & Truncated Filename */}
+              <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
+                <div className="w-10 h-10 rounded-2xl bg-[#F8FAFB] border-2 border-[#D8E5E7] flex items-center justify-center shrink-0 shadow-2xs">
+                  {getFileIcon(doc.file_name)}
                 </div>
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <p
+                    className="text-xs sm:text-sm font-black text-[#0D2329] truncate block max-w-full"
+                    title={doc.file_name}
+                  >
+                    {doc.file_name}
+                  </p>
+                  <p className="text-[11px] font-semibold text-[#6B7C83] truncate mt-0.5">
+                    {formatDate(doc.created_at)}
+                    {doc.category ? ` · ${doc.category.replace("_", " ")}` : ""}
+                  </p>
+                </div>
+              </div>
 
-                <div className="flex items-center gap-1 shrink-0">
-                  <a
-                    href={doc.file_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-                    title="Visualizar / Download"
-                  >
-                    <Download className="w-4 h-4" />
-                  </a>
-                  <button
-                    onClick={() => handleDelete(doc)}
-                    className="p-2 text-muted-foreground hover:text-destructive transition-colors"
-                    title="Excluir"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
+              {/* Actions: Download & Delete */}
+              <div className="flex items-center gap-1 shrink-0">
+                <a
+                  href={doc.file_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-2 text-[#6B7C83] hover:text-[#7C3AED] hover:bg-[#EDE9FE] rounded-xl transition-colors"
+                  title="Visualizar / Download"
+                >
+                  <Download className="w-4 h-4" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(doc)}
+                  className="p-2 text-[#8CAAB1] hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                  title="Excluir documento"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       )}
