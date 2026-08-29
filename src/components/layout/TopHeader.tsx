@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Search,
@@ -78,7 +78,7 @@ export function TopHeader() {
   }
 
   return (
-    <header className="hidden md:flex sticky top-0 z-50 h-16 bg-white/95 backdrop-blur-md border-b-2 border-[#D8E5E7] px-6 items-center justify-between shadow-2xs gap-4">
+    <header className="hidden md:flex sticky top-0 z-30 h-16 bg-white/95 backdrop-blur-md border-b-2 border-[#D8E5E7] px-6 items-center justify-between shadow-2xs gap-4">
       {/* 1. Left / Center: Global Search Bar */}
       <div className="flex-1 max-w-xl relative">
         <div className="relative flex items-center">

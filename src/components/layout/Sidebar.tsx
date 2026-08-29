@@ -39,7 +39,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden md:flex flex-col h-screen bg-[#0D2329] text-white transition-all duration-300 relative select-none border-r border-[#193F4A] shadow-2xl z-40",
+        "hidden md:flex flex-col h-screen bg-[#0D2329] text-white transition-all duration-300 relative select-none border-r border-[#193F4A] shadow-2xl z-[60]",
         collapsed ? "w-20" : "w-64"
       )}
     >
@@ -167,7 +167,7 @@ export function Sidebar() {
       {/* Collapse toggle button */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3.5 top-12 w-7 h-7 bg-[#0D2329] border border-[#193F4A] text-white rounded-full flex items-center justify-center shadow-md hover:scale-110 hover:border-[#7C3AED] transition-all z-20"
+        className="absolute -right-3.5 top-6 w-7 h-7 bg-[#0D2329] border-2 border-[#193F4A] text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 hover:border-[#7C3AED] transition-all z-[70] cursor-pointer"
         aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
       >
         {collapsed ? (
