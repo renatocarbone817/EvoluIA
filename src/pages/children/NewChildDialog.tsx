@@ -1,4 +1,4 @@
-import { useState, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
 import {
@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/Dialog"
 import { Button } from "@/components/ui/Button"
 import toast from "react-hot-toast"
-import { UserPlus, Camera, X, Crop, Loader2, Users, CheckCircle2 } from "lucide-react"
+import { UserPlus, Camera, X, Crop, Loader2, Users, CheckCircle2, School, GraduationCap } from "lucide-react"
 import { ImageCropperModal } from "@/components/ui/ImageCropperModal"
 
 interface NewChildDialogProps {
@@ -14,6 +14,29 @@ interface NewChildDialogProps {
   onClose: () => void
   onSuccess: () => void
 }
+
+export const GRADE_OPTIONS = [
+  { value: "", label: "Selecione o ano / série..." },
+  { value: "Não informado / Não frequenta", label: "Não informado / Não frequenta" },
+  { value: "Berçário / Maternal", label: "Berçário / Maternal" },
+  { value: "Educação Infantil (Pré I)", label: "Educação Infantil (Pré I)" },
+  { value: "Educação Infantil (Pré II)", label: "Educação Infantil (Pré II)" },
+  { value: "1º Ano do Ensino Fundamental", label: "1º Ano do Ensino Fundamental" },
+  { value: "2º Ano do Ensino Fundamental", label: "2º Ano do Ensino Fundamental" },
+  { value: "3º Ano do Ensino Fundamental", label: "3º Ano do Ensino Fundamental" },
+  { value: "4º Ano do Ensino Fundamental", label: "4º Ano do Ensino Fundamental" },
+  { value: "5º Ano do Ensino Fundamental", label: "5º Ano do Ensino Fundamental" },
+  { value: "6º Ano do Ensino Fundamental", label: "6º Ano do Ensino Fundamental" },
+  { value: "7º Ano do Ensino Fundamental", label: "7º Ano do Ensino Fundamental" },
+  { value: "8º Ano do Ensino Fundamental", label: "8º Ano do Ensino Fundamental" },
+  { value: "9º Ano do Ensino Fundamental", label: "9º Ano do Ensino Fundamental" },
+  { value: "1º Ano do Ensino Médio", label: "1º Ano do Ensino Médio" },
+  { value: "2º Ano do Ensino Médio", label: "2º Ano do Ensino Médio" },
+  { value: "3º Ano do Ensino Médio", label: "3º Ano do Ensino Médio" },
+  { value: "Ensino Superior", label: "Ensino Superior" },
+  { value: "EJA / Educação Especial", label: "EJA / Educação Especial" },
+  { value: "Outro", label: "Outro" },
+]
 
 const STATUS_OPTIONS = [
   { value: "initial_assessment", label: "📋 Entrevista Inicial" },
@@ -25,6 +48,7 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
   const [loading, setLoading] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [schoolSuggestions, setSchoolSuggestions] = useState<string[]>([])
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   // Cropper state
@@ -45,6 +69,36 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
     guardian_phone: "",
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    async function loadSchools() {
+      const { user, professional } = useAuthStore.getState()
+      const profId = professional?.id || user?.id
+      if (!profId || !open) return
+
+      try {
+        const { data: schoolsData } = await supabase
+          .from("children")
+          .select("school")
+          .eq("professional_id", profId)
+          .not("school", "is", null)
+
+        if (schoolsData) {
+          const uniqueSchools = Array.from(
+            new Set(
+              schoolsData
+                .map((s) => s.school?.trim())
+                .filter((s): s is string => Boolean(s && s.length > 0))
+            )
+          ).sort((a, b) => a.localeCompare(b, "pt-BR"))
+          setSchoolSuggestions(uniqueSchools)
+        }
+      } catch (err) {
+        console.error("Error loading schools:", err)
+      }
+    }
+    loadSchools()
+  }, [open])
 
   function handleChange(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -314,25 +368,51 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-black text-[#0D2329]">Escola</label>
+                  <label className="text-xs font-black text-[#0D2329] flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <School className="w-3.5 h-3.5 text-[#7C3AED]" />
+                      <span>Escola</span>
+                    </span>
+                    {schoolSuggestions.length > 0 && (
+                      <span className="text-[10px] font-bold text-[#7C3AED]">
+                        {schoolSuggestions.length} cadastradas
+                      </span>
+                    )}
+                  </label>
                   <input
                     type="text"
+                    list="new-schools-list"
                     placeholder="Ex: Colégio Objetivo"
                     value={form.school}
                     onChange={(e) => handleChange("school", e.target.value)}
                     className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
                   />
+                  <datalist id="new-schools-list">
+                    {schoolSuggestions.map((sch) => (
+                      <option key={sch} value={sch} />
+                    ))}
+                  </datalist>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-black text-[#0D2329]">Ano / Série</label>
-                  <input
-                    type="text"
-                    placeholder="Ex: 3º ano Fundamental"
+                  <label className="text-xs font-black text-[#0D2329] flex items-center gap-1">
+                    <GraduationCap className="w-3.5 h-3.5 text-[#7C3AED]" />
+                    <span>Ano / Série</span>
+                  </label>
+                  <select
                     value={form.grade}
                     onChange={(e) => handleChange("grade", e.target.value)}
                     className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
-                  />
+                  >
+                    {form.grade && !GRADE_OPTIONS.some((g) => g.value === form.grade) && (
+                      <option value={form.grade}>{form.grade}</option>
+                    )}
+                    {GRADE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

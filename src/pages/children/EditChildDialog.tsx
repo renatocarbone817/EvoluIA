@@ -36,6 +36,29 @@ interface EditChildDialogProps {
   onDelete?: () => void
 }
 
+export const GRADE_OPTIONS = [
+  { value: "", label: "Selecione o ano / série..." },
+  { value: "Não informado / Não frequenta", label: "Não informado / Não frequenta" },
+  { value: "Berçário / Maternal", label: "Berçário / Maternal" },
+  { value: "Educação Infantil (Pré I)", label: "Educação Infantil (Pré I)" },
+  { value: "Educação Infantil (Pré II)", label: "Educação Infantil (Pré II)" },
+  { value: "1º Ano do Ensino Fundamental", label: "1º Ano do Ensino Fundamental" },
+  { value: "2º Ano do Ensino Fundamental", label: "2º Ano do Ensino Fundamental" },
+  { value: "3º Ano do Ensino Fundamental", label: "3º Ano do Ensino Fundamental" },
+  { value: "4º Ano do Ensino Fundamental", label: "4º Ano do Ensino Fundamental" },
+  { value: "5º Ano do Ensino Fundamental", label: "5º Ano do Ensino Fundamental" },
+  { value: "6º Ano do Ensino Fundamental", label: "6º Ano do Ensino Fundamental" },
+  { value: "7º Ano do Ensino Fundamental", label: "7º Ano do Ensino Fundamental" },
+  { value: "8º Ano do Ensino Fundamental", label: "8º Ano do Ensino Fundamental" },
+  { value: "9º Ano do Ensino Fundamental", label: "9º Ano do Ensino Fundamental" },
+  { value: "1º Ano do Ensino Médio", label: "1º Ano do Ensino Médio" },
+  { value: "2º Ano do Ensino Médio", label: "2º Ano do Ensino Médio" },
+  { value: "3º Ano do Ensino Médio", label: "3º Ano do Ensino Médio" },
+  { value: "Ensino Superior", label: "Ensino Superior" },
+  { value: "EJA / Educação Especial", label: "EJA / Educação Especial" },
+  { value: "Outro", label: "Outro" },
+]
+
 const STATUS_OPTIONS = [
   { value: "initial_assessment", label: "📋 Entrevista Inicial" },
   { value: "in_progress", label: "🌱 Em Acompanhamento" },
@@ -62,6 +85,7 @@ export function EditChildDialog({ open, child, onClose, onSuccess, onDelete }: E
   const [loading, setLoading] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [schoolSuggestions, setSchoolSuggestions] = useState<string[]>([])
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   // Cropper state
@@ -121,6 +145,24 @@ export function EditChildDialog({ open, child, onClose, onSuccess, onDelete }: E
   async function loadGuardiansData() {
     if (!profId || !child) return
     try {
+      // 0. Load unique schools for autocomplete
+      const { data: schoolsData } = await supabase
+        .from("children")
+        .select("school")
+        .eq("professional_id", profId)
+        .not("school", "is", null)
+
+      if (schoolsData) {
+        const uniqueSchools = Array.from(
+          new Set(
+            schoolsData
+              .map((s) => s.school?.trim())
+              .filter((s): s is string => Boolean(s && s.length > 0))
+          )
+        ).sort((a, b) => a.localeCompare(b, "pt-BR"))
+        setSchoolSuggestions(uniqueSchools)
+      }
+
       // 1. Load all clinic guardians
       const { data: allG } = await supabase
         .from("guardians")
@@ -481,31 +523,52 @@ export function EditChildDialog({ open, child, onClose, onSuccess, onDelete }: E
             {/* Escola + Série */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div className="space-y-1.5">
-                <label className="text-xs font-black text-[#0D2329] flex items-center gap-1">
-                  <School className="w-3.5 h-3.5 text-[#6B7C83]" />
-                  <span>Escola</span>
+                <label className="text-xs font-black text-[#0D2329] flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <School className="w-3.5 h-3.5 text-[#7C3AED]" />
+                    <span>Escola</span>
+                  </span>
+                  {schoolSuggestions.length > 0 && (
+                    <span className="text-[10px] font-bold text-[#7C3AED]">
+                      {schoolSuggestions.length} cadastradas
+                    </span>
+                  )}
                 </label>
                 <input
                   type="text"
-                  placeholder="Ex: Percio Puccini"
+                  list="edit-schools-list"
+                  placeholder="Ex: Colégio Percio Puccini"
                   value={form.school}
                   onChange={(e) => setForm({ ...form, school: e.target.value })}
                   className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all shadow-2xs"
                 />
+                <datalist id="edit-schools-list">
+                  {schoolSuggestions.map((sch) => (
+                    <option key={sch} value={sch} />
+                  ))}
+                </datalist>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-black text-[#0D2329] flex items-center gap-1">
-                  <GraduationCap className="w-3.5 h-3.5 text-[#6B7C83]" />
+                  <GraduationCap className="w-3.5 h-3.5 text-[#7C3AED]" />
                   <span>Ano / Série</span>
                 </label>
-                <input
-                  type="text"
-                  placeholder="Ex: 4ª série Fundamental"
+                <select
                   value={form.grade}
                   onChange={(e) => setForm({ ...form, grade: e.target.value })}
                   className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all shadow-2xs"
-                />
+                >
+                  {/* Se o valor atual for personalizado e nao estiver na lista, renderiza no topo */}
+                  {form.grade && !GRADE_OPTIONS.some((g) => g.value === form.grade) && (
+                    <option value={form.grade}>{form.grade}</option>
+                  )}
+                  {GRADE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
