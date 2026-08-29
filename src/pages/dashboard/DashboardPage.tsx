@@ -939,9 +939,9 @@ export function DashboardPage() {
                   return (
                     <div
                       key={appt.id}
-                      className="p-3 rounded-2xl bg-white hover:bg-[#FDFBFF] border-2 border-[#D8E5E7] hover:border-[#DDD6FE] shadow-2xs transition-all flex items-center justify-between gap-3 min-w-0"
+                      className="p-3.5 rounded-3xl bg-white hover:bg-[#FDFBFF] border-2 border-[#D8E5E7] hover:border-[#DDD6FE] shadow-2xs transition-all space-y-3 min-w-0"
                     >
-                      {/* Left: Time badge + Patient Info */}
+                      {/* Top Row: Avatar + Full Child Name + Session Type + Time Badge */}
                       <div
                         onClick={() => {
                           const typeLower = (appt.type || "").toLowerCase()
@@ -952,44 +952,50 @@ export function DashboardPage() {
 
                           if (isInterviewOrEval && appt.child_id) {
                             navigate(`/criancas/${appt.child_id}?editar=true`)
+                          } else if (typeLower.includes("devolutiva") && appt.child_id) {
+                            navigate(`/criancas/${appt.child_id}?tab=relatorios`)
                           } else if (appt.child_id) {
                             navigate(`/criancas/${appt.child_id}`)
                           } else {
                             navigate(`/atendimento/${appt.id}`)
                           }
                         }}
-                        className="flex items-center gap-3 min-w-0 cursor-pointer flex-1"
+                        className="flex items-center justify-between gap-2.5 cursor-pointer group min-w-0"
                       >
-                        {/* Time */}
-                        <span className="text-xs font-black text-[#0D2329] px-2.5 py-1.5 rounded-xl bg-[#F7FAFA] border border-[#D8E5E7] shrink-0">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <ChildAvatar photoUrl={appt.child?.photo_url} name={childName} size="md" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs sm:text-sm font-black text-[#0D2329] group-hover:text-[#7C3AED] transition-colors truncate leading-tight">
+                              {childName}
+                            </p>
+                            <p className="text-[11px] font-semibold text-[#6B7C83] truncate mt-0.5">
+                              {appt.type || "Sessão Psicopedagógica"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Time Badge */}
+                        <span className="text-xs font-black text-[#0D2329] px-2.5 py-1 rounded-xl bg-[#F7FAFA] border border-[#D8E5E7] shrink-0">
                           {timeStr}
                         </span>
-
-                        {/* Child Avatar */}
-                        <ChildAvatar photoUrl={appt.child?.photo_url} name={childName} size="md" />
-
-                        {/* Patient & Type */}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs sm:text-sm font-black text-[#0D2329] truncate">{childName}</p>
-                          <p className="text-[11px] font-semibold text-[#6B7C83] truncate">{appt.type}</p>
-                        </div>
                       </div>
 
-                      {/* Right: Larger Action Buttons (No WhatsApp, Larger Falta & Iniciar) */}
-                      <div className="flex items-center gap-2 shrink-0">
+                      {/* Bottom Row: Falta & Iniciar Atendimento */}
+                      <div className="flex items-center gap-2 pt-2 border-t border-[#EEF5F6]">
                         {appt.status !== "missed" && appt.status !== "done" && (
                           <button
                             type="button"
                             onClick={() => setAbsenceModalAppt(appt)}
-                            className="w-10 h-10 rounded-2xl bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 flex items-center justify-center active:scale-95 transition-all shadow-2xs"
+                            className="h-9 px-3 rounded-2xl bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 text-xs font-black flex items-center justify-center gap-1.5 active:scale-95 transition-all shrink-0 shadow-2xs"
                             title="Registrar Falta"
                           >
-                            <AlertTriangle className="w-4 h-4 stroke-[2.5]" />
+                            <AlertTriangle className="w-3.5 h-3.5 stroke-[2.5]" />
+                            <span>Falta</span>
                           </button>
                         )}
 
                         {appt.status === "missed" ? (
-                          <span className="text-xs font-black text-red-600 px-3 py-2 rounded-2xl bg-red-50 border border-red-200">
+                          <span className="text-xs font-black text-red-600 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200">
                             Faltou
                           </span>
                         ) : (
@@ -1010,11 +1016,11 @@ export function DashboardPage() {
                                 navigate(`/atendimento/${appt.id}`)
                               }
                             }}
-                            className="h-10 px-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white font-black text-xs flex items-center gap-1.5 shadow-xs active:scale-95 transition-all"
+                            className="flex-1 h-9 px-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all"
                             title="Iniciar Atendimento Clínico"
                           >
                             <Play className="w-3.5 h-3.5 fill-current" />
-                            <span>Iniciar</span>
+                            <span>Iniciar Atendimento</span>
                           </button>
                         )}
                       </div>
