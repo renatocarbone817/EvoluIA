@@ -1315,51 +1315,6 @@ export function AppointmentsPage() {
               </div>
             </div>
           </div>
-
-          {/* 4. AÇÕES RÁPIDAS */}
-          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-5 shadow-sm space-y-3">
-            <h3 className="text-xs font-black text-[#0D2329] tracking-tight">
-              Ações Rápidas
-            </h3>
-
-            <div className="space-y-1.5">
-              <button
-                type="button"
-                onClick={() => openNewModalForDate()}
-                className="w-full p-2.5 rounded-xl hover:bg-[#F7FAFA] text-xs font-bold text-[#0D2329] flex items-center gap-2.5 transition-all text-left group"
-              >
-                <CalendarDays className="w-4 h-4 text-[#7C3AED] group-hover:scale-110 transition-transform" />
-                <span>Novo compromisso</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowBlockModal(true)}
-                className="w-full p-2.5 rounded-xl hover:bg-[#F7FAFA] text-xs font-bold text-[#0D2329] flex items-center gap-2.5 transition-all text-left group"
-              >
-                <Lock className="w-4 h-4 text-[#0284C7] group-hover:scale-110 transition-transform" />
-                <span>Bloquear horário</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate("/configuracoes")}
-                className="w-full p-2.5 rounded-xl hover:bg-[#F7FAFA] text-xs font-bold text-[#0D2329] flex items-center gap-2.5 transition-all text-left group"
-              >
-                <Smartphone className="w-4 h-4 text-[#10B981] group-hover:scale-110 transition-transform" />
-                <span>Sincronizar com Celular / Google Agenda</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate("/configuracoes")}
-                className="w-full p-2.5 rounded-xl hover:bg-[#F7FAFA] text-xs font-bold text-[#0D2329] flex items-center gap-2.5 transition-all text-left group"
-              >
-                <Settings className="w-4 h-4 text-[#6B7C83] group-hover:scale-110 transition-transform" />
-                <span>Configurar horários de atendimento</span>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 
