@@ -371,14 +371,14 @@ export function ActiveSessionPage() {
 
         <div className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-1.5">
           <label className="text-[11px] font-black text-[#6B7C83] uppercase tracking-wider flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-[#00B4D8]" />
+            <Clock className="w-3.5 h-3.5 text-[#7C3AED]" />
             <span>Horário Término (opcional)</span>
           </label>
           <input
             type="time"
             value={form.end_time}
             onChange={(e) => setForm({ ...form, end_time: e.target.value })}
-            className="w-full p-2.5 rounded-2xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-black text-[#0D2329] focus:outline-none focus:border-[#00B4D8] focus:bg-white transition-all shadow-2xs"
+            className="w-full p-2.5 rounded-2xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-black text-[#0D2329] focus:outline-none focus:border-[#7C3AED] focus:bg-white transition-all shadow-2xs"
           />
         </div>
       </div>

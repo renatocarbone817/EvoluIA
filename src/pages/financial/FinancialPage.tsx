@@ -1461,7 +1461,7 @@ export function FinancialPage() {
                         {info.description}
                       </td>
                       <td className="py-3">
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#EAF8FC] text-[#00B4D8]">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#EAF8FC] text-[#7C3AED]">
                           {info.category}
                         </span>
                       </td>
@@ -1662,8 +1662,8 @@ export function FinancialPage() {
                       onClick={() => setExpenseRepetition("recurring")}
                       className={`p-2 rounded-xl text-center font-bold text-[10px] transition-all border ${
                         expenseRepetition === "recurring"
-                          ? "bg-[#00B4D8] text-white border-[#00B4D8] shadow-xs"
-                          : "bg-white text-[#6B7C83] border-[#D8E5E7] hover:border-[#00B4D8]"
+                          ? "bg-[#7C3AED] text-white border-[#7C3AED] shadow-xs"
+                          : "bg-white text-[#6B7C83] border-[#D8E5E7] hover:border-[#7C3AED]"
                       }`}
                     >
                       <p className="font-black text-xs leading-tight flex items-center justify-center gap-1">

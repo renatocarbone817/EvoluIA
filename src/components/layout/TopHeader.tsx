@@ -89,7 +89,7 @@ export function TopHeader() {
             value={searchQuery}
             onChange={(e) => handleFastSearch(e.target.value)}
             placeholder="Buscar paciente, avaliação, atividade..."
-            className="w-full pl-10 pr-12 py-2 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] hover:bg-white focus:bg-white text-xs font-semibold text-[#0D2329] placeholder:text-[#8CAAB1] focus:outline-none focus:border-[#00B4D8] transition-all shadow-2xs"
+            className="w-full pl-10 pr-12 py-2 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] hover:bg-white focus:bg-white text-xs font-semibold text-[#0D2329] placeholder:text-[#8CAAB1] focus:outline-none focus:border-[#7C3AED] transition-all shadow-2xs"
           />
           {searchQuery ? (
             <button
@@ -132,7 +132,7 @@ export function TopHeader() {
                     </div>
                     <p className="text-xs font-black text-[#0D2329] truncate">{c.full_name}</p>
                   </div>
-                  <span className="text-[10px] text-[#00B4D8] font-bold bg-[#EAF8FC] px-2 py-0.5 rounded-md">
+                  <span className="text-[10px] text-[#7C3AED] font-bold bg-[#EAF8FC] px-2 py-0.5 rounded-md">
                     Ver Ficha →
                   </span>
                 </div>

@@ -1294,26 +1294,34 @@ export function DashboardPage() {
             </div>
           </div>
 
-          {/* Próximas Sessões Card (AGORA NA COLUNA 2 EMBAIXO DO RESUMO DO MÊS) */}
-          <div className="rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm overflow-hidden space-y-3">
-            <div className="bg-[#00B4D8] text-white p-3.5 px-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                <h3 className="text-xs font-black tracking-wide">Próximas Sessões</h3>
+          {/* Próximas Sessões Card */}
+          <div className="rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm p-5 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b-2 border-[#EEF5F6]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold shadow-2xs">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-[#0D2329]">Próximas Sessões</h3>
+                  <p className="text-[11px] font-semibold text-[#6B7C83]">Atendimentos agendados</p>
+                </div>
               </div>
-              <button onClick={() => navigate("/agenda")} className="text-[11px] font-bold text-white/90 hover:underline">
+              <button
+                onClick={() => navigate("/agenda")}
+                className="px-3 py-1 text-[11px] font-bold text-[#7C3AED] bg-[#F5F3FF] hover:bg-[#EDE9FE] rounded-xl border border-[#DDD6FE] transition-colors"
+              >
                 Ver todas →
               </button>
             </div>
 
-            <div className="p-4 pt-1 space-y-2.5">
+            <div className="space-y-2.5">
               {upcomingAppointments.length === 0 ? (
                 <div className="py-6 text-center space-y-2 border-2 border-dashed border-[#EEF5F6] rounded-2xl bg-[#FAFCFC]">
                   <Calendar className="w-6 h-6 mx-auto text-[#A0B4B9]" />
                   <p className="text-xs font-bold text-[#0D2329]">Nenhuma sessão futura agendada</p>
                   <button
                     onClick={() => navigate("/agenda?novo=true")}
-                    className="text-xs font-bold text-[#00B4D8] hover:underline"
+                    className="text-xs font-bold text-[#7C3AED] hover:underline"
                   >
                     + Agendar nova sessão
                   </button>
@@ -1330,9 +1338,9 @@ export function DashboardPage() {
                     return (
                       <div
                         key={appt.id}
-                        className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-[#F7FAFA] border border-[#EEF5F6] hover:border-[#D8E5E7] transition-all group"
+                        className="flex items-center gap-3 p-3 rounded-2xl bg-white hover:bg-[#FDFBFF] border-2 border-[#D8E5E7] hover:border-[#DDD6FE] transition-all group shadow-2xs"
                       >
-                        <div className="w-11 h-11 rounded-2xl bg-[#F0F9FF] border border-[#BAE6FD] text-[#0284C7] flex flex-col items-center justify-center font-black text-xs shrink-0 leading-tight">
+                        <div className="w-11 h-11 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] flex flex-col items-center justify-center font-black text-xs shrink-0 leading-tight">
                           <span className="text-xs leading-none">{day}</span>
                           <span className="text-[8px] tracking-wider uppercase opacity-80">{month}</span>
                         </div>
@@ -1345,7 +1353,7 @@ export function DashboardPage() {
                           className="min-w-0 flex-1 cursor-pointer"
                         >
                           <div className="flex items-center justify-between">
-                            <p className="text-xs font-black text-[#0D2329] truncate">{name}</p>
+                            <p className="text-xs font-black text-[#0D2329] group-hover:text-[#7C3AED] transition-colors truncate">{name}</p>
                             <span className="text-[10px] font-bold text-[#6B7C83]">{time}</span>
                           </div>
                           <p className="text-[10px] text-[#6B7C83] truncate">{appt.type}</p>
@@ -1354,7 +1362,7 @@ export function DashboardPage() {
                         {/* Quick WhatsApp Reminder */}
                         <button
                           onClick={() => openWhatsApp(appt)}
-                          className="p-1.5 rounded-lg bg-[#E8F8F5] text-[#10B981] hover:bg-[#D1FAE5] transition-colors shrink-0"
+                          className="p-2 rounded-xl bg-[#E8F8F5] text-[#10B981] hover:bg-[#D1FAE5] transition-colors shrink-0 shadow-2xs"
                           title="Enviar WhatsApp"
                         >
                           <MessageCircle className="w-3.5 h-3.5" />
@@ -1367,7 +1375,7 @@ export function DashboardPage() {
 
               <button
                 onClick={() => navigate("/agenda")}
-                className="w-full pt-1 text-center text-xs font-black text-[#00B4D8] hover:underline"
+                className="w-full pt-2 text-center text-xs font-black text-[#7C3AED] hover:text-[#6D28D9] transition-colors"
               >
                 Ver todas as sessões na agenda →
               </button>
