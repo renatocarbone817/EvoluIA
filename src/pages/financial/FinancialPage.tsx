@@ -1147,222 +1147,272 @@ export function FinancialPage() {
       </div>
 
       {/* =========================================================================
-          4. POWERFUL ADVANCED EXTRATO & LANÇAMENTOS TABLE WITH FULL FILTERS
+          4. EXPANDED FINANCIAL ENTRIES TABLE & ADVANCED MOBILE TOOLBAR
           ========================================================================= */}
-      <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
-        {/* ROW 1: PERIOD SCOPE TABS & SEARCH */}
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pb-2 border-b border-[#EEF5F6]">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {/* 1. Mês Atual */}
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedMonth(currentMonth)
-                setTablePeriod("current")
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all border ${
-                tablePeriod === "current" || (tablePeriod === "month" && selectedMonth === currentMonth)
-                  ? "bg-[#19323A] text-white border-[#19323A] shadow-xs"
-                  : "bg-white text-[#6B7C83] border-[#D8E5E7] hover:border-[#19323A]"
-              }`}
-            >
-              <span>🗓️ Mês Atual ({MONTHS[currentMonth - 1]})</span>
-            </button>
-
-            {/* 2. Selecionar Mês */}
-            <div
-              className={`px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1 transition-all border ${
-                tablePeriod === "month" && selectedMonth !== currentMonth
-                  ? "bg-[#19323A] text-white border-[#19323A] shadow-xs"
-                  : "bg-white text-[#6B7C83] border-[#D8E5E7] hover:border-[#19323A]"
-              }`}
-            >
-              <span>🗓️</span>
+      <div className="p-4 sm:p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
+        {/* ROW 1: COMPACT PERIOD SELECTOR, CATEGORY & SEARCH TOOLBAR */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-3 border-b border-[#EEF5F6]">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Period Dropdown Selector */}
+            <div className="relative flex-1 sm:flex-initial">
               <select
-                value={tablePeriod === "month" && selectedMonth !== currentMonth ? selectedMonth : ""}
+                value={
+                  tablePeriod === "current"
+                    ? "current"
+                    : tablePeriod === "year"
+                    ? "year"
+                    : tablePeriod === "overdue"
+                    ? "overdue"
+                    : tablePeriod === "all"
+                    ? "all"
+                    : String(selectedMonth)
+                }
                 onChange={(e) => {
-                  if (e.target.value) {
-                    setSelectedMonth(Number(e.target.value))
+                  const val = e.target.value
+                  if (val === "current") {
+                    setSelectedMonth(currentMonth)
+                    setTablePeriod("current")
+                  } else if (val === "year") {
+                    setTablePeriod("year")
+                  } else if (val === "overdue") {
+                    setTablePeriod("overdue")
+                  } else if (val === "all") {
+                    setTablePeriod("all")
+                  } else {
+                    setSelectedMonth(Number(val))
                     setTablePeriod("month")
                   }
                 }}
-                className={`text-xs font-black bg-transparent focus:outline-none cursor-pointer ${
-                  tablePeriod === "month" && selectedMonth !== currentMonth
-                    ? "text-white"
-                    : "text-[#6B7C83]"
-                }`}
+                className="w-full sm:w-auto px-4 py-2 rounded-2xl border-2 border-[#DDD6FE] bg-[#F5F3FF] hover:bg-[#EDE9FE] text-xs font-black text-[#7C3AED] focus:outline-none focus:border-[#7C3AED] transition-all cursor-pointer shadow-2xs"
               >
-                <option value="" disabled className="text-[#0D2329]">
-                  Selecionar mês...
-                </option>
-                {MONTHS.map((m, idx) => (
-                  <option key={m} value={idx + 1} className="text-[#0D2329]">
-                    {m}
-                  </option>
-                ))}
+                <option value="current">📅 Mês Atual ({MONTHS[currentMonth - 1]})</option>
+                <optgroup label="Escolher Mês Específico">
+                  {MONTHS.map((m, idx) => (
+                    <option key={m} value={String(idx + 1)}>
+                      🗓️ {m} ({currentYear})
+                    </option>
+                  ))}
+                </optgroup>
+                <option value="year">📊 Ano Inteiro ({currentYear})</option>
+                <option value="overdue">🚨 Em Atraso ({filterCounts.overdueCount})</option>
+                <option value="all">🌐 Todo o Histórico ({records.length})</option>
               </select>
             </div>
 
-            {/* 3. Ano Inteiro */}
-            <button
-              type="button"
-              onClick={() => setTablePeriod("year")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all border ${
-                tablePeriod === "year"
-                  ? "bg-[#19323A] text-white border-[#19323A] shadow-xs"
-                  : "bg-white text-[#6B7C83] border-[#D8E5E7] hover:border-[#19323A]"
-              }`}
-            >
-              <span>📅 Ano Inteiro ({currentYear})</span>
-            </button>
+            {/* Category Selector */}
+            <div className="flex-1 sm:flex-initial">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="w-full sm:w-auto px-3.5 py-2 text-xs font-bold bg-[#F8FAFB] border-2 border-[#D8E5E7] rounded-2xl text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all cursor-pointer"
+              >
+                <option value="all">📁 Todas as Categorias</option>
+                {EXPENSE_CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+                <option value="Sessões">🟢 Sessões</option>
+                <option value="Avaliações">🟢 Avaliações</option>
+                {availableCategories
+                  .filter((c) => !EXPENSE_CATEGORIES.some((ec) => ec.value === c) && c !== "Sessões" && c !== "Avaliações")
+                  .map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+              </select>
+            </div>
 
-            {/* 4. Em Atraso */}
+            {/* Mobile Search Toggle Button */}
             <button
               type="button"
-              onClick={() => setTablePeriod("overdue")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all border ${
-                tablePeriod === "overdue"
-                  ? "bg-[#EF4444] text-white border-[#EF4444] shadow-xs"
-                  : "bg-white text-[#EF4444] border-[#FCA5A5] hover:bg-[#FEF2F2]"
+              onClick={() => setShowMobileSearch(!showMobileSearch)}
+              className={`p-2.5 rounded-2xl border-2 transition-all sm:hidden shrink-0 ${
+                showMobileSearch || search
+                  ? "bg-[#7C3AED] text-white border-[#7C3AED]"
+                  : "bg-[#F8FAFB] text-[#6B7C83] border-[#D8E5E7]"
               }`}
+              title="Buscar lançamentos"
             >
-              <span>🚨 Em Atraso ({filterCounts.overdueCount})</span>
-            </button>
-
-            {/* 5. Todo o Histórico */}
-            <button
-              type="button"
-              onClick={() => setTablePeriod("all")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all border ${
-                tablePeriod === "all"
-                  ? "bg-[#00B4D8] text-white border-[#00B4D8] shadow-xs"
-                  : "bg-white text-[#6B7C83] border-[#D8E5E7] hover:border-[#00B4D8]"
-              }`}
-            >
-              <Globe className="w-3.5 h-3.5" />
-              <span>Todo o Histórico ({records.length})</span>
+              <Search className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Quick Search */}
-          <div className="relative w-full sm:w-64">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8CAAB1]" />
+          {/* Search Input (Always visible on Desktop, togglable/visible on Mobile) */}
+          <div className={`relative w-full sm:w-64 ${showMobileSearch ? "block" : "hidden sm:block"}`}>
+            <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8CAAB1]" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar lançamento..."
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#10B981]"
+              placeholder="Buscar lançamento ou paciente..."
+              className="w-full pl-9 pr-8 py-2 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white focus:outline-none focus:border-[#7C3AED] text-[#0D2329] transition-all placeholder:text-[#8CAAB1]"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8CAAB1] hover:text-[#0D2329] p-0.5"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
 
-        {/* ROW 2: TYPE PILL BUTTONS & CATEGORY SELECTOR */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 flex-wrap text-xs">
-            <span className="font-bold text-[#8CAAB1] mr-1 flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5" /> Tipo:
-            </span>
-
-            <button
-              type="button"
-              onClick={() => setTypeFilter("all")}
-              className={`px-3 py-1 rounded-xl font-black text-xs transition-all border ${
-                typeFilter === "all"
-                  ? "bg-[#19323A] text-white border-[#19323A] shadow-xs"
-                  : "bg-white text-[#0D2329] border-[#D8E5E7] hover:bg-[#F7FAFA]"
-              }`}
-            >
-              Todos <span className="ml-1 opacity-75 font-normal">({filterCounts.total})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setTypeFilter("income")}
-              className={`px-3 py-1 rounded-xl font-black text-xs transition-all border ${
-                typeFilter === "income"
-                  ? "bg-[#00A896] text-white border-[#00A896] shadow-xs"
-                  : "bg-white text-[#00A896] border-[#D8E5E7] hover:bg-[#E8F8F5]"
-              }`}
-            >
-              🟢 ↑ Receitas <span className="ml-1 opacity-75 font-normal">({filterCounts.incomes})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setTypeFilter("expense")}
-              className={`px-3 py-1 rounded-xl font-black text-xs transition-all border ${
-                typeFilter === "expense"
-                  ? "bg-[#D96C6C] text-white border-[#D96C6C] shadow-xs"
-                  : "bg-white text-[#D96C6C] border-[#D8E5E7] hover:bg-[#FDF2F2]"
-              }`}
-            >
-              🔴 ↓ Despesas <span className="ml-1 opacity-75 font-normal">({filterCounts.expenses})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setTypeFilter("pending")}
-              className={`px-3 py-1 rounded-xl font-black text-xs transition-all border ${
-                typeFilter === "pending"
-                  ? "bg-[#F59E0B] text-white border-[#F59E0B] shadow-xs"
-                  : "bg-white text-[#F59E0B] border-[#D8E5E7] hover:bg-[#FEF8EC]"
-              }`}
-            >
-              🟡 ⏳ Pendentes <span className="ml-1 opacity-75 font-normal">({filterCounts.pendings})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setTypeFilter("paid")}
-              className={`px-3 py-1 rounded-xl font-black text-xs transition-all border ${
-                typeFilter === "paid"
-                  ? "bg-[#10B981] text-white border-[#10B981] shadow-xs"
-                  : "bg-white text-[#10B981] border-[#D8E5E7] hover:bg-[#E8F8F5]"
-              }`}
-            >
-              🔵 ✓ Pagos <span className="ml-1 opacity-75 font-normal">({filterCounts.paids})</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-[#8CAAB1]">Categoria:</span>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="text-xs font-bold bg-[#F7FAFA] border border-[#D8E5E7] rounded-xl px-2.5 py-1 text-[#0D2329] focus:outline-none"
-            >
-              <option value="all">Todas as Categorias</option>
-              {EXPENSE_CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-              <option value="Sessões">🟢 Sessões</option>
-              <option value="Avaliações">🟢 Avaliações</option>
-              {availableCategories
-                .filter((c) => !EXPENSE_CATEGORIES.some((ec) => ec.value === c) && c !== "Sessões" && c !== "Avaliações")
-                .map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-            </select>
+        {/* ROW 2: SINGLE SCROLLABLE CHIP ROW FOR TYPES */}
+        <div className="overflow-x-auto -mx-1 px-1 scrollbar-none pb-1">
+          <div className="flex items-center gap-1.5 p-1 bg-[#F8FAFB] rounded-full sm:rounded-2xl border-2 border-[#D8E5E7] w-max">
+            {[
+              { id: "all", label: "Todos", count: filterCounts.total },
+              { id: "income", label: "Receitas", count: filterCounts.incomes, dot: "bg-[#10B981]" },
+              { id: "expense", label: "Despesas", count: filterCounts.expenses, dot: "bg-[#EF4444]" },
+              { id: "pending", label: "Pendentes", count: filterCounts.pendings, dot: "bg-[#F59E0B]" },
+              { id: "paid", label: "Pagos / Recebidos", count: filterCounts.paids, dot: "bg-[#10B981]" },
+            ].map((f) => {
+              const isSelected = typeFilter === f.id
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setTypeFilter(f.id as any)}
+                  className={`px-3.5 py-1.5 sm:py-2 rounded-full sm:rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shrink-0 active:scale-95 ${
+                    isSelected
+                      ? "bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white shadow-md"
+                      : "text-[#4F6C74] hover:text-[#0D2329] hover:bg-white bg-transparent"
+                  }`}
+                >
+                  {f.dot && (
+                    <span className={`w-2 h-2 rounded-full ${isSelected ? "bg-white" : f.dot}`} />
+                  )}
+                  <span>{f.label}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                      isSelected
+                        ? "bg-white/25 text-white"
+                        : "bg-white text-[#6B7C83] border border-[#D8E5E7]"
+                    }`}
+                  >
+                    {f.count}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </div>
 
         {/* Dynamic Filter Summary Bar */}
-        <div className="p-2.5 rounded-2xl bg-[#F7FAFA] border border-[#EEF5F6] flex flex-wrap items-center justify-between text-xs text-[#6B7C83] gap-2">
-          <span>
-            Exibindo <strong>{tableFilteredSum.count}</strong> lançamento(s) filtrado(s)
+        <div className="p-3 rounded-2xl bg-[#F8FAFB] border border-[#EEF5F6] flex flex-col sm:flex-row sm:items-center justify-between text-xs text-[#6B7C83] gap-2">
+          <span className="font-semibold">
+            Exibindo <strong>{tableFilteredSum.count}</strong> lançamento(s)
           </span>
-          <div className="flex items-center gap-3 font-black">
-            <span className="text-[#00A896]">Receitas: {formatCurrency(tableFilteredSum.inc)}</span>
-            <span>•</span>
-            <span className="text-[#D96C6C]">Despesas: {formatCurrency(tableFilteredSum.exp)}</span>
-            <span>•</span>
+          <div className="flex items-center gap-3 font-black text-xs flex-wrap">
+            <span className="text-[#10B981]">Receitas: {formatCurrency(tableFilteredSum.inc)}</span>
+            <span className="text-[#6B7C83]">•</span>
+            <span className="text-[#EF4444]">Despesas: {formatCurrency(tableFilteredSum.exp)}</span>
+            <span className="text-[#6B7C83]">•</span>
             <span className="text-[#0D2329]">Saldo: {formatCurrency(tableFilteredSum.inc - tableFilteredSum.exp)}</span>
           </div>
         </div>
 
-        {/* Table with Exact Day Formatting */}
-        <div className="overflow-x-auto">
+        {/* 1. MOBILE CARDS VIEW (Clean & Stacked for Phone Screens) */}
+        <div className="block sm:hidden space-y-3 pt-1">
+          {filteredRecords.length === 0 ? (
+            <div className="py-8 text-center text-xs font-semibold text-[#8CAAB1]">
+              Nenhum lançamento encontrado para os filtros selecionados.
+            </div>
+          ) : (
+            filteredRecords.map((record) => {
+              const info = getRecordInfo(record)
+              const isPaid = record.status === "paid"
+              const day = getRecordDay(record)
+              const dayStr = String(day).padStart(2, "0")
+              const mStr = String(record.month).padStart(2, "0")
+              const yStr = record.year || currentYear
+
+              return (
+                <div
+                  key={record.id}
+                  className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-xs space-y-3 group"
+                >
+                  {/* Top Row: Description + Amount */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                      <div className={`w-9 h-9 rounded-2xl flex items-center justify-center font-bold text-sm shrink-0 border-2 ${
+                        !info.isExpense
+                          ? "bg-[#E8F8F5] text-[#10B981] border-[#A7F3D0]"
+                          : "bg-red-50 text-[#EF4444] border-red-200"
+                      }`}>
+                        {!info.isExpense ? "↑" : "↓"}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-black text-[#0D2329] leading-snug">
+                          {info.description}
+                        </p>
+                        <p className="text-[10px] font-semibold text-[#6B7C83] mt-0.5">
+                          {dayStr}/{mStr}/{yStr} ({MONTHS[record.month - 1]})
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <p className={`text-sm font-black ${!info.isExpense ? "text-[#10B981]" : "text-[#EF4444]"}`}>
+                        {!info.isExpense ? "+ " : "- "}
+                        {formatCurrency(record.amount)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Badges & Actions */}
+                  <div className="flex items-center justify-between pt-2 border-t border-[#EEF5F6] gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-[#EAF8FC] text-[#0284C7] border border-[#BAE6FD]">
+                        {info.category}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                        isPaid
+                          ? "bg-[#E8F8F5] text-[#10B981] border border-[#A7F3D0]"
+                          : "bg-[#FEF8EC] text-[#F59E0B] border border-[#FDE68A]"
+                      }`}>
+                        {isPaid ? (!info.isExpense ? "Recebido" : "Pago") : "Pendente"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {!info.isExpense && !isPaid && record.child && (
+                        <button
+                          onClick={() => handleSendWhatsApp(record)}
+                          className="px-2.5 py-1 text-[#065F46] bg-[#E8F8F5] hover:bg-[#10B981] hover:text-white rounded-xl border border-[#10B981]/30 transition-all text-xs font-black flex items-center gap-1 shadow-2xs"
+                          title="Cobrança WhatsApp"
+                        >
+                          <MessageSquare className="w-3 h-3" />
+                          <span>Cobrar</span>
+                        </button>
+                      )}
+
+                      {!isPaid && (
+                        <button
+                          onClick={() => setConfirmingRecord(record)}
+                          className="px-3 py-1 bg-[#10B981] text-white text-xs font-black rounded-xl hover:bg-[#059669] transition-all shadow-2xs active:scale-95"
+                        >
+                          Dar Baixa
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleDeleteRecord(record.id)}
+                        className="p-1.5 text-[#8CAAB1] hover:text-[#EF4444] hover:bg-red-50 rounded-xl transition-all"
+                        title="Excluir"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        {/* 2. DESKTOP TABLE VIEW (Full Structured Grid) */}
+        <div className="hidden sm:block overflow-x-auto pt-2">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-[#EEF5F6] text-[11px] font-bold text-[#8CAAB1]">
