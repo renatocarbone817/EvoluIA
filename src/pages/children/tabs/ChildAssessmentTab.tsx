@@ -534,40 +534,6 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
       </div>
 
       {/* 13 Structured Questions */}
-      <Card className="print:border print:border-[#D8E5E7] print:shadow-none">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">
-            Dados da Entrevista Inicial
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid sm:grid-cols-3 gap-3">
-            <Input
-              label="Data da Entrevista"
-              type="date"
-              disabled={!isEditing}
-              value={baseForm.date}
-              onChange={(e) => setBaseForm({ ...baseForm, date: e.target.value })}
-            />
-            <Input
-              label="Origem da Indicação"
-              placeholder="Ex: Escola, Professora, Neuropediatra..."
-              disabled={!isEditing}
-              value={baseForm.referral_source}
-              onChange={(e) => setBaseForm({ ...baseForm, referral_source: e.target.value })}
-            />
-            <Input
-              label="Escola / Contato"
-              placeholder="Nome da escola ou professora..."
-              disabled={!isEditing}
-              value={baseForm.school_name}
-              onChange={(e) => setBaseForm({ ...baseForm, school_name: e.target.value })}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 13 Structured Questions */}
       <div className="space-y-4">
         {DEFAULT_ASSESSMENT_QUESTIONS.map((q) => {
           const value = answers[q.id] || ""
