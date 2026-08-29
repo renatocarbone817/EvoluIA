@@ -5,8 +5,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogBody,
 } from "@/components/ui/Dialog"
 import { Button } from "@/components/ui/Button"
-import { Input } from "@/components/ui/Input"
-import { Select } from "@/components/ui/Select"
+import { CheckCircle2, Sparkles, Calendar, Clock, DollarSign, Loader2 } from "lucide-react"
 import toast from "react-hot-toast"
 
 interface CarePlanDialogProps {
@@ -144,150 +143,191 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Iniciar / Configurar Acompanhamento</DialogTitle>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {childName} · Configure frequência, valor e forma de cobrança
-          </p>
+      <DialogContent className="max-w-md p-0 overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
+        <DialogHeader className="p-6 pb-4 border-b border-[#EEF5F6] flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] border-2 border-[#DDD6FE] flex items-center justify-center shrink-0 shadow-xs">
+            <DollarSign className="w-6 h-6 stroke-[2.5]" />
+          </div>
+          <div>
+            <DialogTitle className="text-lg font-black text-[#0D2329]">
+              Configurar Acompanhamento
+            </DialogTitle>
+            <p className="text-xs font-semibold text-[#6B7C83] mt-0.5">
+              {childName} · Frequência, valor e forma de cobrança
+            </p>
+          </div>
         </DialogHeader>
-        <DialogBody className="space-y-4">
 
+        <DialogBody className="p-6 space-y-4 text-xs font-semibold text-[#2E4A52]">
           {/* Dates & Frequency */}
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Data de Início"
-              type="date"
-              value={form.start_date}
-              onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-            />
-            <Select
-              label="Frequência"
-              value={form.frequency}
-              onChange={(e) => setForm({ ...form, frequency: e.target.value })}
-              options={[
-                { value: "1", label: "1x por semana" },
-                { value: "2", label: "2x por semana" },
-                { value: "3", label: "3x por semana" },
-                { value: "4", label: "4x por semana" },
-                { value: "0", label: "Quinzenal" },
-              ]}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[11px] font-black text-[#0D2329]">Data de Início</label>
+              <input
+                type="date"
+                value={form.start_date}
+                onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+                className="w-full px-3.5 py-2 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-black text-[#0D2329]">Frequência</label>
+              <select
+                value={form.frequency}
+                onChange={(e) => setForm({ ...form, frequency: e.target.value })}
+                className="w-full px-3.5 py-2 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+              >
+                <option value="1">1x por semana</option>
+                <option value="2">2x por semana</option>
+                <option value="3">3x por semana</option>
+                <option value="4">4x por semana</option>
+                <option value="0">Quinzenal</option>
+              </select>
+            </div>
           </div>
 
           {/* Time & Duration */}
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Horário Padrão"
-              type="time"
-              value={form.session_time}
-              onChange={(e) => setForm({ ...form, session_time: e.target.value })}
-            />
-            <Input
-              label="Duração (minutos)"
-              type="number"
-              value={form.duration_minutes}
-              onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[11px] font-black text-[#0D2329]">Horário Padrão</label>
+              <input
+                type="time"
+                value={form.session_time}
+                onChange={(e) => setForm({ ...form, session_time: e.target.value })}
+                className="w-full px-3.5 py-2 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-black text-[#0D2329]">Duração (minutos)</label>
+              <input
+                type="number"
+                value={form.duration_minutes}
+                onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })}
+                className="w-full px-3.5 py-2 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+              />
+            </div>
           </div>
 
           {/* Billing type selector */}
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-foreground">Forma de Cobrança</label>
+          <div className="space-y-2 pt-1">
+            <label className="text-xs font-black text-[#0D2329]">Forma de Cobrança</label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { value: "mensal", label: "💰 Mensal", desc: "Uma cobrança por mês" },
-                { value: "por_sessao", label: "🎯 Por Sessão", desc: "Uma cobrança por atendimento" },
-                { value: "pacote", label: "📦 Pacote", desc: "Pacote fixo fechado" },
+                { value: "mensal", label: "💰 Mensal", desc: "1 cobrança / mês" },
+                { value: "por_sessao", label: "🎯 Por Sessão", desc: "Por atendimento" },
+                { value: "pacote", label: "📦 Pacote", desc: "Pacote fixo" },
               ].map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => setForm({ ...form, payment_type: opt.value })}
-                  className={`p-3 rounded-xl border-2 text-left transition-all ${
+                  className={`p-3 rounded-2xl border-2 text-left transition-all active:scale-95 ${
                     form.payment_type === opt.value
-                      ? "border-[#245C6B] bg-[#245C6B]/5 text-[#245C6B]"
-                      : "border-border bg-background text-muted-foreground hover:border-foreground/30"
+                      ? "border-[#7C3AED] bg-[#EDE9FE] text-[#7C3AED] shadow-2xs"
+                      : "border-[#D8E5E7] bg-white text-[#6B7C83] hover:border-[#7C3AED]/40"
                   }`}
                 >
-                  <p className="font-bold text-xs">{opt.label}</p>
-                  <p className="text-[10px] mt-0.5 opacity-70">{opt.desc}</p>
+                  <p className="font-black text-xs">{opt.label}</p>
+                  <p className="text-[10px] font-semibold mt-0.5 opacity-80">{opt.desc}</p>
                 </button>
               ))}
             </div>
           </div>
 
           {/* Amount & Due Day */}
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label={
-                isPorSessao
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[11px] font-black text-[#0D2329]">
+                {isPorSessao
                   ? "💵 Valor por Sessão (R$)"
                   : isPacote
                   ? "💵 Valor do Pacote (R$)"
-                  : "💵 Valor Mensal (R$)"
-              }
-              type="number"
-              value={form.price_per_session}
-              onChange={(e) => setForm({ ...form, price_per_session: e.target.value })}
-            />
-            {!isPorSessao && (
-              <Input
-                label="Dia do Vencimento"
+                  : "💵 Valor Mensal (R$)"}
+              </label>
+              <input
                 type="number"
-                min="1"
-                max="31"
-                value={form.payment_due_day}
-                onChange={(e) => setForm({ ...form, payment_due_day: e.target.value })}
+                value={form.price_per_session}
+                onChange={(e) => setForm({ ...form, price_per_session: e.target.value })}
+                className="w-full px-3.5 py-2 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-black text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
               />
+            </div>
+
+            {!isPorSessao && (
+              <div className="space-y-1">
+                <label className="text-[11px] font-black text-[#0D2329]">Dia do Vencimento</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={form.payment_due_day}
+                  onChange={(e) => setForm({ ...form, payment_due_day: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                />
+              </div>
             )}
           </div>
 
           {/* Info box explaining billing behaviour */}
-          <div className={`rounded-xl p-3 text-xs leading-relaxed border ${
+          <div className={`rounded-2xl p-3.5 text-xs leading-relaxed border-2 ${
             isPorSessao
-              ? "bg-blue-50 border-blue-200 text-blue-800"
+              ? "bg-[#E0F2FE] border-[#BAE6FD] text-[#0284C7]"
               : isPacote
-              ? "bg-purple-50 border-purple-200 text-purple-800"
-              : "bg-emerald-50 border-emerald-200 text-emerald-800"
+              ? "bg-[#EDE9FE] border-[#DDD6FE] text-[#7C3AED]"
+              : "bg-[#E8F8F5] border-[#A7F3D0] text-[#065F46]"
           }`}>
             {isPorSessao && (
               <p>
-                🎯 <strong>Cobrança por Sessão:</strong> Cada vez que você registrar uma sessão deste paciente, um lançamento financeiro de{" "}
+                🎯 <strong>Cobrança por Sessão:</strong> Cada vez que você registrar uma sessão deste paciente, um lançamento de{" "}
                 <strong>R$ {Number(form.price_per_session).toFixed(2)}</strong> será criado automaticamente como <em>Pendente</em> no Financeiro.
               </p>
             )}
             {form.payment_type === "mensal" && (
               <p>
-                💰 <strong>Cobrança Mensal:</strong> Ao salvar, uma mensalidade de <strong>R$ {Number(form.price_per_session).toFixed(2)}</strong> será lançada no Financeiro para o mês atual. Nos próximos meses, a primeira sessão do mês criará o lançamento automaticamente.
+                💰 <strong>Cobrança Mensal:</strong> Ao salvar, a mensalidade de <strong>R$ {Number(form.price_per_session).toFixed(2)}</strong> será lançada no Financeiro para o mês atual.
               </p>
             )}
             {isPacote && (
               <p>
-                📦 <strong>Pacote Fechado:</strong> Você controla manualmente os lançamentos no Financeiro. Ideal para pacotes de 10 ou 20 sessões com valor fixo.
+                📦 <strong>Pacote Fechado:</strong> Ideal para pacotes de 10 ou 20 sessões com valor fixo para acompanhamento psicopedagógico.
               </p>
             )}
           </div>
 
           {/* Notes */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Acordos / Observações Financeiras</label>
+          <div className="space-y-1">
+            <label className="text-[11px] font-black text-[#0D2329]">Acordos / Observações Financeiras</label>
             <textarea
               placeholder="Ex: Pagamento via Pix até o 5º dia útil. Desconto de 10% em caso de pontualidade."
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
               rows={2}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full p-3 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] resize-none"
             />
           </div>
         </DialogBody>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+
+        <DialogFooter className="p-4 bg-[#F8FAFB] border-t border-[#EEF5F6] flex items-center justify-end gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={loading}
+            onClick={onClose}
+            className="rounded-2xl border-2 border-[#D8E5E7] font-bold text-xs"
+          >
             Cancelar
           </Button>
-          <Button loading={loading} onClick={handleSubmit}>
-            Salvar Acompanhamento
-          </Button>
+
+          <button
+            type="button"
+            disabled={loading}
+            onClick={handleSubmit}
+            className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />}
+            <span>{loading ? "Salvando..." : "Salvar Acompanhamento"}</span>
+          </button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

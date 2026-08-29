@@ -260,36 +260,38 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
       {/* ── Care Plan Info Card ─────────────────────────────── */}
       {!loading && (
         carePlan ? (
-          <div className="bg-gradient-to-r from-[#19323A] to-[#245C6B] rounded-2xl p-5 text-white shadow-lg">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-black uppercase tracking-wider text-[#A0D4CB] mb-2">
-                  📋 Plano de Cobrança Configurado
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-[10px] text-[#A0D4CB] uppercase font-bold">Valor</p>
-                    <p className="text-xl font-black text-white mt-0.5">
+          <div className="bg-gradient-to-r from-[#6366F1] via-[#7C3AED] to-[#9333EA] rounded-3xl p-5 sm:p-6 text-white shadow-md">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="space-y-3 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-3.5 py-1 rounded-full bg-white/20 text-white font-black text-xs backdrop-blur-xs flex items-center gap-1.5 shadow-2xs">
+                    📋 Plano de Cobrança Configurado
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-1">
+                  <div className="bg-white/15 rounded-2xl p-3 backdrop-blur-xs border border-white/10">
+                    <p className="text-[10px] text-white/80 uppercase font-black">Valor</p>
+                    <p className="text-xl sm:text-2xl font-black text-white mt-0.5">
                       {formatCurrency(carePlan.price_per_session)}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-[10px] text-[#A0D4CB] uppercase font-bold">Forma de Cobrança</p>
-                    <p className="text-sm font-black text-white mt-0.5">
+                  <div className="bg-white/15 rounded-2xl p-3 backdrop-blur-xs border border-white/10">
+                    <p className="text-[10px] text-white/80 uppercase font-black">Forma de Cobrança</p>
+                    <p className="text-sm sm:text-base font-black text-white mt-0.5">
                       {BILLING_LABEL[carePlan.payment_type] || carePlan.payment_type}
                     </p>
                   </div>
                   {carePlan.payment_type !== "por_sessao" && carePlan.payment_due_day && (
-                    <div>
-                      <p className="text-[10px] text-[#A0D4CB] uppercase font-bold">Vencimento</p>
-                      <p className="text-sm font-black text-white mt-0.5">
+                    <div className="bg-white/15 rounded-2xl p-3 backdrop-blur-xs border border-white/10">
+                      <p className="text-[10px] text-white/80 uppercase font-black">Vencimento</p>
+                      <p className="text-sm sm:text-base font-black text-white mt-0.5">
                         Dia {carePlan.payment_due_day}
                       </p>
                     </div>
                   )}
-                  <div>
-                    <p className="text-[10px] text-[#A0D4CB] uppercase font-bold">Frequência</p>
-                    <p className="text-sm font-black text-white mt-0.5">
+                  <div className="bg-white/15 rounded-2xl p-3 backdrop-blur-xs border border-white/10">
+                    <p className="text-[10px] text-white/80 uppercase font-black">Frequência</p>
+                    <p className="text-sm sm:text-base font-black text-white mt-0.5">
                       {carePlan.frequency === 0
                         ? "Quinzenal"
                         : carePlan.frequency === 1
@@ -299,35 +301,39 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
                   </div>
                 </div>
                 {carePlan.notes && (
-                  <p className="text-xs text-[#A0D4CB] mt-3 italic border-t border-white/10 pt-2">
+                  <p className="text-xs text-white/90 italic bg-white/15 p-3 rounded-2xl border border-white/10">
                     📝 {carePlan.notes}
                   </p>
                 )}
               </div>
               <button
                 onClick={() => setShowCarePlanDialog(true)}
-                className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-[#63C7B2] hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl transition-all"
+                className="shrink-0 self-start flex items-center gap-1.5 text-xs font-black text-white bg-white/20 hover:bg-white/30 border border-white/30 px-4 py-2 rounded-2xl transition-all shadow-xs active:scale-95"
                 title="Editar plano de cobrança"
               >
                 <Edit2 className="w-3.5 h-3.5" />
-                Editar
+                <span>Editar</span>
               </button>
             </div>
           </div>
         ) : (
-          <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-black text-amber-800">Nenhum plano de cobrança configurado</p>
-              <p className="text-xs text-amber-600 mt-0.5">
-                Configure o valor e forma de cobrança na aba <strong>Resumo → Acompanhamento & Frequência</strong> para que os lançamentos sejam criados automaticamente.
-              </p>
+          <div className="bg-[#FEF8EC] border-2 border-[#FDE68A] rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#FDE68A] text-[#B8871E] flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-sm font-black text-[#B8871E]">Nenhum plano de cobrança configurado</p>
+                <p className="text-xs font-semibold text-[#6B7C83]">
+                  Configure o valor e forma de cobrança para que as mensalidades ou sessões sejam criadas automaticamente.
+                </p>
+              </div>
             </div>
             <button
               onClick={() => setShowCarePlanDialog(true)}
-              className="shrink-0 text-xs font-black text-white bg-amber-500 hover:bg-amber-600 px-4 py-2 rounded-xl transition-all shadow-xs active:scale-95"
+              className="shrink-0 text-xs font-black text-white bg-gradient-to-r from-[#F59E0B] to-[#D97706] hover:from-[#D97706] hover:to-[#B45309] px-5 py-2.5 rounded-2xl transition-all shadow-md active:scale-95"
             >
-              Configurar
+              Configurar Plano
             </button>
           </div>
         )
@@ -369,18 +375,18 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
           {records.map((r) => (
             <div
               key={r.id}
-              className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-white hover:border-[#245C6B] transition-all flex items-center justify-between gap-4 group"
+              className="p-4 sm:p-5 rounded-3xl border-2 border-[#D8E5E7] bg-white hover:border-[#7C3AED]/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs group"
             >
               <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-black text-sm text-[#19323A]">
+                  <span className="font-black text-sm text-[#0D2329]">
                     {months[r.month - 1]} / {r.year}
                   </span>
                   <span
-                    className={`text-xs px-2.5 py-0.5 rounded-lg font-black uppercase ${
+                    className={`text-xs px-2.5 py-0.5 rounded-full font-black uppercase ${
                       r.status === "paid"
-                        ? "bg-[#E8F8F5] text-[#20836F] border border-[#63C7B2]/40"
-                        : "bg-[#FEF8EC] text-[#B8871E] border border-[#F4C95D]/50"
+                        ? "bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0]"
+                        : "bg-[#FEF8EC] text-[#B8871E] border border-[#FDE68A]"
                     }`}
                   >
                     {r.status === "paid" ? "✅ Pago" : "⏳ Pendente"}
@@ -392,40 +398,41 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
                   </p>
                 )}
                 {r.notes && (
-                  <p className="text-xs text-[#8DA3A8] italic truncate max-w-xs">"{r.notes}"</p>
+                  <p className="text-xs text-[#6B7C83] italic truncate max-w-md">"{r.notes}"</p>
                 )}
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="font-black text-base text-[#19323A]">{formatCurrency(r.amount)}</span>
+              <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#EEF5F6]">
+                <span className="font-black text-base sm:text-lg text-[#0D2329]">{formatCurrency(r.amount)}</span>
 
-                {r.status === "paid" ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleMarkPending(r)}
-                    className="font-bold text-xs"
-                  >
-                    Desfazer
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    onClick={() => setConfirmingRecord(r)}
-                    className="font-black text-xs bg-[#245C6B] hover:bg-[#1B4752] text-white gap-1.5"
-                  >
-                    <CheckCircle2 className="w-4 h-4 text-[#63C7B2]" />
-                    Confirmar
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {r.status === "paid" ? (
+                    <button
+                      type="button"
+                      onClick={() => handleMarkPending(r)}
+                      className="px-3.5 py-1.5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:bg-[#F8FAFB] text-xs font-bold text-[#6B7C83] transition-all"
+                    >
+                      Desfazer
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingRecord(r)}
+                      className="px-4 py-2 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                      <span>Dar Baixa</span>
+                    </button>
+                  )}
 
-                <button
-                  onClick={() => handleDelete(r)}
-                  className="w-8 h-8 flex items-center justify-center rounded-xl text-[#8DA3A8] hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
-                  title="Excluir lançamento"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                  <button
+                    onClick={() => handleDelete(r)}
+                    className="w-9 h-9 flex items-center justify-center rounded-2xl text-[#8DA3A8] hover:text-red-600 hover:bg-red-50 transition-colors"
+                    title="Excluir lançamento"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
