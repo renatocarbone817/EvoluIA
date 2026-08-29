@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   Upload,
   Smartphone,
@@ -63,6 +64,7 @@ import {
   updateTeamMember,
   removeTeamMember,
 } from "@/lib/teamService"
+import { getSubscriptionDetails, type SubscriptionDetails } from "@/lib/subscriptionService"
 import type { AppointmentWithChild, Professional } from "@/types/database"
 import { ImageCropperModal } from "@/components/ui/ImageCropperModal"
 import toast from "react-hot-toast"
@@ -88,6 +90,7 @@ const DEFAULT_SCHEDULE: DaySchedule[] = [
 ]
 
 export function SettingsPage() {
+  const navigate = useNavigate()
   const { user, professional, setProfessional } = useAuthStore()
   const [activeTab, setActiveTab] = useState<SettingsTab>("consultorio")
   const [saving, setSaving] = useState(false)
@@ -100,6 +103,9 @@ export function SettingsPage() {
 
   const profId = professional?.id || user?.id
   const isMaster = isMasterUser(professional)
+
+  // Subscription details
+  const [subDetails, setSubDetails] = useState<SubscriptionDetails | null>(null)
 
   // Profile, Clinic & Address Form State
   const [form, setForm] = useState({
@@ -193,8 +199,12 @@ export function SettingsPage() {
     if (!profId) return
     setLoadingTeam(true)
     try {
-      const list = await listTeamMembers(profId)
+      const [list, sub] = await Promise.all([
+        listTeamMembers(profId),
+        getSubscriptionDetails(profId),
+      ])
       setTeamMembers(list)
+      setSubDetails(sub)
     } catch (e) {
       console.error(e)
     } finally {
@@ -916,54 +926,85 @@ export function SettingsPage() {
             </div>
           ) : (
             <>
-              {/* CARD SUPERIOR DE CONTROLE & CONTADOR DE USUÁRIOS */}
-              <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold shadow-2xs">
-                      <Users className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-base sm:text-lg font-black text-[#0D2329]">
-                          Centro de Comando da Equipe
-                        </h2>
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-[#EDE9FE] text-[#7C3AED] border border-[#DDD6FE]">
-                          {totalUsedUsers} de 6 usuários utilizados
+              {(() => {
+                const maxProfs = subDetails?.maxProfessionals || 1
+                const totalUsedUsers = 1 + teamMembers.length
+                const availableSeats = Math.max(0, maxProfs - totalUsedUsers)
+                const isLimitReached = totalUsedUsers >= maxProfs
+                const planName = subDetails?.planConfig.name || "EvoluIA"
+
+                return (
+                  <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold shadow-2xs">
+                          <Users className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-base sm:text-lg font-black text-[#0D2329]">
+                              Centro de Comando da Equipe
+                            </h2>
+                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-[#EDE9FE] text-[#7C3AED] border border-[#DDD6FE]">
+                              {totalUsedUsers} de {maxProfs} vagas utilizadas
+                            </span>
+                          </div>
+                          <p className="text-xs font-semibold text-[#6B7C83]">
+                            Gerencie as psicopedagogas que utilizam sua conta ({planName}).
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className="text-[11px] font-bold text-[#6B7C83]">
+                          {availableSeats > 0 ? (
+                            <span>
+                              Você ainda pode adicionar{" "}
+                              <strong className="text-[#10B981] font-black">
+                                {availableSeats} psicopedagoga{availableSeats > 1 ? "s" : ""}
+                              </strong>{" "}
+                              ao seu plano.
+                            </span>
+                          ) : (
+                            <span className="text-[#DC2626] font-bold">
+                              Todas as {maxProfs} vagas do seu plano estão preenchidas.
+                            </span>
+                          )}
                         </span>
                       </div>
-                      <p className="text-xs font-semibold text-[#6B7C83]">
-                        Gerencie as psicopedagogas que utilizam sua conta e controle o acesso aos dados da conta principal.
-                      </p>
+                    </div>
+
+                    {/* Botão Adicionar ou Upgrade */}
+                    <div className="shrink-0 w-full md:w-auto">
+                      {isLimitReached ? (
+                        <div className="p-3.5 rounded-2xl bg-[#FEF2F2] border-2 border-[#FECACA] text-[#DC2626] text-xs font-bold flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                          <div className="flex items-center gap-1.5">
+                            <AlertCircle className="w-4 h-4 shrink-0 text-[#DC2626]" />
+                            <span>Limite do plano atingido ({totalUsedUsers}/{maxProfs})</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => navigate("/meu-plano")}
+                            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white text-xs font-black flex items-center justify-center gap-1 shadow-sm active:scale-95 transition-all"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            <span>Fazer Upgrade</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowAddMemberModal(true)}
+                          className="w-full md:w-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white text-xs font-black flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
+                        >
+                          <UserPlus className="w-4 h-4 stroke-[2.5]" />
+                          <span>+ Adicionar psicopedagoga</span>
+                        </button>
+                      )}
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2 pt-1">
-                    <span className="text-[11px] font-bold text-[#6B7C83]">
-                      Você pode adicionar até <strong>5 psicopedagogas adicionais</strong> à sua conta.
-                    </span>
-                  </div>
-                </div>
-
-                {/* Botão Adicionar */}
-                <div className="shrink-0 w-full md:w-auto">
-                  {isLimitReached ? (
-                    <div className="p-3 rounded-2xl bg-[#FEF2F2] border border-[#FCA5A5] text-[#DC2626] text-xs font-bold flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>Você atingiu o limite máximo de 5 psicopedagogas adicionais.</span>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setShowAddMemberModal(true)}
-                      className="w-full md:w-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white text-xs font-black flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
-                    >
-                      <UserPlus className="w-4 h-4 stroke-[2.5]" />
-                      <span>+ Adicionar psicopedagoga</span>
-                    </button>
-                  )}
-                </div>
-              </div>
+                )
+              })()}
 
               {/* GUIA EXPLICATIVO: COMO ESCOLHER O MODO DE TRABALHO */}
               <div className="p-5 sm:p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">

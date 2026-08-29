@@ -21,6 +21,7 @@ import { GuardiansPage } from "@/pages/guardians/GuardiansPage"
 import { FinancialPage } from "@/pages/financial/FinancialPage"
 import { ReportsPage } from "@/pages/reports/ReportsPage"
 import { SettingsPage } from "@/pages/settings/SettingsPage"
+import { PlanPage } from "@/pages/plan/PlanPage"
 import { PublicReceiptPage } from "@/pages/financial/PublicReceiptPage"
 import { BibliotecaPage } from "@/pages/biblioteca/BibliotecaPage"
 
@@ -103,6 +104,7 @@ export function App() {
               <Route path="/financeiro" element={<FinancialPage />} />
               <Route path="/relatorios" element={<ReportsPage />} />
               <Route path="/biblioteca" element={<BibliotecaPage />} />
+              <Route path="/meu-plano" element={<PlanPage />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
             </Route>
           </Route>

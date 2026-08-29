@@ -14,12 +14,14 @@ import {
   LogOut,
   Heart,
   Lightbulb,
+  CreditCard,
 } from "lucide-react"
 import { cn, getInitials } from "@/lib/utils"
 import { useAuthStore } from "@/store/authStore"
+import { isMasterUser } from "@/lib/teamAccess"
 import { useState } from "react"
 
-const navItems = [
+const baseNavItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Início / Dashboard" },
   { to: "/agenda", icon: Calendar, label: "Agenda de Atendimentos" },
   { to: "/criancas", icon: Users, label: "Crianças & Pacientes" },
@@ -27,6 +29,7 @@ const navItems = [
   { to: "/financeiro", icon: DollarSign, label: "Financeiro & Cobrança" },
   { to: "/relatorios", icon: FileText, label: "Relatórios & Documentos" },
   { to: "/biblioteca", icon: BookOpen, label: "Biblioteca de Atividades" },
+  { to: "/meu-plano", icon: CreditCard, label: "Meu Plano & Assinatura", masterOnly: true },
   { to: "/configuracoes", icon: Settings, label: "Meu Perfil & Configurações" },
 ]
 
@@ -35,6 +38,9 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
+
+  const isMaster = isMasterUser(professional)
+  const navItems = baseNavItems.filter((item) => !item.masterOnly || isMaster)
 
   return (
     <aside

@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabase"
 import type { Professional } from "@/types/database"
+import { getMasterSubscription } from "@/lib/subscriptionService"
+import { getPlanConfig } from "@/lib/plans"
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -66,12 +68,22 @@ export async function listTeamMembers(masterId: string): Promise<Professional[]>
 }
 
 /**
- * Cria uma nova psicopedagoga adicional na conta Master
+ * Cria uma nova psicopedagoga adicional na conta Master respeitando o limite do plano
  */
 export async function createTeamMember(params: CreateTeamMemberParams): Promise<Professional> {
-  const currentMembers = await listTeamMembers(params.masterId)
-  if (currentMembers.length >= 5) {
-    throw new Error("Você atingiu o limite máximo de 5 psicopedagogas adicionais.")
+  const [currentMembers, subscription] = await Promise.all([
+    listTeamMembers(params.masterId),
+    getMasterSubscription(params.masterId),
+  ])
+
+  const planConfig = getPlanConfig(subscription.plan_id)
+  const maxProfs = subscription.max_professionals || planConfig.maxProfessionals || 1
+  const totalWithNew = 1 + currentMembers.length + 1 // Master (1) + existentes + novo
+
+  if (totalWithNew > maxProfs) {
+    throw new Error(
+      `Você atingiu o limite de ${maxProfs} profissional${maxProfs > 1 ? "ais" : ""} do seu plano (${planConfig.name}). Acesse 'Meu Plano' para fazer upgrade e liberar mais vagas.`
+    )
   }
 
   const tempAuth = createTempAuthClient()

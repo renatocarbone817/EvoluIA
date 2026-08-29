@@ -15,12 +15,14 @@ import {
   Plus,
   ChevronRight,
   BookOpen,
+  CreditCard,
 } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
+import { isMasterUser } from "@/lib/teamAccess"
 import { getInitials, cn } from "@/lib/utils"
 import { NotificationCenter } from "./NotificationCenter"
 
-const navItems = [
+const baseNavItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Início / Dashboard" },
   { to: "/agenda", icon: Calendar, label: "Agenda de Atendimentos" },
   { to: "/criancas", icon: Users, label: "Crianças & Pacientes" },
@@ -28,6 +30,7 @@ const navItems = [
   { to: "/financeiro", icon: DollarSign, label: "Financeiro & Cobrança" },
   { to: "/relatorios", icon: FileText, label: "Relatórios & Documentos" },
   { to: "/biblioteca", icon: BookOpen, label: "Biblioteca de Atividades" },
+  { to: "/meu-plano", icon: CreditCard, label: "Meu Plano & Assinatura", masterOnly: true },
   { to: "/configuracoes", icon: Settings, label: "Meu Perfil & Configurações" },
 ]
 
@@ -35,6 +38,9 @@ export function MobileHeader() {
   const [isOpen, setIsOpen] = useState(false)
   const { professional, signOut } = useAuthStore()
   const navigate = useNavigate()
+
+  const isMaster = isMasterUser(professional)
+  const navItems = baseNavItems.filter((item) => !item.masterOnly || isMaster)
 
   return (
     <>

@@ -83,8 +83,52 @@ export interface Database {
         Insert: Omit<Report, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Report, 'id' | 'created_at'>>
       }
+      subscriptions: {
+        Row: Subscription
+        Insert: Omit<Subscription, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Subscription, 'id' | 'created_at'>>
+      }
+      subscription_events: {
+        Row: SubscriptionEvent
+        Insert: Omit<SubscriptionEvent, 'id' | 'created_at'>
+        Update: Partial<Omit<SubscriptionEvent, 'id' | 'created_at'>>
+      }
     }
   }
+}
+
+export type SubscriptionStatus = 'active' | 'trial' | 'pending' | 'cancelled' | 'expired'
+export type PlanId = 'individual' | 'duo' | 'trio' | 'equipe' | 'clinica'
+
+export interface Subscription {
+  id: string
+  master_user_id: string
+  plan_id: PlanId
+  max_professionals: number
+  status: SubscriptionStatus
+  hotmart_product_id: string | null
+  hotmart_offer_id: string | null
+  hotmart_subscription_id: string | null
+  hotmart_transaction_id: string | null
+  customer_email: string | null
+  subscription_started_at: string | null
+  subscription_expires_at: string | null
+  last_payment_at: string | null
+  cancelled_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SubscriptionEvent {
+  id: string
+  event_id: string | null
+  provider: string
+  event_type: string
+  payload: Json
+  processed: boolean
+  processed_at: string | null
+  error: string | null
+  created_at: string
 }
 
 export type ProfessionalRole = 'master' | 'professional'
