@@ -174,9 +174,9 @@ export function TopHeader() {
                   setMenuNovoOpen(false)
                   navigate(`/agenda?novo=true&t=${Date.now()}`)
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-[#0D2329] hover:bg-[#F7FAFA] hover:text-[#6366F1] transition-colors text-left"
+                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-black text-[#0D2329] hover:bg-[#EDE9FE] hover:text-[#7C3AED] transition-colors text-left"
               >
-                <CalendarPlus className="w-4 h-4 text-[#6366F1]" />
+                <CalendarPlus className="w-4 h-4 text-[#7C3AED]" />
                 <span>Novo Agendamento</span>
               </button>
 
@@ -185,32 +185,10 @@ export function TopHeader() {
                   setMenuNovoOpen(false)
                   navigate(`/criancas?novo=true&t=${Date.now()}`)
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-[#0D2329] hover:bg-[#F7FAFA] hover:text-[#00B4D8] transition-colors text-left"
+                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-black text-[#0D2329] hover:bg-[#EDE9FE] hover:text-[#7C3AED] transition-colors text-left"
               >
-                <UserPlus className="w-4 h-4 text-[#00B4D8]" />
+                <UserPlus className="w-4 h-4 text-[#0284C7]" />
                 <span>Novo Paciente</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setMenuNovoOpen(false)
-                  navigate("/relatorios?novo=true")
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-[#0D2329] hover:bg-[#F7FAFA] hover:text-[#10B981] transition-colors text-left"
-              >
-                <FilePlus className="w-4 h-4 text-[#10B981]" />
-                <span>Nova Avaliação / PEI</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setMenuNovoOpen(false)
-                  navigate("/biblioteca?novo=true")
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-[#0D2329] hover:bg-[#F7FAFA] hover:text-[#F59E0B] transition-colors text-left"
-              >
-                <BookPlus className="w-4 h-4 text-[#F59E0B]" />
-                <span>Nova Atividade</span>
               </button>
             </div>
           )}

@@ -5,10 +5,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogBody,
 } from "@/components/ui/Dialog"
 import { Button } from "@/components/ui/Button"
-import { Input } from "@/components/ui/Input"
-import { Select } from "@/components/ui/Select"
 import toast from "react-hot-toast"
-import { UserCheck, Camera, X, Crop, Loader2 } from "lucide-react"
+import { UserPlus, Camera, X, Crop, Loader2, Users, CheckCircle2 } from "lucide-react"
 import { ImageCropperModal } from "@/components/ui/ImageCropperModal"
 
 interface NewChildDialogProps {
@@ -18,8 +16,8 @@ interface NewChildDialogProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: "initial_assessment", label: "Entrevista Inicial" },
-  { value: "in_progress", label: "Em Acompanhamento" },
+  { value: "initial_assessment", label: "📋 Entrevista Inicial" },
+  { value: "in_progress", label: "🌱 Em Acompanhamento" },
 ]
 
 export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps) {
@@ -183,7 +181,7 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
         }
       }
 
-      toast.success("Criança cadastrada com sucesso!")
+      toast.success("Paciente cadastrado com sucesso!", { icon: "👶" })
       setForm({
         full_name: "", birth_date: "", school: "", grade: "",
         main_complaint: "", status: "initial_assessment", notes: "",
@@ -193,7 +191,7 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
       onSuccess()
     } catch (err: any) {
       console.error(err)
-      toast.error(err.message || "Erro ao cadastrar criança. Verifique os dados.")
+      toast.error(err.message || "Erro ao cadastrar paciente. Verifique os dados.")
     } finally {
       setLoading(false)
     }
@@ -202,23 +200,33 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Nova Criança & Paciente</DialogTitle>
+        <DialogContent className="max-w-lg p-0 overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
+          <DialogHeader className="p-6 pb-4 border-b border-[#EEF5F6] flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] border-2 border-[#DDD6FE] flex items-center justify-center shrink-0 shadow-xs">
+              <UserPlus className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <div>
+              <DialogTitle className="text-lg font-black text-[#0D2329]">
+                Novo Paciente & Criança
+              </DialogTitle>
+              <p className="text-xs font-semibold text-[#6B7C83] mt-0.5">
+                Preencha os dados da criança e do responsável
+              </p>
+            </div>
           </DialogHeader>
-          <DialogBody className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
 
+          <DialogBody className="p-6 space-y-4 max-h-[72vh] overflow-y-auto pr-2">
             {/* Photo with Cropper trigger */}
-            <div className="flex flex-col items-center gap-3 py-2">
+            <div className="flex flex-col items-center gap-2.5 pb-2">
               <div className="relative group">
-                <div className="w-24 h-24 rounded-3xl border-4 border-[#D8E5E7] bg-[#EEF5F6] overflow-hidden flex items-center justify-center shadow-md">
+                <div className="w-24 h-24 rounded-3xl border-2 border-[#DDD6FE] bg-[#EDE9FE] overflow-hidden flex items-center justify-center shadow-md">
                   {uploadingPhoto ? (
-                    <Loader2 className="w-8 h-8 text-[#245C6B] animate-spin" />
+                    <Loader2 className="w-8 h-8 text-[#7C3AED] animate-spin" />
                   ) : photoUrl ? (
                     <img src={photoUrl} alt="Foto" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-3xl font-black text-[#245C6B]">
-                      {form.full_name ? form.full_name.charAt(0).toUpperCase() : "?"}
+                    <span className="text-3xl font-black text-[#7C3AED]">
+                      {form.full_name ? form.full_name.charAt(0).toUpperCase() : "👶"}
                     </span>
                   )}
                 </div>
@@ -227,7 +235,7 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
                 <button
                   type="button"
                   onClick={() => photoInputRef.current?.click()}
-                  className="absolute -bottom-1.5 -right-1.5 w-8 h-8 bg-[#245C6B] text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-[#19323A] transition-colors border-2 border-white"
+                  className="absolute -bottom-1.5 -right-1.5 w-8 h-8 bg-[#7C3AED] text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-[#6D28D9] transition-colors border-2 border-white active:scale-95"
                   title="Adicionar e enquadrar foto"
                 >
                   <Camera className="w-4 h-4" />
@@ -246,16 +254,14 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => photoInputRef.current?.click()}
-                  className="text-xs font-bold text-[#245C6B] hover:underline flex items-center gap-1"
-                >
-                  <Crop className="w-3.5 h-3.5" />
-                  {photoUrl ? "Trocar / Enquadrar foto" : "Adicionar foto"}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                className="text-xs font-black text-[#7C3AED] hover:underline flex items-center gap-1.5 pt-1"
+              >
+                <Crop className="w-3.5 h-3.5" />
+                <span>{photoUrl ? "Trocar / Enquadrar Foto" : "Adicionar Foto de Perfil"}</span>
+              </button>
 
               <input
                 ref={photoInputRef}
@@ -268,96 +274,153 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
 
             {/* Child Information */}
             <div className="space-y-3">
-              <Input
-                label="Nome completo da Criança *"
-                placeholder="Ex: João Silva"
-                value={form.full_name}
-                onChange={(e) => handleChange("full_name", e.target.value)}
-                error={errors.full_name}
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="Data de nascimento"
-                  type="date"
-                  value={form.birth_date}
-                  onChange={(e) => handleChange("birth_date", e.target.value)}
+              <div className="space-y-1">
+                <label className="text-xs font-black text-[#0D2329]">Nome completo da Criança *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Lucas Henrique Silva"
+                  value={form.full_name}
+                  onChange={(e) => handleChange("full_name", e.target.value)}
+                  className={`w-full p-3 rounded-2xl border-2 ${errors.full_name ? 'border-red-400' : 'border-[#D8E5E7]'} bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] shadow-2xs`}
                 />
-                <Select
-                  label="Status Inicial"
-                  options={STATUS_OPTIONS}
-                  value={form.status}
-                  onChange={(e) => handleChange("status", e.target.value)}
-                />
+                {errors.full_name && <p className="text-[11px] text-red-500 font-bold">{errors.full_name}</p>}
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="Escola"
-                  placeholder="Ex: Colégio Objetivo"
-                  value={form.school}
-                  onChange={(e) => handleChange("school", e.target.value)}
-                />
-                <Input
-                  label="Ano / Série"
-                  placeholder="Ex: 3º ano Fundamental"
-                  value={form.grade}
-                  onChange={(e) => handleChange("grade", e.target.value)}
-                />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-black text-[#0D2329]">Data de Nascimento</label>
+                  <input
+                    type="date"
+                    value={form.birth_date}
+                    onChange={(e) => handleChange("birth_date", e.target.value)}
+                    className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-black text-[#0D2329]">Status Inicial</label>
+                  <select
+                    value={form.status}
+                    onChange={(e) => handleChange("status", e.target.value)}
+                    className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                  >
+                    {STATUS_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-black uppercase tracking-wider text-[#19323A]">
-                  Queixa principal / Motivo
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-black text-[#0D2329]">Escola</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Colégio Objetivo"
+                    value={form.school}
+                    onChange={(e) => handleChange("school", e.target.value)}
+                    className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-black text-[#0D2329]">Ano / Série</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: 3º ano Fundamental"
+                    value={form.grade}
+                    onChange={(e) => handleChange("grade", e.target.value)}
+                    className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-black text-[#0D2329]">
+                  Queixa Principal / Motivo da Consulta
                 </label>
                 <textarea
-                  placeholder="Dificuldade de alfabetização, atenção, cálculo..."
+                  placeholder="Dificuldade de alfabetização, atenção, cálculo, dislexia..."
                   value={form.main_complaint}
                   onChange={(e) => handleChange("main_complaint", e.target.value)}
                   rows={2}
-                  className="flex w-full rounded-xl border-2 border-[#D8E5E7] bg-white px-3 py-2 text-sm font-medium resize-none focus-visible:outline-none focus-visible:border-[#245C6B]"
+                  className="w-full p-3 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] resize-none"
                 />
               </div>
             </div>
 
             {/* Optional Guardian Quick Form */}
-            <div className="pt-3 border-t-2 border-[#EEF5F6] space-y-3">
+            <div className="pt-4 border-t-2 border-[#EEF5F6] space-y-3">
               <div className="flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-[#245C6B]" />
-                <h4 className="text-xs font-black uppercase tracking-wider text-[#19323A]">
+                <Users className="w-4 h-4 text-[#7C3AED]" />
+                <h4 className="text-xs font-black uppercase tracking-wider text-[#0D2329]">
                   Responsável Principal (Opcional)
                 </h4>
               </div>
 
-              <Input
-                label="Nome da Mãe, Pai ou Responsável"
-                placeholder="Ex: Tereza Limeira"
-                value={form.guardian_name}
-                onChange={(e) => handleChange("guardian_name", e.target.value)}
-              />
+              <div className="space-y-1">
+                <label className="text-xs font-black text-[#0D2329]">Nome da Mãe, Pai ou Responsável</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Maria Aparecida"
+                  value={form.guardian_name}
+                  onChange={(e) => handleChange("guardian_name", e.target.value)}
+                  className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                />
+              </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Select
-                  label="Parentesco"
-                  options={[
-                    { value: "Mãe", label: "Mãe" },
-                    { value: "Pai", label: "Pai" },
-                    { value: "Avó / Avô", label: "Avó / Avô" },
-                    { value: "Tia / Tio", label: "Tia / Tio" },
-                    { value: "Tutor Legal", label: "Tutor Legal" },
-                  ]}
-                  value={form.guardian_relationship}
-                  onChange={(e) => handleChange("guardian_relationship", e.target.value)}
-                />
-                <Input
-                  label="Telefone / WhatsApp"
-                  placeholder="(11) 98888-8888"
-                  value={form.guardian_phone}
-                  onChange={(e) => handleChange("guardian_phone", e.target.value)}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-black text-[#0D2329]">Parentesco</label>
+                  <select
+                    value={form.guardian_relationship}
+                    onChange={(e) => handleChange("guardian_relationship", e.target.value)}
+                    className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                  >
+                    <option value="Mãe">Mãe</option>
+                    <option value="Pai">Pai</option>
+                    <option value="Avó / Avô">Avó / Avô</option>
+                    <option value="Tia / Tio">Tia / Tio</option>
+                    <option value="Tutor Legal">Tutor Legal</option>
+                    <option value="Outro">Outro</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-black text-[#0D2329]">Telefone / WhatsApp</label>
+                  <input
+                    type="text"
+                    placeholder="(11) 98888-8888"
+                    value={form.guardian_phone}
+                    onChange={(e) => handleChange("guardian_phone", e.target.value)}
+                    className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                  />
+                </div>
               </div>
             </div>
           </DialogBody>
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button loading={loading} onClick={handleSubmit}>Cadastrar Criança</Button>
+
+          <DialogFooter className="p-4 bg-[#F8FAFB] border-t border-[#EEF5F6] flex items-center justify-end gap-2.5">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loading}
+              onClick={onClose}
+              className="rounded-2xl border-2 border-[#D8E5E7] font-bold text-xs"
+            >
+              Cancelar
+            </Button>
+
+            <button
+              type="button"
+              disabled={loading}
+              onClick={handleSubmit}
+              className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />}
+              <span>{loading ? "Cadastrando..." : "Cadastrar Paciente"}</span>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
