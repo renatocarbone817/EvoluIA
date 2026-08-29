@@ -9,6 +9,9 @@ const SUPABASE_KEY =
   process.env.VITE_SUPABASE_ANON_KEY ||
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwb3J2aXdlanJ5Znhhb2Fwb3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2ODY5NzIsImV4cCI6MjEwMzI2Mjk3Mn0.JYfzqyrkaCyXGU8FVbJv3Bu4vmgo5gnhbq0gogmUDoA"
 
+const HOTMART_HOTTOK =
+  process.env.HOTMART_HOTTOK || "4diYjRNnV9paWJ8uOmNsOXcp6uI02E19e17e00-103d-4517-8c50-25fcc13ec9c1"
+
 const OFFER_MAP = {
   "imn95wux": { plan_id: "individual", max_professionals: 1, name: "EvoluIA Individual" },
   "bc2cgf38": { plan_id: "duo", max_professionals: 2, name: "EvoluIA Duo" },
