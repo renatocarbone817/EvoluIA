@@ -919,7 +919,7 @@ export function DashboardPage() {
 
             {/* Timeline List */}
             {todayAppointments.length === 0 ? (
-              <div className="py-10 text-center space-y-2 border-2 border-dashed border-[#EEF5F6] rounded-2xl bg-[#FAFCFC]">
+              <div className="py-10 text-center space-y-2 border-2 border-dashed border-[#EEF5F6] rounded-3xl bg-[#FAFCFC]">
                 <Clock className="w-8 h-8 mx-auto text-[#A0B4B9]" />
                 <p className="text-xs font-bold text-[#0D2329]">Nenhum atendimento hoje</p>
                 <button
@@ -930,102 +930,93 @@ export function DashboardPage() {
                 </button>
               </div>
             ) : (
-              <div className="relative space-y-3 pl-2 before:absolute before:left-[45px] before:top-2 before:bottom-2 before:w-0.5 before:bg-[#EEF5F6]">
+              <div className="space-y-3">
                 {todayAppointments.map((appt) => {
                   const startTime = new Date(appt.start_time)
                   const timeStr = format(startTime, "HH:mm")
                   const childName = appt.child?.full_name || appt.notes || "Paciente"
-                  const isDone = appt.status === "done"
-                  const isConfirmed = appt.status === "confirmed" || appt.status === "scheduled"
 
                   return (
-                    <div key={appt.id} className="relative flex items-center gap-3 group">
-                      <span className="text-xs font-black text-[#0D2329] w-10 shrink-0 text-right">
-                        {timeStr}
-                      </span>
+                    <div
+                      key={appt.id}
+                      className="p-3 rounded-2xl bg-white hover:bg-[#FDFBFF] border-2 border-[#D8E5E7] hover:border-[#DDD6FE] shadow-2xs transition-all flex items-center justify-between gap-3 min-w-0"
+                    >
+                      {/* Left: Time badge + Patient Info */}
+                      <div
+                        onClick={() => {
+                          const typeLower = (appt.type || "").toLowerCase()
+                          const isInterviewOrEval =
+                            typeLower.includes("entrevista") ||
+                            typeLower.includes("avalia") ||
+                            typeLower.includes("anamnese")
 
-                      <div className={`w-3 h-3 rounded-full shrink-0 border-2 border-white shadow-xs z-10 ${
-                        isDone ? "bg-[#10B981]" : isConfirmed ? "bg-[#00B4D8]" : "bg-[#F59E0B]"
-                      }`} />
+                          if (isInterviewOrEval && appt.child_id) {
+                            navigate(`/criancas/${appt.child_id}?editar=true`)
+                          } else if (appt.child_id) {
+                            navigate(`/criancas/${appt.child_id}`)
+                          } else {
+                            navigate(`/atendimento/${appt.id}`)
+                          }
+                        }}
+                        className="flex items-center gap-3 min-w-0 cursor-pointer flex-1"
+                      >
+                        {/* Time */}
+                        <span className="text-xs font-black text-[#0D2329] px-2.5 py-1.5 rounded-xl bg-[#F7FAFA] border border-[#D8E5E7] shrink-0">
+                          {timeStr}
+                        </span>
 
-                      <div className="flex-1 flex items-center justify-between p-2.5 rounded-2xl hover:bg-[#F7FAFA] border border-[#EEF5F6] hover:border-[#D8E5E7] transition-all min-w-0">
-                        <div
-                          onClick={() => {
-                            const typeLower = (appt.type || "").toLowerCase()
-                            const isInterviewOrEval =
-                              typeLower.includes("entrevista") ||
-                              typeLower.includes("avalia") ||
-                              typeLower.includes("anamnese")
+                        {/* Child Avatar */}
+                        <ChildAvatar photoUrl={appt.child?.photo_url} name={childName} size="md" />
 
-                            if (isInterviewOrEval && appt.child_id) {
-                              navigate(`/criancas/${appt.child_id}?editar=true`)
-                            } else if (appt.child_id) {
-                              navigate(`/criancas/${appt.child_id}`)
-                            } else {
-                              navigate(`/atendimento/${appt.id}`)
-                            }
-                          }}
-                          className="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1"
-                        >
-                          <ChildAvatar photoUrl={appt.child?.photo_url} name={childName} size="xs" />
-                          <div className="min-w-0">
-                            <p className="text-xs font-black text-[#0D2329] truncate">{childName}</p>
-                            <p className="text-[10px] font-semibold text-[#6B7C83] truncate">{appt.type}</p>
-                          </div>
+                        {/* Patient & Type */}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs sm:text-sm font-black text-[#0D2329] truncate">{childName}</p>
+                          <p className="text-[11px] font-semibold text-[#6B7C83] truncate">{appt.type}</p>
                         </div>
+                      </div>
 
-                        {/* Interactive Session Actions */}
-                        <div className="flex items-center gap-1 shrink-0 ml-2">
+                      {/* Right: Larger Action Buttons (No WhatsApp, Larger Falta & Iniciar) */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {appt.status !== "missed" && appt.status !== "done" && (
                           <button
-                            onClick={() => openWhatsApp(appt)}
-                            className="p-1.5 rounded-lg bg-[#E8F8F5] text-[#10B981] hover:bg-[#D1FAE5] transition-colors"
-                            title="Lembrete WhatsApp"
+                            type="button"
+                            onClick={() => setAbsenceModalAppt(appt)}
+                            className="w-10 h-10 rounded-2xl bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 flex items-center justify-center active:scale-95 transition-all shadow-2xs"
+                            title="Registrar Falta"
                           >
-                            <MessageCircle className="w-3.5 h-3.5" />
+                            <AlertTriangle className="w-4 h-4 stroke-[2.5]" />
                           </button>
+                        )}
 
-                          {appt.status !== "missed" && appt.status !== "done" && (
-                            <button
-                              onClick={() => setAbsenceModalAppt(appt)}
-                              className="p-1.5 rounded-lg bg-[#FEF2F2] text-[#EF4444] hover:bg-[#FEE2E2] transition-colors"
-                              title="Registrar Falta / Paciente Não Veio"
-                            >
-                              <AlertTriangle className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                        {appt.status === "missed" ? (
+                          <span className="text-xs font-black text-red-600 px-3 py-2 rounded-2xl bg-red-50 border border-red-200">
+                            Faltou
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const typeLower = (appt.type || "").toLowerCase()
+                              const isInterviewOrEval =
+                                typeLower.includes("entrevista") ||
+                                typeLower.includes("avalia") ||
+                                typeLower.includes("anamnese")
 
-                          {appt.status === "missed" ? (
-                            <span className="text-[10px] font-black text-[#EF4444] px-1.5 py-0.5 rounded bg-[#FEF2F2] border border-[#FECACA]">
-                              Faltou
-                            </span>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                const typeLower = (appt.type || "").toLowerCase()
-                                const isInterviewOrEval =
-                                  typeLower.includes("entrevista") ||
-                                  typeLower.includes("avalia") ||
-                                  typeLower.includes("anamnese")
-
-                                if (isInterviewOrEval && appt.child_id) {
-                                  navigate(`/criancas/${appt.child_id}?editar=true`)
-                                } else if (typeLower.includes("devolutiva") && appt.child_id) {
-                                  navigate(`/criancas/${appt.child_id}?tab=relatorios`)
-                                } else {
-                                  navigate(`/atendimento/${appt.id}`)
-                                }
-                              }}
-                              className="p-1.5 rounded-lg bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE] transition-colors font-bold text-[10px] flex items-center gap-1"
-                              title={
-                                (appt.type || "").toLowerCase().includes("entrevista") || (appt.type || "").toLowerCase().includes("avalia")
-                                  ? "Abrir Ficha / Resumo da Criança"
-                                  : "Iniciar Atendimento Clínico"
+                              if (isInterviewOrEval && appt.child_id) {
+                                navigate(`/criancas/${appt.child_id}?editar=true`)
+                              } else if (typeLower.includes("devolutiva") && appt.child_id) {
+                                navigate(`/criancas/${appt.child_id}?tab=relatorios`)
+                              } else {
+                                navigate(`/atendimento/${appt.id}`)
                               }
-                            >
-                              <Play className="w-3 h-3 fill-current" />
-                            </button>
-                          )}
-                        </div>
+                            }}
+                            className="h-10 px-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white font-black text-xs flex items-center gap-1.5 shadow-xs active:scale-95 transition-all"
+                            title="Iniciar Atendimento Clínico"
+                          >
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                            <span>Iniciar</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   )
@@ -1035,7 +1026,7 @@ export function DashboardPage() {
 
             <button
               onClick={() => navigate("/agenda")}
-              className="w-full pt-2 flex items-center justify-center gap-1 text-xs font-black text-[#00B4D8] hover:text-[#0077B6] transition-colors"
+              className="w-full pt-2 flex items-center justify-center gap-1 text-xs font-black text-[#7C3AED] hover:text-[#6D28D9] transition-colors"
             >
               <span>Ver agenda completa</span>
               <ChevronRight className="w-3.5 h-3.5" />
