@@ -84,7 +84,7 @@ export function AppointmentsPage() {
   const { user, professional } = useAuthStore()
 
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [viewMode, setViewMode] = useState<ViewMode>("semana")
+  const [viewMode, setViewMode] = useState<ViewMode>(typeof window !== "undefined" && window.innerWidth < 1024 ? "celular" : "semana")
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos")
   const [appointments, setAppointments] = useState<AppointmentWithChild[]>([])
   const [children, setChildren] = useState<Child[]>([])
@@ -124,6 +124,19 @@ export function AppointmentsPage() {
   const [blocking, setBlocking] = useState(false)
 
   const profId = professional?.id || user?.id
+
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth < 1024 && viewMode !== "celular") {
+        setViewMode("celular")
+      } else if (window.innerWidth >= 1024 && viewMode === "celular") {
+        setViewMode("semana")
+      }
+    }
+    handleResize()
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
 
   useEffect(() => {
     if (profId) {
@@ -343,9 +356,13 @@ export function AppointmentsPage() {
   }, [appointments, statusFilter])
 
   // Today's appointments
-  const todayAppointments = useMemo(() => {
+  const toselectedDayAppointments = useMemo(() => {
     return appointments.filter((a) => isSameDay(new Date(a.start_time), new Date()))
   }, [appointments])
+
+  const selectedDayAppointments = useMemo(() => {
+    return filteredAppointments.filter((a) => isSameDay(new Date(a.start_time), currentDate))
+  }, [filteredAppointments, currentDate])
 
   // Real Weekly Birthdays Calculation
   const weeklyBirthdays = useMemo(() => {
@@ -954,61 +971,141 @@ export function AppointmentsPage() {
 
           {/* D. MOBILE / COMPACT CELULAR VIEW */}
           {viewMode === "celular" && (
-            <div className="max-w-md mx-auto space-y-4">
-              <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-4 shadow-sm">
-                <div className="grid grid-cols-7 gap-1.5 text-center">
+            <div className="w-full max-w-full space-y-4">
+              {/* 7-Day Week Strip */}
+              <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-3 shadow-sm">
+                <div className="grid grid-cols-7 gap-1 text-center">
                   {weekDays.map((day) => {
                     const isSelected = isSameDay(day, currentDate)
                     const isToday = isSameDay(day, new Date())
+                    const dayApptsCount = appointments.filter((a) => {
+                      const aDate = new Date(a.start_time)
+                      return isSameDay(aDate, day)
+                    }).length
+
                     return (
                       <button
                         key={day.toISOString()}
+                        type="button"
                         onClick={() => setCurrentDate(day)}
-                        className={`py-2.5 rounded-2xl border-2 transition-all ${
+                        className={`py-2 px-0.5 rounded-2xl border-2 transition-all flex flex-col items-center justify-center relative active:scale-95 ${
                           isSelected
-                            ? "bg-[#7C3AED] text-white border-[#6D28D9] shadow-xs font-black"
+                            ? "bg-[#7C3AED] text-white border-[#6D28D9] shadow-md font-black"
                             : isToday
-                            ? "bg-[#F3E8FF] border-[#7C3AED] font-bold text-[#7C3AED]"
+                            ? "bg-[#EDE9FE] border-[#C4B5FD] text-[#7C3AED] font-bold"
                             : "border-transparent hover:bg-[#F7FAFA] text-[#6B7C83]"
                         }`}
                       >
-                        <p className="text-[10px] uppercase font-black">
+                        <p className={`text-[10px] uppercase font-black ${isSelected ? "text-white/80" : ""}`}>
                           {format(day, "EEE", { locale: ptBR }).substring(0, 3)}
                         </p>
                         <p className="text-sm font-black mt-0.5">{format(day, "dd")}</p>
+                        {dayApptsCount > 0 && (
+                          <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${isSelected ? "bg-white" : "bg-[#7C3AED]"}`} />
+                        )}
                       </button>
                     )
                   })}
                 </div>
               </div>
 
-              <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-5 shadow-sm space-y-3">
-                {filteredAppointments.length === 0 ? (
-                  <div className="py-12 text-center text-[#8CAAB1] space-y-2">
-                    <p className="font-bold text-sm text-[#0D2329]">Nenhum compromisso neste dia</p>
-                    <Button size="sm" onClick={() => openNewModalForDate(format(currentDate, "yyyy-MM-dd"))}>
-                      <Plus className="w-4 h-4 mr-1" /> Novo Agendamento
-                    </Button>
+              {/* Header Info for Selected Day */}
+              <div className="flex items-center justify-between px-1">
+                <div>
+                  <h3 className="text-base font-black text-[#0D2329] capitalize">
+                    {format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                  </h3>
+                  <p className="text-xs font-semibold text-[#6B7C83]">
+                    {selectedDayAppointments.length === 1 ? "1 compromisso agendado" : `${selectedDayAppointments.length} compromissos agendados`}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => openNewModalForDate(format(currentDate, "yyyy-MM-dd"))}
+                  className="px-3.5 py-1.5 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] border-2 border-[#DDD6FE] text-xs font-black flex items-center gap-1 active:scale-95 transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>Agendar</span>
+                </button>
+              </div>
+
+              {/* Cards List for Selected Day */}
+              <div className="space-y-3">
+                {selectedDayAppointments.length === 0 ? (
+                  <div className="p-8 rounded-3xl bg-white border-2 border-dashed border-[#D8E5E7] text-center space-y-3 shadow-xs">
+                    <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center mx-auto">
+                      <CalendarDays className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="font-black text-sm text-[#0D2329]">Nenhum compromisso neste dia</p>
+                      <p className="text-xs text-[#6B7C83] mt-0.5">Sua agenda está livre nesta data.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openNewModalForDate(format(currentDate, "yyyy-MM-dd"))}
+                      className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white text-xs font-black inline-flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                    >
+                      <Plus className="w-4 h-4 stroke-[3]" />
+                      <span>Agendar Sessão</span>
+                    </button>
                   </div>
                 ) : (
-                  filteredAppointments.map((appt) => {
+                  selectedDayAppointments.map((appt) => {
                     const style = getAppointmentStyle(appt)
                     const startTime = new Date(appt.start_time)
-                    const displayName = appt.child?.full_name || appt.notes || "Compromisso"
+                    const endTime = new Date(appt.end_time)
+                    const isBlock = (appt.notes || "").includes("[BLOQUEIO]")
+                    const displayName = appt.child?.full_name || (isBlock ? appt.notes?.replace("[BLOQUEIO]", "").trim() : appt.type)
 
                     return (
                       <div
                         key={appt.id}
-                        className={`p-3.5 rounded-2xl border-2 ${style.border} ${style.bg} flex items-center justify-between gap-3`}
+                        onClick={() => handleStartAppointment(appt)}
+                        className={`p-4 rounded-3xl border-2 ${style.border} bg-white shadow-2xs transition-all space-y-3 active:scale-98`}
                       >
-                        <div className="min-w-0 flex-1 space-y-0.5">
-                          <p className={`text-xs font-black truncate ${style.text}`}>{displayName}</p>
-                          <p className={`text-[11px] font-bold ${style.subtext}`}>{appt.type}</p>
-                          <p className="text-xs font-black text-[#0D2329]">{format(startTime, "HH:mm")}</p>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <ChildAvatar photoUrl={appt.child?.photo_url} name={displayName} size="md" />
+                            <div className="min-w-0">
+                              <h4 className="font-black text-sm text-[#0D2329] truncate">{displayName}</h4>
+                              <p className="text-xs font-semibold text-[#6B7C83] truncate">{appt.type}</p>
+                            </div>
+                          </div>
+
+                          <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase shrink-0 ${style.badgeBg}`}>
+                            {appt.status === "done" ? "Realizado" : appt.status === "in_progress" ? "Em Atendimento" : "Agendado"}
+                          </span>
                         </div>
-                        <Button size="sm" onClick={() => handleStartAppointment(appt)}>
-                          <Play className="w-3 h-3 fill-current mr-1" /> Iniciar
-                        </Button>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-[#EEF5F6]">
+                          <div className="flex items-center gap-1.5 text-xs font-black text-[#0D2329]">
+                            <Clock className="w-3.5 h-3.5 text-[#7C3AED]" />
+                            <span>{format(startTime, "HH:mm")} às {format(endTime, "HH:mm")}</span>
+                          </div>
+
+                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            {!isBlock && appt.child && (
+                              <button
+                                type="button"
+                                onClick={() => handleSendWhatsApp(appt)}
+                                className="w-8 h-8 rounded-xl bg-[#E8F8F5] text-[#10B981] border border-[#A7F3D0] flex items-center justify-center active:scale-95 shadow-2xs"
+                                title="Enviar WhatsApp"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => handleStartAppointment(appt)}
+                              className="px-3.5 py-1.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black flex items-center gap-1 shadow-xs active:scale-95"
+                            >
+                              <Play className="w-3 h-3 fill-current" />
+                              <span>Abrir</span>
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     )
                   })
@@ -1042,13 +1139,13 @@ export function AppointmentsPage() {
               </button>
             </div>
 
-            {todayAppointments.length === 0 ? (
+            {toselectedDayAppointments.length === 0 ? (
               <div className="p-6 rounded-2xl bg-[#F7FAFA] text-center text-[#8CAAB1] text-xs font-semibold">
                 Nenhum compromisso agendado para hoje. Aproveite para planejar suas intervenções! 🌟
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5">
-                {todayAppointments.map((appt) => {
+                {toselectedDayAppointments.map((appt) => {
                   const style = getAppointmentStyle(appt)
                   const startTime = new Date(appt.start_time)
                   const endTime = new Date(appt.end_time)
@@ -1104,11 +1201,11 @@ export function AppointmentsPage() {
               </button>
             </div>
 
-            {todayAppointments.length === 0 ? (
+            {toselectedDayAppointments.length === 0 ? (
               <p className="text-[11px] text-[#8CAAB1] italic">Sem próximos compromissos para hoje 🎉</p>
             ) : (
               <div className="space-y-2">
-                {todayAppointments.slice(0, 4).map((appt) => {
+                {toselectedDayAppointments.slice(0, 4).map((appt) => {
                   const style = getAppointmentStyle(appt)
                   const startTime = new Date(appt.start_time)
                   const displayName = appt.child?.full_name || appt.notes || appt.type
