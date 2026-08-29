@@ -344,12 +344,12 @@ export function GuardiansPage() {
             />
           </div>
 
-          <div className="flex items-center gap-2.5 self-end md:self-auto shrink-0">
+          <div className="flex items-center justify-between sm:justify-start gap-2.5 w-full md:w-auto shrink-0">
             {/* Sort By Dropdown */}
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="h-10 px-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] hover:bg-white text-xs font-black text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all"
+              className="h-10 px-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] hover:bg-white text-xs font-black text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all flex-1 sm:flex-initial"
             >
               <option value="recent">⏱️ Mais Recentes</option>
               <option value="az">🔤 Ordem Alfabética (A - Z)</option>
