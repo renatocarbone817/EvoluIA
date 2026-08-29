@@ -45,7 +45,7 @@ import { ChildDocumentsTab } from "./tabs/ChildDocumentsTab"
 import { ChildFinancialTab } from "./tabs/ChildFinancialTab"
 import { ChildReportsTab } from "./tabs/ChildReportsTab"
 import { EditChildDialog } from "./EditChildDialog"
-import { checkChildFinancialRecords, deleteChildSafely } from "@/lib/deletionService"
+import { checkChildFinancialRecords, checkChildLinkedGuardians, deleteChildSafely } from "@/lib/deletionService"
 import toast from "react-hot-toast"
 
 type Tab = "resumo" | "avaliacao" | "sessoes" | "linha-do-tempo" | "documentos" | "financeiro" | "relatorios"
@@ -75,6 +75,9 @@ export function ChildProfilePage() {
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deletingChild, setDeletingChild] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
+  const [linkedGuardiansList, setLinkedGuardiansList] = useState<{ id: string; full_name: string; relationship: string }[]>([])
+  const [selectedGuardiansToDelete, setSelectedGuardiansToDelete] = useState<string[]>([])
   const [financialCount, setFinancialCount] = useState<number>(0)
   const [checkingFinance, setCheckingFinance] = useState(false)
 
@@ -132,9 +135,15 @@ export function ChildProfilePage() {
     async function handleOpenDeleteModal() {
     if (!child) return
     setCheckingFinance(true)
+    setDeleteConfirmText("")
+    setSelectedGuardiansToDelete([])
     try {
-      const count = await checkChildFinancialRecords(child.id)
+      const [count, guardians] = await Promise.all([
+        checkChildFinancialRecords(child.id),
+        checkChildLinkedGuardians(child.id),
+      ])
       setFinancialCount(count)
+      setLinkedGuardiansList(guardians)
       setShowDeleteModal(true)
     } finally {
       setCheckingFinance(false)
@@ -143,9 +152,13 @@ export function ChildProfilePage() {
 
   async function handleConfirmDelete() {
     if (!child || !profId) return
+    if (deleteConfirmText.trim().toUpperCase() !== "EXCLUIR") {
+      toast.error("Por favor, digite EXCLUIR para confirmar a exclusão.")
+      return
+    }
     setDeletingChild(true)
     try {
-      const res = await deleteChildSafely(child.id, profId, child.full_name)
+      const res = await deleteChildSafely(child.id, profId, child.full_name, selectedGuardiansToDelete)
       if (res.success) {
         toast.success("Paciente excluído com sucesso!", { icon: "🗑️" })
         setShowDeleteModal(false)
@@ -351,22 +364,67 @@ export function ChildProfilePage() {
               Esta ação removerá a criança <strong>{child.full_name}</strong> e todos os registros relacionados ao acompanhamento, sessões, avaliações, relatórios e histórico clínico/psicopedagógico. <span className="text-red-600 font-bold">Esta ação não poderá ser desfeita.</span>
             </p>
 
+            {/* Opção de Excluir Responsáveis Vinculados */}
+            {linkedGuardiansList.length > 0 && (
+              <div className="p-4 rounded-2xl bg-[#FEF8EC] border-2 border-[#FDE68A] space-y-2.5">
+                <p className="text-xs font-black text-[#B8871E] flex items-center gap-1.5">
+                  <span>👥</span>
+                  <span>Responsáveis Vinculados Encontrados:</span>
+                </p>
+                <p className="text-[11px] text-[#6B7C83]">
+                  Deseja excluir também o cadastro dos responsáveis desta criança?
+                </p>
+                <div className="space-y-1.5 pt-1">
+                  {linkedGuardiansList.map((g) => {
+                    const isChecked = selectedGuardiansToDelete.includes(g.id)
+                    return (
+                      <label key={g.id} className="flex items-center gap-2 cursor-pointer text-xs font-bold text-[#0D2329] bg-white p-2 rounded-xl border border-[#FDE68A]">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedGuardiansToDelete([...selectedGuardiansToDelete, g.id])
+                            } else {
+                              setSelectedGuardiansToDelete(selectedGuardiansToDelete.filter((id) => id !== g.id))
+                            }
+                          }}
+                          className="w-4 h-4 rounded text-red-600 accent-red-600 cursor-pointer"
+                        />
+                        <span>{g.full_name} ({g.relationship})</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Aviso Contábil de Preservação Financeira */}
-            {financialCount > 0 ? (
-              <div className="p-4 rounded-2xl bg-[#E8F8F5] border-2 border-[#A7F3D0] space-y-1.5">
+            {financialCount > 0 && (
+              <div className="p-3.5 rounded-2xl bg-[#E8F8F5] border border-[#A7F3D0] space-y-1">
                 <div className="flex items-center gap-1.5 text-xs font-black text-[#065F46]">
                   <ShieldCheck className="w-4 h-4 text-[#10B981]" />
                   <span>Histórico Financeiro Preservado ({financialCount} lançamentos)</span>
                 </div>
                 <p className="text-[11px] text-[#065F46] leading-relaxed">
-                  Os registros de pagamentos e mensalidades continuarão salvos no módulo <strong>Financeiro</strong> com a identificação do paciente para o seu controle contábil.
+                  Os lançamentos contábeis continuarão salvos no Financeiro com o nome do paciente.
                 </p>
               </div>
-            ) : (
-              <div className="p-3 bg-[#F8FAFB] rounded-2xl border border-[#D8E5E7] text-[11px] text-[#6B7C83]">
-                🛡️ Os responsáveis cadastrados e outros pacientes vinculados não serão afetados.
-              </div>
             )}
+
+            {/* Campo Obrigatório: Digite EXCLUIR */}
+            <div className="space-y-1.5 pt-2 border-t border-[#EEF5F6]">
+              <label className="text-xs font-black text-[#0D2329] block">
+                Para confirmar, digite <span className="text-red-600 font-mono font-black">EXCLUIR</span> abaixo:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Digite EXCLUIR"
+                className="w-full px-4 py-2.5 rounded-2xl border-2 border-[#D8E5E7] focus:border-red-500 font-bold text-center uppercase tracking-widest text-sm focus:outline-none placeholder:normal-case placeholder:tracking-normal placeholder:font-medium placeholder:text-[#8CAAB1] transition-all bg-[#F8FAFB] focus:bg-white"
+              />
+            </div>
           </DialogBody>
 
           <DialogFooter className="p-4 bg-[#F8FAFB] border-t border-[#EEF5F6] flex items-center justify-end gap-2.5">
@@ -382,9 +440,9 @@ export function ChildProfilePage() {
 
             <button
               type="button"
-              disabled={deletingChild}
+              disabled={deletingChild || deleteConfirmText.trim().toUpperCase() !== "EXCLUIR"}
               onClick={handleConfirmDelete}
-              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#EF4444] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#EF4444] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
             >
               {deletingChild ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               <span>{deletingChild ? "Excluindo..." : "Excluir definitivamente"}</span>

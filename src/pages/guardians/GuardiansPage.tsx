@@ -74,6 +74,8 @@ export function GuardiansPage() {
   const [selectedFamilyGuardian, setSelectedFamilyGuardian] = useState<GuardianWithChildren | null>(null)
   const [guardianToDelete, setGuardianToDelete] = useState<GuardianWithChildren | null>(null)
   const [deletingGuardian, setDeletingGuardian] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
+  const [selectedChildrenToDelete, setSelectedChildrenToDelete] = useState<string[]>([])
 
   // Edit Guardian State
   const [editingGuardian, setEditingGuardian] = useState<Guardian | null>(null)
@@ -135,11 +137,15 @@ export function GuardiansPage() {
     }
   }
 
-    async function handleConfirmDeleteGuardian() {
+  async function handleConfirmDeleteGuardian() {
     if (!guardianToDelete || !profId) return
+    if (deleteConfirmText.trim().toUpperCase() !== "EXCLUIR") {
+      toast.error("Por favor, digite EXCLUIR para confirmar a exclusão.")
+      return
+    }
     setDeletingGuardian(true)
     try {
-      const res = await deleteGuardianSafely(guardianToDelete.id, profId)
+      const res = await deleteGuardianSafely(guardianToDelete.id, profId, selectedChildrenToDelete)
       if (res.success) {
         toast.success("Responsável excluído com sucesso!", { icon: "🗑️" })
         setGuardianToDelete(null)
@@ -233,6 +239,10 @@ export function GuardiansPage() {
   const countWithWhatsapp = guardians.filter((g) => Boolean(g.whatsapp || g.phone)).length
   const countWithChildren = guardians.filter((g) => (g.children?.filter((c) => c.child) || []).length > 0).length
   const totalChildrenLinked = guardians.reduce((acc, g) => acc + (g.children?.filter((c) => c.child)?.length || 0), 0)
+
+  const guardianChildrenToDelete = (guardianToDelete?.children || [])
+    .filter((c) => c.child)
+    .map((c) => ({ id: c.child!.id, full_name: c.child!.full_name }))
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6 animate-in fade-in">
@@ -985,45 +995,58 @@ export function GuardiansPage() {
           </DialogHeader>
 
           <DialogBody className="p-6 space-y-4 text-xs font-semibold text-[#2E4A52]">
-            {(() => {
-              const linked = guardianToDelete?.children?.filter((c) => c.child) || []
-              if (linked.length === 0) {
-                return (
-                  <p className="leading-relaxed">
-                    Tem certeza que deseja excluir o cadastro de <strong>{guardianToDelete?.full_name}</strong>? Esta ação não poderá ser desfeita.
-                  </p>
-                )
-              }
-              return (
-                <div className="space-y-3">
-                  <p className="leading-relaxed">
-                    Este responsável possui <strong>{linked.length} {linked.length === 1 ? "criança vinculada" : "crianças vinculadas"}</strong>:
-                  </p>
-                  
-                  <div className="p-3 bg-[#F8FAFB] rounded-2xl border border-[#D8E5E7] space-y-1.5">
-                    {linked.map((link, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs font-bold text-[#0D2329]">
-                        <span>🧒</span>
-                        <span>{link.child?.full_name}</span>
-                        {link.relationship && (
-                          <span className="text-[10px] text-[#6B7C83] font-normal">({link.relationship})</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+            <p className="leading-relaxed">
+              Esta ação removerá o responsável <strong>{guardianToDelete?.full_name}</strong> do cadastro da clínica. <span className="text-red-600 font-bold">Esta ação não poderá ser desfeita.</span>
+            </p>
 
-                  <div className="p-4 rounded-2xl bg-[#E8F8F5] border-2 border-[#A7F3D0] space-y-1">
-                    <div className="flex items-center gap-1.5 text-xs font-black text-[#065F46]">
-                      <ShieldCheck className="w-4 h-4 text-[#10B981]" />
-                      <span>Proteção dos Pacientes / Crianças</span>
-                    </div>
-                    <p className="text-[11px] text-[#065F46] leading-relaxed">
-                      Ao excluir este responsável, <strong>as crianças continuarão salvas normalmente no sistema</strong>. Apenas o vínculo de parentesco será removido.
-                    </p>
-                  </div>
+            {/* Opção de Excluir Crianças Vinculadas */}
+            {guardianChildrenToDelete.length > 0 && (
+              <div className="p-4 rounded-2xl bg-[#FEF8EC] border-2 border-[#FDE68A] space-y-2.5">
+                <p className="text-xs font-black text-[#B8871E] flex items-center gap-1.5">
+                  <span>👶</span>
+                  <span>Crianças / Pacientes Vinculados ({guardianChildrenToDelete.length}):</span>
+                </p>
+                <p className="text-[11px] text-[#6B7C83]">
+                  Deseja excluir também o cadastro dos pacientes vinculados a este responsável?
+                </p>
+                <div className="space-y-1.5 pt-1">
+                  {guardianChildrenToDelete.map((c) => {
+                    const isChecked = selectedChildrenToDelete.includes(c.id)
+                    return (
+                      <label key={c.id} className="flex items-center gap-2 cursor-pointer text-xs font-bold text-[#0D2329] bg-white p-2 rounded-xl border border-[#FDE68A]">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedChildrenToDelete([...selectedChildrenToDelete, c.id])
+                            } else {
+                              setSelectedChildrenToDelete(selectedChildrenToDelete.filter((id) => id !== c.id))
+                            }
+                          }}
+                          className="w-4 h-4 rounded text-red-600 accent-red-600 cursor-pointer"
+                        />
+                        <span>{c.full_name} (Paciente)</span>
+                      </label>
+                    )
+                  })}
                 </div>
-              )
-            })()}
+              </div>
+            )}
+
+            {/* Campo Obrigatório: Digite EXCLUIR */}
+            <div className="space-y-1.5 pt-2 border-t border-[#EEF5F6]">
+              <label className="text-xs font-black text-[#0D2329] block">
+                Para confirmar, digite <span className="text-red-600 font-mono font-black">EXCLUIR</span> abaixo:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Digite EXCLUIR"
+                className="w-full px-4 py-2.5 rounded-2xl border-2 border-[#D8E5E7] focus:border-red-500 font-bold text-center uppercase tracking-widest text-sm focus:outline-none placeholder:normal-case placeholder:tracking-normal placeholder:font-medium placeholder:text-[#8CAAB1] transition-all bg-[#F8FAFB] focus:bg-white"
+              />
+            </div>
           </DialogBody>
 
           <DialogFooter className="p-4 bg-[#F8FAFB] border-t border-[#EEF5F6] flex items-center justify-end gap-2.5">
@@ -1039,12 +1062,12 @@ export function GuardiansPage() {
 
             <button
               type="button"
-              disabled={deletingGuardian}
+              disabled={deletingGuardian || deleteConfirmText.trim().toUpperCase() !== "EXCLUIR"}
               onClick={handleConfirmDeleteGuardian}
-              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#EF4444] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#EF4444] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
             >
               {deletingGuardian ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-              <span>{deletingGuardian ? "Excluindo..." : "Excluir Responsável"}</span>
+              <span>{deletingGuardian ? "Excluindo..." : "Excluir definitivamente"}</span>
             </button>
           </DialogFooter>
         </DialogContent>
