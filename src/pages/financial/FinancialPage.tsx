@@ -732,9 +732,9 @@ export function FinancialPage() {
   }, [filteredRecords])
 
   return (
-    <div className="p-4 md:p-8 max-w-[1550px] mx-auto space-y-5">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-5">
       {/* 1. HEADER */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl font-black text-[#0D2329] tracking-tight">
@@ -744,18 +744,19 @@ export function FinancialPage() {
               💵
             </span>
           </div>
-          <p className="text-sm font-medium text-[#6B7C83]">
+          <p className="text-xs sm:text-sm font-medium text-[#6B7C83]">
             Acompanhe as finanças da sua clínica de forma simples e organizada.
           </p>
         </div>
 
-        {/* Global Month & Year Picker + Action Buttons */}
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border-2 border-[#D8E5E7] shadow-2xs">
+        {/* Global Month & Year Picker + Action Buttons (Symmetrical & Responsive) */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+          {/* Seletor Mês / Ano */}
+          <div className="flex items-center justify-between sm:justify-start gap-1.5 bg-white p-1.5 rounded-2xl border-2 border-[#D8E5E7] shadow-2xs">
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="text-xs font-black bg-transparent text-[#0D2329] px-2 py-1 focus:outline-none cursor-pointer"
+              className="flex-1 sm:flex-none text-xs font-black bg-transparent text-[#0D2329] px-2 py-1 focus:outline-none cursor-pointer"
             >
               {MONTHS.map((m, idx) => (
                 <option key={m} value={idx + 1}>{m}</option>
@@ -765,7 +766,7 @@ export function FinancialPage() {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="text-xs font-black bg-transparent text-[#0D2329] px-1 py-1 focus:outline-none cursor-pointer border-l border-[#EEF5F6]"
+              className="text-xs font-black bg-transparent text-[#0D2329] px-2 py-1 focus:outline-none cursor-pointer border-l-2 border-[#EEF5F6]"
             >
               {availableYears.map((y) => (
                 <option key={y} value={y}>{y}</option>
@@ -773,42 +774,47 @@ export function FinancialPage() {
             </select>
           </div>
 
-          <button
-            onClick={() => {
-              setEntryType("income")
-              setFormData((prev) => ({
-                ...prev,
-                month: selectedMonth,
-                year: selectedYear,
-                day: String(new Date().getDate()),
-                category: "Sessões",
-                child_id: children[0]?.id || "",
-              }))
-              setShowAddModal(true)
-            }}
-            className="h-9 px-4 rounded-xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>+ Nova Receita</span>
-          </button>
+          {/* Botões de Ação Perfeitamente Alinhados (50% cada no celular, lado a lado) */}
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
+            <button
+              onClick={() => {
+                setEntryType("income")
+                setFormData((prev) => ({
+                  ...prev,
+                  month: selectedMonth,
+                  year: selectedYear,
+                  day: String(new Date().getDate()),
+                  category: "Sessões",
+                  child_id: children[0]?.id || "",
+                }))
+                setShowAddModal(true)
+              }}
+              className="h-10 px-4 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all shrink-0"
+              title="Nova Receita"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Nova Receita</span>
+            </button>
 
-          <button
-            onClick={() => {
-              setEntryType("expense")
-              setFormData((prev) => ({
-                ...prev,
-                month: selectedMonth,
-                year: selectedYear,
-                day: String(new Date().getDate()),
-                category: "Aluguel & Condomínio",
-              }))
-              setShowAddModal(true)
-            }}
-            className="h-9 px-4 rounded-xl bg-gradient-to-r from-[#EF4444] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] text-white text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>+ Nova Despesa</span>
-          </button>
+            <button
+              onClick={() => {
+                setEntryType("expense")
+                setFormData((prev) => ({
+                  ...prev,
+                  month: selectedMonth,
+                  year: selectedYear,
+                  day: String(new Date().getDate()),
+                  category: "Aluguel & Condomínio",
+                }))
+                setShowAddModal(true)
+              }}
+              className="h-10 px-4 rounded-2xl bg-gradient-to-r from-[#EF4444] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all shrink-0"
+              title="Nova Despesa"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Nova Despesa</span>
+            </button>
+          </div>
         </div>
       </div>
 
