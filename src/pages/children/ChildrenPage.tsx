@@ -638,14 +638,7 @@ export function ChildrenPage() {
                     <span>Agendar</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={(e) => handleOpenDeleteChild(e, child)}
-                    className="p-2 text-[#8CAAB1] hover:text-red-600 hover:bg-red-50 rounded-xl border border-[#D8E5E7] hover:border-red-200 transition-all text-xs"
-                    title="Excluir paciente"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+
 
                   <div className="w-8 h-8 rounded-xl bg-[#F7FAFA] group-hover:bg-[#EDE9FE] text-[#6B7C83] group-hover:text-[#7C3AED] flex items-center justify-center transition-colors">
                     <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -678,58 +671,31 @@ export function ChildrenPage() {
                 onClick={() => navigate(`/criancas/${child.id}`)}
                 className="p-4 sm:p-5 rounded-3xl border-2 border-[#D8E5E7] bg-white hover:border-[#7C3AED]/50 hover:shadow-lg cursor-pointer transition-all space-y-3.5 flex flex-col justify-between group relative overflow-hidden"
               >
-                {/* 1. Header: Avatar + Name + Status + WhatsApp */}
+                {/* 1. Header: Avatar Ampliado + Nome + Status */}
                 <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {/* Avatar */}
-                      <div className="w-13 h-13 min-w-[52px] min-h-[52px] max-w-[52px] max-h-[52px] rounded-2xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center font-black text-lg overflow-hidden shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-                        {child.photo_url ? (
-                          <img src={child.photo_url} alt={displayName} className="w-full h-full object-cover" />
-                        ) : (
-                          displayName.charAt(0).toUpperCase()
-                        )}
-                      </div>
-
-                      <div className="min-w-0">
-                        <h3 className="font-black text-sm sm:text-base text-[#0D2329] group-hover:text-[#7C3AED] transition-colors truncate leading-tight">
-                          {displayName}
-                        </h3>
-
-                        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                          <Badge statusKey={child.status} type="child" className="text-[10px] px-2 py-0.5 font-black" />
-                          {age !== null && (
-                            <span className="text-[10px] font-black text-[#7C3AED] bg-[#EDE9FE] px-2 py-0.5 rounded-md border border-[#DDD6FE]">
-                              {age} anos
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    {/* Avatar Ampliado */}
+                    <div className="w-16 h-16 min-w-[64px] min-h-[64px] max-w-[64px] max-h-[64px] rounded-2xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center font-black text-xl overflow-hidden shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                      {child.photo_url ? (
+                        <img src={child.photo_url} alt={displayName} className="w-full h-full object-cover" />
+                      ) : (
+                        displayName.charAt(0).toUpperCase()
+                      )}
                     </div>
 
-                    {/* Quick WhatsApp & Delete Buttons */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      {cleanPhone && (
-                        <a
-                          href={`https://wa.me/55${cleanPhone}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="p-2 bg-[#E8F8F5] text-[#10B981] border border-[#10B981]/30 hover:bg-[#10B981] hover:text-white rounded-xl transition-all shadow-2xs"
-                          title="Enviar WhatsApp para o responsável"
-                        >
-                          <MessageSquare className="w-4 h-4 fill-current" />
-                        </a>
-                      )}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-black text-base text-[#0D2329] group-hover:text-[#7C3AED] transition-colors truncate leading-tight">
+                        {displayName}
+                      </h3>
 
-                      <button
-                        type="button"
-                        onClick={(e) => handleOpenDeleteChild(e, child)}
-                        className="p-2 bg-[#F7FAFA] hover:bg-red-50 text-[#8CAAB1] hover:text-red-600 border border-[#D8E5E7] hover:border-red-200 rounded-xl transition-all shadow-2xs"
-                        title="Excluir paciente"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                        <Badge statusKey={child.status} type="child" className="text-[10px] px-2.5 py-0.5 font-black" />
+                        {age !== null && (
+                          <span className="text-[10px] font-black text-[#7C3AED] bg-[#EDE9FE] px-2 py-0.5 rounded-lg border border-[#DDD6FE]">
+                            {age} anos
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
