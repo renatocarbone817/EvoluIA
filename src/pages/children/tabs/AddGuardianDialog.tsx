@@ -2,11 +2,22 @@ import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogBody,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogBody,
 } from "@/components/ui/Dialog"
 import { Button } from "@/components/ui/Button"
-import { Input } from "@/components/ui/Input"
-import { Select } from "@/components/ui/Select"
+import {
+  UserPlus,
+  Users,
+  CheckCircle2,
+  Loader2,
+  HeartHandshake,
+  Sparkles,
+} from "lucide-react"
 import toast from "react-hot-toast"
 import type { Guardian } from "@/types/database"
 
@@ -20,7 +31,7 @@ interface AddGuardianDialogProps {
 export function AddGuardianDialog({ open, childId, onClose, onSuccess }: AddGuardianDialogProps) {
   const { professional } = useAuthStore()
   const [loading, setLoading] = useState(false)
-  const [mode, setMode] = useState<"existing" | "new">("new")
+  const [mode, setMode] = useState<"existing" | "new">("existing")
   const [existingGuardians, setExistingGuardians] = useState<Guardian[]>([])
   const [selectedGuardianId, setSelectedGuardianId] = useState("")
   const [relationship, setRelationship] = useState("Mãe")
@@ -116,99 +127,159 @@ export function AddGuardianDialog({ open, childId, onClose, onSuccess }: AddGuar
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Vincular Responsável</DialogTitle>
+      <DialogContent className="max-w-md p-0 overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
+        <DialogHeader className="p-6 pb-4 border-b border-[#EEF5F6] flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] border-2 border-[#DDD6FE] flex items-center justify-center shrink-0 shadow-xs">
+            <HeartHandshake className="w-6 h-6 stroke-[2.5]" />
+          </div>
+          <div>
+            <DialogTitle className="text-lg font-black text-[#0D2329]">
+              Vincular Responsável
+            </DialogTitle>
+            <p className="text-xs font-semibold text-[#6B7C83] mt-0.5">
+              Conecte pais ou responsáveis à ficha desta criança
+            </p>
+          </div>
         </DialogHeader>
-        <DialogBody className="space-y-4">
+
+        <DialogBody className="p-6 space-y-4 max-h-[72vh] overflow-y-auto">
+          {/* Mode Switcher Tabs */}
           {existingGuardians.length > 0 && (
-            <div className="flex gap-2 pb-2 border-b border-border">
-              <Button
-                size="sm"
+            <div className="flex p-1 bg-[#F7FAFA] rounded-2xl border-2 border-[#D8E5E7] gap-1">
+              <button
                 type="button"
-                variant={mode === "existing" ? "default" : "outline"}
                 onClick={() => setMode("existing")}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                  mode === "existing"
+                    ? "bg-[#7C3AED] text-white shadow-xs"
+                    : "text-[#6B7C83] hover:bg-white/60"
+                }`}
               >
-                Selecionar Existente
-              </Button>
-              <Button
-                size="sm"
+                <Users className="w-3.5 h-3.5" />
+                <span>Selecionar Existente</span>
+              </button>
+
+              <button
                 type="button"
-                variant={mode === "new" ? "default" : "outline"}
                 onClick={() => setMode("new")}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                  mode === "new"
+                    ? "bg-[#7C3AED] text-white shadow-xs"
+                    : "text-[#6B7C83] hover:bg-white/60"
+                }`}
               >
-                Criar Novo
-              </Button>
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>+ Cadastrar Novo</span>
+              </button>
             </div>
           )}
 
+          {/* Mode A: Select Existing Guardian */}
           {mode === "existing" && (
-            <div className="space-y-3">
-              <Select
-                label="Responsável Cadastrado"
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-[#0D2329]">Responsável Cadastrado *</label>
+              <select
                 value={selectedGuardianId}
                 onChange={(e) => setSelectedGuardianId(e.target.value)}
-                options={existingGuardians.map((g) => ({
-                  value: g.id,
-                  label: `${g.full_name} (${g.phone || "sem tel"})`,
-                }))}
-              />
+                className="w-full p-3 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] shadow-2xs"
+              >
+                {existingGuardians.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.full_name} {g.phone ? `(${g.phone})` : "(sem telefone)"}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
+          {/* Mode B: Create New Guardian Form */}
           {mode === "new" && (
             <div className="space-y-3">
-              <Input
-                label="Nome completo *"
-                placeholder="Ex: Maria da Silva"
-                value={form.full_name}
-                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="Telefone"
-                  placeholder="(11) 99999-9999"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                />
-                <Input
-                  label="WhatsApp"
-                  placeholder="(11) 99999-9999"
-                  value={form.whatsapp}
-                  onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+              <div className="space-y-1">
+                <label className="text-xs font-black text-[#0D2329]">Nome Completo *</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Maria da Silva"
+                  value={form.full_name}
+                  onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                  className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
                 />
               </div>
-              <Input
-                label="E-mail"
-                type="email"
-                placeholder="maria@email.com"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-black text-[#0D2329]">Telefone</label>
+                  <input
+                    type="text"
+                    placeholder="(11) 99999-9999"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-black text-[#0D2329]">WhatsApp</label>
+                  <input
+                    type="text"
+                    placeholder="(11) 99999-9999"
+                    value={form.whatsapp}
+                    onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+                    className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-black text-[#0D2329]">E-mail</label>
+                <input
+                  type="email"
+                  placeholder="maria@email.com"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                />
+              </div>
             </div>
           )}
 
-          <Select
-            label="Grau de Parentesco / Relação"
-            value={relationship}
-            onChange={(e) => setRelationship(e.target.value)}
-            options={[
-              { value: "Mãe", label: "Mãe" },
-              { value: "Pai", label: "Pai" },
-              { value: "Avó / Avô", label: "Avó / Avô" },
-              { value: "Tia / Tio", label: "Tia / Tio" },
-              { value: "Tutor Legal", label: "Tutor Legal" },
-              { value: "Outro", label: "Outro" },
-            ]}
-          />
+          {/* Relationship Selection */}
+          <div className="space-y-1">
+            <label className="text-xs font-black text-[#0D2329]">Grau de Parentesco / Relação *</label>
+            <select
+              value={relationship}
+              onChange={(e) => setRelationship(e.target.value)}
+              className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+            >
+              <option value="Mãe">Mãe</option>
+              <option value="Pai">Pai</option>
+              <option value="Avó / Avô">Avó / Avô</option>
+              <option value="Tia / Tio">Tia / Tio</option>
+              <option value="Tutor Legal">Tutor Legal</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
         </DialogBody>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+
+        <DialogFooter className="p-4 bg-[#F8FAFB] border-t border-[#EEF5F6] flex items-center justify-end gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={loading}
+            onClick={onClose}
+            className="rounded-2xl border-2 border-[#D8E5E7] font-bold text-xs"
+          >
             Cancelar
           </Button>
-          <Button loading={loading} onClick={handleSubmit}>
-            Salvar Vínculo
-          </Button>
+
+          <button
+            type="button"
+            disabled={loading}
+            onClick={handleSubmit}
+            className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />}
+            <span>Salvar Vínculo</span>
+          </button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
