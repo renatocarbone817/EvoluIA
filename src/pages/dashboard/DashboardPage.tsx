@@ -1041,60 +1041,6 @@ export function DashboardPage() {
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
-
-          {/* Acesso Rápido Bar (Pills) */}
-          <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-3">
-            <h3 className="text-xs font-black text-[#0D2329]">Acesso Rápido</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <button
-                onClick={() => navigate("/criancas?novo=true")}
-                className="p-2.5 rounded-2xl bg-[#F7FAFA] hover:bg-[#E8F8F5] border border-[#D8E5E7] hover:border-[#10B981] text-[#0D2329] text-[11px] font-bold flex items-center gap-2 transition-all shadow-2xs"
-              >
-                <UserPlus className="w-4 h-4 text-[#10B981]" />
-                <span className="truncate">Novo Paciente</span>
-              </button>
-
-              <button
-                onClick={() => navigate("/agenda?novo=true")}
-                className="p-2.5 rounded-2xl bg-[#F7FAFA] hover:bg-[#F3E8FF] border border-[#D8E5E7] hover:border-[#9333EA] text-[#0D2329] text-[11px] font-bold flex items-center gap-2 transition-all shadow-2xs"
-              >
-                <ClipboardList className="w-4 h-4 text-[#9333EA]" />
-                <span className="truncate">Nova Avaliação</span>
-              </button>
-
-              <button
-                onClick={() => navigate("/biblioteca?novo=true")}
-                className="p-2.5 rounded-2xl bg-[#FFEDD5] hover:bg-[#FED7AA] border border-[#D8E5E7] hover:border-[#EA580C] text-[#0D2329] text-[11px] font-bold flex items-center gap-2 transition-all shadow-2xs"
-              >
-                <BookOpen className="w-4 h-4 text-[#EA580C]" />
-                <span className="truncate">Nova Atividade</span>
-              </button>
-
-              <button
-                onClick={() => navigate("/relatorios?tab=planos")}
-                className="p-2.5 rounded-2xl bg-[#F7FAFA] hover:bg-[#E0F2FE] border border-[#D8E5E7] hover:border-[#0284C7] text-[#0D2329] text-[11px] font-bold flex items-center gap-2 transition-all shadow-2xs"
-              >
-                <FileText className="w-4 h-4 text-[#0284C7]" />
-                <span className="truncate">Novo Plano</span>
-              </button>
-
-              <button
-                onClick={() => navigate("/relatorios")}
-                className="p-2.5 rounded-2xl bg-[#F7FAFA] hover:bg-[#FCE7F3] border border-[#D8E5E7] hover:border-[#DB2777] text-[#0D2329] text-[11px] font-bold flex items-center gap-2 transition-all shadow-2xs"
-              >
-                <Sparkles className="w-4 h-4 text-[#DB2777]" />
-                <span className="truncate">Relatório IA</span>
-              </button>
-
-              <button
-                onClick={() => navigate("/biblioteca")}
-                className="p-2.5 rounded-2xl bg-[#F7FAFA] hover:bg-[#E8F8F5] border border-[#D8E5E7] hover:border-[#00A896] text-[#0D2329] text-[11px] font-bold flex items-center gap-2 transition-all shadow-2xs"
-              >
-                <FolderOpen className="w-4 h-4 text-[#00A896]" />
-                <span className="truncate">Biblioteca</span>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* ========================================================
