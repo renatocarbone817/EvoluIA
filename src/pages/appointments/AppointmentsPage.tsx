@@ -502,7 +502,7 @@ export function AppointmentsPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6 max-w-full overflow-x-hidden">
       {/* =========================================================================
           1. HEADER WITH TITLE, DATE RANGE & VIEW SWITCHER
           ========================================================================= */}
@@ -594,11 +594,9 @@ export function AppointmentsPage() {
       {/* =========================================================================
           QUICK SEARCH & FILTER BAR
           ========================================================================= */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <span className="text-xs font-bold text-[#8CAAB1] flex items-center gap-1 mr-1">
-            <Filter className="w-3.5 h-3.5" /> Status:
-          </span>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 w-full max-w-full">
+        {/* Status Filter Horizontal Sliding Chips */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none -mx-1 px-1 w-full sm:w-auto">
           {[
             { id: "todos", label: "Todos", count: appointments.length },
             { id: "agendados", label: "Agendados", count: appointments.filter((a) => a.status === "scheduled" || a.status === "confirmed" || a.status === "in_progress").length, dot: "bg-[#7C3AED]" },
@@ -608,17 +606,17 @@ export function AppointmentsPage() {
             <button
               key={f.id}
               onClick={() => setStatusFilter(f.id as StatusFilter)}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5 shrink-0 ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 shrink-0 active:scale-95 ${
                 statusFilter === f.id
-                  ? "bg-[#19323A] text-white border-[#19323A] shadow-xs"
-                  : "bg-white text-[#4F6C74] border-[#D8E5E7] hover:border-[#19323A]"
+                  ? "bg-[#7C3AED] text-white shadow-md"
+                  : "bg-white text-[#6B7C83] border border-[#D8E5E7] hover:bg-[#F7FAFA]"
               }`}
             >
               {f.dot && (
                 <span className={`w-2 h-2 rounded-full ${statusFilter === f.id ? "bg-white" : f.dot}`} />
               )}
               <span>{f.label}</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${statusFilter === f.id ? "bg-white/20 text-white" : "bg-[#EEF5F6] text-[#6B7C83]"}`}>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${statusFilter === f.id ? "bg-white/20 text-white" : "bg-[#EEF5F6] text-[#6B7C83]"}`}>
                 {f.count}
               </span>
             </button>
