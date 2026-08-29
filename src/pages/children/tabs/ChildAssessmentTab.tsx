@@ -635,37 +635,48 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
 
       {/* AI Loading skeleton */}
       {aiLoading && !aiAnalysis && (
-        <div className="rounded-2xl border-2 border-[#245C6B]/20 bg-[#EAF3F5]/50 p-6 space-y-4">
+        <div className="rounded-3xl border-2 border-[#DDD6FE] bg-[#F5F3FF]/60 p-6 space-y-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#245C6B]/20 animate-pulse" />
+            <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center animate-pulse">
+              <Sparkles className="w-5 h-5" />
+            </div>
             <div className="space-y-1.5 flex-1">
-              <div className="h-4 w-48 bg-[#245C6B]/20 rounded animate-pulse" />
-              <div className="h-3 w-32 bg-[#245C6B]/10 rounded animate-pulse" />
+              <div className="h-4 w-48 bg-[#DDD6FE] rounded-lg animate-pulse" />
+              <div className="h-3 w-32 bg-[#DDD6FE]/60 rounded-lg animate-pulse" />
             </div>
           </div>
           <div className="space-y-2">
-            <div className="h-3 w-full bg-[#245C6B]/10 rounded animate-pulse" />
-            <div className="h-3 w-4/5 bg-[#245C6B]/10 rounded animate-pulse" />
-            <div className="h-3 w-3/4 bg-[#245C6B]/10 rounded animate-pulse" />
+            <div className="h-3 w-full bg-[#DDD6FE]/40 rounded-lg animate-pulse" />
+            <div className="h-3 w-4/5 bg-[#DDD6FE]/40 rounded-lg animate-pulse" />
+            <div className="h-3 w-3/4 bg-[#DDD6FE]/40 rounded-lg animate-pulse" />
           </div>
-          <p className="text-xs text-[#6B7C83] font-semibold text-center animate-pulse">
-            ✨ A IA está analisando a entrevista...
+          <p className="text-xs text-[#7C3AED] font-black text-center animate-pulse">
+            ✨ A IA está gerando a análise psicopedagógica da entrevista...
           </p>
         </div>
       )}
 
       {/* Bottom save bar */}
       {isEditing && (
-        <div className="flex justify-end gap-3 pt-4 border-t border-border sticky bottom-4 bg-background/90 backdrop-blur-sm p-3 rounded-xl border print:hidden">
+        <div className="flex items-center justify-end gap-3 pt-4 sticky bottom-4 bg-white/95 backdrop-blur-md p-4 rounded-3xl border-2 border-[#D8E5E7] shadow-xl print:hidden">
           {assessment && (
-            <Button variant="outline" onClick={() => setIsEditing(false)}>
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              className="px-5 py-2.5 rounded-2xl bg-[#F7FAFA] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] border-2 border-[#D8E5E7] text-xs font-black transition-all active:scale-95"
+            >
               Cancelar
-            </Button>
+            </button>
           )}
-          <Button size="lg" loading={saving} onClick={handleSaveAssessment} className="gap-2">
-            <Save className="w-4 h-4" />
-            Salvar Avaliação Inicial
-          </Button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={handleSaveAssessment}
+            className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Save className="w-4 h-4 stroke-[2.5]" />}
+            <span>{saving ? "Salvando..." : "Salvar Entrevista Inicial"}</span>
+          </button>
         </div>
       )}
       {/* Dialog de Novo Agendamento Direto da Entrevista Inicial */}
