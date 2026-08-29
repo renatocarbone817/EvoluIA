@@ -387,7 +387,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
   }
 
   return (
-    <div className="printable-report space-y-6 w-full max-w-[82%] print:max-w-none print:w-full print:p-0">
+    <div className="printable-report space-y-6 w-full max-w-full print:max-w-none print:w-full print:p-0">
       {/* Print-only Formal Header */}
       <div className="hidden print:block text-center border-b-2 border-[#19323A] pb-6 mb-6 space-y-1.5">
         <h1 className="text-2xl font-black uppercase tracking-wide text-[#19323A]">

@@ -197,7 +197,7 @@ export function ChildTimelineTab({ childId }: ChildTimelineTabProps) {
   }
 
   return (
-    <div className="space-y-6 w-full max-w-[85%]">
+    <div className="space-y-6 w-full max-w-full">
       <div>
         <h2 className="text-lg sm:text-xl font-black text-[#0D2329] flex items-center gap-2">
           <Clock className="w-5 h-5 text-[#7C3AED]" />
