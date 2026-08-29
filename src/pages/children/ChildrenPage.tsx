@@ -437,42 +437,43 @@ export function ChildrenPage() {
           </div>
         </div>
 
-        {/* Status Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pt-2 border-t border-[#EEF5F6]">
-          <div className="flex items-center gap-1 text-xs font-black text-[#6B7C83] mr-1 shrink-0">
-            <Filter className="w-3.5 h-3.5" />
-            <span>Filtrar:</span>
-          </div>
-
-          {[
-            { id: "todos", label: "Todos", count: children.length },
-            { id: "in_progress", label: "Em Acompanhamento", count: countInProgress },
-            { id: "initial_assessment", label: "Entrevista Inicial", count: countInitial },
-            { id: "finalizado", label: "Finalizado", count: countFinalizado },
-            { id: "pausado", label: "Pausado", count: countPausado },
-          ].map((f) => {
-            const isSelected = statusFilter === f.id
-            return (
-              <button
-                key={f.id}
-                onClick={() => setStatusFilter(f.id as StatusFilterType)}
-                className={`px-3.5 py-1.5 rounded-xl border-2 text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
-                  isSelected
-                    ? "bg-[#7C3AED] text-white border-[#7C3AED] shadow-xs"
-                    : "bg-white text-[#4F6C74] border-[#D8E5E7] hover:border-[#7C3AED]/40 hover:bg-[#F7FAFA]"
-                }`}
-              >
-                <span>{f.label}</span>
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
-                    isSelected ? "bg-white/25 text-white" : "bg-[#F7FAFA] text-[#6B7C83] border border-[#D8E5E7]"
+        {/* Filter Chips (Modern Smooth Pills Bar) */}
+        <div className="overflow-x-auto -mx-1 px-1 scrollbar-none pt-2 border-t border-[#EEF5F6]">
+          <div className="flex items-center gap-1.5 p-1 bg-[#F8FAFB] rounded-full sm:rounded-2xl border-2 border-[#D8E5E7] w-max">
+            {[
+              { id: "todos", label: "Todos", shortLabel: "Todos", count: children.length },
+              { id: "in_progress", label: "Em Acompanhamento", shortLabel: "Acompanhamento", count: countInProgress },
+              { id: "initial_assessment", label: "Entrevistas Iniciais", shortLabel: "Entrevista", count: countInitial },
+              { id: "finalizado", label: "Finalizados", shortLabel: "Finalizados", count: countFinalizado },
+              { id: "pausado", label: "Pausados", shortLabel: "Pausados", count: countPausado },
+            ].map((f) => {
+              const isSelected = statusFilter === f.id
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setStatusFilter(f.id as StatusFilterType)}
+                  className={`px-3.5 py-1.5 sm:py-2 rounded-full sm:rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shrink-0 active:scale-95 ${
+                    isSelected
+                      ? "bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white shadow-md"
+                      : "text-[#4F6C74] hover:text-[#0D2329] hover:bg-white bg-transparent"
                   }`}
                 >
-                  {f.count}
-                </span>
-              </button>
-            )
-          })}
+                  <span className="sm:hidden">{f.shortLabel}</span>
+                  <span className="hidden sm:inline">{f.label}</span>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                      isSelected
+                        ? "bg-white/25 text-white"
+                        : "bg-white text-[#6B7C83] border border-[#D8E5E7]"
+                    }`}
+                  >
+                    {f.count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
 
