@@ -586,7 +586,7 @@ export function AppointmentsPage() {
             className="h-10 px-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white text-xs font-black flex items-center gap-2 shadow-sm active:scale-95 transition-all"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
-            <span>+ Novo Compromisso</span>
+            <span>Novo Compromisso</span>
           </button>
         </div>
       </div>
@@ -1008,24 +1008,13 @@ export function AppointmentsPage() {
               </div>
 
               {/* Header Info for Selected Day */}
-              <div className="flex items-center justify-between px-1">
-                <div>
-                  <h3 className="text-base font-black text-[#0D2329] capitalize">
-                    {format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                  </h3>
-                  <p className="text-xs font-semibold text-[#6B7C83]">
-                    {selectedDayAppointments.length === 1 ? "1 compromisso agendado" : `${selectedDayAppointments.length} compromissos agendados`}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => openNewModalForDate(format(currentDate, "yyyy-MM-dd"))}
-                  className="px-3.5 py-1.5 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] border-2 border-[#DDD6FE] text-xs font-black flex items-center gap-1 active:scale-95 transition-all"
-                >
-                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                  <span>Agendar</span>
-                </button>
+              <div className="px-1">
+                <h3 className="text-base font-black text-[#0D2329] capitalize">
+                  {format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                </h3>
+                <p className="text-xs font-semibold text-[#6B7C83]">
+                  {selectedDayAppointments.length === 1 ? "1 compromisso agendado" : `${selectedDayAppointments.length} compromissos agendados`}
+                </p>
               </div>
 
               {/* Cards List for Selected Day */}
