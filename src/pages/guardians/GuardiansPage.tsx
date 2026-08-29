@@ -568,14 +568,7 @@ export function GuardiansPage() {
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setGuardianToDelete(g)}
-                    className="p-2 text-[#8CAAB1] hover:text-red-600 hover:bg-red-50 rounded-xl border border-[#D8E5E7] hover:border-red-200 transition-all text-xs"
-                    title="Excluir responsável"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+
                 </div>
               </div>
             )
@@ -612,22 +605,14 @@ export function GuardiansPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center shrink-0">
                       <button
                         type="button"
                         onClick={() => openEdit(g)}
-                        className="w-8 h-8 rounded-xl bg-[#F7FAFA] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] flex items-center justify-center transition-colors shrink-0"
+                        className="w-9 h-9 rounded-2xl bg-[#F7FAFA] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] border border-[#D8E5E7] hover:border-[#DDD6FE] flex items-center justify-center transition-all shrink-0 active:scale-95 shadow-2xs"
                         title="Editar responsável"
                       >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setGuardianToDelete(g)}
-                        className="w-8 h-8 rounded-xl bg-[#F7FAFA] hover:bg-red-50 text-[#8CAAB1] hover:text-red-600 flex items-center justify-center transition-colors shrink-0"
-                        title="Excluir responsável"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Edit2 className="w-3.5 h-3.5 stroke-[2.5]" />
                       </button>
                     </div>
                   </div>
@@ -946,22 +931,37 @@ export function GuardiansPage() {
               />
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#EEF5F6]">
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-[#EEF5F6]">
               <button
                 type="button"
-                onClick={() => setEditingGuardian(null)}
-                className="px-4 py-2 text-xs font-bold text-[#6B7C83] rounded-xl hover:bg-[#F7FAFA]"
+                onClick={() => {
+                  const g = editingGuardian
+                  setEditingGuardian(null)
+                  if (g) setGuardianToDelete(g)
+                }}
+                className="px-4 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-2xl border border-red-200 flex items-center gap-1.5 transition-all active:scale-95"
               >
-                Cancelar
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Excluir Responsável</span>
               </button>
 
-              <button
-                type="submit"
-                disabled={savingEdit}
-                className="px-5 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black shadow-md transition-all active:scale-95"
-              >
-                {savingEdit ? "Salvando..." : "Salvar Alterações"}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingGuardian(null)}
+                  className="px-4 py-2 text-xs font-bold text-[#6B7C83] rounded-2xl hover:bg-[#F7FAFA]"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black shadow-md transition-all active:scale-95"
+                >
+                  {savingEdit ? "Salvando..." : "Salvar Alterações"}
+                </button>
+              </div>
             </div>
           </form>
         </DialogContent>
