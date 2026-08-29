@@ -299,7 +299,7 @@ export function AppointmentsPage() {
     setIsSearching(false)
   }
 
-  function openNewModalForDate(dateStr?: string) {
+  function openNewModalForDate(dateStr?: string, _hourStr?: string) {
     setSelectedDateForNew(dateStr)
     setShowNewModal(true)
   }
@@ -356,13 +356,21 @@ export function AppointmentsPage() {
   }, [appointments, statusFilter])
 
   // Today's appointments
-  const toselectedDayAppointments = useMemo(() => {
+  const todayAppointments = useMemo(() => {
     return appointments.filter((a) => isSameDay(new Date(a.start_time), new Date()))
   }, [appointments])
 
   const selectedDayAppointments = useMemo(() => {
     return filteredAppointments.filter((a) => isSameDay(new Date(a.start_time), currentDate))
   }, [filteredAppointments, currentDate])
+
+  // Month days
+  const monthDays = useMemo(() => {
+    return eachDayOfInterval({
+      start: startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 }),
+      end: endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 }),
+    })
+  }, [currentDate])
 
   // Real Weekly Birthdays Calculation
   const weeklyBirthdays = useMemo(() => {
@@ -645,14 +653,154 @@ export function AppointmentsPage() {
       </div>
 
       {/* =========================================================================
-          2. MAIN GRID: CALENDAR (9 COLS) + RIGHT SIDEBAR (3 COLS)
+          2. MAIN VIEW: 100% NATIVE MOBILE (< lg) vs FULL DESKTOP GRID (>= lg)
           ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* ==========================================
-            LEFT COLUMN: WEEKLY/DAILY TIMETABLE GRID (9 COLS)
-            ========================================== */}
-        <div className="lg:col-span-9 space-y-6">
-          {/* A. WEEKLY GRID VIEW */}
+
+      {/* ─────────────────────────────────────────────────────────────
+          A. MOBILE NATIVE VIEW (EXCLUSIVELY FOR MOBILE / TABLET < lg)
+          ───────────────────────────────────────────────────────────── */}
+      <div className="block lg:hidden space-y-4">
+        {/* Week Days Strip Selector */}
+        <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-3 shadow-sm">
+          <div className="grid grid-cols-7 gap-1 text-center">
+            {weekDays.map((day) => {
+              const isSelected = isSameDay(day, currentDate)
+              const isToday = isSameDay(day, new Date())
+              const dayApptsCount = appointments.filter((a) => {
+                const aDate = new Date(a.start_time)
+                return isSameDay(aDate, day)
+              }).length
+
+              return (
+                <button
+                  key={day.toISOString()}
+                  type="button"
+                  onClick={() => setCurrentDate(day)}
+                  className={`py-2 px-0.5 rounded-2xl border-2 transition-all flex flex-col items-center justify-center relative active:scale-95 ${
+                    isSelected
+                      ? "bg-[#7C3AED] text-white border-[#6D28D9] shadow-md font-black"
+                      : isToday
+                      ? "bg-[#EDE9FE] border-[#C4B5FD] text-[#7C3AED] font-bold"
+                      : "border-transparent hover:bg-[#F7FAFA] text-[#6B7C83]"
+                  }`}
+                >
+                  <p className={`text-[10px] uppercase font-black ${isSelected ? "text-white/80" : ""}`}>
+                    {format(day, "EEE", { locale: ptBR }).substring(0, 3)}
+                  </p>
+                  <p className="text-sm font-black mt-0.5">{format(day, "dd")}</p>
+
+                  {/* Dot indicator if has appointments */}
+                  {dayApptsCount > 0 && (
+                    <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${isSelected ? "bg-white" : "bg-[#7C3AED]"}`} />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Header Info for Selected Day */}
+        <div className="px-1">
+          <h3 className="text-base font-black text-[#0D2329] capitalize">
+            {format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+          </h3>
+          <p className="text-xs font-semibold text-[#6B7C83]">
+            {selectedDayAppointments.length === 1
+              ? "1 compromisso agendado"
+              : `${selectedDayAppointments.length} compromissos agendados`}
+          </p>
+        </div>
+
+        {/* Selected Day Appointments Cards List */}
+        <div className="space-y-3">
+          {selectedDayAppointments.length === 0 ? (
+            <div className="p-8 rounded-3xl bg-white border-2 border-dashed border-[#D8E5E7] text-center space-y-3 shadow-xs">
+              <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center mx-auto">
+                <CalendarDays className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="font-black text-sm text-[#0D2329]">Nenhum compromisso neste dia</p>
+                <p className="text-xs text-[#6B7C83] mt-0.5">Sua agenda está livre nesta data.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => openNewModalForDate(format(currentDate, "yyyy-MM-dd"))}
+                className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white text-xs font-black inline-flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>Novo Agendamento</span>
+              </button>
+            </div>
+          ) : (
+            selectedDayAppointments.map((appt) => {
+              const style = getAppointmentStyle(appt)
+              const startTime = new Date(appt.start_time)
+              const endTime = new Date(appt.end_time)
+              const isBlock = (appt.notes || "").includes("[BLOQUEIO]")
+              const displayName = appt.child?.full_name || (isBlock ? appt.notes?.replace("[BLOQUEIO]", "").trim() : appt.type)
+
+              return (
+                <div
+                  key={appt.id}
+                  onClick={() => handleStartAppointment(appt)}
+                  className={`p-4 rounded-3xl border-2 ${style.border} bg-white shadow-2xs transition-all space-y-3 active:scale-98`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <ChildAvatar photoUrl={appt.child?.photo_url} name={displayName} size="md" />
+                      <div className="min-w-0">
+                        <h4 className="font-black text-sm text-[#0D2329] truncate">{displayName}</h4>
+                        <p className="text-xs font-semibold text-[#6B7C83] truncate">{appt.type}</p>
+                      </div>
+                    </div>
+
+                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase shrink-0 ${style.badgeBg}`}>
+                      {appt.status === "done" ? "Realizado" : appt.status === "in_progress" ? "Em Atendimento" : "Agendado"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-[#EEF5F6]">
+                    <div className="flex items-center gap-1.5 text-xs font-black text-[#0D2329]">
+                      <Clock className="w-3.5 h-3.5 text-[#7C3AED]" />
+                      <span>{format(startTime, "HH:mm")} às {format(endTime, "HH:mm")}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      {!isBlock && appt.child && (
+                        <button
+                          type="button"
+                          onClick={() => handleSendWhatsApp(appt)}
+                          className="w-9 h-9 rounded-2xl bg-[#E8F8F5] text-[#10B981] border border-[#A7F3D0] flex items-center justify-center active:scale-95 shadow-2xs"
+                          title="Enviar WhatsApp"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => handleStartAppointment(appt)}
+                        className="h-9 px-4 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black flex items-center gap-1.5 shadow-xs active:scale-95"
+                      >
+                        <Play className="w-3 h-3 fill-current" />
+                        <span>Abrir</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          B. DESKTOP VIEW (EXCLUSIVELY FOR DESKTOP >= lg)
+          ───────────────────────────────────────────────────────────── */}
+      <div className="hidden lg:grid grid-cols-12 gap-6 items-start">
+        {/* LEFT COLUMN: TIMETABLE GRID (9 COLS) */}
+        <div className="col-span-9 space-y-6">
+          {/* 1. WEEKLY GRID VIEW */}
           {viewMode === "semana" && (
             <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-sm overflow-hidden">
               {/* Header Days Row */}
@@ -758,27 +906,25 @@ export function AppointmentsPage() {
                                           className="opacity-0 group-hover:opacity-100 text-[#10B981] hover:scale-110 transition-all p-0.5"
                                           title="Enviar Lembrete WhatsApp"
                                         >
-                                          <MessageSquare className="w-3 h-3" />
+                                          <MessageCircle className="w-3 h-3" />
                                         </button>
                                       )}
                                     </div>
 
-                                    <p className={`text-[11px] font-black truncate leading-tight ${style.text}`}>
-                                      {title}
-                                    </p>
-
-                                    <p className={`text-[9px] font-bold truncate opacity-85 ${style.subtext}`}>
-                                      {appt.type}
-                                    </p>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} />
+                                      <p className={`text-xs font-black truncate leading-tight ${style.text}`}>
+                                        {title}
+                                      </p>
+                                    </div>
                                   </div>
                                 )
                               })
                             ) : (
                               <button
-                                type="button"
-                                onClick={() => openNewModalForDate(dateStr)}
-                                className="w-full h-full min-h-[44px] rounded-xl flex items-center justify-center opacity-0 group-hover/cell:opacity-100 bg-[#EDE9FE]/50 text-[#7C3AED] text-[10px] font-bold transition-all border border-dashed border-[#7C3AED]/40 hover:bg-[#7C3AED] hover:text-white"
-                                title={`Agendar em ${format(day, "dd/MM")} às ${hourStr}`}
+                                onClick={() => openNewModalForDate(dateStr, hourStr)}
+                                className="w-full h-full min-h-[50px] opacity-0 group-hover/cell:opacity-100 flex items-center justify-center text-[#8CAAB1] hover:text-[#7C3AED] transition-all rounded-lg hover:bg-white/80"
+                                title="Novo agendamento neste horário"
                               >
                                 <Plus className="w-4 h-4" />
                               </button>
@@ -790,137 +936,126 @@ export function AppointmentsPage() {
                   )
                 })}
               </div>
-
-              {/* Legend Footer */}
-              <div className="p-4 bg-[#F8FAFB] flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs font-bold text-[#6B7C83]">
-                <span className="flex items-center gap-1.5 text-[#065F46]">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" /> Sessão de Intervenção
-                </span>
-                <span className="flex items-center gap-1.5 text-[#6B21A8]">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#7C3AED]" /> Avaliação
-                </span>
-                <span className="flex items-center gap-1.5 text-[#0369A1]">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#0284C7]" /> Reunião/Estudo
-                </span>
-                <span className="flex items-center gap-1.5 text-[#92400E]">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#D97706]" /> Devolutiva
-                </span>
-                <span className="flex items-center gap-1.5 text-[#475569]">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#94A3B8]" /> Outro
-                </span>
-              </div>
             </div>
           )}
 
-          {/* B. DAY VIEW */}
+          {/* 2. DAILY TIMELINE VIEW */}
           {viewMode === "dia" && (
-            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-5 shadow-sm space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-[#EEF5F6]">
-                <h3 className="font-black text-sm text-[#0D2329]">
-                  Atendimentos de {format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                </h3>
+            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-sm space-y-6">
+              <div className="border-b-2 border-[#EEF5F6] pb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-black text-[#0D2329] capitalize">
+                    {format(currentDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  </h3>
+                  <p className="text-xs font-semibold text-[#6B7C83]">
+                    {selectedDayAppointments.length === 1
+                      ? "1 compromisso agendado"
+                      : `${selectedDayAppointments.length} compromissos agendados`}
+                  </p>
+                </div>
+
                 <button
                   onClick={() => openNewModalForDate(format(currentDate, "yyyy-MM-dd"))}
-                  className="text-xs font-black text-[#7C3AED] hover:underline flex items-center gap-1"
+                  className="px-4 py-2 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Adicionar horário
+                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>Agendar neste dia</span>
                 </button>
               </div>
 
-              {filteredAppointments.length === 0 ? (
-                <div className="py-16 text-center text-[#8CAAB1] space-y-3">
-                  <CalendarIcon className="w-12 h-12 mx-auto text-[#D8E5E7]" />
-                  <p className="font-bold text-sm text-[#0D2329]">Nenhum agendamento para este dia</p>
-                  <Button size="sm" onClick={() => openNewModalForDate(format(currentDate, "yyyy-MM-dd"))}>
-                    <Plus className="w-4 h-4 mr-1" /> Novo Agendamento
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {filteredAppointments.map((appt) => {
-                    const style = getAppointmentStyle(appt)
-                    const startTime = new Date(appt.start_time)
-                    const endTime = new Date(appt.end_time)
-                    const displayName = appt.child?.full_name || appt.notes || "Compromisso"
+              {/* Day Time Slots */}
+              <div className="divide-y-2 divide-[#EEF5F6]">
+                {HOURS_TIMELINE.map((hourStr) => {
+                  const hourNum = parseInt(hourStr.split(":")[0], 10)
+                  const slotAppts = selectedDayAppointments.filter((a) => {
+                    const aDate = new Date(a.start_time)
+                    return aDate.getHours() === hourNum
+                  })
 
-                    return (
-                      <div
-                        key={appt.id}
-                        className={`p-4 rounded-2xl border-2 ${style.border} ${style.bg} flex items-center justify-between gap-4 transition-all shadow-2xs group`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <ChildAvatar photoUrl={appt.child?.photo_url} name={displayName} size="md" />
-                          <div className="space-y-0.5 min-w-0 flex-1">
-                            <h4 className={`font-black text-sm truncate ${style.text}`}>{displayName}</h4>
-                            <p className={`text-xs font-semibold truncate ${style.subtext}`}>{appt.type}</p>
-                            <p className="text-xs font-black text-[#0D2329] flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5 text-[#8CAAB1]" />
-                              {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          {appt.child && (
-                            <button
-                              onClick={() => handleSendWhatsApp(appt)}
-                              className="p-2 text-[#10B981] bg-white/60 hover:bg-white rounded-xl transition-all shadow-2xs border border-[#10B981]/30"
-                              title="WhatsApp"
-                            >
-                              <MessageSquare className="w-4 h-4" />
-                            </button>
-                          )}
-
-                          {appt.status !== "missed" && appt.status !== "done" && (
-                            <button
-                              onClick={() => setAbsenceModalAppt(appt)}
-                              className="px-2.5 py-1.5 rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#DC2626] font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs active:scale-95"
-                              title="Registrar Falta / Não Comparecimento"
-                            >
-                              <AlertTriangle className="w-3.5 h-3.5" />
-                              <span>Faltou</span>
-                            </button>
-                          )}
-
-                          {appt.status === "missed" ? (
-                            <span className="px-2.5 py-1 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-[#991B1B] text-xs font-black flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3" /> Falta Registrada
-                            </span>
-                          ) : (
-                            <Button size="sm" onClick={() => handleStartAppointment(appt)}>
-                              <Play className="w-3 h-3 fill-current mr-1" /> Iniciar
-                            </Button>
-                          )}
-
-                          <button
-                            onClick={(e) => handleDeleteAppointment(e, appt.id)}
-                            className="p-2 text-[#8CAAB1] hover:text-[#EF4444] hover:bg-white rounded-xl transition-all"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                  return (
+                    <div key={hourStr} className="py-3 flex items-start gap-4 group">
+                      <div className="w-14 text-xs font-black text-[#6B7C83] pt-1">
+                        {hourStr}
                       </div>
-                    )
-                  })}
-                </div>
-              )}
+
+                      <div className="flex-1 min-h-[48px] rounded-2xl p-1.5 group-hover:bg-[#F8FAFB] transition-colors">
+                        {slotAppts.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {slotAppts.map((appt) => {
+                              const style = getAppointmentStyle(appt)
+                              const startTime = new Date(appt.start_time)
+                              const endTime = new Date(appt.end_time)
+                              const isBlock = (appt.notes || "").includes("[BLOQUEIO]")
+                              const displayName = appt.child?.full_name || (isBlock ? appt.notes?.replace("[BLOQUEIO]", "").trim() : appt.type)
+
+                              return (
+                                <div
+                                  key={appt.id}
+                                  onClick={() => handleStartAppointment(appt)}
+                                  className={`p-3.5 rounded-2xl border-2 ${style.border} ${style.bg} flex items-center justify-between gap-3 shadow-2xs hover:shadow-xs cursor-pointer transition-all`}
+                                >
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <ChildAvatar photoUrl={appt.child?.photo_url} name={displayName} size="md" />
+                                    <div className="min-w-0">
+                                      <h4 className={`font-black text-sm truncate ${style.text}`}>{displayName}</h4>
+                                      <p className={`text-xs font-semibold ${style.subtext}`}>{appt.type}</p>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="text-xs font-black text-[#0D2329]">
+                                      {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
+                                    </span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleStartAppointment(appt)
+                                      }}
+                                      className="px-3 py-1.5 rounded-xl bg-[#7C3AED] text-white text-xs font-black"
+                                    >
+                                      Iniciar
+                                    </button>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => openNewModalForDate(format(currentDate, "yyyy-MM-dd"), hourStr)}
+                            className="opacity-0 group-hover:opacity-100 text-xs font-bold text-[#8CAAB1] hover:text-[#7C3AED] transition-all flex items-center gap-1 pt-1.5"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Adicionar agendamento às {hourStr}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
 
-          {/* C. MONTH VIEW */}
+          {/* 3. MONTHLY VIEW */}
           {viewMode === "mes" && (
-            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-5 shadow-sm space-y-4">
-              <div className="grid grid-cols-7 gap-1.5 text-center font-black text-xs text-[#8CAAB1] pb-2 border-b border-[#EEF5F6]">
-                <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span>
-              </div>
+            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-sm space-y-4">
+              <h3 className="text-base font-black text-[#0D2329] capitalize">
+                {format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}
+              </h3>
+
+              {/* Month calendar grid */}
               <div className="grid grid-cols-7 gap-2">
-                {eachDayOfInterval({
-                  start: startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 }),
-                  end: endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 }),
-                }).map((day) => {
+                {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((d) => (
+                  <div key={d} className="p-2 text-center text-xs font-black text-[#6B7C83]">
+                    {d}
+                  </div>
+                ))}
+
+                {monthDays.map((day) => {
                   const isCurrentMonth = isSameMonth(day, currentDate)
                   const isToday = isSameDay(day, new Date())
-                  const dayAppts = filteredAppointments.filter((a) => isSameDay(new Date(a.start_time), day))
+                  const dayAppts = appointments.filter((a) => isSameDay(new Date(a.start_time), day))
 
                   return (
                     <div
@@ -929,12 +1064,12 @@ export function AppointmentsPage() {
                         setCurrentDate(day)
                         setViewMode("dia")
                       }}
-                      className={`min-h-[85px] p-2 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
-                        isToday
-                          ? "bg-[#F3E8FF] border-[#7C3AED] ring-2 ring-[#7C3AED]/20 shadow-xs"
-                          : isCurrentMonth
-                          ? "bg-white border-[#D8E5E7] hover:border-[#7C3AED] hover:shadow-2xs"
-                          : "bg-[#F7FAFA] border-transparent opacity-40"
+                      className={`p-2 min-h-[90px] rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                        !isCurrentMonth
+                          ? "opacity-30 bg-[#F7FAFA] border-transparent"
+                          : isToday
+                          ? "bg-[#F3E8FF] border-[#7C3AED]"
+                          : "bg-white border-[#D8E5E7] hover:border-[#7C3AED]/50"
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -942,23 +1077,18 @@ export function AppointmentsPage() {
                           {format(day, "dd")}
                         </span>
                         {dayAppts.length > 0 && (
-                          <span className="w-2 h-2 rounded-full bg-[#7C3AED]" />
+                          <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-[#EDE9FE] text-[#7C3AED]">
+                            {dayAppts.length}
+                          </span>
                         )}
                       </div>
+
                       <div className="space-y-1">
                         {dayAppts.slice(0, 2).map((a) => (
-                          <div
-                            key={a.id}
-                            className="text-[9px] font-bold truncate px-1.5 py-0.5 rounded-md bg-[#EEF5F6] text-[#0D2329]"
-                          >
+                          <p key={a.id} className="text-[10px] font-bold text-[#0D2329] truncate bg-[#F7FAFA] p-0.5 rounded">
                             {format(new Date(a.start_time), "HH:mm")} {a.child?.full_name || a.type}
-                          </div>
+                          </p>
                         ))}
-                        {dayAppts.length > 2 && (
-                          <span className="text-[8px] font-extrabold text-[#7C3AED]">
-                            +{dayAppts.length - 2} mais
-                          </span>
-                        )}
                       </div>
                     </div>
                   )
@@ -966,211 +1096,10 @@ export function AppointmentsPage() {
               </div>
             </div>
           )}
-
-          {/* D. MOBILE / COMPACT CELULAR VIEW */}
-          {viewMode === "celular" && (
-            <div className="w-full max-w-full space-y-4">
-              {/* 7-Day Week Strip */}
-              <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-3 shadow-sm">
-                <div className="grid grid-cols-7 gap-1 text-center">
-                  {weekDays.map((day) => {
-                    const isSelected = isSameDay(day, currentDate)
-                    const isToday = isSameDay(day, new Date())
-                    const dayApptsCount = appointments.filter((a) => {
-                      const aDate = new Date(a.start_time)
-                      return isSameDay(aDate, day)
-                    }).length
-
-                    return (
-                      <button
-                        key={day.toISOString()}
-                        type="button"
-                        onClick={() => setCurrentDate(day)}
-                        className={`py-2 px-0.5 rounded-2xl border-2 transition-all flex flex-col items-center justify-center relative active:scale-95 ${
-                          isSelected
-                            ? "bg-[#7C3AED] text-white border-[#6D28D9] shadow-md font-black"
-                            : isToday
-                            ? "bg-[#EDE9FE] border-[#C4B5FD] text-[#7C3AED] font-bold"
-                            : "border-transparent hover:bg-[#F7FAFA] text-[#6B7C83]"
-                        }`}
-                      >
-                        <p className={`text-[10px] uppercase font-black ${isSelected ? "text-white/80" : ""}`}>
-                          {format(day, "EEE", { locale: ptBR }).substring(0, 3)}
-                        </p>
-                        <p className="text-sm font-black mt-0.5">{format(day, "dd")}</p>
-                        {dayApptsCount > 0 && (
-                          <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${isSelected ? "bg-white" : "bg-[#7C3AED]"}`} />
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Header Info for Selected Day */}
-              <div className="px-1">
-                <h3 className="text-base font-black text-[#0D2329] capitalize">
-                  {format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                </h3>
-                <p className="text-xs font-semibold text-[#6B7C83]">
-                  {selectedDayAppointments.length === 1 ? "1 compromisso agendado" : `${selectedDayAppointments.length} compromissos agendados`}
-                </p>
-              </div>
-
-              {/* Cards List for Selected Day */}
-              <div className="space-y-3">
-                {selectedDayAppointments.length === 0 ? (
-                  <div className="p-8 rounded-3xl bg-white border-2 border-dashed border-[#D8E5E7] text-center space-y-3 shadow-xs">
-                    <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center mx-auto">
-                      <CalendarDays className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <p className="font-black text-sm text-[#0D2329]">Nenhum compromisso neste dia</p>
-                      <p className="text-xs text-[#6B7C83] mt-0.5">Sua agenda está livre nesta data.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => openNewModalForDate(format(currentDate, "yyyy-MM-dd"))}
-                      className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white text-xs font-black inline-flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
-                    >
-                      <Plus className="w-4 h-4 stroke-[3]" />
-                      <span>Agendar Sessão</span>
-                    </button>
-                  </div>
-                ) : (
-                  selectedDayAppointments.map((appt) => {
-                    const style = getAppointmentStyle(appt)
-                    const startTime = new Date(appt.start_time)
-                    const endTime = new Date(appt.end_time)
-                    const isBlock = (appt.notes || "").includes("[BLOQUEIO]")
-                    const displayName = appt.child?.full_name || (isBlock ? appt.notes?.replace("[BLOQUEIO]", "").trim() : appt.type)
-
-                    return (
-                      <div
-                        key={appt.id}
-                        onClick={() => handleStartAppointment(appt)}
-                        className={`p-4 rounded-3xl border-2 ${style.border} bg-white shadow-2xs transition-all space-y-3 active:scale-98`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <ChildAvatar photoUrl={appt.child?.photo_url} name={displayName} size="md" />
-                            <div className="min-w-0">
-                              <h4 className="font-black text-sm text-[#0D2329] truncate">{displayName}</h4>
-                              <p className="text-xs font-semibold text-[#6B7C83] truncate">{appt.type}</p>
-                            </div>
-                          </div>
-
-                          <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase shrink-0 ${style.badgeBg}`}>
-                            {appt.status === "done" ? "Realizado" : appt.status === "in_progress" ? "Em Atendimento" : "Agendado"}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-2 border-t border-[#EEF5F6]">
-                          <div className="flex items-center gap-1.5 text-xs font-black text-[#0D2329]">
-                            <Clock className="w-3.5 h-3.5 text-[#7C3AED]" />
-                            <span>{format(startTime, "HH:mm")} às {format(endTime, "HH:mm")}</span>
-                          </div>
-
-                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                            {!isBlock && appt.child && (
-                              <button
-                                type="button"
-                                onClick={() => handleSendWhatsApp(appt)}
-                                className="w-8 h-8 rounded-xl bg-[#E8F8F5] text-[#10B981] border border-[#A7F3D0] flex items-center justify-center active:scale-95 shadow-2xs"
-                                title="Enviar WhatsApp"
-                              >
-                                <MessageCircle className="w-4 h-4" />
-                              </button>
-                            )}
-
-                            <button
-                              type="button"
-                              onClick={() => handleStartAppointment(appt)}
-                              className="px-3.5 py-1.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black flex items-center gap-1 shadow-xs active:scale-95"
-                            >
-                              <Play className="w-3 h-3 fill-current" />
-                              <span>Abrir</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* =====================================================================
-              B. BOTTOM BAR: COMPROMISSOS DE HOJE (CARDS HORIZONTAIS)
-              ===================================================================== */}
-          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-sm p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm sm:text-base font-black text-[#0D2329]">
-                  Compromissos de Hoje
-                </h3>
-                <p className="text-xs font-semibold text-[#6B7C83] capitalize">
-                  {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                </p>
-              </div>
-
-              <button
-                onClick={() => {
-                  setCurrentDate(new Date())
-                  setViewMode("dia")
-                }}
-                className="px-3 py-1.5 rounded-xl border border-[#D8E5E7] text-xs font-black text-[#7C3AED] hover:bg-[#F3E8FF] transition-all"
-              >
-                Ver dia completo
-              </button>
-            </div>
-
-            {toselectedDayAppointments.length === 0 ? (
-              <div className="p-6 rounded-2xl bg-[#F7FAFA] text-center text-[#8CAAB1] text-xs font-semibold">
-                Nenhum compromisso agendado para hoje. Aproveite para planejar suas intervenções! 🌟
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5">
-                {toselectedDayAppointments.map((appt) => {
-                  const style = getAppointmentStyle(appt)
-                  const startTime = new Date(appt.start_time)
-                  const endTime = new Date(appt.end_time)
-                  const displayName = appt.child?.full_name || (appt.notes ? appt.notes.replace("[BLOQUEIO]", "").trim() : appt.type)
-
-                  return (
-                    <div
-                      key={appt.id}
-                      onClick={() => handleStartAppointment(appt)}
-                      className={`p-4 rounded-2xl border-2 ${style.border} ${style.bg} hover:shadow-md transition-all cursor-pointer flex items-center gap-3.5 group`}
-                    >
-                      <ChildAvatar photoUrl={appt.child?.photo_url} name={displayName} size="md" />
-
-                      <div className="min-w-0 flex-1 space-y-0.5">
-                        <div className="flex items-center justify-between">
-                          <span className={`text-[10px] font-black ${style.subtext}`}>
-                            {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
-                          </span>
-                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${style.badgeBg}`}>
-                            {appt.status === "done" ? "Realizado" : appt.status === "in_progress" ? "Em Atendimento" : "Agendado"}
-                          </span>
-                        </div>
-
-                        <h4 className={`font-black text-xs truncate ${style.text}`}>{displayName}</h4>
-                        <p className={`text-[10px] font-bold truncate opacity-85 ${style.subtext}`}>{appt.type}</p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* ==========================================
-            RIGHT SIDEBAR: 4 FUNCTIONAL WIDGETS (3 COLS)
-            ========================================== */}
-        <div className="lg:col-span-3 space-y-5">
+        {/* RIGHT COLUMN: SIDEBAR WIDGETS (3 COLS) */}
+        <div className="col-span-3 space-y-5">
           {/* 1. PRÓXIMOS DE HOJE */}
           <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-5 shadow-sm space-y-3.5">
             <div className="flex items-center justify-between">
@@ -1184,15 +1113,15 @@ export function AppointmentsPage() {
                 }}
                 className="text-[10px] font-black text-[#7C3AED] hover:underline"
               >
-                Ver todos
+                Ver dia
               </button>
             </div>
 
-            {toselectedDayAppointments.length === 0 ? (
+            {todayAppointments.length === 0 ? (
               <p className="text-[11px] text-[#8CAAB1] italic">Sem próximos compromissos para hoje 🎉</p>
             ) : (
               <div className="space-y-2">
-                {toselectedDayAppointments.slice(0, 4).map((appt) => {
+                {todayAppointments.slice(0, 4).map((appt) => {
                   const style = getAppointmentStyle(appt)
                   const startTime = new Date(appt.start_time)
                   const displayName = appt.child?.full_name || appt.notes || appt.type
@@ -1225,38 +1154,24 @@ export function AppointmentsPage() {
                 <span>Aniversariantes da Semana</span>
                 <Cake className="w-3.5 h-3.5 text-[#EC4899]" />
               </h3>
-              <button
-                onClick={() => navigate("/criancas")}
-                className="text-[10px] font-black text-[#7C3AED] hover:underline"
-              >
-                Ver todos
-              </button>
             </div>
 
             {weeklyBirthdays.length === 0 ? (
-              <div className="p-3 bg-[#FDF2F8]/60 rounded-2xl border border-[#FCE7F3] text-center text-[#9D174D] text-[11px] font-bold">
-                Nenhum aniversariante nesta semana 🎈
-              </div>
+              <p className="text-[11px] text-[#8CAAB1] italic">Nenhum aniversariante nesta semana 🎂</p>
             ) : (
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 {weeklyBirthdays.map((item) => (
                   <div
                     key={item.child.id}
                     onClick={() => navigate(`/criancas/${item.child.id}`)}
-                    className="flex items-center gap-2.5 p-2 rounded-2xl hover:bg-[#FDF2F8]/50 transition-all cursor-pointer border border-[#FCE7F3]"
+                    className="flex items-center gap-2.5 p-2 rounded-2xl bg-[#FEF8EC] border border-[#FDE68A] cursor-pointer hover:bg-[#FDE68A]/60 transition-all"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-[#FCE7F3] text-[#BE185D] flex flex-col items-center justify-center shrink-0 leading-none">
-                      <span className="text-xs font-black">{item.bDay}</span>
-                      <span className="text-[8px] font-extrabold uppercase">
-                        {format(new Date(currentDate.getFullYear(), item.bMonth - 1, item.bDay), "MMM", { locale: ptBR }).substring(0, 3)}
-                      </span>
-                    </div>
-
                     <ChildAvatar photoUrl={item.child.photo_url} name={item.child.full_name} size="sm" />
-
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-black text-[#0D2329] truncate">{item.child.full_name}</p>
-                      <p className="text-[10px] font-bold text-[#BE185D]">Faz {item.age} anos 🎂</p>
+                      <p className="text-xs font-black text-[#B8871E] truncate">{item.child.full_name}</p>
+                      <p className="text-[10px] font-bold text-[#D97706]">
+                        {formatDate(item.child.birth_date!)}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -1285,22 +1200,6 @@ export function AppointmentsPage() {
                   <p className="text-[9px] font-bold text-[#7C3AED] mt-1">Avaliações</p>
                 </div>
                 <FileText className="w-4 h-4 text-[#7C3AED]" />
-              </div>
-
-              <div className="p-3 rounded-2xl bg-[#E0F2FE] border border-[#BAE6FD] flex items-center justify-between">
-                <div>
-                  <p className="text-lg font-black text-[#0369A1] leading-none">{weeklySummary.meetings}</p>
-                  <p className="text-[9px] font-bold text-[#0284C7] mt-1">Reuniões</p>
-                </div>
-                <Users className="w-4 h-4 text-[#0284C7]" />
-              </div>
-
-              <div className="p-3 rounded-2xl bg-[#FEF3C7] border border-[#FDE68A] flex items-center justify-between">
-                <div>
-                  <p className="text-lg font-black text-[#92400E] leading-none">{weeklySummary.devolutivas}</p>
-                  <p className="text-[9px] font-bold text-[#D97706] mt-1">Devolutivas</p>
-                </div>
-                <MessageCircle className="w-4 h-4 text-[#D97706]" />
               </div>
             </div>
           </div>
