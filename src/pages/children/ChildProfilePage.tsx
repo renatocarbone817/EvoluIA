@@ -205,21 +205,13 @@ export function ChildProfilePage() {
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6 animate-in fade-in max-w-full overflow-x-hidden">
-      {/* 1. TOP HERO HEADER */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl border-2 border-[#D8E5E7] shadow-sm space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            {/* Back Button */}
-            <button
-              onClick={() => navigate("/criancas")}
-              className="w-10 h-10 rounded-2xl bg-[#F7FAFA] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] border-2 border-[#D8E5E7] flex items-center justify-center transition-all shrink-0 active:scale-95"
-              title="Voltar para Pacientes"
-            >
-              <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
-            </button>
-
-            {/* Avatar */}
-            <div className="w-16 h-16 min-w-[64px] min-h-[64px] max-w-[64px] max-h-[64px] rounded-3xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] font-black text-2xl flex items-center justify-center shadow-xs overflow-hidden shrink-0">
+      {/* 1. TOP HERO HEADER (Larger Photo, Top-Right Edit Button, No Back Button, Clean Alignment) */}
+      <div className="bg-white p-4 sm:p-6 rounded-3xl border-2 border-[#D8E5E7] shadow-sm space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          {/* Left: Avatar + Info */}
+          <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+            {/* Avatar (Larger) */}
+            <div className="w-20 h-20 sm:w-24 sm:h-24 min-w-[80px] min-h-[80px] max-w-[80px] max-h-[80px] sm:max-w-[96px] sm:max-h-[96px] rounded-3xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] font-black text-2xl sm:text-3xl flex items-center justify-center shadow-md overflow-hidden shrink-0">
               {child.photo_url ? (
                 <img src={child.photo_url} alt={child.full_name} className="w-full h-full object-cover" />
               ) : (
@@ -227,17 +219,17 @@ export function ChildProfilePage() {
               )}
             </div>
 
-            {/* Name & Status */}
-            <div className="space-y-1.5 min-w-0">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black text-[#0D2329] tracking-tight truncate">
+            {/* Name, Status & Tags */}
+            <div className="space-y-1.5 min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg sm:text-2xl font-black text-[#0D2329] tracking-tight truncate leading-tight">
                   {child.full_name}
                 </h1>
                 <Badge statusKey={child.status} type="child" />
               </div>
 
               {/* Tags */}
-              <div className="flex items-center gap-2 flex-wrap text-xs">
+              <div className="flex items-center gap-1.5 flex-wrap text-xs">
                 {child.birth_date && (
                   <span className="px-2.5 py-0.5 rounded-xl bg-[#FEF8EC] text-[#B8871E] border border-[#FDE68A] font-black flex items-center gap-1">
                     <Cake className="w-3.5 h-3.5 text-[#F59E0B]" />
@@ -260,41 +252,31 @@ export function ChildProfilePage() {
             </div>
           </div>
 
-          {/* Top Actions */}
-          <div className="flex items-center gap-2.5 self-end sm:self-auto shrink-0">
+          {/* Right Top Actions (Edit Button on Top Right + Iniciar Sessão) */}
+          <div className="flex items-center gap-2 shrink-0 self-start">
             {nextAppointment && (
               <button
                 onClick={handleStartSession}
-                className="h-10 px-4 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-black flex items-center gap-2 shadow-md active:scale-95 transition-all"
+                className="h-9 sm:h-10 px-3 sm:px-4 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
-                <span>Iniciar Sessão</span>
+                <span className="hidden sm:inline">Iniciar Sessão</span>
               </button>
             )}
 
             <button
               onClick={() => setShowEditDialog(true)}
-              className="h-10 px-4 rounded-2xl bg-[#F7FAFA] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] border-2 border-[#D8E5E7] text-xs font-black flex items-center gap-2 transition-all shadow-xs"
+              className="h-9 sm:h-10 px-3.5 sm:px-4 rounded-2xl bg-[#F7FAFA] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] border-2 border-[#D8E5E7] text-xs font-black flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
               title="Editar dados da criança"
             >
               <Edit className="w-3.5 h-3.5" />
               <span>Editar</span>
             </button>
-
-            <button
-              onClick={handleOpenDeleteModal}
-              disabled={checkingFinance}
-              className="h-10 px-3.5 rounded-2xl bg-[#F7FAFA] hover:bg-red-50 text-[#8CAAB1] hover:text-red-600 border-2 border-[#D8E5E7] hover:border-red-200 text-xs font-black flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
-              title="Excluir paciente"
-            >
-              {checkingFinance ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-              <span className="hidden sm:inline">Excluir</span>
-            </button>
           </div>
         </div>
 
         {/* 2. MODERN TABS PILLS TOOLBAR */}
-        <div className="pt-3 border-t border-[#EEF5F6] flex items-center gap-2 overflow-x-auto -mx-1 px-1 scrollbar-none">
+        <div className="pt-3 border-t border-[#EEF5F6] flex items-center gap-1.5 overflow-x-auto -mx-1 px-1 scrollbar-none">
           {TABS.map((tab) => {
             const Icon = tab.icon
             const isSelected = activeTab === tab.id
@@ -302,7 +284,7 @@ export function ChildProfilePage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
+                className={`px-3.5 py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
                   isSelected
                     ? "bg-[#7C3AED] text-white shadow-md scale-100"
                     : "bg-[#F7FAFA] text-[#6B7C83] hover:text-[#0D2329] hover:bg-white border-2 border-[#D8E5E7]"
@@ -344,6 +326,7 @@ export function ChildProfilePage() {
           setShowEditDialog(false)
           loadChild()
         }}
+        onDelete={handleOpenDeleteModal}
       />
     
       {/* Modal de Confirmação Segura de Exclusão da Criança */}

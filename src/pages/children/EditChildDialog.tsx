@@ -33,6 +33,7 @@ interface EditChildDialogProps {
   child: Child
   onClose: () => void
   onSuccess: () => void
+  onDelete?: () => void
 }
 
 const STATUS_OPTIONS = [
@@ -54,7 +55,7 @@ const RELATIONSHIPS = [
   "Outro",
 ]
 
-export function EditChildDialog({ open, child, onClose, onSuccess }: EditChildDialogProps) {
+export function EditChildDialog({ open, child, onClose, onSuccess, onDelete }: EditChildDialogProps) {
   const { professional, user } = useAuthStore()
   const profId = professional?.id || user?.id
 
@@ -743,32 +744,52 @@ export function EditChildDialog({ open, child, onClose, onSuccess }: EditChildDi
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-[#EEF5F6] bg-[#F7FAFA] flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="px-5 py-2.5 rounded-2xl border-2 border-[#D8E5E7] hover:bg-white text-xs font-black text-[#6B7C83] hover:text-[#0D2329] transition-all"
-          >
-            Cancelar
-          </button>
-
-          <button
-            type="button"
-            disabled={loading}
-            onClick={handleSubmit}
-            className="h-11 px-6 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs sm:text-sm font-black flex items-center gap-2 shadow-sm active:scale-95 transition-all disabled:opacity-50"
-          >
-            {loading ? (
-              <span>Salvando dados...</span>
-            ) : (
-              <>
-                <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-                <span>Salvar Alterações</span>
-              </>
+        {/* Footer with Delete Button on Left */}
+        <div className="p-4 border-t border-[#EEF5F6] bg-[#F7FAFA] flex items-center justify-between gap-3">
+          <div>
+            {onDelete && (
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => {
+                  onClose();
+                  onDelete();
+                }}
+                className="px-4 py-2.5 rounded-2xl bg-red-50 hover:bg-red-100 text-red-600 border-2 border-red-200 text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs active:scale-95"
+                title="Excluir paciente"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Excluir Criança</span>
+              </button>
             )}
-          </button>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="px-4 py-2.5 rounded-2xl border-2 border-[#D8E5E7] hover:bg-white text-xs font-black text-[#6B7C83] hover:text-[#0D2329] transition-all"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="button"
+              disabled={loading}
+              onClick={handleSubmit}
+              className="h-11 px-5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs sm:text-sm font-black flex items-center gap-2 shadow-sm active:scale-95 transition-all disabled:opacity-50"
+            >
+              {loading ? (
+                <span>Salvando dados...</span>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                  <span>Salvar Alterações</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
