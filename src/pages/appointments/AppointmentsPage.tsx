@@ -542,22 +542,17 @@ export function AppointmentsPage() {
             </div>
           </div>
 
-          {/* View Mode Switcher */}
-          <div className="flex bg-[#F7FAFA] rounded-2xl p-1 border-2 border-[#D8E5E7] shadow-2xs">
-            {(
-              [
-                { id: "dia", label: "Dia", mobileOnly: false },
-                { id: "semana", label: "Semana", mobileOnly: false },
-                { id: "mes", label: "Mês", mobileOnly: false },
-                { id: "celular", label: "📱 Celular", mobileOnly: true },
-              ] as { id: ViewMode; label: string; mobileOnly: boolean }[]
-            ).map((mode) => (
+          {/* View Mode Switcher (Hidden on Mobile - Mobile is always native mobile layout) */}
+          <div className="hidden md:flex bg-[#F7FAFA] rounded-2xl p-1 border-2 border-[#D8E5E7] shadow-2xs">
+            {[
+              { id: "dia", label: "Dia" },
+              { id: "semana", label: "Semana" },
+              { id: "mes", label: "Mês" },
+            ].map((mode) => (
               <button
                 key={mode.id}
-                onClick={() => setViewMode(mode.id)}
+                onClick={() => setViewMode(mode.id as ViewMode)}
                 className={`px-3.5 py-1.5 text-xs font-black rounded-xl transition-all ${
-                  mode.mobileOnly ? "block md:hidden" : ""
-                } ${
                   viewMode === mode.id
                     ? "bg-[#7C3AED] text-white shadow-xs"
                     : "text-[#6B7C83] hover:text-[#0D2329] hover:bg-white"
