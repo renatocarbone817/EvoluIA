@@ -253,9 +253,9 @@ export function ReportsPage() {
         </div>
       </div>
 
-      {/* 3. TOOLBAR: BUSCA & FILTRO */}
-      <div className="bg-white p-4 sm:p-5 rounded-3xl border-2 border-[#D8E5E7] shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      {/* 3. TOOLBAR: BUSCA & FILTROS MODERNOS */}
+      <div className="bg-white p-4 sm:p-5 rounded-3xl border-2 border-[#D8E5E7] shadow-sm space-y-3">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           {/* Search */}
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8CAAB1]" />
@@ -268,44 +268,49 @@ export function ReportsPage() {
             />
           </div>
 
-          {/* Filter Chips */}
-          <div className="flex items-center gap-2 overflow-x-auto shrink-0">
-            {[
-              { id: "todos", label: "Todos", count: totalReports },
-              { id: "in_progress", label: "Em Relatório", count: inProgressReports },
-              { id: "final", label: "Finalizados", count: completedReports },
-            ].map((f) => {
-              const isSelected = filterType === f.id
-              return (
-                <button
-                  key={f.id}
-                  onClick={() => setFilterType(f.id as ReportFilterType)}
-                  className={`px-3.5 py-2 rounded-xl border-2 text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
-                    isSelected
-                      ? "bg-[#7C3AED] text-white border-[#7C3AED] shadow-xs"
-                      : "bg-white text-[#4F6C74] border-[#D8E5E7] hover:border-[#7C3AED]/40 hover:bg-[#F7FAFA]"
-                  }`}
-                >
-                  <span>{f.label}</span>
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
-                      isSelected ? "bg-white/25 text-white" : "bg-[#F7FAFA] text-[#6B7C83] border border-[#D8E5E7]"
+          {/* Filter Chips (Modern Pills Style) */}
+          <div className="overflow-x-auto -mx-1 px-1 scrollbar-none">
+            <div className="flex items-center gap-1.5 p-1 bg-[#F8FAFB] rounded-full sm:rounded-2xl border-2 border-[#D8E5E7] w-max sm:w-auto">
+              {[
+                { id: "todos", label: "Todos", count: totalReports },
+                { id: "in_progress", label: "Em Relatório", count: inProgressReports },
+                { id: "final", label: "Finalizados", count: completedReports },
+              ].map((f) => {
+                const isSelected = filterType === f.id
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setFilterType(f.id as ReportFilterType)}
+                    className={`px-3.5 py-1.5 sm:py-2 rounded-full sm:rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 active:scale-95 ${
+                      isSelected
+                        ? "bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white shadow-md"
+                        : "text-[#4F6C74] hover:text-[#0D2329] hover:bg-white bg-transparent"
                     }`}
                   >
-                    {f.count}
-                  </span>
-                </button>
-              )
-            })}
+                    <span>{f.label}</span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                        isSelected
+                          ? "bg-white/25 text-white"
+                          : "bg-white text-[#6B7C83] border border-[#D8E5E7]"
+                      }`}
+                    >
+                      {f.count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 4. LISTA PRINCIPAL DE RELATÓRIOS */}
+      {/* 4. LISTA PRINCIPAL DE RELATÓRIOS (CARDS MODERNOS & RESPONSIVOS) */}
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-20 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-3xl shadow-xs" />
+            <div key={i} className="h-24 bg-white border-2 border-[#D8E5E7] animate-pulse rounded-3xl shadow-xs" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -321,7 +326,7 @@ export function ReportsPage() {
               </p>
               <button
                 onClick={() => setShowNewReportModal(true)}
-                className="mt-3 px-5 py-2.5 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black inline-flex items-center gap-2 shadow-md transition-all active:scale-95"
+                className="mt-3 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black inline-flex items-center gap-2 shadow-md transition-all active:scale-95"
               >
                 <Plus className="w-4 h-4 stroke-[2.5]" />
                 <span>+ Novo Relatório</span>
@@ -337,7 +342,7 @@ export function ReportsPage() {
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-sm overflow-hidden divide-y divide-[#EEF5F6]">
+        <div className="space-y-3.5">
           {filtered.map((rep) => {
             const childName = rep.child?.full_name || "Paciente"
             const isCompleted = rep.status === "final" || rep.status === "completed" || rep.child?.status === "report_completed"
@@ -346,67 +351,72 @@ export function ReportsPage() {
               <div
                 key={rep.id}
                 onClick={() => navigate(`/criancas/${rep.child_id}?tab=relatorios`)}
-                className="p-4 sm:p-5 hover:bg-[#FAF5FF] transition-colors cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 group"
+                className="p-4 sm:p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#7C3AED]/60 hover:shadow-lg transition-all cursor-pointer space-y-3.5 group"
               >
-                {/* 1. Criança / Paciente */}
-                <div className="flex items-center gap-3.5 min-w-0 md:w-1/4">
-                  <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center font-black text-base overflow-hidden shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-                    {rep.child?.photo_url ? (
-                      <img src={rep.child.photo_url} alt={childName} className="w-full h-full object-cover" />
-                    ) : (
-                      childName.charAt(0).toUpperCase()
-                    )}
+                {/* Top Row: Criança Info + Status Badge */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center font-black text-base overflow-hidden shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                      {rep.child?.photo_url ? (
+                        <img src={rep.child.photo_url} alt={childName} className="w-full h-full object-cover" />
+                      ) : (
+                        childName.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-black text-sm sm:text-base text-[#0D2329] group-hover:text-[#7C3AED] truncate transition-colors leading-tight">
+                        {childName}
+                      </h3>
+                      <p className="text-xs font-semibold text-[#6B7C83] truncate mt-0.5 flex items-center gap-1">
+                        <span>🏫</span>
+                        <span className="truncate">{rep.child?.school || "Escola não informada"}</span>
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-black text-sm text-[#0D2329] group-hover:text-[#7C3AED] truncate transition-colors">
-                      {childName}
-                    </h3>
-                    <p className="text-xs font-semibold text-[#6B7C83] truncate mt-0.5">
-                      {rep.child?.school ? `🏫 ${rep.child.school}` : "Escola não informada"}
-                    </p>
-                  </div>
-                </div>
 
-                {/* 2. Título do Relatório */}
-                <div className="min-w-0 md:w-1/4">
-                  <p className="font-black text-xs text-[#0D2329] truncate">
-                    {rep.title || "Relatório Psicopedagógico"}
-                  </p>
-                  <p className="text-[11px] font-semibold text-[#6B7C83]">
-                    {rep.period_end ? `Avaliação até ${formatDate(rep.period_end)}` : "Acompanhamento clínico"}
-                  </p>
-                </div>
-
-                {/* 3. Status */}
-                <div className="min-w-0 md:w-1/6">
+                  {/* Status Badge */}
                   <span
-                    className={`px-2.5 py-1 rounded-xl text-xs font-black uppercase tracking-wider inline-flex items-center gap-1.5 ${
+                    className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider inline-flex items-center gap-1.5 shrink-0 shadow-2xs ${
                       isCompleted
                         ? "bg-[#E0F2FE] text-[#0284C7] border border-[#BAE6FD]"
                         : "bg-[#EDE9FE] text-[#7C3AED] border border-[#DDD6FE]"
                     }`}
                   >
-                    {isCompleted ? "✅ Finalizado" : "📝 Em Relatório"}
+                    <span>{isCompleted ? "✅ Finalizado" : "📝 Em Elaboração"}</span>
                   </span>
                 </div>
 
-                {/* 4. Datas: Iniciado / Finalizado */}
-                <div className="min-w-0 md:w-1/5 text-xs space-y-0.5 text-[#6B7C83]">
-                  <p className="font-semibold">
-                    Iniciado em: <strong className="text-[#0D2329]">{formatDate(rep.created_at)}</strong>
-                  </p>
-                  <p className="font-semibold">
-                    Finalizado em:{" "}
-                    {isCompleted && rep.updated_at ? (
-                      <strong className="text-[#0D2329]">{formatDate(rep.updated_at)}</strong>
-                    ) : (
-                      <span className="text-[#8CAAB1]">—</span>
+                {/* Middle Info: Título do Documento & Período */}
+                <div className="p-3 bg-[#F8FAFB] rounded-2xl border border-[#EEF5F6] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-xl bg-white text-[#7C3AED] flex items-center justify-center shrink-0 border border-[#D8E5E7] shadow-2xs font-bold">
+                      <FileText className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-black text-xs text-[#0D2329] truncate">
+                        {rep.title || "Relatório Psicopedagógico"}
+                      </p>
+                      <p className="text-[10px] font-semibold text-[#6B7C83]">
+                        {rep.period_end ? `Avaliação clínica até ${formatDate(rep.period_end)}` : "Acompanhamento longitudinal"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Datas em Pílulas */}
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-[#6B7C83] shrink-0 pt-1 sm:pt-0 border-t sm:border-none border-[#EEF5F6]">
+                    <span className="bg-white px-2.5 py-1 rounded-xl border border-[#D8E5E7]">
+                      Início: <strong className="text-[#0D2329]">{formatDate(rep.created_at)}</strong>
+                    </span>
+                    {isCompleted && rep.updated_at && (
+                      <span className="bg-white px-2.5 py-1 rounded-xl border border-[#D8E5E7]">
+                        Conclusão: <strong className="text-[#0D2329]">{formatDate(rep.updated_at)}</strong>
+                      </span>
                     )}
-                  </p>
+                  </div>
                 </div>
 
-                {/* 5. Ações */}
-                <div className="flex items-center gap-2 shrink-0 justify-end">
+                {/* Bottom Actions Bar */}
+                <div className="flex items-center justify-end gap-2 pt-1">
                   {isCompleted ? (
                     <button
                       type="button"
@@ -414,10 +424,11 @@ export function ReportsPage() {
                         e.stopPropagation()
                         navigate(`/criancas/${rep.child_id}?tab=relatorios`)
                       }}
-                      className="px-3.5 py-2 text-[#0284C7] bg-[#E0F2FE] hover:bg-[#0284C7] hover:text-white rounded-xl border border-[#BAE6FD] transition-all text-xs font-black flex items-center gap-1.5 shadow-2xs"
+                      className="px-4 py-2 text-[#0284C7] bg-[#E0F2FE] hover:bg-[#0284C7] hover:text-white rounded-2xl border border-[#BAE6FD] transition-all text-xs font-black flex items-center gap-1.5 shadow-2xs active:scale-95"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      <span>Visualizar</span>
+                      <span>Visualizar Relatório</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   ) : (
                     <button
@@ -426,16 +437,13 @@ export function ReportsPage() {
                         e.stopPropagation()
                         navigate(`/criancas/${rep.child_id}?tab=relatorios`)
                       }}
-                      className="px-3.5 py-2 text-white bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] rounded-xl transition-all text-xs font-black flex items-center gap-1.5 shadow-xs active:scale-95"
+                      className="px-4 py-2 text-white bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] rounded-2xl transition-all text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
-                      <span>Continuar</span>
+                      <span>Continuar Editando</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   )}
-
-                  <div className="w-8 h-8 rounded-xl bg-[#F7FAFA] group-hover:bg-[#EDE9FE] text-[#6B7C83] group-hover:text-[#7C3AED] flex items-center justify-center transition-colors">
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
                 </div>
               </div>
             )
