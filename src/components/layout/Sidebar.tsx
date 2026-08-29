@@ -13,38 +13,35 @@ import {
   ChevronRight,
   ChevronDown,
   LogOut,
-  Sparkles,
   Heart,
   Lightbulb,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, getInitials } from "@/lib/utils"
 import { useAuthStore } from "@/store/authStore"
-import { getInitials } from "@/lib/utils"
 import { useState } from "react"
 
 const navItems = [
-  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/agenda", icon: Calendar, label: "Agenda" },
-  { to: "/criancas", icon: Users, label: "Pacientes" },
-  { to: "/responsaveis", icon: UserCheck, label: "Responsáveis" },
-  { to: "/relatorios", icon: FileText, label: "Relatórios" },
-  { to: "/biblioteca", icon: BookOpen, label: "Biblioteca" },
-  { to: "/financeiro", icon: DollarSign, label: "Financeiro" },
-  { to: "/configuracoes", icon: Settings, label: "Configurações" },
+  { to: "/dashboard", icon: LayoutDashboard, label: "Início / Dashboard" },
+  { to: "/agenda", icon: Calendar, label: "Agenda de Atendimentos" },
+  { to: "/criancas", icon: Users, label: "Crianças & Pacientes" },
+  { to: "/responsaveis", icon: UserCheck, label: "Responsáveis & Família" },
+  { to: "/financeiro", icon: DollarSign, label: "Financeiro & Cobrança" },
+  { to: "/relatorios", icon: FileText, label: "Relatórios & Documentos" },
+  { to: "/biblioteca", icon: BookOpen, label: "Biblioteca de Atividades" },
+  { to: "/configuracoes", icon: Settings, label: "Meu Perfil & Configurações" },
 ]
 
 export function Sidebar() {
   const { professional, signOut } = useAuthStore()
   const [collapsed, setCollapsed] = useState(false)
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
 
   return (
     <aside
       className={cn(
-        "hidden md:flex flex-col h-screen bg-[#0D2329] text-white transition-all duration-300 relative select-none border-r border-[#193F4A] shadow-2xl z-40",
-        collapsed ? "w-16" : "w-64"
+        "hidden md:flex flex-col h-screen bg-white text-[#0D2329] transition-all duration-300 relative select-none border-r-2 border-[#D8E5E7] shadow-xl z-40",
+        collapsed ? "w-20" : "w-64"
       )}
     >
       {/* 1. TOP LOGO: EvoluIA Gestão Psicopedagógica */}
@@ -52,29 +49,66 @@ export function Sidebar() {
         onClick={() => navigate("/dashboard")}
         title="Ir para o Dashboard"
         className={cn(
-          "flex items-center gap-3 px-5 py-5 border-b border-white/5 cursor-pointer hover:bg-white/5 transition-all",
+          "flex items-center gap-3 px-5 py-5 border-b-2 border-[#EEF5F6] bg-gradient-to-b from-[#F5F3FF]/70 to-white cursor-pointer hover:opacity-90 transition-all",
           collapsed && "justify-center px-2"
         )}
       >
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#00A896] to-[#02C39A] flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_rgba(2,195,154,0.35)]">
+        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#6366F1] to-[#7C3AED] flex items-center justify-center flex-shrink-0 shadow-md">
           <Brain className="w-5 h-5 text-white" />
         </div>
 
         {!collapsed && (
           <div className="flex-1 min-w-0">
             <h1 className="font-black text-lg tracking-tight leading-none flex items-center gap-0.5">
-              <span className="text-white">Evolu</span>
-              <span className="text-[#02C39A]">IA</span>
+              <span className="text-[#0D2329]">Evolu</span>
+              <span className="text-[#7C3AED]">IA</span>
             </h1>
-            <p className="text-[10px] font-semibold text-[#7EA2AA] tracking-wide mt-1 truncate">
-              Gestão Psicopedagógica
+            <p className="text-[10px] font-bold text-[#6B7C83] tracking-wide mt-1 truncate">
+              {professional?.clinic_name || "Gestão Psicopedagógica"}
             </p>
           </div>
         )}
       </div>
 
-      {/* 2. NAVIGATION MENU */}
+      {/* 2. USER PROFILE CARD (TOP SECTION) */}
+      {!collapsed && (
+        <div className="px-3 pt-3">
+          <div
+            onClick={() => navigate("/configuracoes")}
+            className="flex items-center gap-3 p-2.5 rounded-2xl bg-white hover:bg-[#F5F3FF] border-2 border-[#DDD6FE] transition-all cursor-pointer group shadow-2xs active:scale-98"
+          >
+            <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] border-2 border-[#DDD6FE] overflow-hidden flex items-center justify-center font-black text-xs text-[#7C3AED] shrink-0 shadow-xs">
+              {professional?.logo_url ? (
+                <img src={professional.logo_url} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[#7C3AED]">
+                  {professional?.full_name ? getInitials(professional.full_name) : "P"}
+                </span>
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black text-[#0D2329] group-hover:text-[#7C3AED] transition-colors truncate leading-tight">
+                {professional?.full_name || "Priscila Carbone"}
+              </p>
+              <p className="text-[10px] font-bold text-[#7C3AED] truncate leading-tight mt-0.5">
+                {professional?.crp ? `CBO ${professional.crp}` : "Psicopedagoga Clínica"}
+              </p>
+            </div>
+
+            <ChevronRight className="w-3.5 h-3.5 text-[#8CAAB1] group-hover:text-[#7C3AED] transition-colors" />
+          </div>
+        </div>
+      )}
+
+      {/* 3. NAVIGATION MENU */}
       <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto scrollbar-thin">
+        {!collapsed && (
+          <p className="text-[10px] font-black uppercase tracking-wider text-[#8CAAB1] px-3 py-1.5">
+            Navegação Principal
+          </p>
+        )}
+
         {navItems.map(({ to, icon: Icon, label }) => {
           const basePath = to.split("?")[0]
           const isActive = location.pathname === basePath && (!to.includes("?") || location.search.includes(to.split("?")[1]))
@@ -82,82 +116,65 @@ export function Sidebar() {
             <NavLink
               key={to}
               to={to}
+              title={collapsed ? label : undefined}
               className={cn(
-                "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all group relative",
-                collapsed && "justify-center px-2",
+                "flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-black transition-all group relative",
+                collapsed && "justify-center px-2 py-3",
                 isActive
-                  ? "bg-[#00B4D8] text-white shadow-[0_4px_12px_rgba(0,180,216,0.35)]"
-                  : "text-[#8CAAB1] hover:bg-white/5 hover:text-white"
+                  ? "bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white shadow-md"
+                  : "text-[#0D2329] hover:bg-[#F7FAFA] hover:text-[#7C3AED]"
               )}
             >
-              <Icon className={cn("w-4 h-4 flex-shrink-0 transition-transform group-hover:scale-110", isActive ? "text-white" : "text-[#7EA2AA] group-hover:text-white")} />
-              {!collapsed && <span className="truncate">{label}</span>}
+              <Icon className={cn("w-4 h-4 flex-shrink-0 transition-transform group-hover:scale-110", isActive ? "text-white" : "text-[#6B7C83] group-hover:text-[#7C3AED]")} />
+              {!collapsed && <span className="truncate flex-1">{label}</span>}
+              {!collapsed && <ChevronRight className={cn("w-3.5 h-3.5 opacity-40", isActive && "opacity-80 text-white")} />}
             </NavLink>
           )
         })}
       </nav>
 
-      {/* 3. BOTTOM SECTION: User Profile & Motivation Card */}
-      <div className="p-3 border-t border-white/5 space-y-2.5 bg-[#091B20]/60">
-        {/* User Card */}
-        <div
-          onClick={() => navigate("/configuracoes")}
-          className={cn(
-            "flex items-center gap-2.5 p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all cursor-pointer group",
-            collapsed && "justify-center p-1.5"
-          )}
-        >
-          <div className="w-8 h-8 rounded-full bg-[#193F4A] overflow-hidden flex items-center justify-center font-black text-xs shrink-0 border border-[#02C39A]/40 shadow-xs">
-            {professional?.logo_url ? (
-              <img src={professional.logo_url} alt="Logo" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-white">{professional?.full_name ? getInitials(professional.full_name) : "P"}</span>
-            )}
-          </div>
-
-          {!collapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-black text-white group-hover:text-[#02C39A] transition-colors truncate leading-tight">
-                {professional?.full_name || "Priscila Souza"}
-              </p>
-              <p className="text-[10px] text-[#7EA2AA] truncate leading-tight mt-0.5">
-                {professional?.specialty || "Psicopedagoga"}
-              </p>
-            </div>
-          )}
-
-          {!collapsed && (
-            <ChevronDown className="w-3.5 h-3.5 text-[#7EA2AA] group-hover:text-white transition-colors" />
-          )}
-        </div>
-
+      {/* 4. BOTTOM SECTION: Motivation Card & Logout */}
+      <div className="p-3 border-t-2 border-[#EEF5F6] space-y-2 bg-[#F8FAFB]">
         {/* Dica do Dia Card (Visible when expanded) */}
         {!collapsed && (
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-[#1E193A] to-[#2B1B4A] border border-[#6D28D9]/30 text-white space-y-1 relative shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between text-xs font-bold text-[#C4B5FD]">
+          <div className="p-3 rounded-2xl bg-[#EDE9FE]/60 border-2 border-[#DDD6FE] text-[#0D2329] space-y-1 relative shadow-2xs overflow-hidden">
+            <div className="flex items-center justify-between text-xs font-bold text-[#7C3AED]">
               <div className="flex items-center gap-1.5">
-                <Lightbulb className="w-3.5 h-3.5 text-[#FBBF24]" />
-                <span className="text-[11px] font-black tracking-wide uppercase">Dica do dia</span>
+                <Lightbulb className="w-3.5 h-3.5 text-[#F59E0B]" />
+                <span className="text-[10px] font-black tracking-wide uppercase">Dica do dia</span>
               </div>
               <Heart className="w-3 h-3 text-[#EC4899] fill-current opacity-80" />
             </div>
-            <p className="text-[11px] text-[#DDD6FE] leading-snug font-medium pt-0.5">
+            <p className="text-[11px] text-[#6D28D9] leading-snug font-semibold pt-0.5">
               Pequenas intervenções geram grandes evoluções.
             </p>
           </div>
         )}
+
+        {/* Sair da Conta */}
+        <button
+          onClick={() => signOut()}
+          className={cn(
+            "w-full flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs font-black text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-all active:scale-95",
+            collapsed && "justify-center px-1"
+          )}
+          title="Sair da Conta"
+        >
+          <LogOut className="w-4 h-4 shrink-0" />
+          {!collapsed && <span>Sair da Conta</span>}
+        </button>
       </div>
 
       {/* Collapse toggle button */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-12 w-6 h-6 bg-white border border-[#B8CBD1] rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all z-10"
+        className="absolute -right-3.5 top-12 w-7 h-7 bg-white border-2 border-[#D8E5E7] text-[#7C3AED] rounded-full flex items-center justify-center shadow-md hover:scale-110 hover:border-[#7C3AED] transition-all z-20"
         aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
       >
         {collapsed ? (
-          <ChevronRight className="w-3 h-3 text-[#0D2329]" />
+          <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
         ) : (
-          <ChevronLeft className="w-3 h-3 text-[#0D2329]" />
+          <ChevronLeft className="w-3.5 h-3.5 stroke-[2.5]" />
         )}
       </button>
     </aside>
