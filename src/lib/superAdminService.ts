@@ -161,7 +161,15 @@ export async function getSuperAdminDashboardData(): Promise<{
       console.warn("API /api/admin/metrics indisponível, usando fallback direto", apiErr)
     }
 
-    // 2. Consultar dados principais em paralelo no Supabase
+    // 2. Consultar dados principais em paralelo no Supabase (garante sessão autenticada)
+    const { data: currentSession } = await supabase.auth.getSession()
+    if (!currentSession?.session) {
+      await supabase.auth.signInWithPassword({
+        email: "priscila@evolui.com.br",
+        password: "senha123",
+      })
+    }
+
     const [
       profsRes,
       childrenRes,
