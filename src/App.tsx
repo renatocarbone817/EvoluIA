@@ -120,12 +120,12 @@ export function App() {
               <Route path="/biblioteca" element={<BibliotecaPage />} />
               <Route path="/meu-plano" element={<PlanPage />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
-
-              {/* Super Admin / Painel do Dono */}
-              <Route path="/admin" element={<SuperAdminPage />} />
-              <Route path="/painel-dono" element={<SuperAdminPage />} />
             </Route>
           </Route>
+
+          {/* Super Admin / Painel do Dono (Rota Secreta com Login Exclusivo Próprio) */}
+          <Route path="/admin" element={<SuperAdminPage />} />
+          <Route path="/painel-dono" element={<SuperAdminPage />} />
 
           {/* Root Redirect */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

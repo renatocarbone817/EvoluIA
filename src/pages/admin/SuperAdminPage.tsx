@@ -127,6 +127,11 @@ export function SuperAdminPage() {
     }
 
     try {
+      // 0. Se houver outro usuário conectado, desconecta para trocar a sessão
+      if (user && user.email !== cleanEmail) {
+        await supabase.auth.signOut()
+      }
+
       // 1. Tentar login direto no Supabase Auth
       let { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
