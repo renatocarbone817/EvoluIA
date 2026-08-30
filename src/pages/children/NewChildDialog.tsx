@@ -254,13 +254,13 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
-          <DialogHeader className="p-6 pb-4 border-b border-[#EEF5F6] flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] border-2 border-[#DDD6FE] flex items-center justify-center shrink-0 shadow-xs">
-              <UserPlus className="w-6 h-6 stroke-[2.5]" />
+        <DialogContent className="max-w-lg w-[95vw] sm:w-full p-0 flex flex-col max-h-[85vh] sm:max-h-[88vh] overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
+          <DialogHeader className="p-5 pb-3 border-b border-[#EEF5F6] flex items-center gap-3 shrink-0 bg-white">
+            <div className="w-11 h-11 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] border-2 border-[#DDD6FE] flex items-center justify-center shrink-0 shadow-xs">
+              <UserPlus className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
-              <DialogTitle className="text-lg font-black text-[#0D2329]">
+              <DialogTitle className="text-base sm:text-lg font-black text-[#0D2329]">
                 Novo Paciente & Criança
               </DialogTitle>
               <p className="text-xs font-semibold text-[#6B7C83] mt-0.5">
@@ -269,7 +269,7 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
             </div>
           </DialogHeader>
 
-          <DialogBody className="p-6 space-y-4 max-h-[72vh] overflow-y-auto pr-2">
+          <DialogBody className="p-5 sm:p-6 space-y-4 flex-1 overflow-y-auto min-h-0">
             {/* Photo with Cropper trigger */}
             <div className="flex flex-col items-center gap-2.5 pb-2">
               <div className="relative group">
@@ -481,7 +481,7 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
             </div>
           </DialogBody>
 
-          <DialogFooter className="p-4 bg-[#F8FAFB] border-t border-[#EEF5F6] flex items-center justify-end gap-2.5">
+          <DialogFooter className="p-3.5 sm:p-4 bg-[#F8FAFB] border-t-2 border-[#EEF5F6] flex items-center justify-end gap-2.5 shrink-0 z-10">
             <Button
               type="button"
               variant="outline"
@@ -496,7 +496,7 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
               type="button"
               disabled={loading}
               onClick={handleSubmit}
-              className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />}
               <span>{loading ? "Cadastrando..." : "Cadastrar Paciente"}</span>

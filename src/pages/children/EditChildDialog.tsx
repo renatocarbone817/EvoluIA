@@ -387,9 +387,9 @@ export function EditChildDialog({ open, child, onClose, onSuccess, onDelete }: E
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95">
+      <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-2xl max-w-2xl w-full max-h-[85vh] sm:max-h-[88vh] flex flex-col overflow-hidden animate-in zoom-in-95">
         {/* Header Moderno */}
-        <div className="p-5 border-b border-[#EEF5F6] bg-[#F7FAFA] flex items-center justify-between">
+        <div className="p-5 border-b border-[#EEF5F6] bg-[#F7FAFA] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold shadow-2xs">
               <Sparkles className="w-5 h-5" />
@@ -413,7 +413,7 @@ export function EditChildDialog({ open, child, onClose, onSuccess, onDelete }: E
         </div>
 
         {/* Scrollable Body */}
-        <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(92vh-140px)] custom-scrollbar">
+        <div className="p-5 sm:p-6 space-y-6 flex-1 overflow-y-auto min-h-0 custom-scrollbar">
           {/* 1. FOTO COM CROPPER */}
           <div className="flex flex-col items-center gap-3 p-4 rounded-3xl bg-[#F8FAFB] border border-[#D8E5E7]">
             <div className="relative group">
@@ -808,7 +808,7 @@ export function EditChildDialog({ open, child, onClose, onSuccess, onDelete }: E
         </div>
 
         {/* Footer with Delete Button on Left */}
-        <div className="p-4 border-t border-[#EEF5F6] bg-[#F7FAFA] flex items-center justify-between gap-3">
+        <div className="p-3.5 sm:p-4 border-t-2 border-[#EEF5F6] bg-[#F7FAFA] flex items-center justify-between gap-3 shrink-0">
           <div>
             {onDelete && (
               <button
@@ -818,7 +818,7 @@ export function EditChildDialog({ open, child, onClose, onSuccess, onDelete }: E
                   onClose();
                   onDelete();
                 }}
-                className="px-4 py-2.5 rounded-2xl bg-red-50 hover:bg-red-100 text-red-600 border-2 border-red-200 text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs active:scale-95"
+                className="px-4 py-2.5 rounded-2xl bg-red-50 hover:bg-red-100 text-red-600 border-2 border-red-200 text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs active:scale-95 cursor-pointer"
                 title="Excluir paciente"
               >
                 <Trash2 className="w-3.5 h-3.5" />
