@@ -1179,10 +1179,14 @@ export function AppointmentsPage() {
             )}
           </div>
 
-          {/* 3. RESUMO DA SEMANA */}
+          {/* 3. RESUMO DO PERÍODO (DINÂMICO: DIA / SEMANA / MÊS) */}
           <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-5 shadow-sm space-y-3.5">
             <h3 className="text-xs font-black text-[#0D2329] tracking-tight">
-              Resumo da Semana
+              {viewMode === "dia" || viewMode === "celular"
+                ? "Resumo do Dia"
+                : viewMode === "mes"
+                ? "Resumo do Mês"
+                : "Resumo da Semana"}
             </h3>
 
             <div className="grid grid-cols-2 gap-2.5">
