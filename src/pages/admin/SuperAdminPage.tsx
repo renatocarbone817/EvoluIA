@@ -62,7 +62,7 @@ export function SuperAdminPage() {
   const [refreshing, setRefreshing] = useState(false)
 
   // Login Gate State (para quando não estiver autenticado como Super Admin)
-  const [adminEmail, setAdminEmail] = useState("carbone.renato@gmail.com")
+  const [adminEmail, setAdminEmail] = useState("")
   const [adminPassword, setAdminPassword] = useState("")
   const [showAdminPassword, setShowAdminPassword] = useState(false)
   const [loggingIn, setLoggingIn] = useState(false)
@@ -238,20 +238,6 @@ export function SuperAdminPage() {
             </div>
           </div>
 
-          {/* Aviso se estiver logado com outro e-mail */}
-          {user && user.email !== SUPER_ADMIN_EMAIL && (
-            <div className="p-3.5 rounded-2xl bg-[#FEF2F2]/10 border border-[#EF4444]/30 space-y-1">
-              <div className="flex items-center gap-2 text-xs font-black text-[#FCA5A5]">
-                <ShieldAlert className="w-4 h-4 shrink-0" />
-                <span>Conta Atual Não Autorizada</span>
-              </div>
-              <p className="text-[11px] font-medium text-[#FECACA]">
-                Você está conectado como <strong>{user.email}</strong>. Autentique-se com sua conta
-                de administrador para acessar este painel.
-              </p>
-            </div>
-          )}
-
           {/* Erro de Login */}
           {loginError && (
             <div className="p-3.5 rounded-2xl bg-[#FEF2F2]/15 border border-[#EF4444]/40 text-xs font-bold text-[#FCA5A5] flex items-center gap-2">
@@ -271,9 +257,10 @@ export function SuperAdminPage() {
               <input
                 type="email"
                 required
+                placeholder="seu.email@dominio.com"
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl border border-white/15 bg-white/5 text-xs font-medium text-white focus:outline-none focus:border-[#F59E0B] shadow-inner"
+                className="w-full px-4 py-3 rounded-2xl border border-white/15 bg-white/5 text-xs font-medium text-white focus:outline-none focus:border-[#F59E0B] shadow-inner placeholder:text-[#6B7C83]"
               />
             </div>
 
