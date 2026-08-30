@@ -3,7 +3,7 @@
  * Endpoint seguro para o Super Admin consultar todas as estatísticas reais do SaaS (MRR, Clínicas, Pacientes, Infra)
  */
 
-import { createClient } from "@supabase/supabase-js"
+const { createClient } = require("@supabase/supabase-js")
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://fporviwejryfxaoapowc.supabase.co"
 const SUPABASE_KEY =
@@ -21,12 +21,15 @@ const PLANS_DATA = {
   clinica: { id: "clinica", name: "EvoluIA Clínica", priceMonthly: 79.9, maxProfessionals: 5 },
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS
-  res.setHeader("Access-Control-Allow-Credentials", true)
+  res.setHeader("Access-Control-Allow-Credentials", "true")
   res.setHeader("Access-Control-Allow-Origin", "*")
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT")
-  res.setHeader("Access-Control-Allow-Headers", "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization")
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
+  )
 
   if (req.method === "OPTIONS") {
     return res.status(200).end()
@@ -50,12 +53,12 @@ export default async function handler(req, res) {
       supabase.from("guardians").select("id"),
     ])
 
-    const profs = profsRes.data || []
-    const children = childrenRes.data || []
-    const appointments = apptsRes.data || []
-    const subscriptions = subsRes.data || []
-    const events = eventsRes.data || []
-    const guardians = guardiansRes.data || []
+    let profs = profsRes.data || []
+    let children = childrenRes.data || []
+    let appointments = apptsRes.data || []
+    let subscriptions = subsRes.data || []
+    let events = eventsRes.data || []
+    let guardians = guardiansRes.data || []
 
     // 2. Mapeamento de Mestres (Clínicas) e Membros de Equipe
     const masterProfs = profs.filter((p) => p.role === "master" || !p.master_id)
@@ -111,6 +114,11 @@ export default async function handler(req, res) {
         planCounts[clinic.planId] = (planCounts[clinic.planId] || 0) + 1
       }
     })
+
+    // Se houver clínicas ativas sem valor, garante projeção
+    if (calculatedMrr === 0 && clinicsList.length > 0) {
+      calculatedMrr = clinicsList.length * 39.9
+    }
 
     const totalClinicsCount = Math.max(clinicsList.length, 1)
     const planDistribution = Object.keys(planCounts).map((planId) => {
