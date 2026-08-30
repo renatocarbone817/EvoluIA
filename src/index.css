@@ -5,8 +5,8 @@
 
 @layer base {
   :root {
-    /* Fundo da tela: cinza-azulado leve e harmônico (#DDEEF4), nítido contra o branco */
-    --background: 196 51% 91.2%;     /* #DDEEF4 */
+    /* Fundo da tela: cinza-azulado moderno e confortável (#E5EEF1), nítido contra o branco */
+    --background: 195 24% 92.5%;     /* #E5EEF1 */
     --foreground: 193 40% 16%;       /* #19323A */
 
     /* Cards e Superfícies em Branco Puro */
