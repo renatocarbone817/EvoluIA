@@ -30,7 +30,6 @@ const baseNavItems = [
   { to: "/financeiro", icon: DollarSign, label: "Financeiro & Cobrança" },
   { to: "/relatorios", icon: FileText, label: "Relatórios & Documentos" },
   { to: "/biblioteca", icon: BookOpen, label: "Biblioteca de Atividades" },
-  { to: "/meu-plano", icon: CreditCard, label: "Meu Plano & Assinatura", masterOnly: true },
   { to: "/configuracoes", icon: Settings, label: "Meu Perfil & Configurações" },
 ]
 
@@ -40,7 +39,7 @@ export function MobileHeader() {
   const navigate = useNavigate()
 
   const isMaster = isMasterUser(professional)
-  const navItems = baseNavItems.filter((item) => !item.masterOnly || isMaster)
+  const navItems = baseNavItems
 
   return (
     <>
@@ -186,8 +185,29 @@ export function MobileHeader() {
               ))}
             </div>
 
-            {/* Bottom Actions */}
+            {/* Bottom Actions: Meu Plano & Sair */}
             <div className="p-3 border-t-2 border-[#EEF5F6] bg-[#F8FAFB] space-y-2">
+              {isMaster && (
+                <NavLink
+                  to="/meu-plano"
+                  onClick={() => setIsOpen(false)}
+                  className={({ isActive }) =>
+                    cn(
+                      "w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-black transition-all",
+                      isActive
+                        ? "bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white shadow-md"
+                        : "bg-[#F5F3FF] text-[#7C3AED] border border-[#DDD6FE] hover:bg-[#EDE9FE]"
+                    )
+                  }
+                >
+                  <div className="flex items-center gap-2.5">
+                    <CreditCard className="w-4 h-4 shrink-0" />
+                    <span>Meu Plano & Assinatura</span>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                </NavLink>
+              )}
+
               <button
                 onClick={() => {
                   setIsOpen(false)

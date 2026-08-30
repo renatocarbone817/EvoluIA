@@ -15,10 +15,12 @@ import {
   Heart,
   Lightbulb,
   CreditCard,
+  Sparkles,
 } from "lucide-react"
 import { cn, getInitials } from "@/lib/utils"
 import { useAuthStore } from "@/store/authStore"
 import { isMasterUser } from "@/lib/teamAccess"
+import { getDailyTip, getDailyTipIndex, getNextRandomTip } from "@/lib/dailyTips"
 import { useState } from "react"
 
 const baseNavItems = [
@@ -29,18 +31,29 @@ const baseNavItems = [
   { to: "/financeiro", icon: DollarSign, label: "Financeiro & Cobrança" },
   { to: "/relatorios", icon: FileText, label: "Relatórios & Documentos" },
   { to: "/biblioteca", icon: BookOpen, label: "Biblioteca de Atividades" },
-  { to: "/meu-plano", icon: CreditCard, label: "Meu Plano & Assinatura", masterOnly: true },
   { to: "/configuracoes", icon: Settings, label: "Meu Perfil & Configurações" },
 ]
 
 export function Sidebar() {
   const { professional, signOut } = useAuthStore()
   const [collapsed, setCollapsed] = useState(false)
+  const [currentTipIndex, setCurrentTipIndex] = useState(getDailyTipIndex)
+  const [currentTip, setCurrentTip] = useState(getDailyTip)
+  const [isRotating, setIsRotating] = useState(false)
+
   const navigate = useNavigate()
   const location = useLocation()
 
   const isMaster = isMasterUser(professional)
-  const navItems = baseNavItems.filter((item) => !item.masterOnly || isMaster)
+  const navItems = baseNavItems
+
+  function handleNextTip() {
+    setIsRotating(true)
+    const next = getNextRandomTip(currentTipIndex)
+    setCurrentTip(next.tip)
+    setCurrentTipIndex(next.index)
+    setTimeout(() => setIsRotating(false), 300)
+  }
 
   return (
     <aside
@@ -116,7 +129,10 @@ export function Sidebar() {
 
         {navItems.map(({ to, icon: Icon, label }) => {
           const basePath = to.split("?")[0]
-          const isActive = location.pathname === basePath && (!to.includes("?") || location.search.includes(to.split("?")[1]))
+          const isActive =
+            location.pathname === basePath &&
+            (!to.includes("?") || location.search.includes(to.split("?")[1]))
+
           return (
             <NavLink
               key={to}
@@ -130,28 +146,75 @@ export function Sidebar() {
                   : "text-[#8CAAB1] hover:bg-white/5 hover:text-white"
               )}
             >
-              <Icon className={cn("w-4 h-4 flex-shrink-0 transition-transform group-hover:scale-110", isActive ? "text-white" : "text-[#7EA2AA] group-hover:text-white")} />
+              <Icon
+                className={cn(
+                  "w-4 h-4 flex-shrink-0 transition-transform group-hover:scale-110",
+                  isActive ? "text-white" : "text-[#7EA2AA] group-hover:text-white"
+                )}
+              />
               {!collapsed && <span className="truncate flex-1">{label}</span>}
-              {!collapsed && <ChevronRight className={cn("w-3.5 h-3.5 opacity-30", isActive && "opacity-80 text-white")} />}
+              {!collapsed && (
+                <ChevronRight
+                  className={cn("w-3.5 h-3.5 opacity-30", isActive && "opacity-80 text-white")}
+                />
+              )}
             </NavLink>
           )
         })}
       </nav>
 
-      {/* 4. BOTTOM SECTION: Motivation Card & Logout */}
-      <div className="p-3 border-t border-white/10 space-y-2 bg-[#091B20]/70">
-        {/* Dica do Dia Card (Visible when expanded) */}
+      {/* 4. BOTTOM SECTION: Meu Plano (Master), Dica do Dia & Logout */}
+      <div className="p-3 border-t border-white/10 space-y-2 bg-[#091B20]/85">
+        {/* BOTÃO MEU PLANO (EXCLUSIVO PARA MASTER NA PARTE INFERIOR) */}
+        {isMaster && (
+          <NavLink
+            to="/meu-plano"
+            title={collapsed ? "Meu Plano & Assinatura" : undefined}
+            className={cn(
+              "flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all group active:scale-98",
+              collapsed && "justify-center px-1",
+              location.pathname === "/meu-plano"
+                ? "bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white font-black shadow-[0_2px_12px_rgba(124,58,237,0.4)]"
+                : "bg-white/5 hover:bg-white/10 text-[#C4B5FD] hover:text-white border border-[#7C3AED]/30"
+            )}
+          >
+            <CreditCard className="w-4 h-4 shrink-0 text-[#A855F7] group-hover:text-white transition-colors" />
+            {!collapsed && <span className="truncate flex-1">Meu Plano & Assinatura</span>}
+            {!collapsed && (
+              <ChevronRight
+                className={cn(
+                  "w-3.5 h-3.5 opacity-40 group-hover:opacity-100",
+                  location.pathname === "/meu-plano" && "opacity-90"
+                )}
+              />
+            )}
+          </NavLink>
+        )}
+
+        {/* Dica do Dia Card (Clicável e Dinâmica com 50 Frases) */}
         {!collapsed && (
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-[#1E193A] to-[#2B1B4A] border border-[#6D28D9]/40 text-white space-y-1 relative shadow-2xs overflow-hidden">
+          <div
+            onClick={handleNextTip}
+            title="Clique para ver outra dica inspiradora 💡"
+            className="p-3 rounded-2xl bg-gradient-to-br from-[#1E193A] to-[#2B1B4A] border border-[#6D28D9]/40 text-white space-y-1 relative shadow-2xs overflow-hidden cursor-pointer hover:border-[#A855F7] hover:shadow-md transition-all active:scale-98 group select-none"
+          >
             <div className="flex items-center justify-between text-xs font-bold text-[#C4B5FD]">
               <div className="flex items-center gap-1.5">
-                <Lightbulb className="w-3.5 h-3.5 text-[#F59E0B]" />
+                <Lightbulb className="w-3.5 h-3.5 text-[#F59E0B] group-hover:rotate-12 transition-transform" />
                 <span className="text-[10px] font-black tracking-wide uppercase">Dica do dia</span>
               </div>
-              <Heart className="w-3 h-3 text-[#EC4899] fill-current opacity-80" />
+              <div className="flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-[#A855F7] opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Heart className="w-3 h-3 text-[#EC4899] fill-current opacity-80" />
+              </div>
             </div>
-            <p className="text-[11px] text-[#DDD6FE] leading-snug font-medium pt-0.5">
-              Pequenas intervenções geram grandes evoluções.
+            <p
+              className={cn(
+                "text-[11px] text-[#DDD6FE] leading-snug font-medium pt-0.5 transition-all duration-300",
+                isRotating ? "opacity-0 translate-y-1" : "opacity-100 translate-y-0"
+              )}
+            >
+              {currentTip}
             </p>
           </div>
         )}
