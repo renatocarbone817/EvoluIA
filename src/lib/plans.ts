@@ -199,3 +199,7 @@ export function getSubscriptionStatusLabel(status?: SubscriptionStatus | string 
       }
   }
 }
+
+export const PLANS_CONFIG = PLANS_LIST
+
+

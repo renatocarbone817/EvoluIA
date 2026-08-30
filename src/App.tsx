@@ -1,9 +1,10 @@
 import { useEffect } from "react"
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster } from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
+import { trackPageView } from "@/lib/analyticsTracker"
 
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { AppLayout } from "@/components/layout/AppLayout"
@@ -24,13 +25,25 @@ import { SettingsPage } from "@/pages/settings/SettingsPage"
 import { PlanPage } from "@/pages/plan/PlanPage"
 import { PublicReceiptPage } from "@/pages/financial/PublicReceiptPage"
 import { BibliotecaPage } from "@/pages/biblioteca/BibliotecaPage"
+import { SuperAdminPage } from "@/pages/admin/SuperAdminPage"
 
 const queryClient = new QueryClient()
+
+// Coletor automático de telemetria de páginas
+function AnalyticsTracker() {
+  const location = useLocation()
+
+  useEffect(() => {
+    trackPageView(location.pathname)
+  }, [location.pathname])
+
+  return null
+}
 
 export function App() {
   const { setUser, setProfessional, setLoading, fetchProfessional } = useAuthStore()
 
-    useEffect(() => {
+  useEffect(() => {
     // Auth state changes listener (Manipula INITIAL_SESSION no F5 e evita re-renders no Alt+Tab)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -55,6 +68,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <AnalyticsTracker />
         <Toaster
           position="top-right"
           toastOptions={{
@@ -106,6 +120,10 @@ export function App() {
               <Route path="/biblioteca" element={<BibliotecaPage />} />
               <Route path="/meu-plano" element={<PlanPage />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
+
+              {/* Super Admin / Painel do Dono */}
+              <Route path="/admin" element={<SuperAdminPage />} />
+              <Route path="/painel-dono" element={<SuperAdminPage />} />
             </Route>
           </Route>
 

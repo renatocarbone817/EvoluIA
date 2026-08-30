@@ -16,9 +16,11 @@ import {
   ChevronRight,
   BookOpen,
   CreditCard,
+  Crown,
 } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { isMasterUser } from "@/lib/teamAccess"
+import { isSuperAdmin } from "@/lib/superAdminService"
 import { getInitials, cn } from "@/lib/utils"
 import { NotificationCenter } from "./NotificationCenter"
 
@@ -35,10 +37,11 @@ const baseNavItems = [
 
 export function MobileHeader() {
   const [isOpen, setIsOpen] = useState(false)
-  const { professional, signOut } = useAuthStore()
+  const { user, professional, signOut } = useAuthStore()
   const navigate = useNavigate()
 
   const isMaster = isMasterUser(professional)
+  const isSuper = isSuperAdmin(user, professional)
   const navItems = baseNavItems
 
   return (
@@ -185,8 +188,29 @@ export function MobileHeader() {
               ))}
             </div>
 
-            {/* Bottom Actions: Meu Plano & Sair */}
+            {/* Bottom Actions: Painel do Dono (Super Admin), Meu Plano & Sair */}
             <div className="p-3 border-t-2 border-[#EEF5F6] bg-[#F8FAFB] space-y-2">
+              {isSuper && (
+                <NavLink
+                  to="/admin"
+                  onClick={() => setIsOpen(false)}
+                  className={({ isActive }) =>
+                    cn(
+                      "w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-black transition-all",
+                      isActive
+                        ? "bg-gradient-to-r from-[#F59E0B] to-[#D97706] text-white shadow-md"
+                        : "bg-[#FEF8EC] text-[#B45309] border border-[#FDE68A] hover:bg-[#FDE68A]"
+                    )
+                  }
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Crown className="w-4 h-4 shrink-0 fill-current" />
+                    <span>👑 Painel do Dono</span>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                </NavLink>
+              )}
+
               {isMaster && (
                 <NavLink
                   to="/meu-plano"
