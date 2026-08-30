@@ -131,7 +131,7 @@ export function SettingsPage() {
     address: (professional as any)?.address || "Av. Principal, 1000 - Sala 04",
     city: professional?.city || "São José do Rio Preto",
     state: professional?.state || "SP",
-    bio: professional?.bio || "Especialista no desenvolvimento cognitivo, dificuldades de aprendizagem, TDAH e orientação familiar.",
+    bio: (professional?.bio || "").replace(/\[PLAN:[^\]]+\]/g, "").trim() || "Especialista no desenvolvimento cognitivo, dificuldades de aprendizagem, TDAH e orientação familiar.",
     pix_type: (professional as any)?.pix_type || localStorage.getItem("evoluia_pix_type") || "Celular",
     pix_key: (professional as any)?.pix_key || localStorage.getItem("evoluia_pix_key") || "17 99758-0663",
   })
@@ -294,6 +294,10 @@ export function SettingsPage() {
     if (!profId) return
     setSaving(true)
     try {
+      const existingPlanTag = (professional?.bio || "").match(/\[PLAN:[^\]]+\]/)?.[0] || ""
+      const cleanFormBio = (form.bio || "").replace(/\[PLAN:[^\]]+\]/g, "").trim()
+      const finalBio = (cleanFormBio ? cleanFormBio + (existingPlanTag ? " " + existingPlanTag : "") : existingPlanTag) || null
+
       const { error } = await supabase
         .from("professionals")
         .upsert({
@@ -306,7 +310,7 @@ export function SettingsPage() {
           phone: form.phone || null,
           city: form.city || null,
           state: form.state || null,
-          bio: form.bio || null,
+          bio: finalBio,
         })
 
       if (error) throw error

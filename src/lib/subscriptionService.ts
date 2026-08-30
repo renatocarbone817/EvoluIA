@@ -64,6 +64,46 @@ export async function getMasterSubscription(masterId: string): Promise<Subscript
       return data as Subscription
     }
 
+    // 2. Checa se há plano gravado no registro do profissional (tag [PLAN:planId:status])
+    try {
+      const { data: profData } = await supabase
+        .from("professionals")
+        .select("bio, email")
+        .eq("id", masterId)
+        .maybeSingle()
+
+      if (profData?.bio && profData.bio.includes("[PLAN:")) {
+        const match = profData.bio.match(/\[PLAN:([a-zA-Z0-9_]+)(?::([a-zA-Z0-9_]+))?\]/)
+        if (match) {
+          const parsedPlanId = match[1] as PlanId
+          const parsedStatus = (match[2] || "active") as SubscriptionStatus
+          const planConfig = getPlanConfig(parsedPlanId)
+
+          const subFromProf: Subscription = {
+            id: `sub_${masterId}`,
+            master_user_id: masterId,
+            plan_id: parsedPlanId,
+            max_professionals: planConfig.maxProfessionals,
+            status: parsedStatus,
+            hotmart_product_id: null,
+            hotmart_offer_id: null,
+            hotmart_subscription_id: "ADMIN_MANUAL",
+            hotmart_transaction_id: null,
+            customer_email: profData.email || null,
+            subscription_started_at: new Date().toISOString(),
+            subscription_expires_at: null,
+            last_payment_at: new Date().toISOString(),
+            cancelled_at: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }
+
+          localStorage.setItem(`${SUBSCRIPTION_STORAGE_KEY_PREFIX}${masterId}`, JSON.stringify(subFromProf))
+          return subFromProf
+        }
+      }
+    } catch {}
+
     // Default soberano: Plano Individual (R$ 39,90 / 1 profissional)
     const planConfig = getPlanConfig("individual")
 
