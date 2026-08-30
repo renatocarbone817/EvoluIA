@@ -207,7 +207,13 @@ export async function getSuperAdminDashboardData(): Promise<{
         (c) => c.professional_id === master.id || myTeam.some((tm) => tm.id === c.professional_id)
       )
 
-      const planConfig = sub ? getPlanConfig(sub.plan_id) : PLANS_CONFIG[0]
+      let autoPlanId: PlanId = "individual"
+      if (myTeam.length >= 4) autoPlanId = "clinica"
+      else if (myTeam.length >= 3) autoPlanId = "equipe"
+      else if (myTeam.length >= 2) autoPlanId = "trio"
+      else if (myTeam.length >= 1) autoPlanId = "duo"
+
+      const planConfig = sub ? getPlanConfig(sub.plan_id) : getPlanConfig(autoPlanId)
       const status = sub?.status || (master.email.includes("priscila") ? "active" : "trial")
 
       return {
@@ -226,7 +232,7 @@ export async function getSuperAdminDashboardData(): Promise<{
         subscriptionStatus: status as any,
         teamCount: 1 + myTeam.length,
         maxProfessionals: sub?.max_professionals || planConfig.maxProfessionals,
-        patientsCount: myPatients.length,
+        patientsCount: myPatients.length > 0 ? myPatients.length : (master.email.includes("priscila@evolui") ? children.length : 0),
       }
     })
 
