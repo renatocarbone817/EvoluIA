@@ -7,13 +7,23 @@ import { supabase } from "@/lib/supabase"
 import { PLANS_CONFIG, getPlanConfig, type PlanId } from "@/lib/plans"
 import { getTrafficAnalytics } from "@/lib/analyticsTracker"
 
-// E-mail único e exclusivo do Dono / Super Admin
+// Credenciais exclusivas do Dono / Super Admin
 export const SUPER_ADMIN_EMAIL = "carbone.renato@gmail.com"
+export const SUPER_ADMIN_PASS = "RenatoLindo123"
 
 export function isSuperAdmin(user: any, professional?: any): boolean {
+  if (typeof window !== "undefined" && sessionStorage.getItem("evoluia_superadmin_session") === "active") {
+    return true
+  }
   if (!user && !professional) return false
   const userEmail = (user?.email || professional?.email || "").trim().toLowerCase()
   return userEmail === SUPER_ADMIN_EMAIL.toLowerCase()
+}
+
+export function lockSuperAdminSession() {
+  if (typeof window !== "undefined") {
+    sessionStorage.removeItem("evoluia_superadmin_session")
+  }
 }
 
 export interface SaaSMetrics {
