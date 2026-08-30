@@ -58,6 +58,15 @@ export default {
           light: "#FDF0F0",
         },
       },
+      boxShadow: {
+        '2xs': '0 1px 3px 0 rgba(13, 35, 41, 0.05)',
+        'xs': '0 1px 4px 0 rgba(13, 35, 41, 0.07)',
+        'sm': '0 2px 8px -1px rgba(13, 35, 41, 0.08), 0 1px 3px -1px rgba(13, 35, 41, 0.04)',
+        'DEFAULT': '0 4px 14px -2px rgba(13, 35, 41, 0.09), 0 2px 5px -1px rgba(13, 35, 41, 0.04)',
+        'md': '0 6px 20px -2px rgba(13, 35, 41, 0.11), 0 2px 6px -1px rgba(13, 35, 41, 0.05)',
+        'lg': '0 12px 32px -4px rgba(13, 35, 41, 0.13), 0 4px 12px -2px rgba(13, 35, 41, 0.06)',
+        'xl': '0 18px 45px -6px rgba(13, 35, 41, 0.16), 0 6px 18px -3px rgba(13, 35, 41, 0.08)',
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
