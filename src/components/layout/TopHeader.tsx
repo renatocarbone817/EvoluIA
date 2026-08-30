@@ -103,7 +103,7 @@ export function TopHeader() {
             </button>
           ) : (
             <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-bold text-[#8CAAB1] bg-white border border-[#D8E5E7] rounded-md shadow-2xs">
-              ⌘ K
+              Ctrl K
             </kbd>
           )}
         </div>
