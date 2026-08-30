@@ -986,7 +986,7 @@ export function DashboardPage() {
                           <button
                             type="button"
                             onClick={() => setAbsenceModalAppt(appt)}
-                            className="h-9 px-3 rounded-2xl bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 text-xs font-black flex items-center justify-center gap-1.5 active:scale-95 transition-all shrink-0 shadow-2xs"
+                            className="h-9 px-3 rounded-2xl bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 text-xs font-black flex items-center justify-center gap-1.5 active:scale-95 transition-all shrink-0 shadow-2xs cursor-pointer"
                             title="Registrar Falta"
                           >
                             <AlertTriangle className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -995,9 +995,45 @@ export function DashboardPage() {
                         )}
 
                         {appt.status === "missed" ? (
-                          <span className="text-xs font-black text-red-600 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200">
-                            Faltou
-                          </span>
+                          <div className="flex-1 flex items-center justify-between gap-2">
+                            <span className="text-xs font-black text-red-600 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 flex items-center gap-1.5">
+                              <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                              <span>Falta Registrada</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (appt.child_id) {
+                                  navigate(`/criancas/${appt.child_id}`)
+                                } else {
+                                  navigate("/agenda")
+                                }
+                              }}
+                              className="text-xs font-bold text-[#7C3AED] hover:underline cursor-pointer"
+                            >
+                              Ver Detalhes →
+                            </button>
+                          </div>
+                        ) : appt.status === "done" ? (
+                          <div className="flex-1 flex items-center justify-between gap-2">
+                            <span className="text-xs font-black text-[#065F46] px-3 py-1.5 rounded-xl bg-[#D1FAE5] border border-[#A7F3D0] flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981]" />
+                              <span>Sessão Concluída</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (appt.child_id) {
+                                  navigate(`/criancas/${appt.child_id}`)
+                                } else {
+                                  navigate(`/atendimento/${appt.id}`)
+                                }
+                              }}
+                              className="text-xs font-bold text-[#7C3AED] hover:underline cursor-pointer"
+                            >
+                              Ver Prontuário →
+                            </button>
+                          </div>
                         ) : (
                           <button
                             type="button"
@@ -1016,7 +1052,7 @@ export function DashboardPage() {
                                 navigate(`/atendimento/${appt.id}`)
                               }
                             }}
-                            className="flex-1 h-9 px-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                            className="flex-1 h-9 px-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
                             title="Iniciar Atendimento Clínico"
                           >
                             <Play className="w-3.5 h-3.5 fill-current" />
