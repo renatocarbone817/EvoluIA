@@ -31,12 +31,18 @@ import {
   Check,
   X,
   Lock,
+  Mail,
+  Eye,
+  EyeOff,
+  ArrowLeft,
 } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
+import { supabase } from "@/lib/supabase"
 import {
   isSuperAdmin,
   getSuperAdminDashboardData,
   updateClinicSubscriptionManually,
+  SUPER_ADMIN_EMAIL,
   type SaaSMetrics,
   type InfraHealth,
   type ClinicAccountItem,
@@ -54,6 +60,13 @@ export function SuperAdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>("visao-geral")
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+
+  // Login Gate State (para quando não estiver autenticado como Super Admin)
+  const [adminEmail, setAdminEmail] = useState("carbone.renato@gmail.com")
+  const [adminPassword, setAdminPassword] = useState("")
+  const [showAdminPassword, setShowAdminPassword] = useState(false)
+  const [loggingIn, setLoggingIn] = useState(false)
+  const [loginError, setLoginError] = useState("")
 
   // Dados do Dashboard
   const [metrics, setMetrics] = useState<SaaSMetrics | null>(null)
@@ -75,12 +88,11 @@ export function SuperAdminPage() {
   const authorized = isSuperAdmin(user, professional)
 
   useEffect(() => {
-    if (!authorized && user) {
-      toast.error("Acesso restrito à administração do sistema.")
-      navigate("/dashboard")
-      return
+    if (authorized) {
+      loadData()
+    } else {
+      setLoading(false)
     }
-    loadData()
   }, [user, professional, authorized])
 
   async function loadData() {
@@ -98,6 +110,74 @@ export function SuperAdminPage() {
     } finally {
       setLoading(false)
       setRefreshing(false)
+    }
+  }
+
+  async function handleAdminLogin(e: React.FormEvent) {
+    e.preventDefault()
+    setLoggingIn(true)
+    setLoginError("")
+
+    const cleanEmail = adminEmail.trim().toLowerCase()
+
+    if (cleanEmail !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+      setLoginError("E-mail não autorizado para acesso administrativo.")
+      setLoggingIn(false)
+      return
+    }
+
+    try {
+      // 1. Tentar login direto no Supabase Auth
+      let { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password: adminPassword,
+      })
+
+      // 2. Se a conta ainda não existir no Supabase Auth, cria na hora
+      if (error && (error.message.includes("Invalid login credentials") || error.message.includes("User not found"))) {
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password: adminPassword,
+          options: {
+            data: {
+              full_name: "Renato Carbone (Fundador)",
+              role: "superadmin",
+            },
+          },
+        })
+
+        if (signUpError && !signUpError.message.includes("already registered")) {
+          throw signUpError
+        }
+        data = signUpData
+      } else if (error) {
+        throw error
+      }
+
+      if (data?.user) {
+        // Cria/atualiza perfil no banco
+        await supabase.from("professionals").upsert({
+          id: data.user.id,
+          full_name: "Renato Carbone",
+          email: cleanEmail,
+          role: "master",
+          is_active: true,
+          specialty: "Fundador & Administrador",
+        })
+
+        useAuthStore.getState().setUser({ id: data.user.id, email: cleanEmail })
+        await useAuthStore.getState().fetchProfessional(data.user.id)
+
+        toast.success("Acesso de Administrador Desbloqueado! 👑", { duration: 4000 })
+        loadData()
+      } else {
+        throw new Error("Não foi possível autenticar. Verifique sua senha.")
+      }
+    } catch (err: any) {
+      console.error(err)
+      setLoginError(err.message || "Senha incorreta ou erro de autenticação.")
+    } finally {
+      setLoggingIn(false)
     }
   }
 
@@ -129,16 +209,133 @@ export function SuperAdminPage() {
     return matchesSearch && matchesPlan
   })
 
+  // =========================================================================
+  // TELA DE LOGIN / AUTENTICAÇÃO SECRETA DO SUPER ADMIN
+  // =========================================================================
   if (!authorized) {
-    return null
+    return (
+      <div className="min-h-screen bg-[#091B20] flex flex-col justify-center items-center p-4 sm:p-6 font-sans text-white relative overflow-hidden">
+        {/* Background glow effects */}
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#7C3AED]/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[#F59E0B]/15 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="w-full max-w-md bg-[#0D2329] rounded-3xl border border-white/15 shadow-2xl p-6 sm:p-8 relative z-10 space-y-6">
+          {/* Header do Card */}
+          <div className="text-center space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#F59E0B] to-[#D97706] text-white flex items-center justify-center mx-auto shadow-lg">
+              <Crown className="w-7 h-7 fill-current" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight">Torre de Controle</h1>
+              <p className="text-xs font-semibold text-[#8CAAB1] mt-1">
+                Área restrita e criptografada exclusiva do proprietário.
+              </p>
+            </div>
+          </div>
+
+          {/* Aviso se estiver logado com outro e-mail */}
+          {user && user.email !== SUPER_ADMIN_EMAIL && (
+            <div className="p-3.5 rounded-2xl bg-[#FEF2F2]/10 border border-[#EF4444]/30 space-y-1">
+              <div className="flex items-center gap-2 text-xs font-black text-[#FCA5A5]">
+                <ShieldAlert className="w-4 h-4 shrink-0" />
+                <span>Conta Atual Não Autorizada</span>
+              </div>
+              <p className="text-[11px] font-medium text-[#FECACA]">
+                Você está conectado como <strong>{user.email}</strong>. Autentique-se com sua conta
+                de administrador para acessar este painel.
+              </p>
+            </div>
+          )}
+
+          {/* Erro de Login */}
+          {loginError && (
+            <div className="p-3.5 rounded-2xl bg-[#FEF2F2]/15 border border-[#EF4444]/40 text-xs font-bold text-[#FCA5A5] flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-[#EF4444]" />
+              <span>{loginError}</span>
+            </div>
+          )}
+
+          {/* Formulário de Login */}
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            {/* E-mail de Administrador */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-[#C4D8DC] flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-[#F59E0B]" />
+                <span>E-mail do Administrador</span>
+              </label>
+              <input
+                type="email"
+                required
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl border border-white/15 bg-white/5 text-xs font-medium text-white focus:outline-none focus:border-[#F59E0B] shadow-inner"
+              />
+            </div>
+
+            {/* Senha */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-[#C4D8DC] flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-[#F59E0B]" />
+                <span>Senha de Acesso</span>
+              </label>
+              <div className="relative">
+                <input
+                  type={showAdminPassword ? "text" : "password"}
+                  required
+                  placeholder="Digite sua senha"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="w-full px-4 py-3 pr-10 rounded-2xl border border-white/15 bg-white/5 text-xs font-medium text-white focus:outline-none focus:border-[#F59E0B] shadow-inner placeholder:text-[#6B7C83]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8CAAB1] hover:text-white"
+                >
+                  {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Botão de Entrada */}
+            <button
+              type="submit"
+              disabled={loggingIn}
+              className="w-full mt-2 py-3.5 rounded-2xl bg-gradient-to-r from-[#F59E0B] to-[#D97706] hover:from-[#D97706] hover:to-[#B45309] text-white font-black text-xs sm:text-sm shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {loggingIn ? (
+                <span>Desbloqueando Painel...</span>
+              ) : (
+                <>
+                  <Crown className="w-4 h-4 fill-current" />
+                  <span>Desbloquear Painel do Dono</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Botão Voltar */}
+          <div className="pt-2 text-center">
+            <button
+              type="button"
+              onClick={() => navigate("/dashboard")}
+              className="text-xs font-bold text-[#8CAAB1] hover:text-white flex items-center justify-center gap-1 mx-auto transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Voltar ao Sistema</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (loading && !metrics) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F4F7F8]">
         <div className="text-center space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#6366F1] to-[#7C3AED] text-white flex items-center justify-center mx-auto animate-pulse shadow-lg">
-            <Crown className="w-7 h-7" />
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#F59E0B] to-[#D97706] text-white flex items-center justify-center mx-auto animate-pulse shadow-lg">
+            <Crown className="w-7 h-7 fill-current" />
           </div>
           <p className="text-sm font-black text-[#0D2329]">Carregando Torre de Controle do Dono...</p>
         </div>

@@ -166,34 +166,8 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* 4. BOTTOM SECTION: Painel do Dono (Super Admin), Meu Plano (Master), Dica do Dia & Logout */}
+      {/* 4. BOTTOM SECTION: Meu Plano (Master), Dica do Dia & Logout */}
       <div className="p-3 border-t border-white/10 space-y-2 bg-[#091B20]/85">
-        {/* 👑 BOTÃO PAINEL DO DONO (SUPER ADMIN EXCLUSIVO) */}
-        {isSuper && (
-          <NavLink
-            to="/admin"
-            title={collapsed ? "Painel do Dono" : undefined}
-            className={cn(
-              "flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all group active:scale-98",
-              collapsed && "justify-center px-1",
-              location.pathname === "/admin"
-                ? "bg-gradient-to-r from-[#F59E0B] to-[#D97706] text-white font-black shadow-md"
-                : "bg-[#FEF8EC]/10 hover:bg-[#FEF8EC]/20 text-[#FBBF24] hover:text-white border border-[#F59E0B]/30"
-            )}
-          >
-            <Crown className="w-4 h-4 shrink-0 text-[#F59E0B] group-hover:text-white fill-current transition-colors" />
-            {!collapsed && <span className="truncate flex-1">👑 Painel do Dono</span>}
-            {!collapsed && (
-              <ChevronRight
-                className={cn(
-                  "w-3.5 h-3.5 opacity-40 group-hover:opacity-100",
-                  location.pathname === "/admin" && "opacity-90"
-                )}
-              />
-            )}
-          </NavLink>
-        )}
-
         {/* BOTÃO MEU PLANO (EXCLUSIVO PARA MASTER NA PARTE INFERIOR) */}
         {isMaster && (
           <NavLink

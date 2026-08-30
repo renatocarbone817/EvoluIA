@@ -7,22 +7,13 @@ import { supabase } from "@/lib/supabase"
 import { PLANS_CONFIG, getPlanConfig, type PlanId } from "@/lib/plans"
 import { getTrafficAnalytics } from "@/lib/analyticsTracker"
 
-// E-mails autorizados com acesso de Dono / Super Admin
-export const SUPER_ADMIN_EMAILS = [
-  "priscila@evolui.com.br",
-  "carbone.renato@gmail.com",
-  "renatocarbone817@gmail.com",
-  "admin@evolui.com.br",
-]
+// E-mail único e exclusivo do Dono / Super Admin
+export const SUPER_ADMIN_EMAIL = "carbone.renato@gmail.com"
 
 export function isSuperAdmin(user: any, professional?: any): boolean {
   if (!user && !professional) return false
   const userEmail = (user?.email || professional?.email || "").trim().toLowerCase()
-  const isEmailAdmin = SUPER_ADMIN_EMAILS.some((adminEmail) =>
-    userEmail.includes(adminEmail.toLowerCase())
-  )
-  const isRoleAdmin = professional?.role === "superadmin" || professional?.role === "admin"
-  return isEmailAdmin || isRoleAdmin
+  return userEmail === SUPER_ADMIN_EMAIL.toLowerCase()
 }
 
 export interface SaaSMetrics {
