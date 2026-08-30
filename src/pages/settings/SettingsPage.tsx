@@ -192,6 +192,14 @@ export function SettingsPage() {
   const [cropperOpen, setCropperOpen] = useState(false)
   const [imageToCrop, setImageToCrop] = useState<string | null>(null)
 
+  // Password Update State
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState("")
+
   const calendarFeedUrl = `${window.location.origin}/api/calendar/feed/${profId}.ics`
 
   // Load team members on mount or tab change
@@ -322,6 +330,37 @@ export function SettingsPage() {
       toast.error(err.message || "Erro ao salvar")
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Handle Password Update for Current User
+  async function handleUpdatePassword(e: React.FormEvent) {
+    e.preventDefault()
+    setPasswordError("")
+
+    if (newPassword.length < 6) {
+      setPasswordError("A nova senha deve ter no mínimo 6 caracteres.")
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("As duas senhas não coincidem. Digite novamente com atenção.")
+      return
+    }
+
+    try {
+      setSavingPassword(true)
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+
+      toast.success("Sua senha foi alterada com sucesso! 🔒✨", { duration: 4000 })
+      setNewPassword("")
+      setConfirmPassword("")
+    } catch (err: any) {
+      console.error(err)
+      setPasswordError(err.message || "Erro ao alterar a senha.")
+    } finally {
+      setSavingPassword(false)
     }
   }
 
@@ -916,6 +955,103 @@ export function SettingsPage() {
                   <span>Dados sincronizados em relatórios e WhatsApp</span>
                 </div>
               </div>
+            </div>
+
+            {/* CARD DE SEGURANÇA & ALTERAÇÃO DE SENHA */}
+            <div className="rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm p-5 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[#EEF2F6]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold">
+                    <KeyRound className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-[#0D2329]">Segurança & Senha de Acesso</h3>
+                    <p className="text-[11px] font-semibold text-[#6B7C83]">Altere sua senha de login no sistema</p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#DCFCE7] text-[#166534]">
+                  Criptografia Ativa
+                </span>
+              </div>
+
+              <form onSubmit={handleUpdatePassword} className="space-y-3.5">
+                {passwordError && (
+                  <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl text-xs font-bold text-[#DC2626] flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-[#DC2626]" />
+                    <span>{passwordError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {/* Nova Senha */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-black text-[#0D2329]">Nova Senha</label>
+                    <div className="relative flex items-center">
+                      <Lock className="absolute left-3 w-3.5 h-3.5 text-[#8CAAB1]" />
+                      <input
+                        type={showNewPassword ? "text" : "password"}
+                        required
+                        minLength={6}
+                        placeholder="No mínimo 6 dígitos"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full pl-9 pr-9 py-2.5 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 text-[#8CAAB1] hover:text-[#0D2329]"
+                        title={showNewPassword ? "Ocultar" : "Mostrar"}
+                      >
+                        {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirmar Nova Senha */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-black text-[#0D2329]">Confirmar Nova Senha</label>
+                    <div className="relative flex items-center">
+                      <Lock className="absolute left-3 w-3.5 h-3.5 text-[#8CAAB1]" />
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        required
+                        minLength={6}
+                        placeholder="Repita a nova senha"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full pl-9 pr-9 py-2.5 rounded-xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 text-[#8CAAB1] hover:text-[#0D2329]"
+                        title={showConfirmPassword ? "Ocultar" : "Mostrar"}
+                      >
+                        {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <p className="text-[10px] text-[#8CAAB1] font-semibold">
+                    A nova senha será exigida no próximo login.
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={savingPassword || !newPassword}
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all disabled:opacity-40"
+                  >
+                    {savingPassword ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Lock className="w-3.5 h-3.5" />
+                    )}
+                    <span>{savingPassword ? "Atualizando..." : "Atualizar Senha"}</span>
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

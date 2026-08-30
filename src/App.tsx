@@ -12,6 +12,7 @@ import { AppLayout } from "@/components/layout/AppLayout"
 import { LoginPage } from "@/pages/auth/LoginPage"
 import { RegisterPage } from "@/pages/auth/RegisterPage"
 import { ForgotPasswordPage } from "@/pages/auth/ForgotPasswordPage"
+import { ResetPasswordPage } from "@/pages/auth/ResetPasswordPage"
 
 import { DashboardPage } from "@/pages/dashboard/DashboardPage"
 import { ChildrenPage } from "@/pages/children/ChildrenPage"
@@ -102,6 +103,8 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/cadastro" element={<RegisterPage />} />
           <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+          <Route path="/recuperar-senha" element={<ForgotPasswordPage />} />
+          <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
           <Route path="/recibo/:id" element={<PublicReceiptPage />} />
           <Route path="/comprovante/:id" element={<PublicReceiptPage />} />
 

@@ -36,6 +36,7 @@ import {
   EyeOff,
   ArrowLeft,
   LogOut,
+  KeyRound,
 } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { supabase } from "@/lib/supabase"
@@ -88,6 +89,10 @@ export function SuperAdminPage() {
   const [newPlanId, setNewPlanId] = useState<PlanId>("individual")
   const [newStatus, setNewStatus] = useState<"active" | "trial" | "cancelled">("active")
   const [savingPlan, setSavingPlan] = useState(false)
+
+  // Modal de Reset de Senha pelo Dono
+  const [resettingClinic, setResettingClinic] = useState<ClinicAccountItem | null>(null)
+  const [sendingResetEmail, setSendingResetEmail] = useState(false)
 
   const authorized = isSuperAdmin(user, professional) || unlocked
 
@@ -179,9 +184,27 @@ export function SuperAdminPage() {
       loadData()
     } catch (e: any) {
       console.error(e)
-      toast.error("Erro ao atualizar plano: " + e.message)
+      toast.error(e.message || "Erro ao salvar plano.")
     } finally {
       setSavingPlan(false)
+    }
+  }
+
+  async function handleSendAdminPasswordReset() {
+    if (!resettingClinic) return
+    setSendingResetEmail(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resettingClinic.email, {
+        redirectTo: `${window.location.origin}/redefinir-senha`,
+      })
+      if (error) throw error
+      toast.success(`Link de redefinição de senha enviado para ${resettingClinic.email}! ✉️✨`)
+      setResettingClinic(null)
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || "Erro ao enviar e-mail de recuperação.")
+    } finally {
+      setSendingResetEmail(false)
     }
   }
 
@@ -1079,17 +1102,28 @@ export function SuperAdminPage() {
 
                             {/* Ações */}
                             <td className="px-5 py-4 text-right">
-                              <button
-                                onClick={() => {
-                                  setEditingClinic(clinic)
-                                  setNewPlanId(clinic.planId)
-                                  setNewStatus(clinic.subscriptionStatus as any)
-                                }}
-                                className="px-3 py-1.5 rounded-xl bg-[#F5F3FF] hover:bg-[#EDE9FE] text-[#7C3AED] font-black text-xs border border-[#DDD6FE] transition-all flex items-center gap-1 ml-auto"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                                <span>Alterar Plano</span>
-                              </button>
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => setResettingClinic(clinic)}
+                                  className="px-2.5 py-1.5 rounded-xl bg-[#F0FDF4] hover:bg-[#DCFCE7] text-[#166534] font-black text-xs border border-[#BBF7D0] transition-all flex items-center gap-1"
+                                  title="Enviar link ou resetar senha da psicopedagoga"
+                                >
+                                  <KeyRound className="w-3.5 h-3.5" />
+                                  <span>Resetar Senha</span>
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    setEditingClinic(clinic)
+                                    setNewPlanId(clinic.planId)
+                                    setNewStatus(clinic.subscriptionStatus as any)
+                                  }}
+                                  className="px-2.5 py-1.5 rounded-xl bg-[#F5F3FF] hover:bg-[#EDE9FE] text-[#7C3AED] font-black text-xs border border-[#DDD6FE] transition-all flex items-center gap-1"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                  <span>Plano</span>
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         )
@@ -1244,6 +1278,98 @@ export function SuperAdminPage() {
                   className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white font-black text-xs shadow-md active:scale-95 transition-all"
                 >
                   {savingPlan ? "Salvando..." : "Salvar Alteração"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL DE RESET DE SENHA PELO DONO */}
+        {resettingClinic && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-2xl max-w-md w-full p-6 sm:p-7 space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-[#EEF2F6]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-[#DCFCE7] text-[#166534] flex items-center justify-center font-bold">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-[#0D2329]">Suporte de Senha & Acesso</h3>
+                    <p className="text-[11px] font-semibold text-[#6B7C83]">
+                      {resettingClinic.fullName} ({resettingClinic.clinicName})
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setResettingClinic(null)}
+                  className="w-8 h-8 rounded-full bg-[#F1F5F9] text-[#6B7C83] hover:text-[#0D2329] flex items-center justify-center"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-3.5 text-xs text-[#0D2329]">
+                <div className="p-3.5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-[#6B7C83]">E-mail da Psicopedagoga:</span>
+                  <p className="font-black text-sm text-[#0D2329] break-all">{resettingClinic.email}</p>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="font-bold text-[#6B7C83]">Escolha como deseja ajudar a cliente:</p>
+
+                  {/* Opção 1: Enviar link oficial por e-mail */}
+                  <button
+                    type="button"
+                    disabled={sendingResetEmail}
+                    onClick={handleSendAdminPasswordReset}
+                    className="w-full p-3.5 rounded-2xl bg-[#FAF5FF] hover:bg-[#F3E8FF] border border-[#DDD6FE] text-left flex items-center justify-between transition-all group"
+                  >
+                    <div>
+                      <strong className="font-black text-xs text-[#7C3AED] block">
+                        ✉️ Enviar Link de Recuperação por E-mail
+                      </strong>
+                      <span className="text-[11px] text-[#6B7C83]">
+                        Dispara o link seguro do Supabase diretamente para a caixa de entrada dela.
+                      </span>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-xl bg-[#7C3AED] text-white font-bold text-[10px] group-hover:scale-105 transition-transform shrink-0 ml-2">
+                      {sendingResetEmail ? "Enviando..." : "Disparar"}
+                    </span>
+                  </button>
+
+                  {/* Opção 2: Enviar link no WhatsApp */}
+                  {resettingClinic.phone && (
+                    <a
+                      href={`https://wa.me/55${resettingClinic.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                        `Olá ${resettingClinic.fullName.split(" ")[0]}! Aqui é o suporte do EvoluIA. Segue o link para você redefinir sua senha de acesso com facilidade: https://evolu-ia-seven.vercel.app/esqueci-senha`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full p-3.5 rounded-2xl bg-[#F0FDF4] hover:bg-[#DCFCE7] border border-[#BBF7D0] text-left flex items-center justify-between transition-all group block"
+                    >
+                      <div>
+                        <strong className="font-black text-xs text-[#166534] block">
+                          💬 Enviar Instruções no WhatsApp
+                        </strong>
+                        <span className="text-[11px] text-[#6B7C83]">
+                          Abre o WhatsApp com mensagem pronta de suporte para {resettingClinic.phone}.
+                        </span>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-xl bg-[#10B981] text-white font-bold text-[10px] group-hover:scale-105 transition-transform shrink-0 ml-2">
+                        Abrir WhatsApp
+                      </span>
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end pt-3 border-t border-[#EEF2F6]">
+                <button
+                  type="button"
+                  onClick={() => setResettingClinic(null)}
+                  className="px-4 py-2.5 rounded-xl bg-[#F1F5F9] text-[#0D2329] font-bold text-xs"
+                >
+                  Fechar
                 </button>
               </div>
             </div>
