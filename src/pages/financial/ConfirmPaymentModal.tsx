@@ -300,20 +300,26 @@ export function ConfirmPaymentModal({
   async function handleConfirmAndSendWhatsApp() {
     setLoading(true)
     try {
-      // 1. Update Database
+      // 1. Prepare notes with payment method tag
+      const baseNote = (notes || record.notes || "")
+        .replace(/\[(FORMA|PAGO VIA|MÉTODO):[^\]]+\]/gi, "")
+        .trim()
+      const finalNotes = baseNote ? `${baseNote} [FORMA: ${paymentMethod}]` : `[FORMA: ${paymentMethod}]`
+
+      // 2. Update Database
       const { error } = await supabase
         .from("financial_records")
         .update({
           status: "paid",
           payment_date: paymentDate,
-          notes: notes || record.notes || null,
+          notes: finalNotes,
         })
         .eq("id", record.id)
 
       if (error) throw error
       toast.success(`Pagamento de ${childName} confirmado!`)
 
-      // 2. Automatically copy high resolution image to clipboard
+      // 3. Automatically copy high resolution image to clipboard
       const blob = await getCanvasBlob()
       if (blob && navigator.clipboard && (window as any).ClipboardItem) {
         try {
@@ -328,16 +334,16 @@ export function ConfirmPaymentModal({
         handleDownloadImage()
       }
 
-      // 3. Format Phone
+      // 4. Format Phone
       let cleanPhone = guardianPhone.replace(/\D/g, "")
       if (cleanPhone && !cleanPhone.startsWith("55") && cleanPhone.length <= 11) {
         cleanPhone = `55${cleanPhone}`
       }
 
-      // 4. Short, pleasant greeting phrase for WhatsApp
+      // 5. Short, pleasant greeting phrase for WhatsApp
       const shortGreeting = `Olá, ${guardianName || "tudo bem"}! Segue o comprovante de pagamento de ${childName} (${refMonth}/${refYear}) no valor de ${amountFormatted}.`
 
-      // 5. Open WhatsApp
+      // 6. Open WhatsApp
       const waUrl = cleanPhone
         ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(shortGreeting)}`
         : `https://wa.me/?text=${encodeURIComponent(shortGreeting)}`
@@ -354,12 +360,18 @@ export function ConfirmPaymentModal({
   async function handleOnlyConfirm() {
     setLoading(true)
     try {
+      // 1. Prepare notes with payment method tag
+      const baseNote = (notes || record.notes || "")
+        .replace(/\[(FORMA|PAGO VIA|MÉTODO):[^\]]+\]/gi, "")
+        .trim()
+      const finalNotes = baseNote ? `${baseNote} [FORMA: ${paymentMethod}]` : `[FORMA: ${paymentMethod}]`
+
       const { error } = await supabase
         .from("financial_records")
         .update({
           status: "paid",
           payment_date: paymentDate,
-          notes: notes || record.notes || null,
+          notes: finalNotes,
         })
         .eq("id", record.id)
 

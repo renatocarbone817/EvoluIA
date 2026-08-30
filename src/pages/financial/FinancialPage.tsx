@@ -605,21 +605,52 @@ export function FinancialPage() {
     const paidRecords = monthRecords.filter((r) => !getRecordInfo(r).isExpense && r.status === "paid")
     const totalPaid = paidRecords.reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
 
-    let credit = 0
     let pix = 0
+    let credit = 0
+    let cash = 0
     let transfer = 0
 
     paidRecords.forEach((r) => {
       const amt = Number(r.amount) || 0
       const notesLower = (r.notes || "").toLowerCase()
-      if (notesLower.includes("cart") || notesLower.includes("credit")) credit += amt
-      else if (notesLower.includes("transf") || notesLower.includes("ted") || notesLower.includes("doc") || notesLower.includes("boleto")) transfer += amt
-      else pix += amt
+
+      if (
+        notesLower.includes("dinheiro") ||
+        notesLower.includes("espécie") ||
+        notesLower.includes("especie") ||
+        notesLower.includes("cash")
+      ) {
+        cash += amt
+      } else if (
+        notesLower.includes("cart") ||
+        notesLower.includes("credit") ||
+        notesLower.includes("débito") ||
+        notesLower.includes("debito") ||
+        notesLower.includes("crédito") ||
+        notesLower.includes("credito")
+      ) {
+        credit += amt
+      } else if (
+        notesLower.includes("transf") ||
+        notesLower.includes("ted") ||
+        notesLower.includes("doc") ||
+        notesLower.includes("boleto") ||
+        notesLower.includes("bancár") ||
+        notesLower.includes("banco")
+      ) {
+        transfer += amt
+      } else if (notesLower.includes("pix")) {
+        pix += amt
+      } else {
+        // Fallback default
+        pix += amt
+      }
     })
 
     return {
-      credit: { amount: credit, pct: totalPaid > 0 ? Math.round((credit / totalPaid) * 100) : 0 },
       pix: { amount: pix, pct: totalPaid > 0 ? Math.round((pix / totalPaid) * 100) : 0 },
+      credit: { amount: credit, pct: totalPaid > 0 ? Math.round((credit / totalPaid) * 100) : 0 },
+      cash: { amount: cash, pct: totalPaid > 0 ? Math.round((cash / totalPaid) * 100) : 0 },
       transfer: { amount: transfer, pct: totalPaid > 0 ? Math.round((transfer / totalPaid) * 100) : 0 },
     }
   }, [monthRecords])
@@ -1136,15 +1167,19 @@ export function FinancialPage() {
             <h3 className="text-xs font-black text-[#0D2329]">Formas de Pagamento</h3>
             <div className="space-y-1.5 text-[11px]">
               <div className="flex items-center justify-between font-bold">
-                <span className="text-[#10B981]">💠 PIX</span>
+                <span className="text-[#10B981] flex items-center gap-1">💠 PIX</span>
                 <span>{formatCurrency(paymentMethodsBreakdown.pix.amount)} ({paymentMethodsBreakdown.pix.pct}%)</span>
               </div>
               <div className="flex items-center justify-between font-bold">
-                <span className="text-[#7C3AED]">💳 Cartão</span>
+                <span className="text-[#7C3AED] flex items-center gap-1">💳 Cartão</span>
                 <span>{formatCurrency(paymentMethodsBreakdown.credit.amount)} ({paymentMethodsBreakdown.credit.pct}%)</span>
               </div>
               <div className="flex items-center justify-between font-bold">
-                <span className="text-[#0284C7]">🏛️ Transferência</span>
+                <span className="text-[#059669] flex items-center gap-1">💵 Dinheiro</span>
+                <span>{formatCurrency(paymentMethodsBreakdown.cash.amount)} ({paymentMethodsBreakdown.cash.pct}%)</span>
+              </div>
+              <div className="flex items-center justify-between font-bold">
+                <span className="text-[#0284C7] flex items-center gap-1">🏛️ Transferência</span>
                 <span>{formatCurrency(paymentMethodsBreakdown.transfer.amount)} ({paymentMethodsBreakdown.transfer.pct}%)</span>
               </div>
             </div>
