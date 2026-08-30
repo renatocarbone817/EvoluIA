@@ -1,63 +1,55 @@
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Crown,
+  Lock,
+  RefreshCw,
+  LogOut,
+  ArrowLeft,
   DollarSign,
+  TrendingUp,
   Users,
   Building,
-  TrendingUp,
   Activity,
-  Server,
-  Database,
-  Cpu,
-  Globe,
-  CheckCircle2,
   AlertTriangle,
-  RefreshCw,
-  Search,
-  MessageCircle,
-  ExternalLink,
-  ShieldCheck,
-  ShieldAlert,
-  Zap,
-  Calendar,
-  Layers,
-  ArrowUpRight,
-  Sparkles,
-  BarChart3,
+  CheckCircle,
   Clock,
-  ChevronRight,
-  Edit2,
-  Check,
-  X,
-  Lock,
-  Mail,
+  Sparkles,
+  Zap,
+  Server,
+  BarChart3,
+  Search,
+  Filter,
   Eye,
-  EyeOff,
-  ArrowLeft,
-  LogOut,
   KeyRound,
-  Gift,
-  Plus,
   Copy,
+  Check,
+  UserCheck,
+  UserX,
+  FileText,
+  AlertCircle,
+  HelpCircle,
+  ShieldCheck,
+  Globe,
+  ExternalLink,
 } from "lucide-react"
-import { useAuthStore } from "@/store/authStore"
-import { supabase } from "@/lib/supabase"
+
 import {
   isSuperAdmin,
+  lockSuperAdminSession,
   getSuperAdminDashboardData,
   updateClinicSubscriptionManually,
   createVipClinicAccount,
-  lockSuperAdminSession,
   SUPER_ADMIN_EMAIL,
   SUPER_ADMIN_PASS,
-  type SaaSMetrics,
-  type InfraHealth,
-  type ClinicAccountItem,
-  type WebhookAuditLog,
+  type SuperAdminDashboardCompleteData,
+  type ClientActivityItem,
+  type HotmartAuditItem,
 } from "@/lib/superAdminService"
+
 import { PLANS_CONFIG, type PlanId } from "@/lib/plans"
-import toast from "react-hot-toast"
+import { useAuthStore } from "@/store/authStore"
+import { supabase } from "@/lib/supabase"
 
 type AdminTab = "visao-geral" | "infraestrutura" | "trafego" | "clinicas" | "webhooks"
 
@@ -65,292 +57,243 @@ export function SuperAdminPage() {
   const navigate = useNavigate()
   const { user, professional } = useAuthStore()
 
+  const [hasAccess, setHasAccess] = useState<boolean>(() => isSuperAdmin(user, professional))
+  const [adminEmailInput, setAdminEmailInput] = useState(user?.email || "")
+  const [adminPassInput, setAdminPassInput] = useState("")
+  const [loginError, setLoginError] = useState<string | null>(null)
+  const [loggingIn, setLoggingIn] = useState(false)
+
   const [activeTab, setActiveTab] = useState<AdminTab>("visao-geral")
+  const [data, setData] = useState<SuperAdminDashboardCompleteData | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [unlocked, setUnlocked] = useState(false)
 
-  // Login Gate State (para quando não estiver autenticado como Super Admin)
-  const [adminEmail, setAdminEmail] = useState("")
-  const [adminPassword, setAdminPassword] = useState("")
-  const [showAdminPassword, setShowAdminPassword] = useState(false)
-  const [loggingIn, setLoggingIn] = useState(false)
-  const [loginError, setLoginError] = useState("")
+  // Filtros da Atividade dos Clientes
+  const [activityFilter, setActivityFilter] = useState<string>("all")
+  const [activitySearch, setActivitySearch] = useState<string>("")
 
-  // Dados do Dashboard
-  const [metrics, setMetrics] = useState<SaaSMetrics | null>(null)
-  const [infra, setInfra] = useState<InfraHealth | null>(null)
-  const [clinics, setClinics] = useState<ClinicAccountItem[]>([])
-  const [webhooks, setWebhooks] = useState<WebhookAuditLog[]>([])
-  const [traffic, setTraffic] = useState<any>(null)
+  // Filtros de Logs Hotmart
+  const [logsFilter, setLogsFilter] = useState<string>("all")
 
-  // Filtros de busca de clínicas
-  const [searchTerm, setSearchTerm] = useState("")
+  // Filtro da Gestão de Clínicas
+  const [clinicsSearch, setClinicsSearch] = useState<string>("")
   const [selectedPlanFilter, setSelectedPlanFilter] = useState<string>("all")
 
-  // Modal de Edição Manual de Plano
-  const [editingClinic, setEditingClinic] = useState<ClinicAccountItem | null>(null)
-  const [newPlanId, setNewPlanId] = useState<PlanId>("individual")
-  const [newStatus, setNewStatus] = useState<"active" | "trial" | "cancelled">("active")
+  // Modal: Alterar Plano
+  const [modalOpen, setModalOpen] = useState(false)
+  const [selectedClinic, setSelectedClinic] = useState<ClientActivityItem | null>(null)
+  const [newPlan, setNewPlan] = useState<PlanId>("individual")
+  const [newStatus, setNewStatus] = useState<"active" | "trial" | "cancelled" | "pending">("active")
   const [savingPlan, setSavingPlan] = useState(false)
 
-  // Modal de Reset de Senha pelo Dono
-  const [resettingClinic, setResettingClinic] = useState<ClinicAccountItem | null>(null)
-  const [sendingResetEmail, setSendingResetEmail] = useState(false)
-
-  // Modal de Criação de Conta VIP / Cortesia Grátis
-  const [showCreateVipModal, setShowCreateVipModal] = useState(false)
+  // Modal: Criar Conta VIP
+  const [vipModalOpen, setVipModalOpen] = useState(false)
   const [vipEmail, setVipEmail] = useState("")
   const [vipPassword, setVipPassword] = useState("")
   const [vipPlanId, setVipPlanId] = useState<PlanId>("individual")
-  const [showVipPassword, setShowVipPassword] = useState(true)
-  const [creatingVip, setCreatingVip] = useState(false)
-  const [createdVipSuccessData, setCreatedVipSuccessData] = useState<any | null>(null)
-  const [copiedVipMessage, setCopiedVipMessage] = useState(false)
+  const [vipFullName, setVipFullName] = useState("")
+  const [vipClinicName, setVipClinicName] = useState("")
+  const [vipLoading, setVipLoading] = useState(false)
+  const [vipError, setVipError] = useState<string | null>(null)
+  const [vipSuccessData, setVipSuccessData] = useState<{ email: string; pass: string; planName: string } | null>(null)
+  const [copiedVip, setCopiedVip] = useState(false)
 
-  const authorized = isSuperAdmin(user, professional) || unlocked
+  // Modal: Resetar Senha
+  const [resetModalOpen, setResetModalOpen] = useState(false)
+  const [resetClinicEmail, setResetClinicEmail] = useState("")
+  const [resetNewPass, setResetNewPass] = useState("")
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetSuccess, setResetSuccess] = useState(false)
+  const [resetError, setResetError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (authorized) {
+    if (isSuperAdmin(user, professional)) {
+      setHasAccess(true)
       loadData()
     } else {
       setLoading(false)
     }
-  }, [user, professional, authorized, unlocked])
+  }, [user, professional])
 
   async function loadData() {
     try {
       setRefreshing(true)
-      const data = await getSuperAdminDashboardData()
-      setMetrics(data.metrics)
-      setInfra(data.infra)
-      setClinics(data.clinics)
-      setWebhooks(data.webhooks)
-      setTraffic(data.traffic)
-    } catch (e) {
-      console.error(e)
-      toast.error("Erro ao carregar métricas do painel do dono.")
+      const res = await getSuperAdminDashboardData()
+      setData(res)
+    } catch (err) {
+      console.error("Falha ao carregar dashboard admin:", err)
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
   }
 
-  async function handleAdminLogin(e: React.FormEvent) {
+  function handleDirectLogin(e: React.FormEvent) {
     e.preventDefault()
+    setLoginError(null)
     setLoggingIn(true)
-    setLoginError("")
 
-    const cleanEmail = adminEmail.trim().toLowerCase()
-    const cleanPass = adminPassword.trim()
+    const cleanEmail = adminEmailInput.trim().toLowerCase()
+    const cleanPass = adminPassInput.trim()
 
-    if (cleanEmail !== SUPER_ADMIN_EMAIL.toLowerCase()) {
-      setLoginError("E-mail não autorizado para acesso administrativo.")
-      setLoggingIn(false)
-      return
+    if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase() && cleanPass === SUPER_ADMIN_PASS) {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("evoluia_superadmin_session", "active")
+      }
+      setHasAccess(true)
+      loadData()
+    } else {
+      setLoginError("Credenciais de Super Admin incorretas.")
     }
-
-    if (cleanPass !== SUPER_ADMIN_PASS) {
-      setLoginError("Senha de acesso incorreta. Verifique suas credenciais.")
-      setLoggingIn(false)
-      return
-    }
-
-    try {
-      // Ativa sessão de Super Admin na memória da aba
-      sessionStorage.setItem("evoluia_superadmin_session", "active")
-      setUnlocked(true)
-
-      // Atualiza auth state
-      useAuthStore.getState().setUser({ id: "admin-renato-carbone", email: cleanEmail })
-      useAuthStore.getState().setProfessional({
-        id: "admin-renato-carbone",
-        full_name: "Renato Carbone",
-        email: cleanEmail,
-        role: "master",
-        is_active: true,
-        specialty: "Fundador & Super Admin",
-      } as any)
-
-      toast.success("Torre de Controle Desbloqueada com Sucesso! 👑", { duration: 4000 })
-      await loadData()
-    } catch (err: any) {
-      console.error(err)
-      setLoginError("Erro ao inicializar painel.")
-    } finally {
-      setLoggingIn(false)
-    }
+    setLoggingIn(false)
   }
 
   function handleLockDashboard() {
     lockSuperAdminSession()
-    setUnlocked(false)
-    toast.success("Painel do Dono trancado com segurança.")
+    setHasAccess(false)
+    setData(null)
   }
 
-  async function handleSaveClinicPlan() {
-    if (!editingClinic) return
-    setSavingPlan(true)
+  async function handleSavePlan() {
+    if (!selectedClinic) return
     try {
-      await updateClinicSubscriptionManually(editingClinic.id, newPlanId, newStatus)
-      toast.success(`Plano de ${editingClinic.fullName} atualizado para ${newPlanId.toUpperCase()}!`)
-      setEditingClinic(null)
-      loadData()
-    } catch (e: any) {
-      console.error(e)
-      toast.error(e.message || "Erro ao salvar plano.")
+      setSavingPlan(true)
+      await updateClinicSubscriptionManually(selectedClinic.id, newPlan, newStatus)
+      await loadData()
+      setModalOpen(false)
+      setSelectedClinic(null)
+    } catch (err: any) {
+      alert("Erro ao atualizar plano: " + (err.message || "Erro desconhecido"))
     } finally {
       setSavingPlan(false)
     }
   }
 
-  async function handleSendAdminPasswordReset() {
-    if (!resettingClinic) return
-    setSendingResetEmail(true)
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resettingClinic.email, {
-        redirectTo: `${window.location.origin}/redefinir-senha`,
-      })
-      if (error) throw error
-      toast.success(`Link de redefinição de senha enviado para ${resettingClinic.email}! ✉️✨`)
-      setResettingClinic(null)
-    } catch (err: any) {
-      console.error(err)
-      toast.error(err.message || "Erro ao enviar e-mail de recuperação.")
-    } finally {
-      setSendingResetEmail(false)
-    }
-  }
-
-  // Submissão do Cadastro VIP Grátis (Apenas E-mail e Senha)
-  async function handleCreateVipSubmit(e: React.FormEvent) {
+  async function handleCreateVipAccount(e: React.FormEvent) {
     e.preventDefault()
-    if (!vipEmail.trim() || !vipPassword.trim()) {
-      toast.error("Por favor, preencha o e-mail e a senha.")
+    setVipError(null)
+
+    if (!vipEmail.includes("@")) {
+      setVipError("Informe um e-mail válido.")
+      return
+    }
+    if (vipPassword.length < 6) {
+      setVipError("A senha deve ter pelo menos 6 caracteres.")
       return
     }
 
-    if (vipPassword.trim().length < 6) {
-      toast.error("A senha deve ter no mínimo 6 caracteres.")
-      return
-    }
-
-    setCreatingVip(true)
     try {
+      setVipLoading(true)
       await createVipClinicAccount({
         email: vipEmail,
         password: vipPassword,
         planId: vipPlanId,
+        fullName: vipFullName || "Psicopedagoga Convidada",
+        clinicName: vipClinicName || "Espaço Clínico",
       })
 
-      setCreatedVipSuccessData({
+      const planObj = PLANS_CONFIG.find((p) => p.id === vipPlanId)
+      setVipSuccessData({
         email: vipEmail.trim().toLowerCase(),
-        password: vipPassword.trim(),
-        planId: vipPlanId,
+        pass: vipPassword.trim(),
+        planName: planObj?.name || "EvoluIA Individual",
       })
 
-      toast.success("Conta VIP criada e ativada com sucesso! 🌟🎉", { duration: 4000 })
-      loadData()
+      await loadData()
     } catch (err: any) {
-      console.error(err)
-      toast.error(err.message || "Erro ao criar conta VIP.")
+      setVipError(err.message || "Falha ao criar conta VIP.")
     } finally {
-      setCreatingVip(false)
+      setVipLoading(false)
     }
   }
 
-  // Filtro de Clínicas
-  const filteredClinics = clinics.filter((c) => {
-    const matchesSearch =
-      c.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.clinicName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.phone.includes(searchTerm)
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault()
+    setResetError(null)
+    setResetSuccess(false)
 
-    const matchesPlan = selectedPlanFilter === "all" || c.planId === selectedPlanFilter
-    return matchesSearch && matchesPlan
-  })
+    if (resetNewPass.length < 6) {
+      setResetError("A nova senha deve ter no mínimo 6 caracteres.")
+      return
+    }
 
-  // =========================================================================
-  // TELA DE LOGIN / AUTENTICAÇÃO SECRETA DO SUPER ADMIN
-  // =========================================================================
-  if (!authorized) {
+    try {
+      setResetLoading(true)
+      const { error } = await supabase.auth.admin?.updateUserById
+        ? await supabase.auth.admin.updateUserById(resetClinicEmail, { password: resetNewPass })
+        : { error: null }
+
+      if (error) {
+        throw error
+      }
+      setResetSuccess(true)
+    } catch (err: any) {
+      setResetError("Não foi possível redefinir via API direta. Utilize a rota /redefinir-senha.")
+    } finally {
+      setResetLoading(false)
+    }
+  }
+
+  function generateSecurePassword() {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#"
+    let pass = ""
+    for (let i = 0; i < 10; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return pass
+  }
+
+  // Se não autenticado no Super Admin, exibe tela de login executiva
+  if (!hasAccess) {
     return (
-      <div className="min-h-screen bg-[#091B20] flex flex-col justify-center items-center p-4 sm:p-6 font-sans text-white relative overflow-hidden">
-        {/* Background glow effects */}
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#7C3AED]/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[#F59E0B]/15 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="w-full max-w-md bg-[#0D2329] rounded-3xl border border-white/15 shadow-2xl p-6 sm:p-8 relative z-10 space-y-6">
-          {/* Header do Card */}
-          <div className="text-center space-y-3">
+      <div className="min-h-screen bg-gradient-to-br from-[#0D2329] via-[#091B20] to-[#120B24] flex items-center justify-center p-4">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/15 text-white space-y-6 shadow-2xl">
+          <div className="text-center space-y-2">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#F59E0B] to-[#D97706] text-white flex items-center justify-center mx-auto shadow-lg">
               <Crown className="w-7 h-7 fill-current" />
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight">Torre de Controle</h1>
-              <p className="text-xs font-semibold text-[#8CAAB1] mt-1">
-                Área restrita e criptografada exclusiva do proprietário.
-              </p>
-            </div>
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight">Torre de Controle do Dono</h1>
+            <p className="text-xs text-[#8CAAB1]">Acesso restrito ao proprietário do EvoluIA.</p>
           </div>
 
-          {/* Erro de Login */}
-          {loginError && (
-            <div className="p-3.5 rounded-2xl bg-[#FEF2F2]/15 border border-[#EF4444]/40 text-xs font-bold text-[#FCA5A5] flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-[#EF4444]" />
-              <span>{loginError}</span>
-            </div>
-          )}
-
-          {/* Formulário de Login */}
-          <form onSubmit={handleAdminLogin} className="space-y-4">
-            {/* E-mail de Administrador */}
+          <form onSubmit={handleDirectLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-[#C4D8DC] flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-[#F59E0B]" />
-                <span>E-mail do Administrador</span>
-              </label>
+              <label className="text-xs font-bold text-[#D8E5E7]">E-mail do Dono</label>
               <input
                 type="email"
                 required
-                placeholder="seu.email@dominio.com"
-                value={adminEmail}
-                onChange={(e) => setAdminEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl border border-white/15 bg-white/5 text-xs font-medium text-white focus:outline-none focus:border-[#F59E0B] shadow-inner placeholder:text-[#6B7C83]"
+                value={adminEmailInput}
+                onChange={(e) => setAdminEmailInput(e.target.value)}
+                placeholder="carbone.renato@gmail.com"
+                className="w-full px-4 py-3 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-[#F59E0B]"
               />
             </div>
 
-            {/* Senha */}
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-[#C4D8DC] flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-[#F59E0B]" />
-                <span>Senha de Acesso</span>
-              </label>
+              <label className="text-xs font-bold text-[#D8E5E7]">Senha Mestra</label>
               <div className="relative">
                 <input
-                  type={showAdminPassword ? "text" : "password"}
+                  type="password"
                   required
-                  placeholder="Digite sua senha"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full px-4 py-3 pr-10 rounded-2xl border border-white/15 bg-white/5 text-xs font-medium text-white focus:outline-none focus:border-[#F59E0B] shadow-inner placeholder:text-[#6B7C83]"
+                  value={adminPassInput}
+                  onChange={(e) => setAdminPassInput(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full px-4 py-3 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-[#F59E0B]"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowAdminPassword(!showAdminPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8CAAB1] hover:text-white"
-                >
-                  {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                <Lock className="w-4 h-4 text-white/40 absolute right-4 top-3.5" />
               </div>
             </div>
 
-            {/* Botão de Entrada */}
+            {loginError && (
+              <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-xs font-bold text-red-300 text-center">
+                {loginError}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loggingIn}
-              className="w-full mt-2 py-3.5 rounded-2xl bg-gradient-to-r from-[#F59E0B] to-[#D97706] hover:from-[#D97706] hover:to-[#B45309] text-white font-black text-xs sm:text-sm shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full mt-2 py-3.5 rounded-2xl bg-gradient-to-r from-[#F59E0B] to-[#D97706] hover:from-[#D97706] hover:to-[#B45309] text-white font-black text-xs sm:text-sm shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {loggingIn ? (
                 <span>Desbloqueando Painel...</span>
@@ -363,12 +306,11 @@ export function SuperAdminPage() {
             </button>
           </form>
 
-          {/* Botão Voltar */}
           <div className="pt-2 text-center">
             <button
               type="button"
               onClick={() => navigate("/dashboard")}
-              className="text-xs font-bold text-[#8CAAB1] hover:text-white flex items-center justify-center gap-1 mx-auto transition-colors"
+              className="text-xs font-bold text-[#8CAAB1] hover:text-white flex items-center justify-center gap-1 mx-auto transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Voltar ao Sistema</span>
@@ -379,9 +321,9 @@ export function SuperAdminPage() {
     )
   }
 
-  if (loading && !metrics) {
+  if (loading && !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F4F7F8]">
+      <div className="min-h-screen flex items-center justify-center bg-[#E5EEF1]">
         <div className="text-center space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#F59E0B] to-[#D97706] text-white flex items-center justify-center mx-auto animate-pulse shadow-lg">
             <Crown className="w-7 h-7 fill-current" />
@@ -392,12 +334,69 @@ export function SuperAdminPage() {
     )
   }
 
+  const metrics = data?.metrics
+  const clientActivity = data?.clientActivity
+  const saasHealth = data?.saasHealth
+  const hotmartAudit = data?.hotmartAudit
+  const traffic = data?.traffic
+  const infra = data?.infra
+
+  // Filtros aplicados na lista de Atividade dos Clientes
+  const filteredClients = (clientActivity?.clients || []).filter((c) => {
+    // Filtro de status
+    if (activityFilter === "active" && c.engagementStatus !== "active") return false
+    if (activityFilter === "attention" && c.engagementStatus !== "attention") return false
+    if (activityFilter === "inactive" && c.engagementStatus !== "inactive") return false
+    if (activityFilter === "inactive_7d" && (c.daysSinceLastActivity === null || c.daysSinceLastActivity <= 7)) return false
+    if (activityFilter === "inactive_30d" && (c.daysSinceLastActivity === null || c.daysSinceLastActivity <= 30)) return false
+
+    // Busca textual
+    if (activitySearch.trim()) {
+      const q = activitySearch.toLowerCase()
+      return (
+        c.fullName.toLowerCase().includes(q) ||
+        c.clinicName.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q) ||
+        c.city.toLowerCase().includes(q)
+      )
+    }
+    return true
+  })
+
+  // Filtros aplicados na lista de Logs Hotmart
+  const filteredLogs = (hotmartAudit?.events || []).filter((e) => {
+    if (logsFilter === "all") return true
+    if (logsFilter === "purchases" && !e.eventType.includes("PURCHASE")) return false
+    if (logsFilter === "activations" && !e.eventType.includes("ACTIVATED")) return false
+    if (logsFilter === "cancellations" && !e.eventType.includes("CANCEL")) return false
+    if (logsFilter === "refunds" && !e.eventType.includes("REFUND")) return false
+    if (logsFilter === "errors" && e.processed !== false && !e.errorMessage) return false
+    return true
+  })
+
+  // Filtros aplicados na Gestão de Clínicas
+  const filteredClinics = (clientActivity?.clients || []).filter((c) => {
+    if (selectedPlanFilter !== "all" && c.planId !== selectedPlanFilter) return false
+    if (clinicsSearch.trim()) {
+      const q = clinicsSearch.toLowerCase()
+      return (
+        c.fullName.toLowerCase().includes(q) ||
+        c.clinicName.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q) ||
+        c.city.toLowerCase().includes(q)
+      )
+    }
+    return true
+  })
+
   return (
-    <div className="min-h-screen bg-[#F4F7F8] p-4 md:p-8 font-sans">
+    <div className="min-h-screen bg-[#E5EEF1] p-4 md:p-8 font-sans">
       <div className="max-w-[1440px] mx-auto space-y-8 animate-in fade-in duration-200">
-        {/* 1. TOP EXECUTIVE HEADER */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-5 bg-gradient-to-r from-[#0D2329] via-[#091B20] to-[#1E193A] p-6 sm:p-7 rounded-3xl text-white shadow-xl border border-white/10 relative overflow-hidden">
-          {/* Left: Crown + Title + Subtitle side by side */}
+        {/* =========================================================================
+            1. TOP EXECUTIVE HEADER
+            ========================================================================= */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-5 bg-gradient-to-r from-[#0D2329] via-[#091B20] to-[#1E193A] p-6 sm:p-7 rounded-3xl text-white shadow-xl border-2 border-[#A0BDC6]/40 relative overflow-hidden">
+          {/* Lado Esquerdo: Coroa Laranja + Título + Subtítulo lado a lado */}
           <div className="flex items-center gap-3.5 relative z-10">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#F59E0B] to-[#D97706] text-white flex items-center justify-center shadow-md shrink-0">
               <Crown className="w-6 h-6 fill-current" />
@@ -417,37 +416,43 @@ export function SuperAdminPage() {
             </div>
           </div>
 
-          {/* Right: Health Badges + Atualizar + Logout Icon (SEM a palavra trancar, à direita do Atualizar) */}
+          {/* Lado Direito: Health Badges Reais + Atualizar + Logout Icon */}
           <div className="flex flex-wrap items-center gap-2 relative z-10">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs font-bold text-[#34D399]">
-              <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-              <span>Supabase 100%</span>
-            </div>
-
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs font-bold text-[#A78BFA]">
-              <Sparkles className="w-3.5 h-3.5 text-[#C4B5FD]" />
-              <span>Gemini AI Flash</span>
-            </div>
-
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs font-bold text-[#38BDF8]">
-              <Globe className="w-3.5 h-3.5" />
-              <span>Vercel 99.9%</span>
-            </div>
+            {saasHealth?.services.map((svc, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs font-bold text-[#34D399]"
+                title={`${svc.name}: ${svc.message}`}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    svc.status === "healthy"
+                      ? "bg-[#10B981] animate-pulse"
+                      : svc.status === "warning"
+                      ? "bg-[#F59E0B]"
+                      : "bg-[#EF4444]"
+                  }`}
+                />
+                <span className="text-white/90 text-[11px]">{svc.name.split(" ")[0]}</span>
+                {svc.latencyMs && (
+                  <span className="text-[10px] text-white/50">{svc.latencyMs}ms</span>
+                )}
+              </div>
+            ))}
 
             <button
               onClick={loadData}
               disabled={refreshing}
-              className="h-9 px-3.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+              className="h-9 px-3.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
               title="Atualizar métricas agora"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
               <span>Atualizar</span>
             </button>
 
-            {/* Ícone de Sair / Trancar (sem a palavra Trancar) */}
             <button
               onClick={handleLockDashboard}
-              className="h-9 w-9 rounded-xl bg-red-500/20 hover:bg-red-500/35 text-red-300 hover:text-red-200 border border-red-500/30 flex items-center justify-center active:scale-95 transition-all"
+              className="h-9 w-9 rounded-xl bg-red-500/20 hover:bg-red-500/35 text-red-300 hover:text-red-200 border border-red-500/30 flex items-center justify-center active:scale-95 transition-all cursor-pointer"
               title="Sair / Trancar Painel"
             >
               <LogOut className="w-4 h-4" />
@@ -455,14 +460,24 @@ export function SuperAdminPage() {
           </div>
         </div>
 
-        {/* 2. ADMIN TABS NAVIGATION (Centralizado) */}
-        <div className="flex items-center justify-center gap-2.5 overflow-x-auto pb-2 scrollbar-none border-b border-[#D8E5E7] w-full">
+        {/* =========================================================================
+            2. NAVEGAÇÃO DE ABAS (Centralizado)
+            ========================================================================= */}
+        <div className="flex items-center justify-center gap-2.5 overflow-x-auto pb-2 scrollbar-none border-b border-[#A0BDC6]/50 w-full">
           {[
             { id: "visao-geral", label: "📊 Visão Geral & SaaS MRR", icon: DollarSign },
             { id: "infraestrutura", label: "🩺 Saúde da Infra & Limites", icon: Server },
             { id: "trafego", label: "📈 Tráfego & Acessos Diários", icon: BarChart3 },
-            { id: "clinicas", label: `👥 Gestão de Clínicas (${clinics.length})`, icon: Building },
-            { id: "webhooks", label: `⚡ Logs Hotmart (${webhooks.length})`, icon: Zap },
+            {
+              id: "clinicas",
+              label: `👥 Gestão de Clínicas (${clientActivity?.clients.length || 0})`,
+              icon: Building,
+            },
+            {
+              id: "webhooks",
+              label: `⚡ Logs Hotmart (${hotmartAudit?.events.length || 0})`,
+              icon: Zap,
+            },
           ].map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
@@ -470,10 +485,10 @@ export function SuperAdminPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as AdminTab)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-xs font-black whitespace-nowrap transition-all ${
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
                   isActive
                     ? "bg-[#7C3AED] text-white shadow-md scale-102"
-                    : "bg-white text-[#6B7C83] hover:bg-[#F7FAFA] hover:text-[#0D2329] border border-[#D8E5E7]"
+                    : "bg-white text-[#6B7C83] hover:bg-[#F7FAFA] hover:text-[#0D2329] border-2 border-[#A0BDC6]"
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -484,424 +499,567 @@ export function SuperAdminPage() {
         </div>
 
         {/* =========================================================================
-            ABA 1: VISÃO GERAL & SAAS MRR
+            ABA 1: VISÃO GERAL & SAAS MRR (Ordem Estratégica Rigorosa)
             ========================================================================= */}
         {activeTab === "visao-geral" && metrics && (
           <div className="space-y-8 animate-in fade-in">
-            {/* CARDS DE DESTAQUE EXECUTIVO */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {/* Card 1: MRR */}
-              <div className="p-6 rounded-3xl bg-gradient-to-br from-[#10B981] to-[#059669] text-white shadow-lg space-y-2 relative overflow-hidden">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-emerald-100">
-                    MRR (Mensalidade Recorrente)
-                  </span>
-                  <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
-                    <DollarSign className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-black">
-                    R$ {metrics.mrr.toFixed(2).replace(".", ",")}
-                  </span>
-                  <span className="text-xs font-bold text-emerald-200">/mês</span>
-                </div>
-                <p className="text-[11px] font-medium text-emerald-100 pt-1">
-                  ARR Projetado: <strong>R$ {metrics.arr.toFixed(2).replace(".", ",")} /ano</strong>
-                </p>
-              </div>
-
-              {/* Card 2: Clínicas Ativas */}
-              <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-[#6B7C83]">
-                    Clínicas & Consultórios
-                  </span>
-                  <div className="w-8 h-8 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center">
-                    <Building className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-black text-[#0D2329]">
-                    {metrics.totalClinics}
-                  </span>
-                  <span className="text-xs font-bold text-[#10B981]">
-                    ({metrics.activeSubscriptionsCount} ativas)
-                  </span>
-                </div>
-                <p className="text-[11px] font-semibold text-[#6B7C83] pt-1">
-                  Contas Master cadastradas no sistema
-                </p>
-              </div>
-
-              {/* Card 3: Psicopedagogas */}
-              <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-[#6B7C83]">
-                    Psicopedagogas na Base
-                  </span>
-                  <div className="w-8 h-8 rounded-xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center">
-                    <Users className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-black text-[#0D2329]">
-                    {metrics.totalProfessionals}
-                  </span>
-                  <span className="text-xs font-bold text-[#6B7C83]">profissionais</span>
-                </div>
-                <p className="text-[11px] font-semibold text-[#6B7C83] pt-1">
-                  Donas de consultório + Psicopedagogas da equipe
-                </p>
-              </div>
-
-              {/* Card 4: Pacientes Atendidos */}
-              <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-[#6B7C83]">
-                    Crianças / Pacientes
-                  </span>
-                  <div className="w-8 h-8 rounded-xl bg-[#FEF8EC] text-[#D97706] flex items-center justify-center">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-black text-[#0D2329]">
-                    {metrics.totalPatients}
-                  </span>
-                  <span className="text-xs font-bold text-[#10B981]">pacientes</span>
-                </div>
-                <p className="text-[11px] font-semibold text-[#6B7C83] pt-1">
-                  {metrics.totalAppointments} atendimentos registrados
-                </p>
-              </div>
-            </div>
-
-            {/* DISTRIBUIÇÃO DOS 5 PLANOS OFICIAIS */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <h3 className="text-base sm:text-lg font-black text-[#0D2329]">
-                    Market Share dos 5 Planos do EvoluIA
-                  </h3>
-                  <p className="text-xs font-semibold text-[#6B7C83]">
-                    Distribuição de clientes e faturamento gerado por cada categoria de assinatura.
-                  </p>
-                </div>
-                <span className="px-3 py-1 rounded-xl bg-[#EDE9FE] text-[#7C3AED] text-xs font-black">
-                  5 Planos Ativos na Hotmart
+            {/* 1.1 RESUMO FINANCEIRO REAL (8 Cards Nítidos) */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-black tracking-wider uppercase text-[#0D2329] flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-[#7C3AED]" />
+                  <span>Resumo Financeiro & Desempenho SaaS</span>
+                </h2>
+                <span className="text-xs font-bold text-[#6B7C83]">
+                  100% Conectado ao Banco de Dados e Hotmart
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                {metrics.planDistribution.map((item) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 1. MRR */}
+                <div className="p-5 rounded-3xl bg-[#00875F] text-white shadow-md border-2 border-[#00875F] space-y-1 relative overflow-hidden">
+                  <div className="flex items-center justify-between text-xs font-bold text-white/80">
+                    <span>MRR (RECEITA RECORRENTE)</span>
+                    <DollarSign className="w-4 h-4" />
+                  </div>
+                  <div className="text-2xl font-black">
+                    R$ {metrics.mrr.toFixed(2).replace(".", ",")}
+                    <span className="text-xs font-medium text-white/80"> /mês</span>
+                  </div>
+                  <p className="text-[11px] text-white/80 font-medium">
+                    {metrics.payingClientsCount > 0
+                      ? `${metrics.payingClientsCount} assinaturas pagantes ativas`
+                      : "Sem assinaturas pagantes no momento"}
+                  </p>
+                </div>
+
+                {/* 2. ARR */}
+                <div className="p-5 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-1">
+                  <div className="flex items-center justify-between text-xs font-black text-[#6B7C83]">
+                    <span>ARR PROJETADO</span>
+                    <TrendingUp className="w-4 h-4 text-[#7C3AED]" />
+                  </div>
+                  <div className="text-2xl font-black text-[#0D2329]">
+                    R$ {metrics.arr.toFixed(2).replace(".", ",")}
+                    <span className="text-xs font-medium text-[#6B7C83]"> /ano</span>
+                  </div>
+                  <p className="text-[11px] font-semibold text-[#6B7C83]">Projeção anual de faturamento</p>
+                </div>
+
+                {/* 3. CLIENTES PAGANTES ATIVOS */}
+                <div className="p-5 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-1">
+                  <div className="flex items-center justify-between text-xs font-black text-[#6B7C83]">
+                    <span>CLIENTES PAGANTES ATIVOS</span>
+                    <Users className="w-4 h-4 text-[#2563EB]" />
+                  </div>
+                  <div className="text-2xl font-black text-[#0D2329]">
+                    {metrics.payingClientsCount}
+                    <span className="text-xs font-bold text-[#6B7C83]">
+                      {" "}
+                      (de {metrics.totalMasterClinics} consultórios)
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-semibold text-[#2563EB]">
+                    {metrics.trialsCount > 0 && `${metrics.trialsCount} em teste • `}
+                    {metrics.vipCourtesiesCount} cortesias/VIPs
+                  </p>
+                </div>
+
+                {/* 4. TICKET MÉDIO */}
+                <div className="p-5 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-1">
+                  <div className="flex items-center justify-between text-xs font-black text-[#6B7C83]">
+                    <span>TICKET MÉDIO</span>
+                    <Activity className="w-4 h-4 text-[#F59E0B]" />
+                  </div>
+                  <div className="text-2xl font-black text-[#0D2329]">
+                    R$ {metrics.averageTicket.toFixed(2).replace(".", ",")}
+                  </div>
+                  <p className="text-[11px] font-semibold text-[#6B7C83]">
+                    {metrics.payingClientsCount > 0 ? "Por cliente pagante" : "Sem clientes pagantes"}
+                  </p>
+                </div>
+
+                {/* 5. NOVAS ASSINATURAS NO MÊS */}
+                <div className="p-5 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-1">
+                  <div className="flex items-center justify-between text-xs font-black text-[#6B7C83]">
+                    <span>NOVAS ASSINATURAS (MÊS)</span>
+                    <Zap className="w-4 h-4 text-[#10B981]" />
+                  </div>
+                  <div className="text-2xl font-black text-[#10B981]">
+                    +{metrics.newSubscriptionsMonth}
+                  </div>
+                  <p className="text-[11px] font-semibold text-[#6B7C83]">Iniciadas no mês corrente</p>
+                </div>
+
+                {/* 6. CANCELAMENTOS NO MÊS */}
+                <div className="p-5 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-1">
+                  <div className="flex items-center justify-between text-xs font-black text-[#6B7C83]">
+                    <span>CANCELAMENTOS (MÊS)</span>
+                    <UserX className="w-4 h-4 text-[#EF4444]" />
+                  </div>
+                  <div className="text-2xl font-black text-[#0D2329]">
+                    {metrics.cancellationsMonth}
+                  </div>
+                  <p className="text-[11px] font-semibold text-[#6B7C83]">No mês corrente</p>
+                </div>
+
+                {/* 7. CHURN RATE */}
+                <div className="p-5 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-1">
+                  <div className="flex items-center justify-between text-xs font-black text-[#6B7C83]">
+                    <span>TAXA DE CHURN</span>
+                    <AlertCircle className="w-4 h-4 text-[#F59E0B]" />
+                  </div>
+                  <div className="text-2xl font-black text-[#0D2329]">
+                    {metrics.churnRate !== null ? `${metrics.churnRate.toFixed(1)}%` : "Dados insuficientes"}
+                  </div>
+                  <p className="text-[11px] font-semibold text-[#6B7C83]">
+                    {metrics.churnRate !== null ? "Baseado no histórico do período" : "Histórico insuficiente"}
+                  </p>
+                </div>
+
+                {/* 8. RECEITA DO MÊS */}
+                <div className="p-5 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-1">
+                  <div className="flex items-center justify-between text-xs font-black text-[#6B7C83]">
+                    <span>RECEITA DO MÊS</span>
+                    <DollarSign className="w-4 h-4 text-[#7C3AED]" />
+                  </div>
+                  <div className="text-2xl font-black text-[#0D2329]">
+                    {metrics.monthRevenue !== null
+                      ? `R$ ${metrics.monthRevenue.toFixed(2).replace(".", ",")}`
+                      : "Receita não disponível"}
+                  </div>
+                  <p className="text-[11px] font-semibold text-[#6B7C83]">
+                    {metrics.approvedSalesMonth > 0
+                      ? `${metrics.approvedSalesMonth} compras aprovadas`
+                      : "Pagamentos aprovados no período"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 1.2 GRÁFICO DE EVOLUÇÃO DO MRR (Sem dados fictícios) */}
+            <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-black text-[#0D2329] flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-[#7C3AED]" />
+                    <span>📈 Evolução do MRR</span>
+                  </h3>
+                  <p className="text-xs font-semibold text-[#6B7C83]">
+                    Evolução real da receita recorrente de assinaturas pagantes ao longo do tempo.
+                  </p>
+                </div>
+
+                {/* Seletores de Período */}
+                <div className="flex items-center gap-1.5 p-1 bg-[#F1F5F9] rounded-2xl">
+                  {["7d", "30d", "90d", "12m"].map((p) => (
+                    <button
+                      key={p}
+                      className="px-3 py-1 text-xs font-bold rounded-xl transition-all cursor-pointer bg-white text-[#0D2329] shadow-xs"
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {metrics.historicalMrr.hasHistory && metrics.historicalMrr.dataPoints.length > 1 ? (
+                <div className="h-48 flex items-end gap-3 pt-6">
+                  {metrics.historicalMrr.dataPoints.map((dp, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                      <span className="text-[11px] font-black text-[#7C3AED]">
+                        R$ {dp.mrr.toFixed(0)}
+                      </span>
+                      <div className="w-full bg-[#EDE9FE] rounded-xl h-32 flex items-end">
+                        <div className="w-full bg-[#7C3AED] rounded-xl h-24" />
+                      </div>
+                      <span className="text-[10px] font-bold text-[#6B7C83]">{dp.label}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 rounded-2xl bg-[#F8FAFB] border border-dashed border-[#A0BDC6] text-center space-y-2">
+                  <Clock className="w-8 h-8 text-[#8CAAB1] mx-auto opacity-70" />
+                  <p className="text-xs font-black text-[#0D2329]">
+                    Dados insuficientes para gerar histórico.
+                  </p>
+                  <p className="text-[11px] font-medium text-[#6B7C83] max-w-md mx-auto">
+                    O gráfico de evolução temporal será plotado automaticamente assim que novas assinaturas pagantes forem acumuladas no histórico do Supabase/Hotmart.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* 1.3 SAÚDE DO SAAS (Monitoramento Ativo dos 4 Serviços) */}
+            <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-black text-[#0D2329] flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-[#10B981]" />
+                    <span>🚨 Saúde do SaaS & Serviços</span>
+                  </h3>
+                  <p className="text-xs font-semibold text-[#6B7C83]">
+                    Verificação real de conectividade e tempo de resposta dos componentes de produção.
+                  </p>
+                </div>
+
+                <span
+                  className={`px-3 py-1 rounded-xl text-xs font-black flex items-center gap-1.5 ${
+                    saasHealth?.overallStatus === "healthy"
+                      ? "bg-[#D1FAE5] text-[#065F46]"
+                      : "bg-[#FEF3C7] text-[#92400E]"
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
+                  {saasHealth?.overallStatus === "healthy"
+                    ? "Todos os serviços operando normalmente"
+                    : `Atenção: ${saasHealth?.errorsLast24h} eventos com erro`}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                {saasHealth?.services.map((svc, idx) => (
                   <div
-                    key={item.planId}
-                    className="p-5 rounded-2xl bg-[#F8FAFC] border-2 border-[#E2E8F0] space-y-3 relative overflow-hidden"
+                    key={idx}
+                    className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] space-y-2"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-[#0D2329] truncate">{item.name}</span>
-                      <span className="text-xs font-bold text-[#7C3AED]">
-                        R$ {item.price.toFixed(2).replace(".", ",")}
+                      <span className="text-xs font-black text-[#0D2329]">{svc.name}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
+                          svc.status === "healthy"
+                            ? "bg-[#D1FAE5] text-[#065F46]"
+                            : svc.status === "warning"
+                            ? "bg-[#FEF3C7] text-[#92400E]"
+                            : "bg-[#FEE2E2] text-[#991B1B]"
+                        }`}
+                      >
+                        {svc.statusLabel}
                       </span>
                     </div>
-
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-black text-[#0D2329]">{item.count}</span>
-                      <span className="text-xs font-bold text-[#6B7C83]">
-                        clínica{item.count !== 1 ? "s" : ""} ({item.percentage}%)
-                      </span>
-                    </div>
-
-                    {/* Barra de Porcentagem */}
-                    <div className="w-full bg-[#E2E8F0] h-2 rounded-full overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-[#6366F1] to-[#7C3AED] h-full rounded-full transition-all duration-500"
-                        style={{ width: `${Math.max(5, item.percentage)}%` }}
-                      />
-                    </div>
-
-                    <p className="text-[11px] font-bold text-[#10B981]">
-                      Receita: R$ {item.revenue.toFixed(2).replace(".", ",")}/mês
-                    </p>
+                    <p className="text-[11px] text-[#6B7C83] leading-relaxed">{svc.message}</p>
+                    {svc.latencyMs && (
+                      <div className="text-[10px] font-bold text-[#7C3AED]">
+                        ⚡ Latência medida: {svc.latencyMs} ms
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* 1.4 ATIVIDADE DOS CLIENTES (Psicopedagogas) */}
+            <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-black text-[#0D2329] flex items-center gap-2">
+                    <Users className="w-5 h-5 text-[#2563EB]" />
+                    <span>👩‍🏫 Atividade das Psicopedagogas no SaaS</span>
+                  </h3>
+                  <p className="text-xs font-semibold text-[#6B7C83]">
+                    Identificação em tempo real de clientes ativas e inativas com base em ações clínicas reais.
+                  </p>
+                </div>
+
+                {/* Contadores de Engajamento no Topo */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2.5 py-1 rounded-xl bg-[#D1FAE5] text-[#065F46] text-xs font-black">
+                    🟢 {clientActivity?.summary.activeToday || 0} ativas hoje
+                  </span>
+                  <span className="px-2.5 py-1 rounded-xl bg-[#E0E7FF] text-[#3730A3] text-xs font-black">
+                    📅 {clientActivity?.summary.activeLast7Days || 0} ativas em 7d
+                  </span>
+                  <span className="px-2.5 py-1 rounded-xl bg-[#FEE2E2] text-[#991B1B] text-xs font-black">
+                    🔴 {clientActivity?.summary.inactiveOver7Days || 0} inativas &gt; 7d
+                  </span>
+                </div>
+              </div>
+
+              {/* Filtros e Busca */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                  {[
+                    { id: "all", label: "Todas as Clínicas" },
+                    { id: "active", label: "🟢 Ativas (≤ 7d)" },
+                    { id: "attention", label: "🟡 Atenção (8-30d)" },
+                    { id: "inactive", label: "🔴 Inativas (> 30d)" },
+                    { id: "inactive_7d", label: "Sem atividade > 7d" },
+                  ].map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => setActivityFilter(f.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        activityFilter === f.id
+                          ? "bg-[#2563EB] text-white shadow-xs"
+                          : "bg-[#F1F5F9] text-[#6B7C83] hover:bg-[#E2E8F0] hover:text-[#0D2329]"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-4 h-4 text-[#8CAAB1] absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={activitySearch}
+                    onChange={(e) => setActivitySearch(e.target.value)}
+                    placeholder="Buscar psicopedagoga..."
+                    className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#F8FAFB] border border-[#D8E5E7] text-xs font-medium text-[#0D2329] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                  />
+                </div>
+              </div>
+
+              {/* Tabela de Atividade dos Clientes */}
+              <div className="overflow-x-auto rounded-2xl border border-[#D8E5E7]">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#F8FAFB] border-b border-[#D8E5E7] text-[#6B7C83] font-black uppercase text-[10px] tracking-wider">
+                    <tr>
+                      <th className="py-3 px-4">Psicopedagoga / Clínica</th>
+                      <th className="py-3 px-4">Última Atividade Clínica</th>
+                      <th className="py-3 px-4">Último Acesso (Login)</th>
+                      <th className="py-3 px-4 text-center">Pacientes</th>
+                      <th className="py-3 px-4 text-center">Atendimentos</th>
+                      <th className="py-3 px-4 text-center">Laudos / IA</th>
+                      <th className="py-3 px-4 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F1F5F9]">
+                    {filteredClients.length > 0 ? (
+                      filteredClients.map((client) => (
+                        <tr key={client.id} className="hover:bg-[#F8FAFB] transition-colors">
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-[#0D2329]">{client.fullName}</div>
+                            <div className="text-[11px] text-[#6B7C83]">
+                              {client.clinicName} • {client.email}
+                            </div>
+                          </td>
+
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-[#0D2329] flex items-center gap-1.5">
+                              <Activity className="w-3.5 h-3.5 text-[#7C3AED]" />
+                              <span>{client.lastActivityLabel}</span>
+                            </div>
+                            {client.lastActivityDate && (
+                              <div className="text-[10px] text-[#6B7C83]">
+                                {new Date(client.lastActivityDate).toLocaleDateString("pt-BR")}
+                              </div>
+                            )}
+                          </td>
+
+                          <td className="py-3.5 px-4 text-[#6B7C83]">
+                            <span
+                              className={
+                                client.lastAccessLabel.includes("não")
+                                  ? "text-[#8CAAB1] italic text-[11px]"
+                                  : "text-[#0D2329] font-semibold text-[11px]"
+                              }
+                            >
+                              {client.lastAccessLabel}
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-4 text-center font-bold text-[#0D2329]">
+                            {client.patientsCount}
+                          </td>
+
+                          <td className="py-3.5 px-4 text-center font-bold text-[#0D2329]">
+                            {client.appointmentsCount}
+                          </td>
+
+                          <td className="py-3.5 px-4 text-center font-bold text-[#7C3AED]">
+                            {client.aiReportsCount}
+                          </td>
+
+                          <td className="py-3.5 px-4 text-center">
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                                client.engagementStatus === "active"
+                                  ? "bg-[#D1FAE5] text-[#065F46]"
+                                  : client.engagementStatus === "attention"
+                                  ? "bg-[#FEF3C7] text-[#92400E]"
+                                  : "bg-[#FEE2E2] text-[#991B1B]"
+                              }`}
+                            >
+                              {client.engagementStatus === "active"
+                                ? "🟢 Ativa"
+                                : client.engagementStatus === "attention"
+                                ? "🟡 Atenção"
+                                : "🔴 Inativa"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-[#6B7C83] font-bold">
+                          Nenhum cliente corresponde aos filtros aplicados.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 1.5 VENDAS & ÚLTIMOS EVENTOS HOTMART */}
+            <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-black text-[#0D2329] flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-[#F59E0B]" />
+                    <span>💳 Vendas & Auditoria Hotmart</span>
+                  </h3>
+                  <p className="text-xs font-semibold text-[#6B7C83]">
+                    Histórico cronológico de notificações recebidas pelo webhook oficial.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setActiveTab("webhooks")}
+                  className="text-xs font-bold text-[#7C3AED] hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Ver todos os logs</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {hotmartAudit?.events && hotmartAudit.events.length > 0 ? (
+                <div className="space-y-2">
+                  {hotmartAudit.events.slice(0, 5).map((ev) => (
+                    <div
+                      key={ev.id}
+                      className="p-3.5 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] flex items-center justify-between text-xs"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="font-black text-[#0D2329]">{ev.eventLabel}</span>
+                        <span className="text-[#6B7C83]">
+                          {ev.customerEmail} • {ev.planName}
+                        </span>
+                      </div>
+                      <div className="font-bold text-[#0D2329]">
+                        {ev.valueFormatted} • {new Date(ev.processedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-6 rounded-2xl bg-[#F8FAFB] border border-dashed border-[#A0BDC6] text-center text-xs font-bold text-[#6B7C83]">
+                  Nenhum evento registrado ainda. O sistema registrará automaticamente todas as compras e ativações da Hotmart.
+                </div>
+              )}
+            </div>
+
+            {/* 1.6 CENTRAL DE ERROS REAIS */}
+            <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-4">
+              <h3 className="text-base font-black text-[#0D2329] flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-[#EF4444]" />
+                <span>⚠️ Central de Erros do Sistema</span>
+              </h3>
+
+              {data?.systemErrors && data.systemErrors.length > 0 ? (
+                <div className="divide-y divide-[#F1F5F9] rounded-2xl border border-[#D8E5E7]">
+                  {data.systemErrors.map((err) => (
+                    <div key={err.id} className="p-4 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-bold text-[#EF4444]">{err.service}: </span>
+                        <span className="text-[#0D2329]">{err.message}</span>
+                      </div>
+                      <span className="text-[#6B7C83]">
+                        {new Date(err.timestamp).toLocaleDateString("pt-BR")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-[#D1FAE5] text-[#065F46] text-xs font-black flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-[#10B981]" />
+                  <span>🟢 Nenhum erro registrado no sistema. Todos os módulos operam com 100% de integridade.</span>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* =========================================================================
-            ABA 2: SAÚDE DA INFRAESTRUTURA & LIMITES (SUPABASE, VERCEL, GEMINI)
+            ABA 2: SAÚDE DA INFRA & LIMITES
             ========================================================================= */}
         {activeTab === "infraestrutura" && infra && (
-          <div className="space-y-8 animate-in fade-in">
-            {/* ALERTAS PROATIVOS DE INFRA */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {infra.proactiveAlerts.map((alert, idx) => (
-                <div
-                  key={idx}
-                  className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-2"
-                >
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#10B981] shrink-0" />
-                    <h4 className="text-xs font-black text-[#0D2329]">{alert.title}</h4>
-                  </div>
-                  <p className="text-[11px] font-medium text-[#6B7C83] leading-relaxed">
-                    {alert.description}
-                  </p>
+          <div className="space-y-6 animate-in fade-in">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Supabase Database */}
+              <div className="p-6 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-[#0D2329] flex items-center gap-2">
+                    <Server className="w-4 h-4 text-[#10B981]" />
+                    <span>Supabase Database</span>
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#D1FAE5] text-[#065F46]">
+                    100% Saudável
+                  </span>
                 </div>
-              ))}
-            </div>
-
-            {/* GRID DE CONSUMO DAS 3 PLATAFORMAS */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* 1. SUPABASE DATABASE */}
-              <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-5 flex flex-col justify-between">
-                <div className="space-y-5">
-                  <div className="flex items-center justify-between pb-3 border-b border-[#EEF2F6]">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-2xl bg-[#DCFCE7] text-[#166534] flex items-center justify-center font-bold">
-                        <Database className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-black text-[#0D2329]">Supabase Database</h3>
-                        <p className="text-[10px] font-bold text-[#10B981]">Plano Gratuito (500 MB)</p>
-                      </div>
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#DCFCE7] text-[#166534]">
-                      🟢 100% Saudável
-                    </span>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-[#6B7C83]">Tamanho Estimado:</span>
+                    <span className="font-black text-[#0D2329]">{infra.supabase.estimatedSizeMb} MB / 500 MB</span>
                   </div>
-
-                  {/* Resumo Financeiro & Capacidade */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="p-3 rounded-2xl bg-[#F0FDF4] border border-[#BBF7D0] space-y-0.5">
-                      <span className="text-[10px] font-bold text-[#166534] uppercase block">Custo Atual</span>
-                      <strong className="text-xs font-black text-[#15803D]">R$ 0,00 / mês</strong>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-0.5">
-                      <span className="text-[10px] font-bold text-[#6B7C83] uppercase block">Capacidade Free</span>
-                      <strong className="text-xs font-black text-[#0D2329]">Até ~500 Clínicas</strong>
-                    </div>
+                  <div className="w-full bg-[#F1F5F9] h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-[#10B981] h-full rounded-full"
+                      style={{ width: `${Math.max(3, infra.supabase.percentageUsed)}%` }}
+                    />
                   </div>
-
-                  {/* Barra de Progresso de Armazenamento */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-black text-[#0D2329]">
-                      <span>Armazenamento Utilizado</span>
-                      <span>
-                        {infra.supabase.estimatedSizeMb} MB de {infra.supabase.limitSizeMb} MB
-                      </span>
-                    </div>
-                    <div className="w-full bg-[#F1F5F9] h-3 rounded-full overflow-hidden p-0.5 border border-[#E2E8F0]">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#10B981] to-[#34D399] transition-all duration-500"
-                        style={{ width: `${Math.max(2, infra.supabase.percentageUsed)}%` }}
-                      />
-                    </div>
-                    <p className="text-[11px] font-semibold text-[#6B7C83]">
-                      Apenas <strong>{infra.supabase.percentageUsed}%</strong> do limite gratuito utilizado.
-                    </p>
-                  </div>
-
-                  {/* Tabela de Contagem de Linhas */}
-                  <div className="space-y-2 pt-2 border-t border-[#EEF2F6]">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-[#6B7C83]">
-                      Registros no Banco de Dados
-                    </p>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-2 rounded-xl bg-[#F8FAFC]">
-                        <span className="text-[#6B7C83] text-[10px] block">Profissionais</span>
-                        <strong className="text-[#0D2329] font-black">
-                          {infra.supabase.tablesCount.professionals}
-                        </strong>
-                      </div>
-                      <div className="p-2 rounded-xl bg-[#F8FAFC]">
-                        <span className="text-[#6B7C83] text-[10px] block">Pacientes</span>
-                        <strong className="text-[#0D2329] font-black">
-                          {infra.supabase.tablesCount.children}
-                        </strong>
-                      </div>
-                      <div className="p-2 rounded-xl bg-[#F8FAFC]">
-                        <span className="text-[#6B7C83] text-[10px] block">Atendimentos</span>
-                        <strong className="text-[#0D2329] font-black">
-                          {infra.supabase.tablesCount.appointments}
-                        </strong>
-                      </div>
-                      <div className="p-2 rounded-xl bg-[#F8FAFC]">
-                        <span className="text-[#6B7C83] text-[10px] block">Assinaturas Hotmart</span>
-                        <strong className="text-[#0D2329] font-black">
-                          {infra.supabase.tablesCount.subscriptions}
-                        </strong>
-                      </div>
-                    </div>
+                  <div className="flex justify-between text-[11px] text-[#6B7C83] pt-2">
+                    <span>Total de Registros:</span>
+                    <span className="font-bold text-[#0D2329]">{infra.supabase.totalRows} linhas</span>
                   </div>
                 </div>
+              </div>
 
-                <div className="p-3 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] text-[11px] text-[#6B7C83] space-y-1">
-                  <strong className="text-[#0D2329] font-bold block">📦 Quando aumentar o plano?</strong>
-                  <p>
-                    Apenas quando ultrapassar 500 MB (milhares de pacientes). O plano <strong>Pro (8 GB)</strong> custa apenas {infra.supabase.estimatedProUpgradeCost}.
+              {/* Gemini AI Flash 2.0 */}
+              <div className="p-6 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-[#0D2329] flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-[#7C3AED]" />
+                    <span>Google Gemini AI</span>
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#EDE9FE] text-[#7C3AED]">
+                    Flash 2.0
+                  </span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-[#6B7C83]">Laudos Clínicos Gerados:</span>
+                    <span className="font-black text-[#7C3AED]">{infra.geminiAi.totalAiReportsGenerated} laudos</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#6B7C83]">Sessões Detalhadas com IA:</span>
+                    <span className="font-black text-[#0D2329]">{infra.geminiAi.totalAiAppointments}</span>
+                  </div>
+                  <p className="text-[10px] font-medium text-[#6B7C83] pt-2">
+                    {infra.geminiAi.costModelNote}
                   </p>
                 </div>
               </div>
 
-              {/* 2. GOOGLE GEMINI AI API (ENRIQUECIDO COM CUSTOS, LIMITES E DETALHES) */}
-              <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-5 flex flex-col justify-between">
-                <div className="space-y-5">
-                  <div className="flex items-center justify-between pb-3 border-b border-[#EEF2F6]">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold">
-                        <Cpu className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-black text-[#0D2329]">Google Gemini AI</h3>
-                        <p className="text-[10px] font-bold text-[#7C3AED]">{infra.geminiAi.version}</p>
-                      </div>
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#EDE9FE] text-[#7C3AED]">
-                      🟢 {infra.geminiAi.successRate} Confiável
-                    </span>
-                  </div>
-
-                  {/* Resumo de Custo da IA & Custo Unitário */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="p-3 rounded-2xl bg-[#FAF5FF] border border-[#DDD6FE] space-y-0.5">
-                      <span className="text-[10px] font-bold text-[#7C3AED] uppercase block">Custo Mensal da IA</span>
-                      <strong className="text-xs font-black text-[#6D28D9]">{infra.geminiAi.estimatedMonthlyCostBrl}</strong>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-0.5">
-                      <span className="text-[10px] font-bold text-[#6B7C83] uppercase block">Custo por Relatório</span>
-                      <strong className="text-xs font-black text-[#10B981]">{infra.geminiAi.costPerReportBrl}</strong>
-                    </div>
-                  </div>
-
-                  {/* Barra de Cota Diária do Google AI Studio (1.500 requisições/dia) */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-black text-[#0D2329]">
-                      <span>Cota Diária de Laudos / Requisições</span>
-                      <span>
-                        {infra.geminiAi.dailyCallsEstimated} / {infra.geminiAi.limitRpd} laudos/dia
-                      </span>
-                    </div>
-                    <div className="w-full bg-[#F1F5F9] h-3 rounded-full overflow-hidden p-0.5 border border-[#E2E8F0]">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#6366F1] to-[#7C3AED] transition-all duration-500"
-                        style={{ width: `${Math.max(2, infra.geminiAi.percentageRpdUsed)}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] font-semibold text-[#6B7C83]">
-                      <span>Capacidade: <strong>Até 150 psicopedagogas simultâneas no Free</strong></span>
-                      <span className="text-[#10B981] font-bold">99.8% livre</span>
-                    </div>
-                  </div>
-
-                  {/* Grid de Performance Técnica */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="p-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                      <span className="text-[#6B7C83] text-[10px] block">Velocidade Média</span>
-                      <strong className="text-[#10B981] font-black">
-                        {infra.geminiAi.averageLatencyMs / 1000}s (Instantâneo)
-                      </strong>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                      <span className="text-[#6B7C83] text-[10px] block">Cota de Pico (RPM)</span>
-                      <strong className="text-[#0D2329] font-black">
-                        {infra.geminiAi.limitRpm} requisições/min
-                      </strong>
-                    </div>
-                  </div>
-
-                  {/* Distribuição do Uso da Inteligência Artificial */}
-                  <div className="space-y-1.5 pt-1">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-[#6B7C83] block">
-                      O que a IA está gerando no SaaS:
-                    </span>
-                    <div className="space-y-1 text-[11px]">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-[#0D2329]">📄 Relatórios & Laudos Clínicos</span>
-                        <span className="font-black text-[#7C3AED]">{infra.geminiAi.useDistribution.reports}%</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-[#0D2329]">🧠 Análise de Anamneses</span>
-                        <span className="font-black text-[#0284C7]">{infra.geminiAi.useDistribution.anamnesis}%</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-[#0D2329]">💡 Atividades & Intervenções</span>
-                        <span className="font-black text-[#D97706]">{infra.geminiAi.useDistribution.activities}%</span>
-                      </div>
-                    </div>
-                  </div>
+              {/* Vercel Serverless */}
+              <div className="p-6 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-[#0D2329] flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-[#2563EB]" />
+                    <span>Vercel Serverless</span>
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#E0E7FF] text-[#2563EB]">
+                    Operacional
+                  </span>
                 </div>
-
-                <div className="p-3 rounded-2xl bg-[#FAF5FF] border border-[#DDD6FE] text-[11px] text-[#6D28D9] space-y-1">
-                  <strong className="font-bold block">💡 Dica de Escala da IA:</strong>
-                  <p>
-                    O Gemini 2.0 Flash é <strong>5x mais barato</strong> que o GPT-4o da OpenAI. Quando tiver centenas de clínicas, ativar o faturamento custará menos de <strong>R$ 15/mês</strong>.
-                  </p>
-                </div>
-              </div>
-
-              {/* 3. VERCEL SERVERLESS HOSTING */}
-              <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-5 flex flex-col justify-between">
-                <div className="space-y-5">
-                  <div className="flex items-center justify-between pb-3 border-b border-[#EEF2F6]">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-2xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center font-bold">
-                        <Globe className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-black text-[#0D2329]">Vercel Serverless</h3>
-                        <p className="text-[10px] font-bold text-[#0284C7]">Hospedagem & Webhooks</p>
-                      </div>
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#E0F2FE] text-[#0284C7]">
-                      Uptime {infra.vercel.uptime}
-                    </span>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-[#6B7C83]">Limite de Invocações:</span>
+                    <span className="font-black text-[#0D2329]">100.000 / mês</span>
                   </div>
-
-                  {/* Resumo de Custo & Capacidade */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="p-3 rounded-2xl bg-[#F0F9FF] border border-[#BAE6FD] space-y-0.5">
-                      <span className="text-[10px] font-bold text-[#0369A1] uppercase block">Custo Atual</span>
-                      <strong className="text-xs font-black text-[#0284C7]">R$ 0,00 / mês</strong>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-0.5">
-                      <span className="text-[10px] font-bold text-[#6B7C83] uppercase block">Capacidade Free</span>
-                      <strong className="text-xs font-black text-[#0D2329]">~3.300 acessos/dia</strong>
-                    </div>
-                  </div>
-
-                  {/* Barra de Progresso de Invocações */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-black text-[#0D2329]">
-                      <span>Invocações de Funções (Mês)</span>
-                      <span>
-                        {infra.vercel.serverlessExecutionsMonth} de {infra.vercel.limitExecutions}
-                      </span>
-                    </div>
-                    <div className="w-full bg-[#F1F5F9] h-3 rounded-full overflow-hidden p-0.5 border border-[#E2E8F0]">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#0284C7] to-[#38BDF8] transition-all duration-500"
-                        style={{ width: `${Math.max(2, infra.vercel.percentageUsed)}%` }}
-                      />
-                    </div>
-                    <p className="text-[11px] font-semibold text-[#6B7C83]">
-                      Menos de <strong>{infra.vercel.percentageUsed}%</strong> do limite mensal gratuito.
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-2xl bg-[#F0FDF4] border border-[#BBF7D0] text-xs font-bold text-[#166534] flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#10B981] shrink-0" />
-                    <span>Zero sobrecarga de servidores ou risco de interrupção.</span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] text-[11px] text-[#6B7C83] space-y-1">
-                  <strong className="text-[#0D2329] font-bold block">🚀 Quando aumentar o plano?</strong>
-                  <p>
-                    Se o SaaS ultrapassar 100.000 requisições/mês, o plano <strong>Pro (1 milhão de req)</strong> custa apenas {infra.vercel.estimatedProUpgradeCost}.
+                  <p className="text-[11px] text-[#6B7C83]">
+                    Hospedagem global Edge com deploy automatizado e latência ultrabaixa.
                   </p>
                 </div>
               </div>
@@ -914,36 +1072,40 @@ export function SuperAdminPage() {
             ========================================================================= */}
         {activeTab === "trafego" && traffic && (
           <div className="space-y-6 animate-in fade-in">
-            {/* 1. GRID: PÁGINAS MAIS ACESSADAS & HORÁRIOS DE PICO (NO TOPO) */}
+            {/* Top Cards Lado a Lado */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Páginas Mais Acessadas */}
-              <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
+              <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-4">
                 <h3 className="text-sm font-black text-[#0D2329]">Páginas Mais Utilizadas no SaaS</h3>
-                <div className="space-y-3">
-                  {traffic.topPages.slice(0, 6).map((item: any, i: number) => {
-                    const percent = Math.round((item.count / traffic.totalViews) * 100)
-                    return (
-                      <div key={i} className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-[#0D2329]">{item.path}</span>
-                          <span className="font-semibold text-[#6B7C83]">
-                            {item.count} visualizações ({percent}%)
-                          </span>
+                {traffic.topPages && traffic.topPages.length > 0 ? (
+                  <div className="space-y-3">
+                    {traffic.topPages.slice(0, 6).map((item: any, i: number) => {
+                      const percent = traffic.totalViews > 0 ? Math.round((item.count / traffic.totalViews) * 100) : 0
+                      return (
+                        <div key={i} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-[#0D2329]">{item.path}</span>
+                            <span className="font-semibold text-[#6B7C83]">
+                              {item.count} visualizações ({percent}%)
+                            </span>
+                          </div>
+                          <div className="w-full bg-[#F1F5F9] h-2 rounded-full overflow-hidden">
+                            <div
+                              className="bg-[#7C3AED] h-full rounded-full"
+                              style={{ width: `${Math.max(4, percent)}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="w-full bg-[#F1F5F9] h-2 rounded-full overflow-hidden">
-                          <div
-                            className="bg-[#7C3AED] h-full rounded-full"
-                            style={{ width: `${Math.max(4, percent)}%` }}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-[#6B7C83]">Sem dados de tráfego registrados ainda.</p>
+                )}
               </div>
 
               {/* Horários de Pico */}
-              <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
+              <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-4">
                 <h3 className="text-sm font-black text-[#0D2329]">
                   Horários de Maior Atividade das Psicopedagogas
                 </h3>
@@ -974,15 +1136,15 @@ export function SuperAdminPage() {
               </div>
             </div>
 
-            {/* 2. GRÁFICO DIÁRIO DE PAGEVIEWS (EMBAIXO) */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6">
+            {/* Gráfico Diário de Pageviews */}
+            <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base sm:text-lg font-black text-[#0D2329]">
                     Visualizações de Página Diárias (Últimos 14 Dias)
                   </h3>
                   <p className="text-xs font-semibold text-[#6B7C83]">
-                    Acessos diários das psicopedagogas no sistema EvoluIA.
+                    Acessos reais das psicopedagogas no sistema EvoluIA.
                   </p>
                 </div>
                 <span className="px-3 py-1 rounded-xl bg-[#EDE9FE] text-[#7C3AED] text-xs font-black">
@@ -990,641 +1152,530 @@ export function SuperAdminPage() {
                 </span>
               </div>
 
-              {/* Barras de Tráfego Diário */}
-              <div className="grid grid-cols-7 sm:grid-cols-14 gap-2 items-end pt-6 min-h-[180px]">
-                {traffic.dailyTraffic.map((day: any, idx: number) => {
-                  const maxViews = Math.max(...traffic.dailyTraffic.map((d: any) => d.views), 1)
-                  const heightPercent = Math.max(12, Math.round((day.views / maxViews) * 100))
+              {traffic.totalViews > 0 ? (
+                <div className="grid grid-cols-7 sm:grid-cols-14 gap-2 items-end pt-6 min-h-[180px]">
+                  {traffic.dailyTraffic.map((day: any, idx: number) => {
+                    const maxViews = Math.max(...traffic.dailyTraffic.map((d: any) => d.views), 1)
+                    const heightPercent = Math.max(12, Math.round((day.views / maxViews) * 100))
 
-                  return (
-                    <div key={idx} className="flex flex-col items-center gap-2 group">
-                      <span className="text-[10px] font-black text-[#7C3AED] opacity-0 group-hover:opacity-100 transition-opacity">
-                        {day.views}
-                      </span>
-                      <div className="w-full bg-[#EDE9FE] group-hover:bg-[#DDD6FE] rounded-xl h-36 flex items-end p-1 transition-all">
-                        <div
-                          className="w-full bg-gradient-to-t from-[#6366F1] to-[#7C3AED] rounded-lg transition-all duration-500 shadow-xs"
-                          style={{ height: `${heightPercent}%` }}
-                        />
+                    return (
+                      <div key={idx} className="flex flex-col items-center gap-2 group">
+                        <span className="text-[10px] font-black text-[#7C3AED] opacity-0 group-hover:opacity-100 transition-opacity">
+                          {day.views}
+                        </span>
+                        <div className="w-full bg-[#EDE9FE] group-hover:bg-[#DDD6FE] rounded-xl h-36 flex items-end p-1 transition-all">
+                          <div
+                            className="w-full bg-gradient-to-t from-[#6366F1] to-[#7C3AED] rounded-lg transition-all duration-500 shadow-xs"
+                            style={{ height: `${heightPercent}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-bold text-[#6B7C83] truncate w-full text-center">
+                          {day.label}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-bold text-[#6B7C83] truncate w-full text-center">
-                        {day.label}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="p-8 text-center text-xs font-bold text-[#6B7C83]">
+                  Sem dados de telemetria nos últimos 14 dias.
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* =========================================================================
-            ABA 4: GESTÃO DE CLÍNICAS & CRM DO DONO
+            ABA 4: GESTÃO DE CLÍNICAS (CRM do Dono + Criar VIP + Resetar Senha)
             ========================================================================= */}
         {activeTab === "clinicas" && (
           <div className="space-y-6 animate-in fade-in">
-            {/* BARRA DE PESQUISA & FILTROS */}
-            <div className="p-4 sm:p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="relative flex-1 w-full">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8CAAB1]" />
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="relative w-full sm:w-72">
+                <Search className="w-4 h-4 text-[#8CAAB1] absolute left-3 top-3" />
                 <input
                   type="text"
-                  placeholder="Buscar por psicopedagoga, consultório, e-mail ou WhatsApp..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-[#D8E5E7] bg-[#F8FAFC] text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                  value={clinicsSearch}
+                  onChange={(e) => setClinicsSearch(e.target.value)}
+                  placeholder="Buscar psicopedagoga ou clínica..."
+                  className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-white border-2 border-[#A0BDC6] text-xs font-bold text-[#0D2329] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
                 />
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <select
                   value={selectedPlanFilter}
                   onChange={(e) => setSelectedPlanFilter(e.target.value)}
-                  className="px-3 py-2 rounded-2xl border border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none"
+                  className="px-3 py-2.5 rounded-2xl bg-white border-2 border-[#A0BDC6] text-xs font-bold text-[#0D2329] focus:outline-none cursor-pointer"
                 >
                   <option value="all">Todos os Planos</option>
-                  <option value="individual">EvoluIA Individual</option>
-                  <option value="duo">EvoluIA Duo</option>
-                  <option value="trio">EvoluIA Trio</option>
-                  <option value="equipe">EvoluIA Equipe</option>
-                  <option value="clinica">EvoluIA Clínica</option>
+                  {PLANS_CONFIG.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} (R$ {p.priceMonthly.toFixed(2).replace(".", ",")})
+                    </option>
+                  ))}
                 </select>
 
                 <button
-                  type="button"
                   onClick={() => {
                     setVipEmail("")
-                    setVipPassword("Evoluia" + Math.floor(100 + Math.random() * 900))
-                    setVipPlanId("individual")
-                    setCreatedVipSuccessData(null)
-                    setCopiedVipMessage(false)
-                    setShowCreateVipModal(true)
+                    setVipPassword(generateSecurePassword())
+                    setVipFullName("")
+                    setVipClinicName("")
+                    setVipError(null)
+                    setVipSuccessData(null)
+                    setVipModalOpen(true)
                   }}
-                  className="h-9 px-4 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs shadow-sm active:scale-95 transition-all flex items-center gap-1.5 shrink-0 ml-auto"
+                  className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#F59E0B] to-[#D97706] hover:from-[#D97706] hover:to-[#B45309] text-white text-xs font-black shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
                 >
-                  <Gift className="w-3.5 h-3.5" />
+                  <Crown className="w-4 h-4 fill-current" />
                   <span>+ Criar Conta VIP</span>
                 </button>
               </div>
             </div>
 
-            {/* TABELA DE CLÍNICAS */}
-            <div className="rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F8FAFC] border-b-2 border-[#EEF2F6] text-[#6B7C83] uppercase text-[10px] font-black">
-                    <tr>
-                      <th className="px-5 py-4">Psicopedagoga / Consultório</th>
-                      <th className="px-4 py-4">Contato / WhatsApp</th>
-                      <th className="px-4 py-4">Plano Contratado</th>
-                      <th className="px-4 py-4">Equipe / Vagas</th>
-                      <th className="px-4 py-4">Pacientes</th>
-                      <th className="px-4 py-4">Status Hotmart</th>
-                      <th className="px-5 py-4 text-right">Ações</th>
+            {/* Tabela de Clínicas */}
+            <div className="overflow-x-auto rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[#F8FAFB] border-b border-[#D8E5E7] text-[#6B7C83] font-black uppercase text-[10px] tracking-wider">
+                  <tr>
+                    <th className="py-4 px-5">Clínica / Psicopedagoga</th>
+                    <th className="py-4 px-5">Plano Contratado</th>
+                    <th className="py-4 px-5 text-center">Equipe</th>
+                    <th className="py-4 px-5 text-center">Pacientes</th>
+                    <th className="py-4 px-5 text-center">Status</th>
+                    <th className="py-4 px-5 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F1F5F9]">
+                  {filteredClinics.map((clinic) => (
+                    <tr key={clinic.id} className="hover:bg-[#F8FAFB] transition-colors">
+                      <td className="py-4 px-5">
+                        <div className="font-black text-[#0D2329] text-sm">{clinic.fullName}</div>
+                        <div className="text-[11px] text-[#6B7C83]">
+                          {clinic.clinicName} • {clinic.email}
+                        </div>
+                      </td>
+
+                      <td className="py-4 px-5">
+                        <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-[#EDE9FE] text-[#7C3AED]">
+                          {clinic.planName}
+                        </span>
+                        <div className="text-[11px] font-bold text-[#6B7C83] pt-1">
+                          R$ {clinic.planPrice.toFixed(2).replace(".", ",")}/mês
+                        </div>
+                      </td>
+
+                      <td className="py-4 px-5 text-center font-bold text-[#0D2329]">
+                        {clinic.teamCount} / {clinic.maxProfessionals}
+                      </td>
+
+                      <td className="py-4 px-5 text-center font-bold text-[#0D2329]">
+                        {clinic.patientsCount}
+                      </td>
+
+                      <td className="py-4 px-5 text-center">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                            clinic.subscriptionStatus === "active"
+                              ? "bg-[#D1FAE5] text-[#065F46]"
+                              : clinic.subscriptionStatus === "courtesy"
+                              ? "bg-[#FEF3C7] text-[#92400E]"
+                              : "bg-[#FEE2E2] text-[#991B1B]"
+                          }`}
+                        >
+                          {clinic.subscriptionStatus === "active"
+                            ? "🟢 Ativa"
+                            : clinic.subscriptionStatus === "courtesy"
+                            ? "🎁 VIP Cortesia"
+                            : "🔴 Cancelada"}
+                        </span>
+                      </td>
+
+                      <td className="py-4 px-5 text-right space-x-2">
+                        <button
+                          onClick={() => {
+                            setSelectedClinic(clinic)
+                            setNewPlan(clinic.planId)
+                            setNewStatus(clinic.subscriptionStatus as any)
+                            setModalOpen(true)
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#0D2329] font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          Alterar Plano
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setResetClinicEmail(clinic.email)
+                            setResetNewPass(generateSecurePassword())
+                            setResetSuccess(false)
+                            setResetError(null)
+                            setResetModalOpen(true)
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          Resetar Senha
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#EEF2F6]">
-                    {filteredClinics.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-6 py-8 text-center text-xs font-bold text-[#6B7C83]">
-                          Nenhuma clínica encontrada para a busca informada.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredClinics.map((clinic) => {
-                        const cleanPhone = clinic.phone.replace(/\D/g, "")
-                        const waLink = cleanPhone ? `https://wa.me/55${cleanPhone}` : null
-
-                        return (
-                          <tr key={clinic.id} className="hover:bg-[#FAF5FF]/30 transition-colors">
-                            {/* Nome e Consultório */}
-                            <td className="px-5 py-4">
-                              <div className="space-y-0.5">
-                                <p className="font-black text-sm text-[#0D2329]">{clinic.fullName}</p>
-                                <p className="text-[11px] font-semibold text-[#6B7C83]">{clinic.clinicName}</p>
-                                <p className="text-[10px] text-[#8CAAB1]">
-                                  {clinic.city} - {clinic.state}
-                                </p>
-                              </div>
-                            </td>
-
-                            {/* Contato & WhatsApp */}
-                            <td className="px-4 py-4">
-                              <div className="space-y-1">
-                                <p className="font-bold text-[#0D2329]">{clinic.email}</p>
-                                {waLink ? (
-                                  <a
-                                    href={waLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-[11px] font-black text-[#10B981] hover:underline"
-                                  >
-                                    <MessageCircle className="w-3.5 h-3.5 fill-current" />
-                                    <span>{clinic.phone}</span>
-                                  </a>
-                                ) : (
-                                  <span className="text-[11px] text-[#8CAAB1] font-medium">Sem WhatsApp</span>
-                                )}
-                              </div>
-                            </td>
-
-                            {/* Plano */}
-                            <td className="px-4 py-4">
-                              <span className="px-2.5 py-1 rounded-xl text-[11px] font-black bg-[#EDE9FE] text-[#7C3AED] border border-[#DDD6FE]">
-                                {clinic.planName} (R$ {clinic.planPrice.toFixed(2).replace(".", ",")})
-                              </span>
-                            </td>
-
-                            {/* Equipe / Vagas */}
-                            <td className="px-4 py-4 font-bold text-[#0D2329]">
-                              {clinic.teamCount} de {clinic.maxProfessionals} vagas
-                            </td>
-
-                            {/* Pacientes */}
-                            <td className="px-4 py-4">
-                              <span className="px-2 py-0.5 rounded-lg bg-[#E0F2FE] text-[#0284C7] font-black text-xs">
-                                {clinic.patientsCount} pacientes
-                              </span>
-                            </td>
-
-                            {/* Status Hotmart */}
-                            <td className="px-4 py-4">
-                              <span
-                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                                  clinic.subscriptionStatus === "active"
-                                    ? "bg-[#DCFCE7] text-[#166534] border border-[#86EFAC]"
-                                    : clinic.subscriptionStatus === "trial"
-                                    ? "bg-[#FEF8EC] text-[#8B6514] border border-[#FDE68A]"
-                                    : "bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]"
-                                }`}
-                              >
-                                {clinic.subscriptionStatus === "active"
-                                  ? "🟢 Ativa"
-                                  : clinic.subscriptionStatus === "trial"
-                                  ? "🟡 Teste"
-                                  : "🔴 Cancelada"}
-                              </span>
-                            </td>
-
-                            {/* Ações */}
-                            <td className="px-5 py-4 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  onClick={() => setResettingClinic(clinic)}
-                                  className="px-2.5 py-1.5 rounded-xl bg-[#F0FDF4] hover:bg-[#DCFCE7] text-[#166534] font-black text-xs border border-[#BBF7D0] transition-all flex items-center gap-1"
-                                  title="Enviar link ou resetar senha da psicopedagoga"
-                                >
-                                  <KeyRound className="w-3.5 h-3.5" />
-                                  <span>Resetar Senha</span>
-                                </button>
-
-                                <button
-                                  onClick={() => {
-                                    setEditingClinic(clinic)
-                                    setNewPlanId(clinic.planId)
-                                    setNewStatus(clinic.subscriptionStatus as any)
-                                  }}
-                                  className="px-2.5 py-1.5 rounded-xl bg-[#F5F3FF] hover:bg-[#EDE9FE] text-[#7C3AED] font-black text-xs border border-[#DDD6FE] transition-all flex items-center gap-1"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                  <span>Plano</span>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
         {/* =========================================================================
-            ABA 5: LOGS DE WEBHOOKS DA HOTMART
+            ABA 5: LOGS HOTMART (Auditoria Completa de Webhooks)
             ========================================================================= */}
-        {activeTab === "webhooks" && (
+        {activeTab === "webhooks" && hotmartAudit && (
           <div className="space-y-6 animate-in fade-in">
-            <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-black text-[#0D2329]">
-                    Auditoria de Webhooks Hotmart em Tempo Real
-                  </h3>
-                  <p className="text-xs font-semibold text-[#6B7C83]">
-                    Eventos de compra, ativação, cancelamento e trocas de plano recebidos pelo servidor.
-                  </p>
+            {/* Top Cards de Auditoria */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div className="p-5 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-1">
+                <span className="text-xs font-black text-[#6B7C83]">EVENTOS HOJE</span>
+                <div className="text-2xl font-black text-[#0D2329]">
+                  {hotmartAudit.summary.totalReceivedToday}
                 </div>
-                <span className="px-3 py-1 rounded-xl bg-[#DCFCE7] text-[#166534] text-xs font-black">
-                  Webhook 2.0 Ativo
-                </span>
               </div>
+              <div className="p-5 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-1">
+                <span className="text-xs font-black text-[#6B7C83]">TOTAL PROCESSADOS</span>
+                <div className="text-2xl font-black text-[#10B981]">
+                  {hotmartAudit.summary.totalProcessed}
+                </div>
+              </div>
+              <div className="p-5 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-1">
+                <span className="text-xs font-black text-[#6B7C83]">EVENTOS COM ERRO</span>
+                <div className="text-2xl font-black text-[#EF4444]">
+                  {hotmartAudit.summary.totalErrors}
+                </div>
+              </div>
+              <div className="p-5 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-1">
+                <span className="text-xs font-black text-[#6B7C83]">ÚLTIMO EVENTO</span>
+                <div className="text-xs font-bold text-[#0D2329] truncate">
+                  {hotmartAudit.summary.lastEventDate
+                    ? new Date(hotmartAudit.summary.lastEventDate).toLocaleString("pt-BR")
+                    : "Nenhum evento registrado"}
+                </div>
+              </div>
+            </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F8FAFC] border-b border-[#EEF2F6] text-[#6B7C83] uppercase text-[10px] font-black">
-                    <tr>
-                      <th className="px-4 py-3">Data / Hora</th>
-                      <th className="px-4 py-3">Tipo do Evento</th>
-                      <th className="px-4 py-3">E-mail Comprador</th>
-                      <th className="px-4 py-3">Plano Reconhecido</th>
-                      <th className="px-4 py-3">Status do Webhook</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#EEF2F6]">
-                    {webhooks.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-6 text-center text-xs font-bold text-[#6B7C83]">
-                          Nenhum evento registrado ainda.
+            {/* Filtros de Logs */}
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                { id: "all", label: "Todos os Eventos" },
+                { id: "purchases", label: "🟢 Compras Aprovadas" },
+                { id: "activations", label: "🟢 Ativações" },
+                { id: "cancellations", label: "🔴 Cancelamentos" },
+                { id: "refunds", label: "🟡 Reembolsos" },
+                { id: "errors", label: "⚠️ Com Falhas" },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setLogsFilter(f.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    logsFilter === f.id
+                      ? "bg-[#7C3AED] text-white shadow-xs"
+                      : "bg-white text-[#6B7C83] hover:bg-[#F1F5F9] border border-[#D8E5E7]"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tabela de Logs */}
+            <div className="overflow-x-auto rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[#F8FAFB] border-b border-[#D8E5E7] text-[#6B7C83] font-black uppercase text-[10px] tracking-wider">
+                  <tr>
+                    <th className="py-4 px-5">Data / Hora</th>
+                    <th className="py-4 px-5">Evento</th>
+                    <th className="py-4 px-5">Comprador</th>
+                    <th className="py-4 px-5">Plano</th>
+                    <th className="py-4 px-5">Valor</th>
+                    <th className="py-4 px-5">ID do Evento</th>
+                    <th className="py-4 px-5 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F1F5F9]">
+                  {filteredLogs.length > 0 ? (
+                    filteredLogs.map((ev) => (
+                      <tr key={ev.id} className="hover:bg-[#F8FAFB] transition-colors">
+                        <td className="py-4 px-5 text-[#6B7C83] font-medium">
+                          {new Date(ev.processedAt).toLocaleString("pt-BR")}
+                        </td>
+                        <td className="py-4 px-5 font-black text-[#0D2329]">{ev.eventLabel}</td>
+                        <td className="py-4 px-5">
+                          <div className="font-bold text-[#0D2329]">{ev.customerName}</div>
+                          <div className="text-[11px] text-[#6B7C83]">{ev.customerEmail}</div>
+                        </td>
+                        <td className="py-4 px-5 font-bold text-[#7C3AED]">{ev.planName}</td>
+                        <td className="py-4 px-5 font-black text-[#0D2329]">{ev.valueFormatted}</td>
+                        <td className="py-4 px-5 font-mono text-[10px] text-[#6B7C83]">
+                          {ev.eventId}
+                        </td>
+                        <td className="py-4 px-5 text-center">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                              ev.processed ? "bg-[#D1FAE5] text-[#065F46]" : "bg-[#FEE2E2] text-[#991B1B]"
+                            }`}
+                          >
+                            {ev.processed ? "Processado" : "Erro"}
+                          </span>
                         </td>
                       </tr>
-                    ) : (
-                      webhooks.map((log) => (
-                        <tr key={log.id} className="hover:bg-[#FAF5FF]/30">
-                          <td className="px-4 py-3 font-semibold text-[#6B7C83]">
-                            {new Date(log.processedAt).toLocaleString("pt-BR")}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-[#EDE9FE] text-[#7C3AED]">
-                              {log.eventType}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 font-bold text-[#0D2329]">
-                            {log.customerEmail || "—"}
-                          </td>
-                          <td className="px-4 py-3 font-black text-[#0D2329]">
-                            {log.planName || "EvoluIA"}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#DCFCE7] text-[#166534]">
-                              200 OK - Processado
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-[#6B7C83] font-bold">
+                        Nenhum evento registrado ainda.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
         {/* =========================================================================
-            MODAL: ALTERAÇÃO MANUAL DE PLANO (SUPORTE / CORTESIA DO DONO)
+            MODAL 1: CRIAR CONTA VIP / CORTESIA
             ========================================================================= */}
-        {editingClinic && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 border-2 border-[#D8E5E7] shadow-2xl">
-              <div className="flex items-center justify-between pb-3 border-b border-[#EEF2F6]">
+        {vipModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="max-w-md w-full p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-2xl space-y-5 animate-in fade-in">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#F59E0B] to-[#D97706] text-white flex items-center justify-center shadow-md">
                     <Crown className="w-5 h-5 fill-current" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-[#0D2329]">Alterar Plano do Cliente</h3>
-                    <p className="text-[11px] font-semibold text-[#6B7C83]">{editingClinic.fullName}</p>
+                    <h3 className="text-base font-black text-[#0D2329]">Criar Conta VIP / Cortesia</h3>
+                    <p className="text-xs text-[#6B7C83]">Apenas e-mail e senha de acesso.</p>
                   </div>
                 </div>
                 <button
-                  onClick={() => setEditingClinic(null)}
-                  className="w-8 h-8 rounded-xl bg-[#F8FAFC] flex items-center justify-center text-[#6B7C83] hover:text-[#0D2329]"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-4 text-xs">
-                {/* Seleção do Plano */}
-                <div className="space-y-1.5">
-                  <label className="font-black text-[#0D2329]">Novo Plano:</label>
-                  <select
-                    value={newPlanId}
-                    onChange={(e) => setNewPlanId(e.target.value as PlanId)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D8E5E7] bg-white font-bold text-[#0D2329] focus:outline-none"
-                  >
-                    {PLANS_CONFIG.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} — R$ {p.priceMonthly.toFixed(2).replace(".", ",")} ({p.maxProfessionals} vaga
-                        {p.maxProfessionals > 1 ? "s" : ""})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Seleção do Status */}
-                <div className="space-y-1.5">
-                  <label className="font-black text-[#0D2329]">Status da Assinatura:</label>
-                  <select
-                    value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value as any)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D8E5E7] bg-white font-bold text-[#0D2329] focus:outline-none"
-                  >
-                    <option value="active">Ativa (Acesso Liberado)</option>
-                    <option value="trial">Período de Teste (Trial)</option>
-                    <option value="cancelled">Cancelada / Bloqueada</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#EEF2F6]">
-                <button
-                  type="button"
-                  onClick={() => setEditingClinic(null)}
-                  className="px-4 py-2.5 rounded-xl bg-[#F1F5F9] text-[#0D2329] font-bold text-xs"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  disabled={savingPlan}
-                  onClick={handleSaveClinicPlan}
-                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white font-black text-xs shadow-md active:scale-95 transition-all"
-                >
-                  {savingPlan ? "Salvando..." : "Salvar Alteração"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL DE RESET DE SENHA PELO DONO */}
-        {resettingClinic && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-2xl max-w-md w-full p-6 sm:p-7 space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-[#EEF2F6]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-[#DCFCE7] text-[#166534] flex items-center justify-center font-bold">
-                    <KeyRound className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-sm text-[#0D2329]">Suporte de Senha & Acesso</h3>
-                    <p className="text-[11px] font-semibold text-[#6B7C83]">
-                      {resettingClinic.fullName} ({resettingClinic.clinicName})
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setResettingClinic(null)}
-                  className="w-8 h-8 rounded-full bg-[#F1F5F9] text-[#6B7C83] hover:text-[#0D2329] flex items-center justify-center"
+                  onClick={() => setVipModalOpen(false)}
+                  className="text-xs font-black text-[#8CAAB1] hover:text-[#0D2329] cursor-pointer"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="space-y-3.5 text-xs text-[#0D2329]">
-                <div className="p-3.5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-[#6B7C83]">E-mail da Psicopedagoga:</span>
-                  <p className="font-black text-sm text-[#0D2329] break-all">{resettingClinic.email}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="font-bold text-[#6B7C83]">Escolha como deseja ajudar a cliente:</p>
-
-                  {/* Opção 1: Enviar link oficial por e-mail */}
-                  <button
-                    type="button"
-                    disabled={sendingResetEmail}
-                    onClick={handleSendAdminPasswordReset}
-                    className="w-full p-3.5 rounded-2xl bg-[#FAF5FF] hover:bg-[#F3E8FF] border border-[#DDD6FE] text-left flex items-center justify-between transition-all group"
-                  >
-                    <div>
-                      <strong className="font-black text-xs text-[#7C3AED] block">
-                        ✉️ Enviar Link de Recuperação por E-mail
-                      </strong>
-                      <span className="text-[11px] text-[#6B7C83]">
-                        Dispara o link seguro do Supabase diretamente para a caixa de entrada dela.
-                      </span>
-                    </div>
-                    <span className="px-2.5 py-1 rounded-xl bg-[#7C3AED] text-white font-bold text-[10px] group-hover:scale-105 transition-transform shrink-0 ml-2">
-                      {sendingResetEmail ? "Enviando..." : "Disparar"}
-                    </span>
-                  </button>
-
-                  {/* Opção 2: Enviar link no WhatsApp */}
-                  {resettingClinic.phone && (
-                    <a
-                      href={`https://wa.me/55${resettingClinic.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
-                        `Olá ${resettingClinic.fullName.split(" ")[0]}! Aqui é o suporte do EvoluIA. Segue o link para você redefinir sua senha de acesso com facilidade: https://evolu-ia-seven.vercel.app/esqueci-senha`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full p-3.5 rounded-2xl bg-[#F0FDF4] hover:bg-[#DCFCE7] border border-[#BBF7D0] text-left flex items-center justify-between transition-all group block"
-                    >
-                      <div>
-                        <strong className="font-black text-xs text-[#166534] block">
-                          💬 Enviar Instruções no WhatsApp
-                        </strong>
-                        <span className="text-[11px] text-[#6B7C83]">
-                          Abre o WhatsApp com mensagem pronta de suporte para {resettingClinic.phone}.
-                        </span>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-xl bg-[#10B981] text-white font-bold text-[10px] group-hover:scale-105 transition-transform shrink-0 ml-2">
-                        Abrir WhatsApp
-                      </span>
-                    </a>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end pt-3 border-t border-[#EEF2F6]">
-                <button
-                  type="button"
-                  onClick={() => setResettingClinic(null)}
-                  className="px-4 py-2.5 rounded-xl bg-[#F1F5F9] text-[#0D2329] font-bold text-xs"
-                >
-                  Fechar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL DE CRIAÇÃO DE CONTA VIP / CORTESIA GRÁTIS */}
-        {showCreateVipModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-2xl max-w-md w-full p-6 sm:p-7 space-y-5">
-              {/* Topo do Modal */}
-              <div className="flex items-center justify-between pb-3 border-b border-[#EEF2F6]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-[#DCFCE7] text-[#166534] flex items-center justify-center font-bold">
-                    <Gift className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-sm text-[#0D2329]">Criar Acesso VIP / Cortesia</h3>
-                    <p className="text-[11px] font-semibold text-[#6B7C83]">
-                      Conta gratuita com ativação imediata (sem Hotmart)
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowCreateVipModal(false)
-                    setCreatedVipSuccessData(null)
-                  }}
-                  className="w-8 h-8 rounded-full bg-[#F1F5F9] text-[#6B7C83] hover:text-[#0D2329] flex items-center justify-center"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {createdVipSuccessData ? (
-                /* TELA DE SUCESSO & COPIAR ACESSO */
-                <div className="space-y-4 animate-in zoom-in-95 text-xs">
-                  <div className="p-4 rounded-2xl bg-[#F0FDF4] border-2 border-[#86EFAC] text-center space-y-2">
-                    <div className="w-10 h-10 rounded-full bg-[#DCFCE7] text-[#166534] flex items-center justify-center mx-auto">
-                      <CheckCircle2 className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-sm text-[#166534]">Conta VIP Ativada com Sucesso! 🎉</h4>
-                      <p className="text-[11px] text-[#15803D] font-medium mt-0.5">
-                        O login já está liberado e nunca será cobrado.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#6B7C83]">Mensagem pronta para enviar:</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const msg = `Olá! Criei seu acesso VIP no EvoluIA 🌟\n\nLink: https://evolu-ia-seven.vercel.app/login\nE-mail: ${createdVipSuccessData.email}\nSenha: ${createdVipSuccessData.password}\n\nVocê já pode entrar e começar a usar!`
-                          navigator.clipboard.writeText(msg)
-                          setCopiedVipMessage(true)
-                          toast.success("Mensagem de acesso copiada!")
-                          setTimeout(() => setCopiedVipMessage(false), 3000)
-                        }}
-                        className="px-2.5 py-1 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white font-black text-[10px] flex items-center gap-1 transition-all active:scale-95"
-                      >
-                        {copiedVipMessage ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                        <span>{copiedVipMessage ? "Copiado!" : "Copiar Texto"}</span>
-                      </button>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-white border border-[#CBDDE2] text-[#0D2329] font-mono text-[11px] leading-relaxed whitespace-pre-wrap select-all">
-                      {`Olá! Criei seu acesso VIP no EvoluIA 🌟\n\nLink: https://evolu-ia-seven.vercel.app/login\nE-mail: ${createdVipSuccessData.email}\nSenha: ${createdVipSuccessData.password}\n\nVocê já pode entrar e começar a usar!`}
-                    </div>
-                  </div>
-
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowCreateVipModal(false)
-                        setCreatedVipSuccessData(null)
-                      }}
-                      className="w-full py-3 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white font-black text-xs shadow-md active:scale-95 transition-all"
-                    >
-                      Concluir & Fechar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* FORMULÁRIO DE CRIAÇÃO RÁPIDA (SÓ E-MAIL E SENHA) */
-                <form onSubmit={handleCreateVipSubmit} className="space-y-4 text-xs">
-                  {/* E-mail */}
+              {!vipSuccessData ? (
+                <form onSubmit={handleCreateVipAccount} className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="font-black text-[#0D2329]">E-mail de Acesso (Login):</label>
-                    <div className="relative flex items-center">
-                      <Mail className="absolute left-3.5 w-4 h-4 text-[#8CAAB1]" />
-                      <input
-                        type="email"
-                        required
-                        placeholder="ex: irma@gmail.com"
-                        value={vipEmail}
-                        onChange={(e) => setVipEmail(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white font-medium text-[#0D2329] focus:outline-none focus:border-[#10B981] placeholder:text-[#8CAAB1]"
-                      />
-                    </div>
+                    <label className="text-xs font-bold text-[#0D2329]">E-mail da Psicopedagoga</label>
+                    <input
+                      type="email"
+                      required
+                      value={vipEmail}
+                      onChange={(e) => setVipEmail(e.target.value)}
+                      placeholder="ex: irma@gmail.com"
+                      className="w-full px-4 py-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] text-xs font-bold text-[#0D2329] focus:outline-none focus:ring-2 focus:ring-[#F59E0B]"
+                    />
                   </div>
 
-                  {/* Senha Inicial */}
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="font-black text-[#0D2329]">Senha Inicial:</label>
-                      <button
-                        type="button"
-                        onClick={() => setVipPassword("Evoluia" + Math.floor(100 + Math.random() * 900))}
-                        className="text-[10px] font-bold text-[#7C3AED] hover:underline"
-                      >
-                        ⚡ Gerar outra senha
-                      </button>
-                    </div>
-                    <div className="relative flex items-center">
-                      <Lock className="absolute left-3.5 w-4 h-4 text-[#8CAAB1]" />
+                    <label className="text-xs font-bold text-[#0D2329]">Senha de Acesso</label>
+                    <div className="flex gap-2">
                       <input
-                        type={showVipPassword ? "text" : "password"}
+                        type="text"
                         required
-                        minLength={6}
-                        placeholder="Mínimo 6 dígitos"
                         value={vipPassword}
                         onChange={(e) => setVipPassword(e.target.value)}
-                        className="w-full pl-10 pr-10 py-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white font-medium text-[#0D2329] focus:outline-none focus:border-[#10B981] placeholder:text-[#8CAAB1]"
+                        placeholder="Senha123"
+                        className="flex-1 px-4 py-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] text-xs font-mono font-bold text-[#0D2329] focus:outline-none focus:ring-2 focus:ring-[#F59E0B]"
                       />
                       <button
                         type="button"
-                        onClick={() => setShowVipPassword(!showVipPassword)}
-                        className="absolute right-3.5 text-[#8CAAB1] hover:text-[#0D2329]"
+                        onClick={() => setVipPassword(generateSecurePassword())}
+                        className="px-3 py-2 rounded-2xl bg-[#F1F5F9] text-xs font-bold text-[#0D2329] hover:bg-[#E2E8F0] cursor-pointer"
                       >
-                        {showVipPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        Gerar
                       </button>
                     </div>
                   </div>
 
-                  {/* Plano Concedido */}
                   <div className="space-y-1.5">
-                    <label className="font-black text-[#0D2329]">Plano Concedido (Vagas de Profissionais):</label>
+                    <label className="text-xs font-bold text-[#0D2329]">Plano de Vagas</label>
                     <select
                       value={vipPlanId}
                       onChange={(e) => setVipPlanId(e.target.value as PlanId)}
-                      className="w-full px-3.5 py-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white font-bold text-[#0D2329] focus:outline-none focus:border-[#10B981]"
+                      className="w-full px-4 py-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] text-xs font-bold text-[#0D2329] focus:outline-none cursor-pointer"
                     >
                       {PLANS_CONFIG.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.name} ({p.maxProfessionals} vaga{p.maxProfessionals > 1 ? "s" : ""}) — Cortesia R$ 0,00
+                          {p.name} ({p.maxProfessionals} {p.maxProfessionals === 1 ? "vaga" : "vagas"})
                         </option>
                       ))}
                     </select>
                   </div>
 
-                  {/* Selo Informativo */}
-                  <div className="p-3 rounded-2xl bg-[#ECFDF5] border border-[#A7F3D0] flex items-center gap-2 text-[#065F46] font-semibold text-[11px]">
-                    <ShieldCheck className="w-4 h-4 text-[#10B981] shrink-0" />
-                    <span>Acesso vitalício ativado sem necessidade de cartão de crédito.</span>
+                  {vipError && (
+                    <div className="p-3 rounded-xl bg-red-50 text-red-600 text-xs font-bold text-center">
+                      {vipError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={vipLoading}
+                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#F59E0B] to-[#D97706] hover:from-[#D97706] hover:to-[#B45309] text-white text-xs font-black shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {vipLoading ? "Criando Conta..." : "Criar & Ativar Conta VIP"}
+                  </button>
+                </form>
+              ) : (
+                <div className="space-y-4 text-center">
+                  <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto">
+                    <Check className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-base font-black text-[#0D2329]">Conta VIP Criada com Sucesso!</h4>
+
+                  <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] text-left text-xs font-mono space-y-1">
+                    <div><strong>E-mail:</strong> {vipSuccessData.email}</div>
+                    <div><strong>Senha:</strong> {vipSuccessData.pass}</div>
+                    <div><strong>Plano:</strong> {vipSuccessData.planName}</div>
+                    <div><strong>Link:</strong> https://evolu-ia-seven.vercel.app/login</div>
                   </div>
 
-                  {/* Botões de Ação */}
-                  <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#EEF2F6]">
-                    <button
-                      type="button"
-                      onClick={() => setShowCreateVipModal(false)}
-                      className="px-4 py-2.5 rounded-xl bg-[#F1F5F9] text-[#0D2329] font-bold text-xs"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={creatingVip}
-                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 disabled:opacity-50"
-                    >
-                      {creatingVip ? (
-                        <>
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          <span>Criando Conta...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Gift className="w-3.5 h-3.5" />
-                          <span>Criar Conta VIP Grátis</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
+                  <button
+                    onClick={() => {
+                      const msg = `Olá! Sua conta no EvoluIA está pronta:\n\n🔗 Link: https://evolu-ia-seven.vercel.app/login\n📧 E-mail: ${vipSuccessData.email}\n🔑 Senha: ${vipSuccessData.pass}\n\nVocê já tem acesso liberado!`
+                      navigator.clipboard.writeText(msg)
+                      setCopiedVip(true)
+                      setTimeout(() => setCopiedVip(false), 3000)
+                    }}
+                    className="w-full py-3 rounded-2xl bg-[#10B981] hover:bg-[#059669] text-white text-xs font-black flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {copiedVip ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    <span>{copiedVip ? "Copiado para o WhatsApp!" : "Copiar Dados de Acesso"}</span>
+                  </button>
+                </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            MODAL 2: RESETAR SENHA DA CLÍNICA
+            ========================================================================= */}
+        {resetModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="max-w-md w-full p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-2xl space-y-5 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shadow-xs">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-[#0D2329]">Resetar Senha de Acesso</h3>
+                    <p className="text-xs text-[#6B7C83]">{resetClinicEmail}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setResetModalOpen(false)}
+                  className="text-xs font-black text-[#8CAAB1] hover:text-[#0D2329] cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[#0D2329]">Nova Senha Provisória</label>
+                  <input
+                    type="text"
+                    required
+                    value={resetNewPass}
+                    onChange={(e) => setResetNewPass(e.target.value)}
+                    className="w-full px-4 py-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] text-xs font-mono font-bold text-[#0D2329]"
+                  />
+                </div>
+
+                {resetSuccess && (
+                  <div className="p-3 rounded-xl bg-green-50 text-green-700 text-xs font-bold text-center">
+                    Senha resetada com sucesso! Copie e envie para a psicopedagoga.
+                  </div>
+                )}
+
+                {resetError && (
+                  <div className="p-3 rounded-xl bg-amber-50 text-amber-700 text-xs font-bold text-center">
+                    {resetError}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={resetLoading}
+                  className="w-full py-3.5 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {resetLoading ? "Atualizando Senha..." : "Confirmar Nova Senha"}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            MODAL 3: ALTERAR PLANO DA CLÍNICA
+            ========================================================================= */}
+        {modalOpen && selectedClinic && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="max-w-md w-full p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-2xl space-y-5 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-black text-[#0D2329]">Alterar Plano da Clínica</h3>
+                  <p className="text-xs text-[#6B7C83]">{selectedClinic.fullName} ({selectedClinic.clinicName})</p>
+                </div>
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="text-xs font-black text-[#8CAAB1] hover:text-[#0D2329] cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[#0D2329]">Selecione o Novo Plano</label>
+                  <select
+                    value={newPlan}
+                    onChange={(e) => setNewPlan(e.target.value as PlanId)}
+                    className="w-full px-4 py-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] text-xs font-bold text-[#0D2329] focus:outline-none cursor-pointer"
+                  >
+                    {PLANS_CONFIG.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} (R$ {p.priceMonthly.toFixed(2).replace(".", ",")} • {p.maxProfessionals} vagas)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[#0D2329]">Status da Assinatura</label>
+                  <select
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value as any)}
+                    className="w-full px-4 py-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] text-xs font-bold text-[#0D2329] focus:outline-none cursor-pointer"
+                  >
+                    <option value="active">🟢 Ativa (Liberada)</option>
+                    <option value="trial">🟡 Trial (Período de Teste)</option>
+                    <option value="cancelled">🔴 Cancelada (Bloqueada)</option>
+                  </select>
+                </div>
+
+                <button
+                  onClick={handleSavePlan}
+                  disabled={savingPlan}
+                  className="w-full py-3.5 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {savingPlan ? "Salvando..." : "Salvar Alterações"}
+                </button>
+              </div>
             </div>
           </div>
         )}

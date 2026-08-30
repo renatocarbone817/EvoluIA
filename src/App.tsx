@@ -30,13 +30,14 @@ import { SuperAdminPage } from "@/pages/admin/SuperAdminPage"
 
 const queryClient = new QueryClient()
 
-// Coletor automático de telemetria de páginas
+// Coletor automático de telemetria de páginas (100% real)
 function AnalyticsTracker() {
   const location = useLocation()
+  const { user } = useAuthStore()
 
   useEffect(() => {
-    trackPageView(location.pathname)
-  }, [location.pathname])
+    trackPageView(location.pathname, user?.email)
+  }, [location.pathname, user?.email])
 
   return null
 }
