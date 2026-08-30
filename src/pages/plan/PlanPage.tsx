@@ -224,7 +224,7 @@ export function PlanPage() {
                 </p>
 
                 <button
-                  onClick={() => navigate("/configuracoes")}
+                  onClick={() => navigate("/configuracoes?aba=equipe")}
                   className="text-xs font-black text-[#7DD3FC] hover:underline flex items-center gap-0.5 shrink-0"
                 >
                   <span>Gerenciar Equipe</span>
@@ -451,7 +451,7 @@ export function PlanPage() {
               <button
                 onClick={() => {
                   setShowDowngradeModal(false)
-                  navigate("/configuracoes")
+                  navigate("/configuracoes?aba=equipe")
                 }}
                 className="h-10 px-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white font-black text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
               >

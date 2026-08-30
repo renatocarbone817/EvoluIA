@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import {
   Upload,
   Smartphone,
@@ -91,8 +91,13 @@ const DEFAULT_SCHEDULE: DaySchedule[] = [
 
 export function SettingsPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user, professional, setProfessional } = useAuthStore()
-  const [activeTab, setActiveTab] = useState<SettingsTab>("consultorio")
+
+  const requestedTab = searchParams.get("aba") || searchParams.get("tab")
+  const initialTab: SettingsTab = requestedTab === "equipe" ? "equipe" : "consultorio"
+
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab)
   const [saving, setSaving] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -103,6 +108,14 @@ export function SettingsPage() {
 
   const profId = professional?.id || user?.id
   const isMaster = isMasterUser(professional)
+
+  // Sincroniza aba se a URL mudar
+  useEffect(() => {
+    const tab = searchParams.get("aba") || searchParams.get("tab")
+    if (tab === "equipe" && isMaster) {
+      setActiveTab("equipe")
+    }
+  }, [searchParams, isMaster])
 
   // Subscription details
   const [subDetails, setSubDetails] = useState<SubscriptionDetails | null>(null)
