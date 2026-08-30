@@ -5,8 +5,8 @@
 
 @layer base {
   :root {
-    /* Fundo da tela: azul bebê suave e moderno (#CCEAF5), nítido contra o branco */
-    --background: 196 67% 88%;     /* #CCEAF5 */
+    /* Fundo da tela: cinza-azulado leve e harmônico (#DDEEF4), nítido contra o branco */
+    --background: 196 51% 91.2%;     /* #DDEEF4 */
     --foreground: 193 40% 16%;       /* #19323A */
 
     /* Cards e Superfícies em Branco Puro */
