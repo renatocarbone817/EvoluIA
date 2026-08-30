@@ -255,19 +255,50 @@ async function performLiveHealthChecks(): Promise<{
     })
   }
 
-  // 3. Check Gemini AI Availability
-  const hasGeminiKey = !!(import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY)
-  services.push({
-    name: "Google Gemini AI (Flash 2.0)",
-    service: "gemini",
-    status: hasGeminiKey ? "healthy" : "warning",
-    statusLabel: hasGeminiKey ? "Operacional" : "Chave não configurada",
-    latencyMs: null, // Não inventa latência se não chamou endpoint diretamente
-    message: hasGeminiKey
-      ? "Chave de API do Gemini 2.0 Flash configurada e pronta."
-      : "Adicione VITE_GEMINI_API_KEY no ambiente para habilitar relatórios automáticos.",
-    lastChecked: nowStr,
-  })
+  // 3. Check Gemini AI Availability (verifica tanto o pool seguro RPC do Supabase quanto .env)
+  try {
+    const t0 = performance.now()
+    const { data: keyData, error: keyError } = await supabase.rpc("pick_next_gemini_key")
+    const t1 = performance.now()
+    const lat = Math.round(t1 - t0)
+
+    const hasEnvKey = !!(import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY)
+    const hasDbKey = !keyError && Array.isArray(keyData) && keyData.length > 0 && !!keyData[0]?.api_key
+
+    if (hasDbKey || hasEnvKey) {
+      latencies.push(lat)
+      const projName = hasDbKey ? keyData[0].project_name : "ambiente"
+      services.push({
+        name: "Google Gemini AI (Flash 2.0)",
+        service: "gemini",
+        status: "healthy",
+        statusLabel: "Operacional",
+        latencyMs: lat,
+        message: `Pool de IA ativo e conectado (${projName} pronto para relatórios).`,
+        lastChecked: nowStr,
+      })
+    } else {
+      services.push({
+        name: "Google Gemini AI (Flash 2.0)",
+        service: "gemini",
+        status: "warning",
+        statusLabel: "Chave não configurada",
+        latencyMs: null,
+        message: "Nenhuma chave ativa encontrada no pool do Supabase nem nas variáveis de ambiente.",
+        lastChecked: nowStr,
+      })
+    }
+  } catch (e: any) {
+    services.push({
+      name: "Google Gemini AI (Flash 2.0)",
+      service: "gemini",
+      status: "warning",
+      statusLabel: "Não verificado",
+      latencyMs: null,
+      message: e.message || "Não foi possível verificar o pool de chaves do Gemini.",
+      lastChecked: nowStr,
+    })
+  }
 
   // 4. Check Hotmart Webhook Receiver
   services.push({

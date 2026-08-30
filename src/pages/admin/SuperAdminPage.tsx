@@ -418,27 +418,38 @@ export function SuperAdminPage() {
 
           {/* Lado Direito: Health Badges Reais + Atualizar + Logout Icon */}
           <div className="flex flex-wrap items-center gap-2 relative z-10">
-            {saasHealth?.services.map((svc, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs font-bold text-[#34D399]"
-                title={`${svc.name}: ${svc.message}`}
-              >
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    svc.status === "healthy"
-                      ? "bg-[#10B981] animate-pulse"
-                      : svc.status === "warning"
-                      ? "bg-[#F59E0B]"
-                      : "bg-[#EF4444]"
-                  }`}
-                />
-                <span className="text-white/90 text-[11px]">{svc.name.split(" ")[0]}</span>
-                {svc.latencyMs && (
-                  <span className="text-[10px] text-white/50">{svc.latencyMs}ms</span>
-                )}
-              </div>
-            ))}
+            {saasHealth?.services.map((svc, idx) => {
+              const labelName =
+                svc.service === "supabase"
+                  ? "Supabase"
+                  : svc.service === "gemini"
+                  ? "Gemini Flash"
+                  : svc.service === "vercel"
+                  ? "Vercel"
+                  : "Hotmart"
+
+              return (
+                <div
+                  key={idx}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs font-bold text-[#34D399]"
+                  title={`${svc.name}: ${svc.message}`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      svc.status === "healthy"
+                        ? "bg-[#10B981] animate-pulse"
+                        : svc.status === "warning"
+                        ? "bg-[#F59E0B]"
+                        : "bg-[#EF4444]"
+                    }`}
+                  />
+                  <span className="text-white/90 text-[11px]">{labelName}</span>
+                  {svc.latencyMs && (
+                    <span className="text-[10px] text-white/50">{svc.latencyMs}ms</span>
+                  )}
+                </div>
+              )
+            })}
 
             <button
               onClick={loadData}
