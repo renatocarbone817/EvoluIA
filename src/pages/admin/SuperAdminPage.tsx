@@ -37,6 +37,9 @@ import {
   ArrowLeft,
   LogOut,
   KeyRound,
+  Gift,
+  Plus,
+  Copy,
 } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { supabase } from "@/lib/supabase"
@@ -44,6 +47,7 @@ import {
   isSuperAdmin,
   getSuperAdminDashboardData,
   updateClinicSubscriptionManually,
+  createVipClinicAccount,
   lockSuperAdminSession,
   SUPER_ADMIN_EMAIL,
   SUPER_ADMIN_PASS,
@@ -93,6 +97,16 @@ export function SuperAdminPage() {
   // Modal de Reset de Senha pelo Dono
   const [resettingClinic, setResettingClinic] = useState<ClinicAccountItem | null>(null)
   const [sendingResetEmail, setSendingResetEmail] = useState(false)
+
+  // Modal de Criação de Conta VIP / Cortesia Grátis
+  const [showCreateVipModal, setShowCreateVipModal] = useState(false)
+  const [vipEmail, setVipEmail] = useState("")
+  const [vipPassword, setVipPassword] = useState("")
+  const [vipPlanId, setVipPlanId] = useState<PlanId>("individual")
+  const [showVipPassword, setShowVipPassword] = useState(true)
+  const [creatingVip, setCreatingVip] = useState(false)
+  const [createdVipSuccessData, setCreatedVipSuccessData] = useState<any | null>(null)
+  const [copiedVipMessage, setCopiedVipMessage] = useState(false)
 
   const authorized = isSuperAdmin(user, professional) || unlocked
 
@@ -205,6 +219,43 @@ export function SuperAdminPage() {
       toast.error(err.message || "Erro ao enviar e-mail de recuperação.")
     } finally {
       setSendingResetEmail(false)
+    }
+  }
+
+  // Submissão do Cadastro VIP Grátis (Apenas E-mail e Senha)
+  async function handleCreateVipSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!vipEmail.trim() || !vipPassword.trim()) {
+      toast.error("Por favor, preencha o e-mail e a senha.")
+      return
+    }
+
+    if (vipPassword.trim().length < 6) {
+      toast.error("A senha deve ter no mínimo 6 caracteres.")
+      return
+    }
+
+    setCreatingVip(true)
+    try {
+      await createVipClinicAccount({
+        email: vipEmail,
+        password: vipPassword,
+        planId: vipPlanId,
+      })
+
+      setCreatedVipSuccessData({
+        email: vipEmail.trim().toLowerCase(),
+        password: vipPassword.trim(),
+        planId: vipPlanId,
+      })
+
+      toast.success("Conta VIP criada e ativada com sucesso! 🌟🎉", { duration: 4000 })
+      loadData()
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || "Erro ao criar conta VIP.")
+    } finally {
+      setCreatingVip(false)
     }
   }
 
@@ -986,11 +1037,11 @@ export function SuperAdminPage() {
                 />
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <select
                   value={selectedPlanFilter}
                   onChange={(e) => setSelectedPlanFilter(e.target.value)}
-                  className="px-3 py-2.5 rounded-2xl border border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none"
+                  className="px-3 py-2 rounded-2xl border border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none"
                 >
                   <option value="all">Todos os Planos</option>
                   <option value="individual">EvoluIA Individual</option>
@@ -999,6 +1050,22 @@ export function SuperAdminPage() {
                   <option value="equipe">EvoluIA Equipe</option>
                   <option value="clinica">EvoluIA Clínica</option>
                 </select>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVipEmail("")
+                    setVipPassword("Evoluia" + Math.floor(100 + Math.random() * 900))
+                    setVipPlanId("individual")
+                    setCreatedVipSuccessData(null)
+                    setCopiedVipMessage(false)
+                    setShowCreateVipModal(true)
+                  }}
+                  className="h-9 px-4 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs shadow-sm active:scale-95 transition-all flex items-center gap-1.5 shrink-0 ml-auto"
+                >
+                  <Gift className="w-3.5 h-3.5" />
+                  <span>+ Criar Conta VIP</span>
+                </button>
               </div>
             </div>
 
@@ -1372,6 +1439,193 @@ export function SuperAdminPage() {
                   Fechar
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL DE CRIAÇÃO DE CONTA VIP / CORTESIA GRÁTIS */}
+        {showCreateVipModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-2xl max-w-md w-full p-6 sm:p-7 space-y-5">
+              {/* Topo do Modal */}
+              <div className="flex items-center justify-between pb-3 border-b border-[#EEF2F6]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-[#DCFCE7] text-[#166534] flex items-center justify-center font-bold">
+                    <Gift className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-[#0D2329]">Criar Acesso VIP / Cortesia</h3>
+                    <p className="text-[11px] font-semibold text-[#6B7C83]">
+                      Conta gratuita com ativação imediata (sem Hotmart)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowCreateVipModal(false)
+                    setCreatedVipSuccessData(null)
+                  }}
+                  className="w-8 h-8 rounded-full bg-[#F1F5F9] text-[#6B7C83] hover:text-[#0D2329] flex items-center justify-center"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {createdVipSuccessData ? (
+                /* TELA DE SUCESSO & COPIAR ACESSO */
+                <div className="space-y-4 animate-in zoom-in-95 text-xs">
+                  <div className="p-4 rounded-2xl bg-[#F0FDF4] border-2 border-[#86EFAC] text-center space-y-2">
+                    <div className="w-10 h-10 rounded-full bg-[#DCFCE7] text-[#166534] flex items-center justify-center mx-auto">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm text-[#166534]">Conta VIP Ativada com Sucesso! 🎉</h4>
+                      <p className="text-[11px] text-[#15803D] font-medium mt-0.5">
+                        O login já está liberado e nunca será cobrado.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[#6B7C83]">Mensagem pronta para enviar:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const msg = `Olá! Criei seu acesso VIP no EvoluIA 🌟\n\nLink: https://evolu-ia-seven.vercel.app/login\nE-mail: ${createdVipSuccessData.email}\nSenha: ${createdVipSuccessData.password}\n\nVocê já pode entrar e começar a usar!`
+                          navigator.clipboard.writeText(msg)
+                          setCopiedVipMessage(true)
+                          toast.success("Mensagem de acesso copiada!")
+                          setTimeout(() => setCopiedVipMessage(false), 3000)
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white font-black text-[10px] flex items-center gap-1 transition-all active:scale-95"
+                      >
+                        {copiedVipMessage ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedVipMessage ? "Copiado!" : "Copiar Texto"}</span>
+                      </button>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-white border border-[#CBDDE2] text-[#0D2329] font-mono text-[11px] leading-relaxed whitespace-pre-wrap select-all">
+                      {`Olá! Criei seu acesso VIP no EvoluIA 🌟\n\nLink: https://evolu-ia-seven.vercel.app/login\nE-mail: ${createdVipSuccessData.email}\nSenha: ${createdVipSuccessData.password}\n\nVocê já pode entrar e começar a usar!`}
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreateVipModal(false)
+                        setCreatedVipSuccessData(null)
+                      }}
+                      className="w-full py-3 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white font-black text-xs shadow-md active:scale-95 transition-all"
+                    >
+                      Concluir & Fechar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* FORMULÁRIO DE CRIAÇÃO RÁPIDA (SÓ E-MAIL E SENHA) */
+                <form onSubmit={handleCreateVipSubmit} className="space-y-4 text-xs">
+                  {/* E-mail */}
+                  <div className="space-y-1.5">
+                    <label className="font-black text-[#0D2329]">E-mail de Acesso (Login):</label>
+                    <div className="relative flex items-center">
+                      <Mail className="absolute left-3.5 w-4 h-4 text-[#8CAAB1]" />
+                      <input
+                        type="email"
+                        required
+                        placeholder="ex: irma@gmail.com"
+                        value={vipEmail}
+                        onChange={(e) => setVipEmail(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white font-medium text-[#0D2329] focus:outline-none focus:border-[#10B981] placeholder:text-[#8CAAB1]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Senha Inicial */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="font-black text-[#0D2329]">Senha Inicial:</label>
+                      <button
+                        type="button"
+                        onClick={() => setVipPassword("Evoluia" + Math.floor(100 + Math.random() * 900))}
+                        className="text-[10px] font-bold text-[#7C3AED] hover:underline"
+                      >
+                        ⚡ Gerar outra senha
+                      </button>
+                    </div>
+                    <div className="relative flex items-center">
+                      <Lock className="absolute left-3.5 w-4 h-4 text-[#8CAAB1]" />
+                      <input
+                        type={showVipPassword ? "text" : "password"}
+                        required
+                        minLength={6}
+                        placeholder="Mínimo 6 dígitos"
+                        value={vipPassword}
+                        onChange={(e) => setVipPassword(e.target.value)}
+                        className="w-full pl-10 pr-10 py-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white font-medium text-[#0D2329] focus:outline-none focus:border-[#10B981] placeholder:text-[#8CAAB1]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowVipPassword(!showVipPassword)}
+                        className="absolute right-3.5 text-[#8CAAB1] hover:text-[#0D2329]"
+                      >
+                        {showVipPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Plano Concedido */}
+                  <div className="space-y-1.5">
+                    <label className="font-black text-[#0D2329]">Plano Concedido (Vagas de Profissionais):</label>
+                    <select
+                      value={vipPlanId}
+                      onChange={(e) => setVipPlanId(e.target.value as PlanId)}
+                      className="w-full px-3.5 py-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white font-bold text-[#0D2329] focus:outline-none focus:border-[#10B981]"
+                    >
+                      {PLANS_CONFIG.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.maxProfessionals} vaga{p.maxProfessionals > 1 ? "s" : ""}) — Cortesia R$ 0,00
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Selo Informativo */}
+                  <div className="p-3 rounded-2xl bg-[#ECFDF5] border border-[#A7F3D0] flex items-center gap-2 text-[#065F46] font-semibold text-[11px]">
+                    <ShieldCheck className="w-4 h-4 text-[#10B981] shrink-0" />
+                    <span>Acesso vitalício ativado sem necessidade de cartão de crédito.</span>
+                  </div>
+
+                  {/* Botões de Ação */}
+                  <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#EEF2F6]">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateVipModal(false)}
+                      className="px-4 py-2.5 rounded-xl bg-[#F1F5F9] text-[#0D2329] font-bold text-xs"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={creatingVip}
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      {creatingVip ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Criando Conta...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Gift className="w-3.5 h-3.5" />
+                          <span>Criar Conta VIP Grátis</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
         )}

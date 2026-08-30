@@ -441,3 +441,91 @@ export async function updateClinicSubscriptionManually(
   if (error) throw error
   return { success: true, plan: planConfig.name }
 }
+
+/**
+ * Criação rápida de conta VIP/Cortesia pelo Dono com apenas e-mail e senha
+ */
+export async function createVipClinicAccount(params: {
+  email: string
+  password: string
+  planId?: PlanId
+  fullName?: string
+  clinicName?: string
+}) {
+  const cleanEmail = params.email.trim().toLowerCase()
+  const cleanPassword = params.password.trim()
+  const planId = params.planId || "individual"
+
+  try {
+    // 1. Tenta chamar o endpoint serverless
+    const resp = await fetch("/api/admin/create-vip", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: cleanEmail,
+        password: cleanPassword,
+        planId,
+        fullName: params.fullName,
+        clinicName: params.clinicName,
+      }),
+    })
+
+    if (resp.ok) {
+      const result = await resp.json()
+      return result
+    } else {
+      const errJson = await resp.json().catch(() => ({}))
+      if (errJson?.error) {
+        throw new Error(errJson.error)
+      }
+    }
+  } catch (apiErr: any) {
+    if (apiErr.message && !apiErr.message.includes("fetch")) {
+      throw apiErr
+    }
+    console.warn("Serverless API unavailable, attempting client fallback:", apiErr)
+  }
+
+  // 2. Fallback direto via cliente Supabase (em dev ou caso API offline)
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email: cleanEmail,
+    password: cleanPassword,
+    options: {
+      data: {
+        full_name: params.fullName || "Psicopedagoga VIP",
+        clinic_name: params.clinicName || "Espaço Psicopedagógico",
+      },
+    },
+  })
+
+  if (authError) throw authError
+  const userId = authData.user?.id
+  if (!userId) throw new Error("Não foi possível obter o ID do usuário criado.")
+
+  const planConfig = getPlanConfig(planId)
+
+  // Cria profile
+  await supabase.from("professionals").upsert({
+    id: userId,
+    email: cleanEmail,
+    full_name: params.fullName || "Psicopedagoga VIP",
+    clinic_name: params.clinicName || "Espaço Psicopedagógico",
+    specialty: "Psicopedagogia Clínica",
+    is_active: true,
+    role: "owner",
+    created_at: new Date().toISOString(),
+  })
+
+  // Cria subscription VIP
+  await supabase.from("subscriptions").upsert({
+    master_user_id: userId,
+    plan_id: planId,
+    max_professionals: planConfig.maxProfessionals,
+    status: "active",
+    source: "admin_vip_cortesia",
+    hotmart_subscription_id: "VIP_CORTESIA",
+    updated_at: new Date().toISOString(),
+  })
+
+  return { success: true, user: { id: userId, email: cleanEmail, planId } }
+}
