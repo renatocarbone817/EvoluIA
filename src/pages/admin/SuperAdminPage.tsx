@@ -51,6 +51,12 @@ import {
 import { PLANS_CONFIG, type PlanId } from "@/lib/plans"
 import { useAuthStore } from "@/store/authStore"
 import { supabase } from "@/lib/supabase"
+import {
+  checkRateLimit,
+  recordFailedAttempt,
+  clearRateLimit,
+  formatLockoutRemaining,
+} from "@/lib/rateLimiter"
 
 type AdminTab = "visao-geral" | "infraestrutura" | "trafego" | "clinicas" | "webhooks"
 
@@ -132,19 +138,45 @@ export function SuperAdminPage() {
   function handleDirectLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoginError(null)
+
+    const rlKey = "super_admin_login"
+    const rlStatus = checkRateLimit(rlKey)
+    if (rlStatus.isLocked) {
+      setLoginError(
+        `Acesso bloqueado por segurança devido a excesso de tentativas. Aguarde ${formatLockoutRemaining(
+          rlStatus.lockoutRemainingSeconds
+        )}.`
+      )
+      return
+    }
+
     setLoggingIn(true)
 
     const cleanEmail = adminEmailInput.trim().toLowerCase()
     const cleanPass = adminPassInput.trim()
 
     if (cleanEmail === SUPER_ADMIN_EMAIL.toLowerCase() && cleanPass === SUPER_ADMIN_PASS) {
+      clearRateLimit(rlKey)
       if (typeof window !== "undefined") {
         sessionStorage.setItem("evoluia_superadmin_session", "active")
       }
       setHasAccess(true)
       loadData()
     } else {
-      setLoginError("Credenciais de Super Admin incorretas.")
+      const failedResult = recordFailedAttempt(rlKey)
+      if (failedResult.isLocked) {
+        setLoginError(
+          `Credenciais incorretas. Painel bloqueado por 15 minutos por segurança. Aguarde ${formatLockoutRemaining(
+            failedResult.lockoutRemainingSeconds
+          )}.`
+        )
+      } else {
+        setLoginError(
+          `Credenciais de Super Admin incorretas. Restam ${failedResult.remainingAttempts} ${
+            failedResult.remainingAttempts === 1 ? "tentativa" : "tentativas"
+          } antes do bloqueio temporário.`
+        )
+      }
     }
     setLoggingIn(false)
   }

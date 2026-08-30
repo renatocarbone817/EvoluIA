@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button"
 import toast from "react-hot-toast"
 import { UserPlus, Camera, X, Crop, Loader2, Users, CheckCircle2, School, GraduationCap } from "lucide-react"
 import { ImageCropperModal } from "@/components/ui/ImageCropperModal"
+import { sanitizeText } from "@/lib/sanitizer"
 
 interface NewChildDialogProps {
   open: boolean
@@ -198,13 +199,13 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
         .from("children")
         .insert({
           professional_id: profId,
-          full_name: form.full_name,
+          full_name: sanitizeText(form.full_name),
           birth_date: form.birth_date || null,
-          school: form.school || null,
-          grade: form.grade || null,
-          main_complaint: form.main_complaint || null,
+          school: sanitizeText(form.school) || null,
+          grade: sanitizeText(form.grade) || null,
+          main_complaint: sanitizeText(form.main_complaint) || null,
           status: form.status as any,
-          notes: form.notes || null,
+          notes: sanitizeText(form.notes) || null,
           photo_url: photoUrl || null,
         })
         .select()
@@ -218,9 +219,9 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
           .from("guardians")
           .insert({
             professional_id: profId,
-            full_name: form.guardian_name.trim(),
-            phone: form.guardian_phone || null,
-            whatsapp: form.guardian_phone || null,
+            full_name: sanitizeText(form.guardian_name),
+            phone: sanitizeText(form.guardian_phone) || null,
+            whatsapp: sanitizeText(form.guardian_phone) || null,
           })
           .select()
           .single()

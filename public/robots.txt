@@ -1,0 +1,27 @@
+﻿# ==========================================================
+# EVOLUIA — ROBOTS.TXT (SECURITY & PRIVACY POLICY)
+# Bloqueio de indexação e proteção de rotas privadas
+# ==========================================================
+
+User-agent: *
+Disallow: /admin
+Disallow: /admin/
+Disallow: /criancas/
+Disallow: /atendimento/
+Disallow: /agenda/
+Disallow: /financeiro/
+Disallow: /relatorios/
+Disallow: /configuracoes/
+Disallow: /plano/
+Disallow: /api/
+
+# Rotas públicas permitidas
+Allow: /
+Allow: /login
+Allow: /cadastro
+Allow: /recuperar-senha
+Allow: /termos
+Allow: /privacidade
+
+# Crawl-delay para evitar scraping agressivo
+Crawl-delay: 10

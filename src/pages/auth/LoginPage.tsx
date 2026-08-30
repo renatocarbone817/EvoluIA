@@ -11,8 +11,15 @@ import {
   BarChart3,
   ShieldCheck,
   Check,
+  AlertTriangle,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import {
+  checkRateLimit,
+  recordFailedAttempt,
+  clearRateLimit,
+  formatLockoutRemaining,
+} from "@/lib/rateLimiter"
 import toast from "react-hot-toast"
 
 export function LoginPage() {
@@ -27,16 +34,49 @@ export function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setError("")
+
+    const cleanEmail = email.trim().toLowerCase()
+    const rlKey = `login_${cleanEmail}`
+    const rlStatus = checkRateLimit(rlKey)
+
+    if (rlStatus.isLocked) {
+      setError(
+        `Muitas tentativas incorretas. Por segurança, aguarde ${formatLockoutRemaining(
+          rlStatus.lockoutRemainingSeconds
+        )} para tentar novamente.`
+      )
+      return
+    }
+
     setLoading(true)
 
     try {
-      const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password })
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      })
 
       if (error) {
-        setError("E-mail ou senha incorretos. Verifique seus dados e tente novamente.")
+        const failedResult = recordFailedAttempt(rlKey)
+        if (failedResult.isLocked) {
+          setError(
+            `Muitas tentativas incorretas. Por segurança, o acesso foi temporariamente bloqueado por 15 minutos. Aguarde ${formatLockoutRemaining(
+              failedResult.lockoutRemainingSeconds
+            )}.`
+          )
+        } else {
+          setError(
+            `E-mail ou senha incorretos. Você tem mais ${failedResult.remainingAttempts} ${
+              failedResult.remainingAttempts === 1 ? "tentativa" : "tentativas"
+            } antes do bloqueio de segurança.`
+          )
+        }
         setLoading(false)
         return
       }
+
+      // Sucesso: limpa o contador de rate limit
+      clearRateLimit(rlKey)
 
       const userId = authData.user?.id
       if (userId) {
