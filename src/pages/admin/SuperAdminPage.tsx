@@ -58,7 +58,7 @@ export function SuperAdminPage() {
   const { user, professional } = useAuthStore()
 
   const [hasAccess, setHasAccess] = useState<boolean>(() => isSuperAdmin(user, professional))
-  const [adminEmailInput, setAdminEmailInput] = useState(user?.email || "")
+  const [adminEmailInput, setAdminEmailInput] = useState("")
   const [adminPassInput, setAdminPassInput] = useState("")
   const [loginError, setLoginError] = useState<string | null>(null)
   const [loggingIn, setLoggingIn] = useState(false)
@@ -264,7 +264,8 @@ export function SuperAdminPage() {
                 required
                 value={adminEmailInput}
                 onChange={(e) => setAdminEmailInput(e.target.value)}
-                placeholder="carbone.renato@gmail.com"
+                placeholder=""
+                autoComplete="off"
                 className="w-full px-4 py-3 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-[#F59E0B]"
               />
             </div>
@@ -277,7 +278,8 @@ export function SuperAdminPage() {
                   required
                   value={adminPassInput}
                   onChange={(e) => setAdminPassInput(e.target.value)}
-                  placeholder="••••••••••••"
+                  placeholder=""
+                  autoComplete="off"
                   className="w-full px-4 py-3 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-[#F59E0B]"
                 />
                 <Lock className="w-4 h-4 text-white/40 absolute right-4 top-3.5" />
