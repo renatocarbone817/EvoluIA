@@ -775,6 +775,34 @@ export async function updateClinicSubscriptionManually(
 ) {
   const planConfig = getPlanConfig(planId)
 
+  try {
+    const resp = await fetch("/api/admin/update-plan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        masterUserId,
+        planId,
+        status,
+      }),
+    })
+
+    if (resp.ok) {
+      const data = await resp.json()
+      return { success: true, plan: data.plan || planConfig.name }
+    } else {
+      const errJson = await resp.json().catch(() => ({}))
+      if (errJson?.error) {
+        throw new Error(errJson.error)
+      }
+    }
+  } catch (apiErr: any) {
+    if (apiErr.message && !apiErr.message.includes("fetch")) {
+      throw apiErr
+    }
+    console.warn("Serverless /api/admin/update-plan unavailable, attempting client fallback:", apiErr)
+  }
+
+  // Fallback direto via cliente Supabase
   const { error } = await supabase
     .from("subscriptions")
     .upsert({

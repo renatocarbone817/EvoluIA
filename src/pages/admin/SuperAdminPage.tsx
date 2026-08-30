@@ -158,12 +158,13 @@ export function SuperAdminPage() {
     if (!selectedClinic) return
     try {
       setSavingPlan(true)
-      await updateClinicSubscriptionManually(selectedClinic.id, newPlan, newStatus)
+      const res = await updateClinicSubscriptionManually(selectedClinic.id, newPlan, newStatus)
       await loadData()
       setModalOpen(false)
       setSelectedClinic(null)
+      toast.success(`Plano de ${selectedClinic.fullName} alterado para ${res.plan} com sucesso!`)
     } catch (err: any) {
-      alert("Erro ao atualizar plano: " + (err.message || "Erro desconhecido"))
+      toast.error("Erro ao atualizar plano: " + (err.message || "Falha ao salvar."))
     } finally {
       setSavingPlan(false)
     }
