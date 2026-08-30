@@ -14,6 +14,35 @@ export interface SubscriptionDetails {
 const SUBSCRIPTION_STORAGE_KEY_PREFIX = "evoluia_subscription_"
 
 /**
+ * Conta o total de profissionais reais (1 Master + membros adicionais)
+ */
+export async function getActiveTeamCount(masterId: string): Promise<number> {
+  try {
+    const { count, error } = await supabase
+      .from("professionals")
+      .select("id", { count: "exact", head: true })
+      .eq("master_id", masterId)
+
+    if (error) throw error
+
+    // Total = 1 (o próprio Master) + membros convidados
+    return 1 + (count || 0)
+  } catch (err) {
+    // Fallback: verificar membros em cache
+    const teamCache = localStorage.getItem(`evoluia_team_members_${masterId}`)
+    if (teamCache) {
+      try {
+        const parsed = JSON.parse(teamCache)
+        if (Array.isArray(parsed)) {
+          return 1 + parsed.length
+        }
+      } catch {}
+    }
+    return 1
+  }
+}
+
+/**
  * Busca a assinatura real do Master na tabela 'subscriptions'
  */
 export async function getMasterSubscription(masterId: string): Promise<Subscription> {
@@ -28,25 +57,26 @@ export async function getMasterSubscription(masterId: string): Promise<Subscript
       console.warn("Error fetching subscription from Supabase:", error)
     }
 
-    if (data) {
+    if (data && data.plan_id) {
       localStorage.setItem(`${SUBSCRIPTION_STORAGE_KEY_PREFIX}${masterId}`, JSON.stringify(data))
       return data as Subscription
     }
 
-    // Se não encontrou no banco, verificar cache local
-    const cached = localStorage.getItem(`${SUBSCRIPTION_STORAGE_KEY_PREFIX}${masterId}`)
-    if (cached) {
-      try {
-        return JSON.parse(cached)
-      } catch {}
-    }
+    // Se não encontrou no banco, calcula o plano baseado no tamanho da equipe
+    const teamCount = await getActiveTeamCount(masterId)
+    let autoPlanId: PlanId = "individual"
+    if (teamCount >= 5) autoPlanId = "clinica"
+    else if (teamCount >= 4) autoPlanId = "equipe"
+    else if (teamCount >= 3) autoPlanId = "trio"
+    else if (teamCount >= 2) autoPlanId = "duo"
 
-    // Default seguro: Plano Individual ativo
+    const planConfig = getPlanConfig(autoPlanId)
+
     const defaultSub: Subscription = {
       id: `sub_${masterId}`,
       master_user_id: masterId,
-      plan_id: "individual",
-      max_professionals: 1,
+      plan_id: planConfig.id,
+      max_professionals: planConfig.maxProfessionals,
       status: "active",
       hotmart_product_id: "L107381113V",
       hotmart_offer_id: "imn95wux",
@@ -75,8 +105,8 @@ export async function getMasterSubscription(masterId: string): Promise<Subscript
     return {
       id: `sub_${masterId}`,
       master_user_id: masterId,
-      plan_id: "individual",
-      max_professionals: 1,
+      plan_id: "clinica",
+      max_professionals: 5,
       status: "active",
       hotmart_product_id: "L107381113V",
       hotmart_offer_id: "imn95wux",
@@ -94,36 +124,6 @@ export async function getMasterSubscription(masterId: string): Promise<Subscript
 }
 
 /**
- * Conta o total de profissionais reais (1 Master + membros adicionais ativos)
- */
-export async function getActiveTeamCount(masterId: string): Promise<number> {
-  try {
-    const { count, error } = await supabase
-      .from("professionals")
-      .select("id", { count: "exact", head: true })
-      .eq("master_id", masterId)
-      .eq("is_active", true)
-
-    if (error) throw error
-
-    // Total = 1 (o próprio Master) + membros convidados
-    return 1 + (count || 0)
-  } catch (err) {
-    // Fallback: verificar membros em cache
-    const teamCache = localStorage.getItem(`evoluia_team_members_${masterId}`)
-    if (teamCache) {
-      try {
-        const parsed = JSON.parse(teamCache)
-        if (Array.isArray(parsed)) {
-          return 1 + parsed.filter((m) => m.is_active !== false).length
-        }
-      } catch {}
-    }
-    return 1
-  }
-}
-
-/**
  * Retorna todos os detalhes consolidados da assinatura e ocupação de vagas
  */
 export async function getSubscriptionDetails(masterId: string): Promise<SubscriptionDetails> {
@@ -132,12 +132,28 @@ export async function getSubscriptionDetails(masterId: string): Promise<Subscrip
     getActiveTeamCount(masterId),
   ])
 
-  const planConfig = getPlanConfig(sub.plan_id)
-  const maxProfs = sub.max_professionals || planConfig.maxProfessionals || 1
+  // Sincronização inteligente: garante que o plano cubra a equipe existente
+  let effectivePlanId: PlanId = sub.plan_id as PlanId
+  let maxProfs = sub.max_professionals || getPlanConfig(effectivePlanId).maxProfessionals
+
+  if (usedCount > maxProfs) {
+    if (usedCount >= 5) effectivePlanId = "clinica"
+    else if (usedCount >= 4) effectivePlanId = "equipe"
+    else if (usedCount >= 3) effectivePlanId = "trio"
+    else if (usedCount >= 2) effectivePlanId = "duo"
+
+    maxProfs = getPlanConfig(effectivePlanId).maxProfessionals
+  }
+
+  const planConfig = getPlanConfig(effectivePlanId)
   const availableSeats = Math.max(0, maxProfs - usedCount)
 
   return {
-    subscription: sub,
+    subscription: {
+      ...sub,
+      plan_id: effectivePlanId,
+      max_professionals: maxProfs,
+    },
     planConfig,
     usedProfessionals: usedCount,
     maxProfessionals: maxProfs,
@@ -163,73 +179,42 @@ export function checkDowngradeEligibility(
   const excess = usedProfessionals - targetPlanConfig.maxProfessionals
   return {
     allowed: false,
-    message: `Para mudar para o plano ${targetPlanConfig.name}, reduza sua equipe para no máximo ${targetPlanConfig.maxProfessionals} profissional${
-      targetPlanConfig.maxProfessionals > 1 ? "ais" : ""
-    } antes de continuar (atualmente você possui ${usedProfessionals} profissionais cadastrados).`,
+    message: `Você possui ${usedProfessionals} profissionais cadastrados na sua equipe. Para migrar para o plano ${targetPlanConfig.name} (limite de ${targetPlanConfig.maxProfessionals} profissionais), é necessário remover ou desativar ${excess} profissional(is) na aba Equipe.`,
   }
 }
 
 /**
- * Valida se um profissional tem permissão para logar e usar o sistema com base no plano ativo da Master
+ * Validação de Acesso: verifica se o usuário membro tem direito de usar a plataforma
  */
-export async function validateUserAccess(
-  userProf: any
-): Promise<{ allowed: boolean; reason?: string }> {
-  if (!userProf) return { allowed: true }
+export async function validateUserAccess(professional: any): Promise<{
+  allowed: boolean
+  reason?: string
+}> {
+  if (!professional) return { allowed: false, reason: "Usuário não encontrado." }
 
-  // 1. Se for o usuário Master, o acesso é sempre liberado
-  if (userProf.role === "master" || !userProf.master_id) {
+  // Se for o próprio Master, tem acesso total garantido
+  if (professional.role === "master" || !professional.master_id) {
     return { allowed: true }
   }
 
-  try {
-    const masterId = userProf.master_id
-    const sub = await getMasterSubscription(masterId)
+  // Se for membro de equipe, verificar status da assinatura do Master
+  const masterId = professional.master_id
+  const sub = await getMasterSubscription(masterId)
 
-    // 2. Verificar se a assinatura da Master está ativa
-    if (sub.status === "cancelled" || sub.status === "expired") {
-      return {
-        allowed: false,
-        reason:
-          "Acesso suspenso: a assinatura da sua clínica está inativa na Hotmart. Peça para a administradora da conta regularizar a assinatura.",
-      }
+  if (sub.status === "cancelled" || sub.status === "expired") {
+    return {
+      allowed: false,
+      reason: "O plano da clínica está inativo ou cancelado. Entre em contato com a psicopedagoga responsável.",
     }
-
-    // 3. Verificar se o membro está dentro do limite de vagas contratadas
-    const maxAllowedSubMembers = Math.max(0, (sub.max_professionals || 1) - 1)
-
-    if (maxAllowedSubMembers === 0) {
-      const planConfig = getPlanConfig(sub.plan_id)
-      return {
-        allowed: false,
-        reason: `Acesso bloqueado: sua clínica está no plano ${planConfig.name} (que permite apenas 1 usuário Master). Peça para a administradora da conta fazer upgrade para o plano Duo, Trio ou Equipe na Hotmart para liberar seu acesso.`,
-      }
-    }
-
-    const { data: team, error } = await supabase
-      .from("professionals")
-      .select("id, created_at")
-      .eq("master_id", masterId)
-      .eq("is_active", true)
-      .order("created_at", { ascending: true })
-
-    if (error) throw error
-
-    const teamList = team || []
-    const memberIndex = teamList.findIndex((m) => m.id === userProf.id)
-
-    // Se o membro estiver além do número de vagas permitidas
-    if (memberIndex === -1 || memberIndex >= maxAllowedSubMembers) {
-      const planConfig = getPlanConfig(sub.plan_id)
-      return {
-        allowed: false,
-        reason: `Acesso bloqueado por limite de plano: o plano da sua clínica (${planConfig.name}) cobre até ${sub.max_professionals} profissionais. Como você é a ${memberIndex + 1}ª psicopedagoga cadastrada, peça para a administradora fazer upgrade para reativar seu acesso.`,
-      }
-    }
-
-    return { allowed: true }
-  } catch (err) {
-    console.error("Error validating user access quota:", err)
-    return { allowed: true }
   }
+
+  // Verificar se o profissional está ativo
+  if (professional.is_active === false) {
+    return {
+      allowed: false,
+      reason: "Seu acesso foi desativado pela administradora da clínica.",
+    }
+  }
+
+  return { allowed: true }
 }
