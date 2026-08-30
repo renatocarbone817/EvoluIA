@@ -565,7 +565,7 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
 
     // Receita do Mês: Apenas receita comprovada por pagamentos aprovados
     let monthRevenue: number | null = null
-    if (payingSubscriptions.length > 0) {
+    if (payingClients.length > 0) {
       monthRevenue = mrr
     } else if (approvedSalesMonth > 0) {
       monthRevenue = approvedSalesEventsMonth.reduce((acc, ev) => {
@@ -585,13 +585,13 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
       clinica: 0,
     }
 
-    payingSubscriptions.forEach((s) => {
-      const key = (s.plan_id || "individual").toLowerCase() as PlanId
+    clientsList.forEach((c) => {
+      const key = (c.planId || "individual").toLowerCase() as PlanId
       if (planCounts[key] !== undefined) planCounts[key]++
       else planCounts.individual++
     })
 
-    const totalPaying = Math.max(payingClientsCount, 1)
+    const totalClinics = Math.max(clientsList.length, 1)
     const planDistribution = PLANS_CONFIG.map((plan) => {
       const count = planCounts[plan.id] || 0
       return {
@@ -599,21 +599,21 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
         name: plan.name,
         price: plan.priceMonthly,
         count,
-        percentage: payingClientsCount > 0 ? Math.round((count / totalPaying) * 100) : 0,
+        percentage: clientsList.length > 0 ? Math.round((count / totalClinics) * 100) : 0,
         revenue: count * plan.priceMonthly,
       }
     })
 
     // Histórico de MRR (Sem dados fictícios)
-    const hasHistory = payingSubscriptions.length > 1
+    const hasHistory = payingClients.length > 1
     const historicalMrr = {
       period: "30d" as const,
       hasHistory,
       dataPoints: hasHistory
-        ? payingSubscriptions.map((s) => ({
-            date: s.created_at || now.toISOString(),
-            label: new Date(s.created_at || now).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
-            mrr: getPlanConfig(s.plan_id).priceMonthly,
+        ? payingClients.map((c) => ({
+            date: c.createdAt || now.toISOString(),
+            label: new Date(c.createdAt || now).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+            mrr: c.planPrice,
           }))
         : [],
     }
