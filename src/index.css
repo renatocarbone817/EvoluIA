@@ -36,9 +36,9 @@
     --destructive: 0 57% 64%;        /* #D96C6C */
     --destructive-foreground: 0 0% 100%;
 
-    /* Bordas e Inputs definidos e nítidos */
-    --border: 192 18% 76%;           /* #B2C7CD */
-    --input: 192 18% 76%;
+    /* Bordas e Inputs com contorno forte, nítido e bem visível */
+    --border: 193 25% 65%;           /* #91B3BD */
+    --input: 193 25% 65%;
     --ring: 192 49% 28%;             /* #245C6B */
 
     --radius: 0.75rem;
@@ -53,11 +53,17 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Elevação e destaque suave dos cards brancos sobre o fundo #E5EEF1 */
+  /* Contorno forte e bem definido para destacar os cards brancos contra o fundo #E5EEF1 */
   .bg-white.rounded-3xl,
   .bg-white.rounded-2xl,
   .bg-white.rounded-xl {
-    box-shadow: 0 4px 16px -2px rgba(13, 35, 41, 0.08), 0 1px 4px -1px rgba(13, 35, 41, 0.03);
+    border: 2px solid #A0BDC6 !important;
+    box-shadow: 0 4px 18px -2px rgba(13, 35, 41, 0.09), 0 2px 6px -1px rgba(13, 35, 41, 0.04);
+  }
+
+  .border-\[\#D8E5E7\],
+  .border-\[\#E2E8F0\] {
+    border-color: #A0BDC6 !important;
   }
 }
 
