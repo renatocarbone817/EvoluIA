@@ -455,8 +455,8 @@ export function SuperAdminPage() {
           </div>
         </div>
 
-        {/* 2. ADMIN TABS NAVIGATION */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-[#D8E5E7]">
+        {/* 2. ADMIN TABS NAVIGATION (Centralizado) */}
+        <div className="flex items-center justify-center gap-2.5 overflow-x-auto pb-2 scrollbar-none border-b border-[#D8E5E7] w-full">
           {[
             { id: "visao-geral", label: "📊 Visão Geral & SaaS MRR", icon: DollarSign },
             { id: "infraestrutura", label: "🩺 Saúde da Infra & Limites", icon: Server },
