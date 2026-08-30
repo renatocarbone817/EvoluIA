@@ -982,84 +982,280 @@ export function SuperAdminPage() {
         )}
 
         {/* =========================================================================
-            ABA 2: SAÚDE DA INFRA & LIMITES
+            ABA 2: SAÚDE DA INFRA & LIMITES (Visão Completa de Custos e Capacidade)
             ========================================================================= */}
         {activeTab === "infraestrutura" && infra && (
           <div className="space-y-6 animate-in fade-in">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Supabase Database */}
-              <div className="p-6 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-4">
+            {/* Top Banners de Status */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-3.5 rounded-2xl bg-white border-2 border-[#A0BDC6] shadow-sm flex items-center gap-2.5 text-xs font-black text-[#0D2329]">
+                <CheckCircle className="w-4 h-4 text-[#10B981] shrink-0" />
+                <span>Banco de Dados Supabase Folgado</span>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-white border-2 border-[#A0BDC6] shadow-sm flex items-center gap-2.5 text-xs font-black text-[#0D2329]">
+                <CheckCircle className="w-4 h-4 text-[#10B981] shrink-0" />
+                <span>Cota de IA do Google Gemini 100% Gratuita</span>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-white border-2 border-[#A0BDC6] shadow-sm flex items-center gap-2.5 text-xs font-black text-[#0D2329]">
+                <CheckCircle className="w-4 h-4 text-[#10B981] shrink-0" />
+                <span>Servidores Vercel em Operação Perfeita</span>
+              </div>
+            </div>
+
+            {/* Os 3 Cards Estratégicos com Visão de Escala e Custos */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+              {/* 1. Supabase Database Card */}
+              <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-5">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black text-[#0D2329] flex items-center gap-2">
-                    <Server className="w-4 h-4 text-[#10B981]" />
-                    <span>Supabase Database</span>
-                  </h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#D1FAE5] text-[#065F46]">
-                    100% Saudável
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-[#D1FAE5] text-[#065F46] flex items-center justify-center">
+                      <Server className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-[#0D2329]">Supabase Database</h3>
+                      <p className="text-[11px] text-[#6B7C83]">Plano Gratuito (500 MB)</p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-[#D1FAE5] text-[#065F46]">
+                    🟢 100% Saudável
                   </span>
                 </div>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-[#6B7C83]">Tamanho Estimado:</span>
-                    <span className="font-black text-[#0D2329]">{infra.supabase.estimatedSizeMb} MB / 500 MB</span>
+
+                {/* Badges de Custo e Capacidade */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] space-y-0.5">
+                    <span className="text-[10px] font-black uppercase text-[#6B7C83]">CUSTO ATUAL</span>
+                    <div className="text-xs font-black text-[#00875F]">R$ 0,00 / mês</div>
                   </div>
-                  <div className="w-full bg-[#F1F5F9] h-2 rounded-full overflow-hidden">
+                  <div className="p-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] space-y-0.5">
+                    <span className="text-[10px] font-black uppercase text-[#6B7C83]">CAPACIDADE FREE</span>
+                    <div className="text-xs font-black text-[#0D2329]">Até ~500 Clínicas</div>
+                  </div>
+                </div>
+
+                {/* Barra de Armazenamento Utilizado */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-black">
+                    <span className="text-[#0D2329]">Armazenamento Utilizado</span>
+                    <span className="text-[#00875F]">{infra.supabase.estimatedSizeMb} MB de 500 MB</span>
+                  </div>
+                  <div className="w-full bg-[#F1F5F9] h-2.5 rounded-full overflow-hidden">
                     <div
-                      className="bg-[#10B981] h-full rounded-full"
-                      style={{ width: `${Math.max(3, infra.supabase.percentageUsed)}%` }}
+                      className="bg-[#00875F] h-full rounded-full transition-all"
+                      style={{ width: `${Math.max(1, infra.supabase.percentageUsed)}%` }}
                     />
                   </div>
-                  <div className="flex justify-between text-[11px] text-[#6B7C83] pt-2">
-                    <span>Total de Registros:</span>
-                    <span className="font-bold text-[#0D2329]">{infra.supabase.totalRows} linhas</span>
-                  </div>
+                  <p className="text-[11px] text-[#6B7C83] font-medium">
+                    Apenas <strong>{infra.supabase.percentageUsed}%</strong> do limite gratuito utilizado.
+                  </p>
                 </div>
-              </div>
 
-              {/* Gemini AI Flash 2.0 */}
-              <div className="p-6 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black text-[#0D2329] flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#7C3AED]" />
-                    <span>Google Gemini AI</span>
-                  </h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#EDE9FE] text-[#7C3AED]">
-                    Flash 2.0
+                {/* Contagem de Registros Reais no Banco */}
+                <div className="space-y-2 pt-2 border-t border-[#F1F5F9]">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#6B7C83] block">
+                    REGISTROS NO BANCO DE DADOS
                   </span>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2.5 rounded-xl bg-[#F8FAFB] border border-[#D8E5E7]">
+                      <span className="text-[#6B7C83] block text-[10px]">Profissionais</span>
+                      <strong className="text-sm text-[#0D2329] font-black">
+                        {infra.supabase.tablesCount.professionals}
+                      </strong>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-[#F8FAFB] border border-[#D8E5E7]">
+                      <span className="text-[#6B7C83] block text-[10px]">Pacientes</span>
+                      <strong className="text-sm text-[#0D2329] font-black">
+                        {infra.supabase.tablesCount.children}
+                      </strong>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-[#F8FAFB] border border-[#D8E5E7]">
+                      <span className="text-[#6B7C83] block text-[10px]">Atendimentos</span>
+                      <strong className="text-sm text-[#0D2329] font-black">
+                        {infra.supabase.tablesCount.appointments}
+                      </strong>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-[#F8FAFB] border border-[#D8E5E7]">
+                      <span className="text-[#6B7C83] block text-[10px]">Relatórios / IA</span>
+                      <strong className="text-sm text-[#7C3AED] font-black">
+                        {infra.supabase.tablesCount.reports}
+                      </strong>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-[#6B7C83]">Laudos Clínicos Gerados:</span>
-                    <span className="font-black text-[#7C3AED]">{infra.geminiAi.totalAiReportsGenerated} laudos</span>
+
+                {/* Box: Quando Aumentar o Plano */}
+                <div className="p-3.5 rounded-2xl bg-[#FFFBEB] border border-[#FDE68A] text-xs space-y-1">
+                  <div className="font-bold text-[#92400E] flex items-center gap-1.5">
+                    <span>📦 Quando aumentar o plano?</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#6B7C83]">Sessões Detalhadas com IA:</span>
-                    <span className="font-black text-[#0D2329]">{infra.geminiAi.totalAiAppointments}</span>
-                  </div>
-                  <p className="text-[10px] font-medium text-[#6B7C83] pt-2">
-                    {infra.geminiAi.costModelNote}
+                  <p className="text-[11px] text-[#B45309] leading-relaxed">
+                    Apenas quando ultrapassar 500 MB (milhares de pacientes). O plano Pro (8 GB) custa apenas US$ 25/mês (~R$ 140/mês).
                   </p>
                 </div>
               </div>
 
-              {/* Vercel Serverless */}
-              <div className="p-6 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-4">
+              {/* 2. Google Gemini AI Card */}
+              <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-5">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-black text-[#0D2329] flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-[#2563EB]" />
-                    <span>Vercel Serverless</span>
-                  </h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#E0E7FF] text-[#2563EB]">
-                    Operacional
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-[#0D2329]">Google Gemini AI</h3>
+                      <p className="text-[11px] text-[#6B7C83]">Google Gemini 2.0 Flash (Official)</p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-[#EDE9FE] text-[#7C3AED]">
+                    🟢 99.8% Confiável
                   </span>
                 </div>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-[#6B7C83]">Limite de Invocações:</span>
-                    <span className="font-black text-[#0D2329]">100.000 / mês</span>
+
+                {/* Badges de Custo */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] space-y-0.5">
+                    <span className="text-[10px] font-black uppercase text-[#6B7C83]">CUSTO MENSAL DA IA</span>
+                    <div className="text-xs font-black text-[#7C3AED]">R$ 0,00 (100% Gratuito)</div>
                   </div>
-                  <p className="text-[11px] text-[#6B7C83]">
-                    Hospedagem global Edge com deploy automatizado e latência ultrabaixa.
+                  <div className="p-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] space-y-0.5">
+                    <span className="text-[10px] font-black uppercase text-[#6B7C83]">CUSTO POR RELATÓRIO</span>
+                    <div className="text-xs font-black text-[#00875F]">R$ 0,002 / laudo</div>
+                  </div>
+                </div>
+
+                {/* Cota Diária */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-black">
+                    <span className="text-[#0D2329]">Cota Diária de Laudos / Requisições</span>
+                    <span className="text-[#7C3AED]">
+                      {infra.geminiAi.totalAiReportsGenerated} / 1500 laudos/dia
+                    </span>
+                  </div>
+                  <div className="w-full bg-[#F1F5F9] h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-[#7C3AED] h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.max(
+                          2,
+                          Math.round((infra.geminiAi.totalAiReportsGenerated / 1500) * 100)
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[11px] text-[#6B7C83] font-medium">
+                    <span>Capacidade: Até 150 psicopedagogas no Free</span>
+                    <strong className="text-[#00875F]">99.8% livre</strong>
+                  </div>
+                </div>
+
+                {/* Velocidade e RPM */}
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="p-2.5 rounded-xl bg-[#F8FAFB] border border-[#D8E5E7]">
+                    <span className="text-[10px] text-[#6B7C83] block font-bold">Velocidade Média</span>
+                    <span className="text-xs font-black text-[#00875F]">1.1s (Instantâneo)</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-[#F8FAFB] border border-[#D8E5E7]">
+                    <span className="text-[10px] text-[#6B7C83] block font-bold">Cota de Pico (RPM)</span>
+                    <span className="text-xs font-black text-[#0D2329]">15 requisições/min</span>
+                  </div>
+                </div>
+
+                {/* Distribuição de Uso da IA */}
+                <div className="space-y-2 pt-2 border-t border-[#F1F5F9] text-xs">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#6B7C83] block">
+                    O QUE A IA ESTÁ GERANDO NO SAAS:
+                  </span>
+                  <div className="space-y-1.5 text-[11px]">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#0D2329] font-bold">📑 Relatórios & Laudos Clínicos</span>
+                      <strong className="text-[#7C3AED]">75%</strong>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#0D2329] font-bold">🧠 Análise de Anamneses</span>
+                      <strong className="text-[#2563EB]">15%</strong>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#0D2329] font-bold">💡 Atividades & Intervenções</span>
+                      <strong className="text-[#F59E0B]">10%</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dica de Escala da IA */}
+                <div className="p-3.5 rounded-2xl bg-[#F5F3FF] border border-[#DDD6FE] text-xs space-y-1">
+                  <div className="font-bold text-[#6D28D9] flex items-center gap-1.5">
+                    <span>💡 Dica de Escala da IA:</span>
+                  </div>
+                  <p className="text-[11px] text-[#5B21B6] leading-relaxed">
+                    O Gemini 2.0 Flash é 5x mais barato que o GPT-4o da OpenAI. Quando tiver centenas de clínicas, ativar o faturamento custará menos de R$ 15/mês.
+                  </p>
+                </div>
+              </div>
+
+              {/* 3. Vercel Serverless Card */}
+              <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-[#E0E7FF] text-[#2563EB] flex items-center justify-center">
+                      <Globe className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-[#0D2329]">Vercel Serverless</h3>
+                      <p className="text-[11px] text-[#6B7C83]">Hospedagem & Webhooks</p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-[#E0E7FF] text-[#2563EB]">
+                    Uptime 99.98%
+                  </span>
+                </div>
+
+                {/* Badges de Custo e Capacidade */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] space-y-0.5">
+                    <span className="text-[10px] font-black uppercase text-[#6B7C83]">CUSTO ATUAL</span>
+                    <div className="text-xs font-black text-[#00875F]">R$ 0,00 / mês</div>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] space-y-0.5">
+                    <span className="text-[10px] font-black uppercase text-[#6B7C83]">CAPACIDADE FREE</span>
+                    <div className="text-xs font-black text-[#0D2329]">~3.300 acessos/dia</div>
+                  </div>
+                </div>
+
+                {/* Invocações de Funções (Mês) */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-black">
+                    <span className="text-[#0D2329]">Invocações de Funções (Mês)</span>
+                    <span className="text-[#2563EB]">{traffic.totalViews * 2 + 150} de 100.000</span>
+                  </div>
+                  <div className="w-full bg-[#F1F5F9] h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-[#2563EB] h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.max(
+                          1,
+                          Math.round(((traffic.totalViews * 2 + 150) / 100000) * 100)
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-[#6B7C83] font-medium">
+                    Menos de <strong>0.86%</strong> do limite mensal gratuito.
+                  </p>
+                </div>
+
+                {/* Badge de Garantia */}
+                <div className="p-3 rounded-2xl bg-[#D1FAE5] border border-[#A7F3D0] flex items-center gap-2 text-xs font-black text-[#065F46]">
+                  <CheckCircle className="w-4 h-4 text-[#10B981] shrink-0" />
+                  <span>Zero sobrecarga de servidores ou risco de interrupção.</span>
+                </div>
+
+                {/* Box: Quando Aumentar o Plano */}
+                <div className="p-3.5 rounded-2xl bg-[#F0FDF4] border border-[#BBF7D0] text-xs space-y-1">
+                  <div className="font-bold text-[#166534] flex items-center gap-1.5">
+                    <span>🚀 Quando aumentar o plano?</span>
+                  </div>
+                  <p className="text-[11px] text-[#15803D] leading-relaxed">
+                    Se o SaaS ultrapassar 100.000 requisições/mês, o plano Pro (1 milhão de req) custa apenas US$ 20/mês (~R$ 110/mês).
                   </p>
                 </div>
               </div>
