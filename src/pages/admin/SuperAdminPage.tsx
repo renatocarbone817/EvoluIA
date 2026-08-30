@@ -914,50 +914,8 @@ export function SuperAdminPage() {
             ABA 3: TRÁFEGO & ACESSOS DIÁRIOS
             ========================================================================= */}
         {activeTab === "trafego" && traffic && (
-          <div className="space-y-8 animate-in fade-in">
-            {/* GRÁFICO DIÁRIO DE PAGEVIEWS */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-[#0D2329]">
-                    Visualizações de Página Diárias (Últimos 14 Dias)
-                  </h3>
-                  <p className="text-xs font-semibold text-[#6B7C83]">
-                    Acessos diários das psicopedagogas no sistema EvoluIA.
-                  </p>
-                </div>
-                <span className="px-3 py-1 rounded-xl bg-[#EDE9FE] text-[#7C3AED] text-xs font-black">
-                  {traffic.totalViews} pageviews registrados
-                </span>
-              </div>
-
-              {/* Barras de Tráfego Diário */}
-              <div className="grid grid-cols-7 sm:grid-cols-14 gap-2 items-end pt-6 min-h-[180px]">
-                {traffic.dailyTraffic.map((day: any, idx: number) => {
-                  const maxViews = Math.max(...traffic.dailyTraffic.map((d: any) => d.views), 1)
-                  const heightPercent = Math.max(12, Math.round((day.views / maxViews) * 100))
-
-                  return (
-                    <div key={idx} className="flex flex-col items-center gap-2 group">
-                      <span className="text-[10px] font-black text-[#7C3AED] opacity-0 group-hover:opacity-100 transition-opacity">
-                        {day.views}
-                      </span>
-                      <div className="w-full bg-[#EDE9FE] group-hover:bg-[#DDD6FE] rounded-xl h-36 flex items-end p-1 transition-all">
-                        <div
-                          className="w-full bg-gradient-to-t from-[#6366F1] to-[#7C3AED] rounded-lg transition-all duration-500 shadow-xs"
-                          style={{ height: `${heightPercent}%` }}
-                        />
-                      </div>
-                      <span className="text-[10px] font-bold text-[#6B7C83] truncate w-full text-center">
-                        {day.label}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* GRID: PÁGINAS MAIS ACESSADAS & HORÁRIOS DE PICO */}
+          <div className="space-y-6 animate-in fade-in">
+            {/* 1. GRID: PÁGINAS MAIS ACESSADAS & HORÁRIOS DE PICO (NO TOPO) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Páginas Mais Acessadas */}
               <div className="p-6 sm:p-7 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4">
@@ -1014,6 +972,48 @@ export function SuperAdminPage() {
                 <p className="text-[11px] font-semibold text-[#6B7C83]">
                   Pico de atendimento concentrado entre as <strong>08h e as 18h</strong>.
                 </p>
+              </div>
+            </div>
+
+            {/* 2. GRÁFICO DIÁRIO DE PAGEVIEWS (EMBAIXO) */}
+            <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-[#0D2329]">
+                    Visualizações de Página Diárias (Últimos 14 Dias)
+                  </h3>
+                  <p className="text-xs font-semibold text-[#6B7C83]">
+                    Acessos diários das psicopedagogas no sistema EvoluIA.
+                  </p>
+                </div>
+                <span className="px-3 py-1 rounded-xl bg-[#EDE9FE] text-[#7C3AED] text-xs font-black">
+                  {traffic.totalViews} pageviews registrados
+                </span>
+              </div>
+
+              {/* Barras de Tráfego Diário */}
+              <div className="grid grid-cols-7 sm:grid-cols-14 gap-2 items-end pt-6 min-h-[180px]">
+                {traffic.dailyTraffic.map((day: any, idx: number) => {
+                  const maxViews = Math.max(...traffic.dailyTraffic.map((d: any) => d.views), 1)
+                  const heightPercent = Math.max(12, Math.round((day.views / maxViews) * 100))
+
+                  return (
+                    <div key={idx} className="flex flex-col items-center gap-2 group">
+                      <span className="text-[10px] font-black text-[#7C3AED] opacity-0 group-hover:opacity-100 transition-opacity">
+                        {day.views}
+                      </span>
+                      <div className="w-full bg-[#EDE9FE] group-hover:bg-[#DDD6FE] rounded-xl h-36 flex items-end p-1 transition-all">
+                        <div
+                          className="w-full bg-gradient-to-t from-[#6366F1] to-[#7C3AED] rounded-lg transition-all duration-500 shadow-xs"
+                          style={{ height: `${heightPercent}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold text-[#6B7C83] truncate w-full text-center">
+                        {day.label}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </div>
