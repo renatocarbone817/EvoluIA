@@ -193,28 +193,25 @@ export async function getSuperAdminDashboardData(): Promise<{
     const events = eventsRes.data || []
     const guardians = guardiansRes.data || []
 
-    // 2. Mapeamento de Mestres (Clínicas) e Membros de Equipe
+    // 2. Mapeamento de Mestres (Clínicas) e Membros de Equipe ATIVOS (exclui inativos/removidos)
     const masterProfs = profs.filter((p) => p.role === "master" || !p.master_id)
-    const teamMembers = profs.filter((p) => p.role === "professional" && p.master_id)
+    const activeTeamMembers = profs.filter(
+      (p) => p.role === "professional" && p.master_id && p.is_active === true
+    )
 
     // 3. Cruzar Clínicas com Assinaturas e Contagem de Pacientes
     const clinicsList: ClinicAccountItem[] = masterProfs.map((master) => {
       const sub = subscriptions.find(
         (s) => s.master_user_id === master.id || s.customer_email?.toLowerCase() === master.email?.toLowerCase()
       )
-      const myTeam = teamMembers.filter((m) => m.master_id === master.id)
+      const myTeam = activeTeamMembers.filter((m) => m.master_id === master.id)
       const myPatients = children.filter(
         (c) => c.professional_id === master.id || myTeam.some((tm) => tm.id === c.professional_id)
       )
 
-      let autoPlanId: PlanId = "individual"
-      if (myTeam.length >= 4) autoPlanId = "clinica"
-      else if (myTeam.length >= 3) autoPlanId = "equipe"
-      else if (myTeam.length >= 2) autoPlanId = "trio"
-      else if (myTeam.length >= 1) autoPlanId = "duo"
-
-      const planConfig = sub ? getPlanConfig(sub.plan_id) : getPlanConfig(autoPlanId)
-      const status = sub?.status || (master.email.includes("priscila") ? "active" : "trial")
+      // Respeita estritamente o plano contratado (ou Individual por padrão)
+      const planConfig = sub ? getPlanConfig(sub.plan_id) : getPlanConfig("individual")
+      const status = sub?.status || "active"
 
       return {
         id: master.id,

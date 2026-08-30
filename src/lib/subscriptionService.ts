@@ -5,7 +5,7 @@ import { getPlanConfig, type PlanConfig } from "@/lib/plans"
 export interface SubscriptionDetails {
   subscription: Subscription
   planConfig: PlanConfig
-  usedProfessionals: number // Inclui o Master (1) + membros adicionais
+  usedProfessionals: number // Inclui o Master (1) + membros adicionais ATIVOS
   maxProfessionals: number
   availableSeats: number
   isMaster: boolean
@@ -14,7 +14,7 @@ export interface SubscriptionDetails {
 const SUBSCRIPTION_STORAGE_KEY_PREFIX = "evoluia_subscription_"
 
 /**
- * Conta o total de profissionais reais (1 Master + membros adicionais)
+ * Conta apenas os profissionais que estão realmente ATIVOS na equipe (Master + membros is_active: true)
  */
 export async function getActiveTeamCount(masterId: string): Promise<number> {
   try {
@@ -22,10 +22,11 @@ export async function getActiveTeamCount(masterId: string): Promise<number> {
       .from("professionals")
       .select("id", { count: "exact", head: true })
       .eq("master_id", masterId)
+      .eq("is_active", true)
 
     if (error) throw error
 
-    // Total = 1 (o próprio Master) + membros convidados
+    // Total = 1 (o próprio Master) + membros convidados ativos
     return 1 + (count || 0)
   } catch (err) {
     // Fallback: verificar membros em cache
@@ -34,7 +35,7 @@ export async function getActiveTeamCount(masterId: string): Promise<number> {
       try {
         const parsed = JSON.parse(teamCache)
         if (Array.isArray(parsed)) {
-          return 1 + parsed.length
+          return 1 + parsed.filter((m) => m.is_active === true).length
         }
       } catch {}
     }
@@ -44,6 +45,7 @@ export async function getActiveTeamCount(masterId: string): Promise<number> {
 
 /**
  * Busca a assinatura real do Master na tabela 'subscriptions'
+ * O plano padrão contratado é SEMPRE o 'individual' (R$ 39,90 / 1 vaga) a menos que haja assinatura ativa diferente
  */
 export async function getMasterSubscription(masterId: string): Promise<Subscription> {
   try {
@@ -62,21 +64,14 @@ export async function getMasterSubscription(masterId: string): Promise<Subscript
       return data as Subscription
     }
 
-    // Se não encontrou no banco, calcula o plano baseado no tamanho da equipe
-    const teamCount = await getActiveTeamCount(masterId)
-    let autoPlanId: PlanId = "individual"
-    if (teamCount >= 5) autoPlanId = "clinica"
-    else if (teamCount >= 4) autoPlanId = "equipe"
-    else if (teamCount >= 3) autoPlanId = "trio"
-    else if (teamCount >= 2) autoPlanId = "duo"
-
-    const planConfig = getPlanConfig(autoPlanId)
+    // Default soberano: Plano Individual (R$ 39,90 / 1 profissional)
+    const planConfig = getPlanConfig("individual")
 
     const defaultSub: Subscription = {
       id: `sub_${masterId}`,
       master_user_id: masterId,
-      plan_id: planConfig.id,
-      max_professionals: planConfig.maxProfessionals,
+      plan_id: "individual",
+      max_professionals: 1,
       status: "active",
       hotmart_product_id: "L107381113V",
       hotmart_offer_id: "imn95wux",
@@ -105,8 +100,8 @@ export async function getMasterSubscription(masterId: string): Promise<Subscript
     return {
       id: `sub_${masterId}`,
       master_user_id: masterId,
-      plan_id: "clinica",
-      max_professionals: 5,
+      plan_id: "individual",
+      max_professionals: 1,
       status: "active",
       hotmart_product_id: "L107381113V",
       hotmart_offer_id: "imn95wux",
@@ -125,6 +120,7 @@ export async function getMasterSubscription(masterId: string): Promise<Subscript
 
 /**
  * Retorna todos os detalhes consolidados da assinatura e ocupação de vagas
+ * Respeita estritamente o plano contratado e conta apenas profissionais ATIVOS
  */
 export async function getSubscriptionDetails(masterId: string): Promise<SubscriptionDetails> {
   const [sub, usedCount] = await Promise.all([
@@ -132,28 +128,12 @@ export async function getSubscriptionDetails(masterId: string): Promise<Subscrip
     getActiveTeamCount(masterId),
   ])
 
-  // Sincronização inteligente: garante que o plano cubra a equipe existente
-  let effectivePlanId: PlanId = sub.plan_id as PlanId
-  let maxProfs = sub.max_professionals || getPlanConfig(effectivePlanId).maxProfessionals
-
-  if (usedCount > maxProfs) {
-    if (usedCount >= 5) effectivePlanId = "clinica"
-    else if (usedCount >= 4) effectivePlanId = "equipe"
-    else if (usedCount >= 3) effectivePlanId = "trio"
-    else if (usedCount >= 2) effectivePlanId = "duo"
-
-    maxProfs = getPlanConfig(effectivePlanId).maxProfessionals
-  }
-
-  const planConfig = getPlanConfig(effectivePlanId)
+  const planConfig = getPlanConfig(sub.plan_id)
+  const maxProfs = sub.max_professionals || planConfig.maxProfessionals || 1
   const availableSeats = Math.max(0, maxProfs - usedCount)
 
   return {
-    subscription: {
-      ...sub,
-      plan_id: effectivePlanId,
-      max_professionals: maxProfs,
-    },
+    subscription: sub,
     planConfig,
     usedProfessionals: usedCount,
     maxProfessionals: maxProfs,
@@ -179,7 +159,7 @@ export function checkDowngradeEligibility(
   const excess = usedProfessionals - targetPlanConfig.maxProfessionals
   return {
     allowed: false,
-    message: `Você possui ${usedProfessionals} profissionais cadastrados na sua equipe. Para migrar para o plano ${targetPlanConfig.name} (limite de ${targetPlanConfig.maxProfessionals} profissionais), é necessário remover ou desativar ${excess} profissional(is) na aba Equipe.`,
+    message: `Você possui ${usedProfessionals} profissionais ativos na sua equipe. Para migrar para o plano ${targetPlanConfig.name} (limite de ${targetPlanConfig.maxProfessionals} profissionais), é necessário remover ou desativar ${excess} profissional(is) na aba Equipe.`,
   }
 }
 
@@ -208,7 +188,7 @@ export async function validateUserAccess(professional: any): Promise<{
     }
   }
 
-  // Verificar se o profissional está ativo
+  // Se o membro foi excluído/desativado pela dona
   if (professional.is_active === false) {
     return {
       allowed: false,

@@ -66,30 +66,24 @@ module.exports = async function handler(req, res) {
     let events = eventsRes.data || []
     let guardians = guardiansRes.data || []
 
-    // 2. Mapeamento de Mestres (Clínicas) e Membros de Equipe
+    // 2. Mapeamento de Mestres (Clínicas) e Membros de Equipe ATIVOS
     const masterProfs = profs.filter((p) => p.role === "master" || !p.master_id)
-    const teamMembers = profs.filter((p) => p.role === "professional" && p.master_id)
+    const activeTeamMembers = profs.filter((p) => p.role === "professional" && p.master_id && p.is_active === true)
 
     // 3. Montar lista enriquecida de clínicas
     const clinicsList = masterProfs.map((master) => {
       const sub = subscriptions.find(
         (s) => s.master_user_id === master.id || s.customer_email?.toLowerCase() === master.email?.toLowerCase()
       )
-      const myTeam = teamMembers.filter((m) => m.master_id === master.id)
+      const myTeam = activeTeamMembers.filter((m) => m.master_id === master.id)
       const myPatients = children.filter(
         (c) => c.professional_id === master.id || myTeam.some((tm) => tm.id === c.professional_id)
       )
 
-      // Se tiver mais de 1 profissional na equipe, classifica automaticamente no plano correspondente
-      let defaultPlanKey = "individual"
-      if (myTeam.length >= 4) defaultPlanKey = "clinica"
-      else if (myTeam.length >= 3) defaultPlanKey = "equipe"
-      else if (myTeam.length >= 2) defaultPlanKey = "trio"
-      else if (myTeam.length >= 1) defaultPlanKey = "duo"
-
-      const planKey = (sub?.plan_id || defaultPlanKey).toLowerCase()
+      // Respeita estritamente o plano contratado (ou Individual por padrão)
+      const planKey = (sub?.plan_id || "individual").toLowerCase()
       const planConfig = PLANS_DATA[planKey] || PLANS_DATA.individual
-      const status = sub?.status || (master.email.includes("priscila") ? "active" : "trial")
+      const status = sub?.status || "active"
 
       return {
         id: master.id,
