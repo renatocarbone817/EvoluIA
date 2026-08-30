@@ -141,7 +141,27 @@ export async function getSuperAdminDashboardData(): Promise<{
   traffic: ReturnType<typeof getTrafficAnalytics>
 }> {
   try {
-    // 1. Consultar dados principais em paralelo
+    // 1. Tentar primeiro o endpoint Serverless da Vercel (acesso global sem travas RLS)
+    try {
+      const resp = await fetch("/api/admin/metrics")
+      if (resp.ok) {
+        const json = await resp.json()
+        if (json.success && json.clinics) {
+          const traffic = getTrafficAnalytics(14)
+          return {
+            metrics: json.metrics,
+            infra: json.infra,
+            clinics: json.clinics,
+            webhooks: json.webhooks,
+            traffic,
+          }
+        }
+      }
+    } catch (apiErr) {
+      console.warn("API /api/admin/metrics indisponível, usando fallback direto", apiErr)
+    }
+
+    // 2. Consultar dados principais em paralelo no Supabase
     const [
       profsRes,
       childrenRes,
@@ -154,7 +174,7 @@ export async function getSuperAdminDashboardData(): Promise<{
       supabase.from("children").select("id, professional_id"),
       supabase.from("appointments").select("id"),
       supabase.from("subscriptions").select("*"),
-      supabase.from("subscription_events").select("*").order("processed_at", { ascending: false }).limit(20),
+      supabase.from("subscription_events").select("*").order("created_at", { ascending: false }).limit(20),
       supabase.from("guardians").select("id"),
     ])
 
