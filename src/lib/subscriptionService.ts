@@ -168,3 +168,68 @@ export function checkDowngradeEligibility(
     } antes de continuar (atualmente você possui ${usedProfessionals} profissionais cadastrados).`,
   }
 }
+
+/**
+ * Valida se um profissional tem permissão para logar e usar o sistema com base no plano ativo da Master
+ */
+export async function validateUserAccess(
+  userProf: any
+): Promise<{ allowed: boolean; reason?: string }> {
+  if (!userProf) return { allowed: true }
+
+  // 1. Se for o usuário Master, o acesso é sempre liberado
+  if (userProf.role === "master" || !userProf.master_id) {
+    return { allowed: true }
+  }
+
+  try {
+    const masterId = userProf.master_id
+    const sub = await getMasterSubscription(masterId)
+
+    // 2. Verificar se a assinatura da Master está ativa
+    if (sub.status === "cancelled" || sub.status === "expired") {
+      return {
+        allowed: false,
+        reason:
+          "Acesso suspenso: a assinatura da sua clínica está inativa na Hotmart. Peça para a administradora da conta regularizar a assinatura.",
+      }
+    }
+
+    // 3. Verificar se o membro está dentro do limite de vagas contratadas
+    const maxAllowedSubMembers = Math.max(0, (sub.max_professionals || 1) - 1)
+
+    if (maxAllowedSubMembers === 0) {
+      const planConfig = getPlanConfig(sub.plan_id)
+      return {
+        allowed: false,
+        reason: `Acesso bloqueado: sua clínica está no plano ${planConfig.name} (que permite apenas 1 usuário Master). Peça para a administradora da conta fazer upgrade para o plano Duo, Trio ou Equipe na Hotmart para liberar seu acesso.`,
+      }
+    }
+
+    const { data: team, error } = await supabase
+      .from("professionals")
+      .select("id, created_at")
+      .eq("master_id", masterId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: true })
+
+    if (error) throw error
+
+    const teamList = team || []
+    const memberIndex = teamList.findIndex((m) => m.id === userProf.id)
+
+    // Se o membro estiver além do número de vagas permitidas
+    if (memberIndex === -1 || memberIndex >= maxAllowedSubMembers) {
+      const planConfig = getPlanConfig(sub.plan_id)
+      return {
+        allowed: false,
+        reason: `Acesso bloqueado por limite de plano: o plano da sua clínica (${planConfig.name}) cobre até ${sub.max_professionals} profissionais. Como você é a ${memberIndex + 1}ª psicopedagoga cadastrada, peça para a administradora fazer upgrade para reativar seu acesso.`,
+      }
+    }
+
+    return { allowed: true }
+  } catch (err) {
+    console.error("Error validating user access quota:", err)
+    return { allowed: true }
+  }
+}

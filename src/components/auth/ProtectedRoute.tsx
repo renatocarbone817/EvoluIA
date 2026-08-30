@@ -1,12 +1,36 @@
-import { useEffect } from "react"
+import { useState, useEffect } from "react"
 import { Navigate, Outlet } from "react-router-dom"
 import { useAuthStore } from "@/store/authStore"
+import { validateUserAccess } from "@/lib/subscriptionService"
 import { Brain } from "lucide-react"
+import toast from "react-hot-toast"
 
 export function ProtectedRoute() {
-  const { user, loading } = useAuthStore()
+  const { user, professional, loading, signOut } = useAuthStore()
+  const [checkingAccess, setCheckingAccess] = useState(true)
+  const [accessBlocked, setAccessBlocked] = useState(false)
 
-  if (loading) {
+  useEffect(() => {
+    async function checkQuota() {
+      if (user && professional && professional.role === "professional" && professional.master_id) {
+        const check = await validateUserAccess(professional)
+        if (!check.allowed) {
+          toast.error(check.reason || "Acesso suspenso por limite de plano.", { duration: 6000 })
+          await signOut()
+          setAccessBlocked(true)
+        }
+      }
+      setCheckingAccess(false)
+    }
+
+    if (!loading && user) {
+      checkQuota()
+    } else if (!loading) {
+      setCheckingAccess(false)
+    }
+  }, [user, professional, loading])
+
+  if (loading || checkingAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
@@ -19,7 +43,7 @@ export function ProtectedRoute() {
     )
   }
 
-  if (!user) {
+  if (!user || accessBlocked) {
     return <Navigate to="/login" replace />
   }
 

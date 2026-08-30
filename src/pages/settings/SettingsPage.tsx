@@ -1106,16 +1106,28 @@ export function SettingsPage() {
                 {teamMembers.map((member, index) => {
                   const memberNum = String(index + 1).padStart(2, "0")
                   const hasMasterAccess = !!member.allow_master_data_access
+                  const maxProfs = subDetails?.maxProfessionals || 1
+                  const isCoveredByPlan = index < (maxProfs - 1)
 
                   return (
                     <div
                       key={member.id}
-                      className="p-5 sm:p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4 hover:border-[#7C3AED]/40 transition-all"
+                      className={`p-5 sm:p-6 rounded-3xl border-2 shadow-sm space-y-4 transition-all ${
+                        isCoveredByPlan
+                          ? "bg-white border-[#D8E5E7] hover:border-[#7C3AED]/40"
+                          : "bg-[#FAFCFC] border-dashed border-[#FCA5A5]"
+                      }`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         {/* Info Header */}
                         <div className="flex items-center gap-4">
-                          <div className="w-14 h-14 min-w-[56px] min-h-[56px] max-w-[56px] max-h-[56px] rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-black text-lg border-2 border-[#DDD6FE] shadow-2xs shrink-0 overflow-hidden">
+                          <div
+                            className={`w-14 h-14 min-w-[56px] min-h-[56px] max-w-[56px] max-h-[56px] rounded-2xl flex items-center justify-center font-black text-lg border-2 shadow-2xs shrink-0 overflow-hidden ${
+                              isCoveredByPlan
+                                ? "bg-[#EDE9FE] text-[#7C3AED] border-[#DDD6FE]"
+                                : "bg-[#FEE2E2] text-[#DC2626] border-[#FECACA]"
+                            }`}
+                          >
                             {member.logo_url ? (
                               <img src={member.logo_url} alt={member.full_name} className="w-full h-full object-cover" />
                             ) : (
@@ -1131,6 +1143,17 @@ export function SettingsPage() {
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#F7FAFA] text-[#6B7C83] border border-[#D8E5E7]">
                                 PSICOPEDAGOGA {memberNum}
                               </span>
+                              {!isCoveredByPlan ? (
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#FEF2F2] text-[#DC2626] border border-[#FCA5A5] flex items-center gap-1">
+                                  <Lock className="w-3 h-3" />
+                                  <span>Bloqueada (Excede o Plano)</span>
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#DCFCE7] text-[#166534] border border-[#86EFAC] flex items-center gap-1">
+                                  <Check className="w-3 h-3" />
+                                  <span>Acesso Ativo</span>
+                                </span>
+                              )}
                             </div>
                             <p className="text-xs font-semibold text-[#6B7C83]">{member.email}</p>
                           </div>
@@ -1157,6 +1180,25 @@ export function SettingsPage() {
                           </button>
                         </div>
                       </div>
+
+                      {/* Alerta se o membro estiver bloqueado por limite do plano */}
+                      {!isCoveredByPlan && (
+                        <div className="p-3.5 rounded-2xl bg-[#FEF2F2] border border-[#FECACA] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold text-[#DC2626]">
+                          <div className="flex items-center gap-2">
+                            <Lock className="w-4 h-4 text-[#DC2626] shrink-0" />
+                            <span>
+                              Esta psicopedagoga está bloqueada no login porque seu plano cobre até {maxProfs} profissional(ais).
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => navigate("/meu-plano")}
+                            className="px-3.5 py-1.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black shrink-0 flex items-center justify-center gap-1 shadow-sm active:scale-95 transition-all"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            <span>Fazer Upgrade para Reativar</span>
+                          </button>
+                        </div>
+                      )}
 
                       {/* Toggle de Acesso aos Dados da Conta Principal */}
                       <div className="p-4 rounded-2xl bg-[#F7FAFA] border border-[#D8E5E7] flex flex-col sm:flex-row sm:items-center justify-between gap-3">

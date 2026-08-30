@@ -30,12 +30,32 @@ export function LoginPage() {
     setLoading(true)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password })
 
       if (error) {
         setError("E-mail ou senha incorretos. Verifique seus dados e tente novamente.")
         setLoading(false)
         return
+      }
+
+      const userId = authData.user?.id
+      if (userId) {
+        const { data: prof } = await supabase
+          .from("professionals")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle()
+
+        if (prof && prof.role === "professional" && prof.master_id) {
+          const { validateUserAccess } = await import("@/lib/subscriptionService")
+          const check = await validateUserAccess(prof)
+          if (!check.allowed) {
+            await supabase.auth.signOut()
+            setError(check.reason || "Acesso bloqueado por limite do plano da clínica.")
+            setLoading(false)
+            return
+          }
+        }
       }
 
       toast.success("Login realizado com sucesso! Bem-vinda(o).")
