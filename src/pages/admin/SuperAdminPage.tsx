@@ -394,32 +394,31 @@ export function SuperAdminPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F7F8] p-4 md:p-8 font-sans">
-      <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-200">
+      <div className="max-w-[1440px] mx-auto space-y-8 animate-in fade-in duration-200">
         {/* 1. TOP EXECUTIVE HEADER */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-gradient-to-r from-[#0D2329] via-[#091B20] to-[#1E193A] p-6 sm:p-8 rounded-3xl text-white shadow-xl border border-white/10 relative overflow-hidden">
-          <div className="space-y-2 relative z-10">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#F59E0B] to-[#D97706] text-white flex items-center justify-center shadow-md">
-                <Crown className="w-5 h-5 fill-current" />
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-5 bg-gradient-to-r from-[#0D2329] via-[#091B20] to-[#1E193A] p-6 sm:p-7 rounded-3xl text-white shadow-xl border border-white/10 relative overflow-hidden">
+          {/* Left: Crown + Title + Subtitle side by side */}
+          <div className="flex items-center gap-3.5 relative z-10">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#F59E0B] to-[#D97706] text-white flex items-center justify-center shadow-md shrink-0">
+              <Crown className="w-6 h-6 fill-current" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-black tracking-tight">
+                  Torre de Controle do Dono • EvoluIA
+                </h1>
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-[#10B981] text-white tracking-wider uppercase">
+                  SUPER ADMIN
+                </span>
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-                    Torre de Controle do Dono • EvoluIA
-                  </h1>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#10B981] text-white tracking-wider uppercase">
-                    SUPER ADMIN
-                  </span>
-                </div>
-                <p className="text-xs font-semibold text-[#8CAAB1]">
-                  Visão 360º de Faturamento (MRR), Infraestrutura (Supabase/Vercel/Gemini) e Clientes.
-                </p>
-              </div>
+              <p className="text-xs font-semibold text-[#8CAAB1]">
+                Visão 360º de Faturamento (MRR), Infraestrutura (Supabase/Vercel/Gemini) e Clientes.
+              </p>
             </div>
           </div>
 
-          {/* Live System Health Badges, Refresh & Lock */}
-          <div className="flex flex-wrap items-center gap-2.5 relative z-10">
+          {/* Right: Health Badges + Atualizar + Logout Icon (SEM a palavra trancar, à direita do Atualizar) */}
+          <div className="flex flex-wrap items-center gap-2 relative z-10">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs font-bold text-[#34D399]">
               <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
               <span>Supabase 100%</span>
@@ -445,13 +444,13 @@ export function SuperAdminPage() {
               <span>Atualizar</span>
             </button>
 
+            {/* Ícone de Sair / Trancar (sem a palavra Trancar) */}
             <button
               onClick={handleLockDashboard}
-              className="h-9 px-3.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 text-xs font-black flex items-center gap-1.5 active:scale-95 transition-all"
-              title="Trancar Painel"
+              className="h-9 w-9 rounded-xl bg-red-500/20 hover:bg-red-500/35 text-red-300 hover:text-red-200 border border-red-500/30 flex items-center justify-center active:scale-95 transition-all"
+              title="Sair / Trancar Painel"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Trancar</span>
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
