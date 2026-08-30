@@ -477,14 +477,22 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
       const planConfig = getPlanConfig(planKey)
 
       // Identifica se é cortesia VIP, trial ou pagante ativo
-      const isCourtesy = sub?.source === "admin_vip_cortesia" || sub?.hotmart_subscription_id === "VIP_CORTESIA"
-      const isTrial = sub?.status === "trial"
-      const isPaying = !!(sub?.status === "active" && !isCourtesy)
+      const hasHotmartPurchase = events.some((ev) => {
+        const p = ev.payload || {}
+        const buyerEmail = (p.data?.buyer?.email || p.buyer?.email || "").toLowerCase().trim()
+        const myEmail = (master.email || "").toLowerCase().trim()
+        return buyerEmail === myEmail && (ev.event_type?.includes("APPROVED") || ev.event_type?.includes("ACTIVATED"))
+      })
 
-      let subStatusDisplay: "active" | "trial" | "cancelled" | "courtesy" = "active"
-      if (isCourtesy) subStatusDisplay = "courtesy"
+      const isCourtesy = sub?.source === "admin_vip_cortesia" || sub?.hotmart_subscription_id === "VIP_CORTESIA" || sub?.source === "admin_manual" || !hasHotmartPurchase
+      const isTrial = sub?.status === "trial"
+      const isPaying = !!(hasHotmartPurchase && sub?.status === "active")
+
+      let subStatusDisplay: "active" | "trial" | "cancelled" | "courtesy" = "courtesy"
+      if (sub?.status === "cancelled") subStatusDisplay = "cancelled"
       else if (isTrial) subStatusDisplay = "trial"
-      else if (sub?.status === "cancelled") subStatusDisplay = "cancelled"
+      else if (isPaying) subStatusDisplay = "active"
+      else subStatusDisplay = "courtesy"
 
       return {
         id: master.id,
@@ -516,24 +524,14 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
     })
 
     // 4. Cálculos Financeiros e MRR Real (Sem Trials, Sem VIPs)
-    const payingSubscriptions = subscriptions.filter(
-      (s) =>
-        s.status === "active" &&
-        s.source !== "admin_vip_cortesia" &&
-        s.hotmart_subscription_id !== "VIP_CORTESIA"
-    )
+    const payingClients = clientsList.filter((c) => c.isPaying)
+    const payingClientsCount = payingClients.length
 
-    const mrr = payingSubscriptions.reduce((acc, curr) => {
-      const plan = getPlanConfig(curr.plan_id)
-      return acc + plan.priceMonthly
-    }, 0)
-
+    const mrr = payingClients.reduce((acc, curr) => acc + curr.planPrice, 0)
     const arr = mrr * 12
-    const payingClientsCount = payingSubscriptions.length
-    const trialsCount = subscriptions.filter((s) => s.status === "trial").length
-    const vipCourtesiesCount = subscriptions.filter(
-      (s) => s.source === "admin_vip_cortesia" || s.hotmart_subscription_id === "VIP_CORTESIA"
-    ).length
+
+    const trialsCount = clientsList.filter((c) => c.subscriptionStatus === "trial").length
+    const vipCourtesiesCount = clientsList.filter((c) => c.subscriptionStatus === "courtesy").length
 
     const averageTicket = payingClientsCount > 0 ? Number((mrr / payingClientsCount).toFixed(2)) : 0
 
