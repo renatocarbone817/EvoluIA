@@ -143,13 +143,13 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md p-0 overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
-        <DialogHeader className="p-6 pb-4 border-b border-[#EEF5F6] flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] border-2 border-[#DDD6FE] flex items-center justify-center shrink-0 shadow-xs">
-            <DollarSign className="w-6 h-6 stroke-[2.5]" />
+      <DialogContent className="max-w-md w-[95vw] sm:w-full p-0 flex flex-col max-h-[85vh] sm:max-h-[88vh] overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
+        <DialogHeader className="p-5 pb-3 border-b border-[#EEF5F6] flex items-center gap-3 shrink-0 bg-white">
+          <div className="w-11 h-11 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] border-2 border-[#DDD6FE] flex items-center justify-center shrink-0 shadow-xs">
+            <DollarSign className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div>
-            <DialogTitle className="text-lg font-black text-[#0D2329]">
+            <DialogTitle className="text-base sm:text-lg font-black text-[#0D2329]">
               Configurar Acompanhamento
             </DialogTitle>
             <p className="text-xs font-semibold text-[#6B7C83] mt-0.5">
@@ -158,7 +158,7 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
           </div>
         </DialogHeader>
 
-        <DialogBody className="p-6 space-y-4 text-xs font-semibold text-[#2E4A52]">
+        <DialogBody className="p-5 sm:p-6 space-y-4 text-xs font-semibold text-[#2E4A52] flex-1 overflow-y-auto min-h-0">
           {/* Dates & Frequency */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
@@ -308,7 +308,7 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
           </div>
         </DialogBody>
 
-        <DialogFooter className="p-4 bg-[#F8FAFB] border-t border-[#EEF5F6] flex items-center justify-end gap-2.5">
+        <DialogFooter className="p-3.5 sm:p-4 bg-[#F8FAFB] border-t-2 border-[#EEF5F6] flex items-center justify-end gap-2.5 shrink-0 z-10">
           <Button
             type="button"
             variant="outline"
@@ -323,7 +323,7 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
             type="button"
             disabled={loading}
             onClick={handleSubmit}
-            className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+            className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />}
             <span>{loading ? "Salvando..." : "Salvar Acompanhamento"}</span>
