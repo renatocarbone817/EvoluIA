@@ -1,9 +1,9 @@
 /**
- * API SERVERLESS VERCEL — /api/admin/create-vip
+ * API SERVERLESS VERCEL — /api/admin/create-vip (ES Module)
  * Criação instantânea de conta VIP / Cortesia pelo Dono sem depender de Hotmart
  */
 
-const { createClient } = require("@supabase/supabase-js")
+import { createClient } from "@supabase/supabase-js"
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://fporviwejryfxaoapowc.supabase.co"
 const SUPABASE_KEY =
@@ -21,7 +21,7 @@ const MAX_PROFS_BY_PLAN = {
   clinica: 5,
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   // CORS
   res.setHeader("Access-Control-Allow-Credentials", "true")
   res.setHeader("Access-Control-Allow-Origin", "*")
@@ -57,7 +57,7 @@ module.exports = async function handler(req, res) {
 
     let userId = null
 
-    // 1. Tentar criar usuário via Supabase Auth Admin (se Service Role disponível) ou Auth SignUp
+    // 1. Tentar criar usuário via Supabase Auth Admin ou SignUp
     try {
       if (supabase.auth.admin && typeof supabase.auth.admin.createUser === "function") {
         const { data: adminUser, error: adminErr } = await supabase.auth.admin.createUser({
@@ -92,9 +92,7 @@ module.exports = async function handler(req, res) {
       })
 
       if (signErr) {
-        // Se usuário já existe, podemos buscar o ID dele
         if (signErr.message?.toLowerCase().includes("already registered") || signErr.message?.toLowerCase().includes("já cadastrado")) {
-          // Busca o professional existente
           const { data: existingProf } = await supabase
             .from("professionals")
             .select("id")
@@ -118,11 +116,13 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: "Não foi possível criar o usuário no Supabase Auth." })
     }
 
-    // 2. Autenticar para garantir permissão de inserção nas tabelas RLS
-    await supabase.auth.signInWithPassword({
-      email: "priscila@evolui.com.br",
-      password: "senha123",
-    }).catch(() => {})
+    // 2. Autenticar com fallback silencioso para permissões RLS
+    try {
+      await supabase.auth.signInWithPassword({
+        email: "priscila@evolui.com.br",
+        password: "senha123",
+      })
+    } catch {}
 
     // 3. Criar / Atualizar perfil em 'professionals'
     const nameToUse = fullName || "Psicopedagoga VIP"
