@@ -10,7 +10,6 @@ import {
   User,
   AlertCircle,
   ExternalLink,
-  CheckCircle2,
   ArrowLeft,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
@@ -22,11 +21,13 @@ export function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [purchaseNotFound, setPurchaseNotFound] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const [form, setForm] = useState({
     full_name: "",
     email: "",
     password: "",
+    confirm_password: "",
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -50,6 +51,10 @@ export function RegisterPage() {
 
     if (!form.password) errs.password = "Crie uma senha"
     else if (form.password.length < 6) errs.password = "Mínimo de 6 caracteres"
+
+    if (form.password !== form.confirm_password) {
+      errs.confirm_password = "As senhas digitadas não coincidem"
+    }
 
     setErrors(errs)
     if (Object.keys(errs).length > 0) return
@@ -176,7 +181,7 @@ export function RegisterPage() {
           </p>
         </div>
 
-        {/* FORMULÁRIO ULTRA SIMPLES (1 ÚNICA TELA: NOME, EMAIL, SENHA) */}
+        {/* FORMULÁRIO (NOME, EMAIL, SENHA E CONFIRMAÇÃO DE SENHA) */}
         <form onSubmit={handleRegister} className="space-y-4">
           {/* Alerta de Compra Não Encontrada na Hotmart */}
           {purchaseNotFound && (
@@ -263,12 +268,42 @@ export function RegisterPage() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8CAAB1] hover:text-[#0D2329]"
+                title={showPassword ? "Ocultar senha" : "Ver senha"}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {errors.password && (
               <p className="text-[11px] font-bold text-[#DC2626]">{errors.password}</p>
+            )}
+          </div>
+
+          {/* 4. Confirmar Senha */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-black text-[#0D2329] flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 text-[#7C3AED]" />
+              <span>Confirmar Senha</span>
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                required
+                placeholder="Repita sua senha"
+                value={form.confirm_password}
+                onChange={(e) => handleChange("confirm_password", e.target.value)}
+                className="w-full px-4 py-3 pr-10 rounded-2xl border border-[#D8E5E7] bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] shadow-2xs placeholder:text-[#8CAAB1]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8CAAB1] hover:text-[#0D2329]"
+                title={showConfirmPassword ? "Ocultar senha" : "Ver senha"}
+              >
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {errors.confirm_password && (
+              <p className="text-[11px] font-bold text-[#DC2626]">{errors.confirm_password}</p>
             )}
           </div>
 
