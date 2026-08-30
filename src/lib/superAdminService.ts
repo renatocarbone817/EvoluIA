@@ -674,6 +674,10 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
       profs.length + children.length + appointments.length + subscriptions.length + events.length + guardians.length + reports.length
     const estimatedSizeMb = Number(((totalRowsCount * 3.5) / 1024).toFixed(2))
 
+    const reportsToday = reports.filter((r) => r.created_at && r.created_at >= todayStartStr)
+    const reportsLast7Days = reports.filter((r) => r.created_at && r.created_at >= sevenDaysAgoStr)
+    const todayReportsCount = reportsToday.length
+
     const infra = {
       supabase: {
         totalRows: totalRowsCount,
@@ -692,7 +696,11 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
         },
       },
       geminiAi: {
+        todayAiReportsGenerated: todayReportsCount,
         totalAiReportsGenerated: reports.length,
+        weeklyAiReportsGenerated: reportsLast7Days.length,
+        dailyLimit: 1500,
+        dailyPercentageUsed: Number(((todayReportsCount / 1500) * 100).toFixed(1)),
         totalAiAppointments: appointments.filter((a) => a.notes && a.notes.length > 50).length,
         costModelNote: "Estimativa baseada no Gemini 2.0 Flash: R$ 0,00 (Tier Gratuito até 1.500 req/dia)",
       },

@@ -1041,12 +1041,12 @@ export function SuperAdminPage() {
                 </div>
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-[#6B7C83]">Laudos Clínicos Gerados:</span>
+                    <span className="text-[#6B7C83]">Total de Laudos Acumulados:</span>
                     <span className="font-black text-[#7C3AED]">{infra.geminiAi.totalAiReportsGenerated} laudos</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#6B7C83]">Sessões Detalhadas com IA:</span>
-                    <span className="font-black text-[#0D2329]">{infra.geminiAi.totalAiAppointments}</span>
+                    <span className="text-[#6B7C83]">Laudos Gerados Hoje:</span>
+                    <span className="font-black text-[#0D2329]">{infra.geminiAi.todayAiReportsGenerated} laudos</span>
                   </div>
                   <p className="text-[10px] font-medium text-[#6B7C83] pt-2">
                     {infra.geminiAi.costModelNote}
@@ -1201,9 +1201,9 @@ export function SuperAdminPage() {
                 {/* Cota Diária */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-black">
-                    <span className="text-[#0D2329]">Cota Diária de Laudos / Requisições</span>
+                    <span className="text-[#0D2329]">Cota Diária Utilizada Hoje</span>
                     <span className="text-[#7C3AED]">
-                      {infra.geminiAi.totalAiReportsGenerated} / 1500 laudos/dia
+                      {infra.geminiAi.todayAiReportsGenerated} / 1500 laudos/dia
                     </span>
                   </div>
                   <div className="w-full bg-[#F1F5F9] h-2.5 rounded-full overflow-hidden">
@@ -1211,15 +1211,19 @@ export function SuperAdminPage() {
                       className="bg-[#7C3AED] h-full rounded-full transition-all"
                       style={{
                         width: `${Math.max(
-                          2,
-                          Math.round((infra.geminiAi.totalAiReportsGenerated / 1500) * 100)
+                          infra.geminiAi.todayAiReportsGenerated > 0 ? 3 : 0,
+                          Math.round((infra.geminiAi.todayAiReportsGenerated / 1500) * 100)
                         )}%`,
                       }}
                     />
                   </div>
                   <div className="flex justify-between text-[11px] text-[#6B7C83] font-medium">
                     <span>Capacidade: Até 150 psicopedagogas no Free</span>
-                    <strong className="text-[#00875F]">99.8% livre</strong>
+                    <strong className="text-[#00875F]">
+                      {infra.geminiAi.todayAiReportsGenerated === 0
+                        ? "100% livre hoje"
+                        : `${(100 - infra.geminiAi.dailyPercentageUsed).toFixed(1)}% livre`}
+                    </strong>
                   </div>
                 </div>
 
