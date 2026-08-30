@@ -997,19 +997,83 @@ export function SuperAdminPage() {
             ========================================================================= */}
         {activeTab === "infraestrutura" && infra && (
           <div className="space-y-6 animate-in fade-in">
-            {/* Top Banners de Status */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-3.5 rounded-2xl bg-white border-2 border-[#A0BDC6] shadow-sm flex items-center gap-2.5 text-xs font-black text-[#0D2329]">
-                <CheckCircle className="w-4 h-4 text-[#10B981] shrink-0" />
-                <span>Banco de Dados Supabase Folgado</span>
+            {/* 1. Três Cards de Resumo Rápido no Topo */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Supabase Database Resumo */}
+              <div className="p-6 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-[#0D2329] flex items-center gap-2">
+                    <Server className="w-4 h-4 text-[#10B981]" />
+                    <span>Supabase Database</span>
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#D1FAE5] text-[#065F46]">
+                    🟢 100% Saudável
+                  </span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-[#6B7C83]">Tamanho Estimado:</span>
+                    <span className="font-black text-[#0D2329]">{infra.supabase.estimatedSizeMb} MB / 500 MB</span>
+                  </div>
+                  <div className="w-full bg-[#F1F5F9] h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-[#10B981] h-full rounded-full"
+                      style={{ width: `${Math.max(3, infra.supabase.percentageUsed)}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[11px] text-[#6B7C83] pt-2">
+                    <span>Total de Registros:</span>
+                    <span className="font-bold text-[#0D2329]">{infra.supabase.totalRows} linhas</span>
+                  </div>
+                </div>
               </div>
-              <div className="p-3.5 rounded-2xl bg-white border-2 border-[#A0BDC6] shadow-sm flex items-center gap-2.5 text-xs font-black text-[#0D2329]">
-                <CheckCircle className="w-4 h-4 text-[#10B981] shrink-0" />
-                <span>Cota de IA do Google Gemini 100% Gratuita</span>
+
+              {/* Gemini AI Flash 2.0 Resumo */}
+              <div className="p-6 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-[#0D2329] flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-[#7C3AED]" />
+                    <span>Google Gemini AI</span>
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#EDE9FE] text-[#7C3AED]">
+                    Flash 2.0
+                  </span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-[#6B7C83]">Laudos Clínicos Gerados:</span>
+                    <span className="font-black text-[#7C3AED]">{infra.geminiAi.totalAiReportsGenerated} laudos</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#6B7C83]">Sessões Detalhadas com IA:</span>
+                    <span className="font-black text-[#0D2329]">{infra.geminiAi.totalAiAppointments}</span>
+                  </div>
+                  <p className="text-[10px] font-medium text-[#6B7C83] pt-2">
+                    {infra.geminiAi.costModelNote}
+                  </p>
+                </div>
               </div>
-              <div className="p-3.5 rounded-2xl bg-white border-2 border-[#A0BDC6] shadow-sm flex items-center gap-2.5 text-xs font-black text-[#0D2329]">
-                <CheckCircle className="w-4 h-4 text-[#10B981] shrink-0" />
-                <span>Servidores Vercel em Operação Perfeita</span>
+
+              {/* Vercel Serverless Resumo */}
+              <div className="p-6 rounded-3xl bg-white border-2 border-[#A0BDC6] shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-[#0D2329] flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-[#2563EB]" />
+                    <span>Vercel Serverless</span>
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#E0E7FF] text-[#2563EB]">
+                    Operacional
+                  </span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-[#6B7C83]">Limite de Invocações:</span>
+                    <span className="font-black text-[#0D2329]">100.000 / mês</span>
+                  </div>
+                  <p className="text-[11px] text-[#6B7C83]">
+                    Hospedagem global Edge com deploy automatizado e latência ultrabaixa.
+                  </p>
+                </div>
               </div>
             </div>
 
