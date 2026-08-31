@@ -557,7 +557,7 @@ export function ClinicalReportBuilderModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
-      <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl animate-in zoom-in-95">
+      <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-[1550px] w-full max-h-[94vh] flex flex-col shadow-2xl animate-in zoom-in-95">
         {/* Header do Modal */}
         <div className="p-5 sm:p-6 border-b border-[#EEF5F6] flex items-center justify-between bg-gradient-to-r from-[#F0FDF4] to-[#EDE9FE] rounded-t-3xl">
           <div className="flex items-center gap-3.5">
@@ -582,14 +582,14 @@ export function ClinicalReportBuilderModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-white/80 hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-[#D8E5E7] flex items-center justify-center font-black transition-all shadow-2xs"
+            className="w-9 h-9 rounded-full bg-white/80 hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-[#D8E5E7] flex items-center justify-center font-black transition-all shadow-2xs cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Barra de Etapas / Abas do Relatório */}
-        <div className="px-6 py-2.5 bg-[#F8FAFB] border-b border-[#EEF5F6] flex items-center gap-1.5 overflow-x-auto">
+        {/* Barra de Etapas / Abas do Relatório (Grid 5 Colunas Sem Scroll) */}
+        <div className="px-4 sm:px-6 py-2.5 bg-[#F8FAFB] border-b border-[#EEF5F6] grid grid-cols-2 md:grid-cols-5 gap-2">
           {[
             { step: 1, label: "1. Identificação & Anamnese", icon: User },
             { step: 2, label: "2. Entrevista Escolar", icon: School },
@@ -605,7 +605,7 @@ export function ClinicalReportBuilderModal({
                 key={item.step}
                 type="button"
                 onClick={() => setActiveStep(item.step as any)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 shrink-0 transition-all ${
+                className={`px-3 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer text-center ${
                   isCurrent
                     ? "bg-[#7C3AED] text-white shadow-xs"
                     : isDone
@@ -613,9 +613,9 @@ export function ClinicalReportBuilderModal({
                     : "bg-white text-[#6B7C83] border border-[#D8E5E7] hover:border-[#7C3AED]"
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{item.label}</span>
-                {isDone && <Check className="w-3.5 h-3.5 text-[#10B981]" />}
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{item.label}</span>
+                {isDone && <Check className="w-3.5 h-3.5 text-[#10B981] shrink-0" />}
               </button>
             )
           })}
@@ -939,7 +939,7 @@ export function ClinicalReportBuilderModal({
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
                     {DEFAULT_INSTRUMENT_CATALOG.map((inst, idx) => {
                       const isChecked = selectedInstruments.includes(inst)
                       return (
