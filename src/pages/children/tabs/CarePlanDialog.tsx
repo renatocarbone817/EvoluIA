@@ -28,6 +28,7 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
     duration_minutes: "60",
     price_per_session: "100",
     payment_type: "mensal",
+    session_timing: "no_dia", // "no_dia" | "fechamento"
     payment_due_day: "5",
     notes: "",
   })
@@ -47,6 +48,18 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
 
     if (data) {
       setPlanId(data.id)
+      const rawNotes = data.notes || ""
+      let timing = "no_dia"
+      if (rawNotes.includes("[TIMING:fechamento]")) {
+        timing = "fechamento"
+      } else if (rawNotes.includes("[TIMING:no_dia]")) {
+        timing = "no_dia"
+      } else if (data.payment_type === "por_sessao" && data.payment_due_day && data.payment_due_day > 0) {
+        timing = "fechamento"
+      }
+
+      const cleanNotes = rawNotes.replace(/\[TIMING:[^\]]+\]\s*/g, "")
+
       setForm({
         start_date: data.start_date || new Date().toISOString().split("T")[0],
         frequency: String(data.frequency || 1),
@@ -54,8 +67,9 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
         duration_minutes: String(data.duration_minutes || 60),
         price_per_session: String(data.price_per_session || 100),
         payment_type: data.payment_type || "mensal",
+        session_timing: timing,
         payment_due_day: String(data.payment_due_day || 5),
-        notes: data.notes || "",
+        notes: cleanNotes,
       })
     }
   }
@@ -67,6 +81,12 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
       const profId = professional.id
       const amount = Number(form.price_per_session) || 0
 
+      const timingTag = form.payment_type === "por_sessao" ? `[TIMING:${form.session_timing}] ` : ""
+      const cleanUserNotes = form.notes.replace(/\[TIMING:[^\]]+\]\s*/g, "").trim()
+      const finalNotes = (timingTag + cleanUserNotes).trim() || null
+
+      const isDueDayApplicable = form.payment_type === "mensal" || (form.payment_type === "por_sessao" && form.session_timing === "fechamento")
+
       const payload = {
         professional_id: profId,
         child_id: childId,
@@ -76,8 +96,8 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
         duration_minutes: Number(form.duration_minutes) || 60,
         price_per_session: amount,
         payment_type: form.payment_type,
-        payment_due_day: Number(form.payment_due_day) || 5,
-        notes: form.notes || null,
+        payment_due_day: isDueDayApplicable ? (Number(form.payment_due_day) || 5) : null,
+        notes: finalNotes,
       }
 
       if (planId) {
@@ -140,6 +160,7 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
 
   const isPorSessao = form.payment_type === "por_sessao"
   const isPacote = form.payment_type === "pacote"
+  const showDueDay = form.payment_type === "mensal" || (isPorSessao && form.session_timing === "fechamento")
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -223,7 +244,7 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
                   key={opt.value}
                   type="button"
                   onClick={() => setForm({ ...form, payment_type: opt.value })}
-                  className={`p-3 rounded-2xl border-2 text-left transition-all active:scale-95 ${
+                  className={`p-3 rounded-2xl border-2 text-left transition-all active:scale-95 cursor-pointer ${
                     form.payment_type === opt.value
                       ? "border-[#7C3AED] bg-[#EDE9FE] text-[#7C3AED] shadow-2xs"
                       : "border-[#D8E5E7] bg-white text-[#6B7C83] hover:border-[#7C3AED]/40"
@@ -235,6 +256,50 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
               ))}
             </div>
           </div>
+
+          {/* Sub-opções se for "Por Sessão": No Dia vs Fechamento no Mês */}
+          {isPorSessao && (
+            <div className="p-3.5 rounded-2xl bg-[#F5F3FF] border-2 border-[#DDD6FE] space-y-2.5 animate-in fade-in">
+              <label className="text-[11px] font-black text-[#5B21B6] uppercase tracking-wide flex items-center gap-1.5">
+                <span>Como o pai/responsável prefere pagar por sessão?</span>
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, session_timing: "no_dia" })}
+                  className={`p-3 rounded-xl border-2 text-left transition-all active:scale-95 cursor-pointer ${
+                    form.session_timing === "no_dia"
+                      ? "border-[#7C3AED] bg-white text-[#7C3AED] shadow-xs"
+                      : "border-[#D8E5E7] bg-white/70 text-[#6B7C83] hover:border-[#7C3AED]/40"
+                  }`}
+                >
+                  <p className="font-black text-xs flex items-center gap-1">
+                    <span>⚡ No Dia da Aula</span>
+                  </p>
+                  <p className="text-[10px] font-semibold mt-0.5 text-[#6B7C83] leading-tight">
+                    Paga a cada sessão realizada logo após o atendimento.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, session_timing: "fechamento" })}
+                  className={`p-3 rounded-xl border-2 text-left transition-all active:scale-95 cursor-pointer ${
+                    form.session_timing === "fechamento"
+                      ? "border-[#7C3AED] bg-white text-[#7C3AED] shadow-xs"
+                      : "border-[#D8E5E7] bg-white/70 text-[#6B7C83] hover:border-[#7C3AED]/40"
+                  }`}
+                >
+                  <p className="font-black text-xs flex items-center gap-1">
+                    <span>📅 Fechamento no Mês</span>
+                  </p>
+                  <p className="text-[10px] font-semibold mt-0.5 text-[#6B7C83] leading-tight">
+                    Soma as aulas do mês e paga no dia marcado do próximo mês.
+                  </p>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Amount & Due Day */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -254,15 +319,18 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
               />
             </div>
 
-            {!isPorSessao && (
-              <div className="space-y-1">
-                <label className="text-[11px] font-black text-[#0D2329]">Dia do Vencimento</label>
+            {showDueDay && (
+              <div className="space-y-1 animate-in fade-in">
+                <label className="text-[11px] font-black text-[#0D2329]">
+                  {isPorSessao ? "Dia do Fechamento / Vencimento" : "Dia do Vencimento da Mensalidade"}
+                </label>
                 <input
                   type="number"
                   min="1"
                   max="31"
                   value={form.payment_due_day}
                   onChange={(e) => setForm({ ...form, payment_due_day: e.target.value })}
+                  placeholder="Ex: 5"
                   className="w-full px-3.5 py-2 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
                 />
               </div>
@@ -272,20 +340,25 @@ export function CarePlanDialog({ open, childId, childName = "Paciente", onClose,
           {/* Info box explaining billing behaviour */}
           <div className={`rounded-2xl p-3.5 text-xs leading-relaxed border-2 ${
             isPorSessao
-              ? "bg-[#E0F2FE] border-[#BAE6FD] text-[#0284C7]"
+              ? "bg-[#F5F3FF] border-[#DDD6FE] text-[#5B21B6]"
               : isPacote
               ? "bg-[#EDE9FE] border-[#DDD6FE] text-[#7C3AED]"
               : "bg-[#E8F8F5] border-[#A7F3D0] text-[#065F46]"
           }`}>
-            {isPorSessao && (
+            {isPorSessao && form.session_timing === "no_dia" && (
               <p>
-                🎯 <strong>Cobrança por Sessão:</strong> Cada vez que você registrar uma sessão deste paciente, um lançamento de{" "}
-                <strong>R$ {Number(form.price_per_session).toFixed(2)}</strong> será criado automaticamente como <em>Pendente</em> no Financeiro.
+                ⚡ <strong>Por Sessão (Acerto no Dia):</strong> Cada vez que você registrar ou concluir um atendimento, uma cobrança de{" "}
+                <strong>R$ {Number(form.price_per_session).toFixed(2)}</strong> será lançada no Financeiro com vencimento na data da aula.
+              </p>
+            )}
+            {isPorSessao && form.session_timing === "fechamento" && (
+              <p>
+                📅 <strong>Por Sessão (Fechamento no Mês):</strong> O valor é de <strong>R$ {Number(form.price_per_session).toFixed(2)}</strong> por sessão. O sistema contabiliza as aulas realizadas no mês e o acerto total fica marcado para o <strong>dia {form.payment_due_day || 5}</strong> do próximo mês.
               </p>
             )}
             {form.payment_type === "mensal" && (
               <p>
-                💰 <strong>Cobrança Mensal:</strong> Ao salvar, a mensalidade de <strong>R$ {Number(form.price_per_session).toFixed(2)}</strong> será lançada no Financeiro para o mês atual.
+                💰 <strong>Cobrança Mensal:</strong> A mensalidade fixa de <strong>R$ {Number(form.price_per_session).toFixed(2)}</strong> vence todo <strong>dia {form.payment_due_day || 5}</strong> no Financeiro.
               </p>
             )}
             {isPacote && (

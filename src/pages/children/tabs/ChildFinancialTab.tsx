@@ -278,12 +278,18 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
                   <div className="bg-white/15 rounded-2xl p-3 backdrop-blur-xs border border-white/10">
                     <p className="text-[10px] text-white/80 uppercase font-black">Forma de Cobrança</p>
                     <p className="text-sm sm:text-base font-black text-white mt-0.5">
-                      {BILLING_LABEL[carePlan.payment_type] || carePlan.payment_type}
+                      {carePlan.payment_type === "por_sessao"
+                        ? (carePlan.notes?.includes("[TIMING:fechamento]") || (carePlan.payment_due_day && carePlan.payment_due_day > 0)
+                          ? "🎯 Por Sessão (Fechamento)"
+                          : "⚡ Por Sessão (No Dia)")
+                        : BILLING_LABEL[carePlan.payment_type] || carePlan.payment_type}
                     </p>
                   </div>
-                  {carePlan.payment_type !== "por_sessao" && carePlan.payment_due_day && (
+                  {carePlan.payment_due_day && (
                     <div className="bg-white/15 rounded-2xl p-3 backdrop-blur-xs border border-white/10">
-                      <p className="text-[10px] text-white/80 uppercase font-black">Vencimento</p>
+                      <p className="text-[10px] text-white/80 uppercase font-black">
+                        {carePlan.payment_type === "por_sessao" ? "Fechamento" : "Vencimento"}
+                      </p>
                       <p className="text-sm sm:text-base font-black text-white mt-0.5">
                         Dia {carePlan.payment_due_day}
                       </p>
@@ -300,9 +306,9 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
                     </p>
                   </div>
                 </div>
-                {carePlan.notes && (
+                {carePlan.notes && carePlan.notes.replace(/\[TIMING:[^\]]+\]\s*/g, "").trim() && (
                   <p className="text-xs text-white/90 italic bg-white/15 p-3 rounded-2xl border border-white/10">
-                    📝 {carePlan.notes}
+                    📝 {carePlan.notes.replace(/\[TIMING:[^\]]+\]\s*/g, "").trim()}
                   </p>
                 )}
               </div>
