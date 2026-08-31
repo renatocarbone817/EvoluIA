@@ -863,6 +863,15 @@ export function AppointmentsPage() {
                           </button>
                         </>
                       )}
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteAppointment(e, appt.id)}
+                        className="w-9 h-9 rounded-2xl bg-[#FEE2E2]/60 hover:bg-[#FEE2E2] text-[#EF4444] border border-[#FECACA] flex items-center justify-center active:scale-95 transition-all shadow-2xs cursor-pointer ml-0.5"
+                        title="Excluir Agendamento"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -974,26 +983,37 @@ export function AppointmentsPage() {
                                         {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
                                       </span>
 
-                                      {appt.status === "done" ? (
-                                        <span className="text-[9px] font-black text-[#10B981] flex items-center gap-0.5" title="Sessão Concluída">
-                                          <CheckCircle2 className="w-3 h-3 text-[#10B981]" />
-                                        </span>
-                                      ) : appt.status === "missed" ? (
-                                        <span className="text-[9px] font-black text-red-500 flex items-center gap-0.5" title="Falta Registrada">
-                                          <AlertTriangle className="w-3 h-3 text-red-500" />
-                                        </span>
-                                      ) : !isBlock && appt.child ? (
+                                      <div className="flex items-center gap-1">
+                                        {appt.status === "done" ? (
+                                          <span className="text-[9px] font-black text-[#10B981] flex items-center gap-0.5" title="Sessão Concluída">
+                                            <CheckCircle2 className="w-3 h-3 text-[#10B981]" />
+                                          </span>
+                                        ) : appt.status === "missed" ? (
+                                          <span className="text-[9px] font-black text-red-500 flex items-center gap-0.5" title="Falta Registrada">
+                                            <AlertTriangle className="w-3 h-3 text-red-500" />
+                                          </span>
+                                        ) : !isBlock && appt.child ? (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              handleSendWhatsApp(appt)
+                                            }}
+                                            className="opacity-0 group-hover:opacity-100 text-[#10B981] hover:scale-110 transition-all p-0.5"
+                                            title="Enviar Lembrete WhatsApp"
+                                          >
+                                            <MessageCircle className="w-3 h-3" />
+                                          </button>
+                                        ) : null}
+
                                         <button
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleSendWhatsApp(appt)
-                                          }}
-                                          className="opacity-0 group-hover:opacity-100 text-[#10B981] hover:scale-110 transition-all p-0.5"
-                                          title="Enviar Lembrete WhatsApp"
+                                          type="button"
+                                          onClick={(e) => handleDeleteAppointment(e, appt.id)}
+                                          className="opacity-0 group-hover:opacity-100 text-[#8CAAB1] hover:text-[#EF4444] hover:scale-110 transition-all p-0.5 cursor-pointer"
+                                          title="Excluir Agendamento"
                                         >
-                                          <MessageCircle className="w-3 h-3" />
+                                          <Trash2 className="w-3 h-3" />
                                         </button>
-                                      ) : null}
+                                      </div>
                                     </div>
 
                                     <div className="flex items-center gap-1.5">
@@ -1152,6 +1172,15 @@ export function AppointmentsPage() {
                                         </button>
                                       </div>
                                     )}
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleDeleteAppointment(e, appt.id)}
+                                      className="p-1.5 rounded-xl hover:bg-red-50 text-[#8CAAB1] hover:text-[#EF4444] transition-all cursor-pointer"
+                                      title="Excluir Agendamento"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
                                   </div>
                                 </div>
                               )
@@ -1277,6 +1306,14 @@ export function AppointmentsPage() {
                         <p className="text-xs font-bold text-[#0D2329] truncate">{displayName}</p>
                         <p className="text-[10px] text-[#6B7C83] truncate">{appt.type}</p>
                       </div>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteAppointment(e, appt.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-red-50 text-[#8CAAB1] hover:text-[#EF4444] transition-all cursor-pointer"
+                        title="Excluir Agendamento"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   )
                 })}
