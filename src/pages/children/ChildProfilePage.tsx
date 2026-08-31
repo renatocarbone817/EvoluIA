@@ -217,7 +217,7 @@ export function ChildProfilePage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in max-w-full overflow-x-hidden">
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6 animate-in fade-in max-w-full overflow-x-hidden">
       {/* 1. TOP HERO HEADER (Larger Photo, Top-Right Edit Button, No Back Button, Clean Alignment) */}
       <div className="bg-white p-4 sm:p-6 rounded-3xl border-2 border-[#D8E5E7] shadow-sm space-y-4">
         <div className="flex items-start justify-between gap-3">

@@ -728,7 +728,7 @@ export function DashboardPage() {
   const capitalizedToday = formattedToday.charAt(0).toUpperCase() + formattedToday.slice(1)
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6">
       {/* 1. GREETING HERO HEADER */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">

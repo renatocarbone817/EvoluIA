@@ -534,7 +534,7 @@ export function AppointmentsPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 max-w-full overflow-x-hidden">
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6 max-w-full overflow-x-hidden">
       {/* =========================================================================
           1. HEADER WITH TITLE, DATE RANGE & VIEW SWITCHER
           ========================================================================= */}
