@@ -37,6 +37,7 @@ import {
   getCustomSchoolQuestions,
   type InterviewQuestionItem,
 } from "@/lib/customInterviewService"
+import { ClinicalReportPreviewModal } from "./ClinicalReportPreviewModal"
 
 interface ClinicalReportBuilderModalProps {
   isOpen: boolean
