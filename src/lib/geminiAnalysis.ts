@@ -1,26 +1,17 @@
 import { supabase } from "@/lib/supabase"
+import { DEFAULT_FAMILY_QUESTIONS, type InterviewQuestionItem } from "@/lib/customInterviewService"
 
-const QUESTIONS: Record<string, string> = {
-  q1: "QUEIXA LIVRE: Em que posso ajudá-los? O que os trouxe até aqui?",
-  q2: "Quando começou o problema?",
-  q3: "Como vocês se sentem diante dessa dificuldade?",
-  q4: "O que a escola relata sobre essa dificuldade?",
-  q5: "Em casa, como é essa dificuldade relatada pela escola?",
-  q6: "Fale-me em detalhes como é a rotina de seu filho desde a hora de acordar até a hora de dormir, durante uma semana.",
-  q7: "Como ele se comporta ao fazer as lições de casa?",
-  q8: "E como vocês reagem a esse comportamento?",
-  q9: "Existe outro problema além desse?",
-  q10: "Quais as qualidades de seu filho?",
-  q11: "Tem outros filhos? Como eles são?",
-  q12: "O que vocês esperam de mim e do meu trabalho?",
-  q13: "Gostariam de acrescentar algo?",
-}
+export function buildInterviewPrompt(
+  childName: string,
+  answers: Record<string, string>,
+  customQuestions?: InterviewQuestionItem[]
+): string {
+  const questionsList = customQuestions && customQuestions.length > 0 ? customQuestions : DEFAULT_FAMILY_QUESTIONS
 
-export function buildInterviewPrompt(childName: string, answers: Record<string, string>): string {
-  const interviewText = Object.entries(QUESTIONS)
-    .map(([key, question]) => {
-      const answer = answers[key] || "(não respondido)"
-      return `**${question}**\nResposta: ${answer}`
+  const interviewText = questionsList
+    .map((q) => {
+      const answer = answers[q.id] || "(não respondido)"
+      return `**Pergunta ${q.num}: ${q.title}**\nResposta dos Responsáveis: ${answer}`
     })
     .join("\n\n")
 
@@ -168,9 +159,10 @@ ${interviewText}`
 export async function generateInitialAssessmentAI(
   assessmentId: string,
   childName: string,
-  answers: Record<string, string>
+  answers: Record<string, string>,
+  customQuestions?: InterviewQuestionItem[]
 ): Promise<{ analysis: string; projectUsed: string }> {
-  const prompt = buildInterviewPrompt(childName, answers)
+  const prompt = buildInterviewPrompt(childName, answers, customQuestions)
 
   let analysis: string | null = null
   let usedProject: string | null = null

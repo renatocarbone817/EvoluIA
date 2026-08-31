@@ -290,7 +290,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
         .maybeSingle()
 
       const childFullName = childName || childData?.full_name || "paciente"
-      const result = await generateInitialAssessmentAI(assessment.id, childFullName, answers)
+      const result = await generateInitialAssessmentAI(assessment.id, childFullName, answers, familyQuestionsList)
 
       setAiAnalysis(result.analysis)
       setAiAnalyzedAt(new Date().toISOString())
