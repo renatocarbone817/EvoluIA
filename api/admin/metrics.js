@@ -49,6 +49,8 @@ export default async function handler(req, res) {
       profsRes,
       childrenRes,
       apptsRes,
+      reportsRes,
+      assessmentsRes,
       subsRes,
       eventsRes,
       guardiansRes,
@@ -56,6 +58,8 @@ export default async function handler(req, res) {
       supabase.from("professionals").select("*").then((r) => r.data || []),
       supabase.from("children").select("id, professional_id").then((r) => r.data || []),
       supabase.from("appointments").select("id").then((r) => r.data || []),
+      supabase.from("reports").select("id, created_at").then((r) => r.data || []),
+      supabase.from("initial_assessments").select("id, created_at, ai_analysis, ai_analyzed_at").then((r) => r.data || []),
       supabase.from("subscriptions").select("*").then((r) => r.data || []),
       supabase.from("subscription_events").select("*").order("created_at", { ascending: false }).limit(30).then((r) => r.data || []),
       supabase.from("guardians").select("id").then((r) => r.data || []),
@@ -64,6 +68,8 @@ export default async function handler(req, res) {
     const profs = Array.isArray(profsRes) ? profsRes : []
     const children = Array.isArray(childrenRes) ? childrenRes : []
     const appointments = Array.isArray(apptsRes) ? apptsRes : []
+    const reports = Array.isArray(reportsRes) ? reportsRes : []
+    const assessments = Array.isArray(assessmentsRes) ? assessmentsRes : []
     const subscriptions = Array.isArray(subsRes) ? subsRes : []
     const events = Array.isArray(eventsRes) ? eventsRes : []
     const guardians = Array.isArray(guardiansRes) ? guardiansRes : []
@@ -232,6 +238,7 @@ export default async function handler(req, res) {
           professionals: profs.length,
           children: children.length,
           appointments: appointments.length,
+          reports: reports.length + assessments.filter((a) => !!a.ai_analysis || !!a.ai_analyzed_at).length,
           subscriptions: subscriptions.length,
           subscriptionEvents: events.length,
           guardians: guardians.length,

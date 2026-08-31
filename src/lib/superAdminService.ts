@@ -334,6 +334,7 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
       childrenRes,
       apptsRes,
       reportsRes,
+      assessmentsRes,
       subsRes,
       eventsRes,
       guardiansRes,
@@ -342,6 +343,7 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
       supabase.from("children").select("id, professional_id, created_at"),
       supabase.from("appointments").select("id, professional_id, start_time, created_at, status, notes"),
       supabase.from("reports").select("id, professional_id, created_at, status"),
+      supabase.from("initial_assessments").select("id, professional_id, created_at, ai_analysis, ai_analyzed_at"),
       supabase.from("subscriptions").select("*"),
       supabase.from("subscription_events").select("*").order("created_at", { ascending: false }),
       supabase.from("guardians").select("id, professional_id, created_at"),
@@ -351,6 +353,7 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
     const children = childrenRes.data || []
     const appointments = apptsRes.data || []
     const reports = reportsRes.data || []
+    const assessments = assessmentsRes.data || []
     const subscriptions = subsRes.data || []
     const events = eventsRes.data || []
     const guardians = guardiansRes.data || []
@@ -413,12 +416,14 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
       const myPatients = children.filter((c) => myTeamIds.includes(c.professional_id))
       const myAppts = appointments.filter((a) => myTeamIds.includes(a.professional_id))
       const myReports = reports.filter((r) => myTeamIds.includes(r.professional_id))
+      const myAssessments = assessments.filter((a) => myTeamIds.includes(a.professional_id) && (!!a.ai_analysis || !!a.ai_analyzed_at))
       const myGuardians = guardians.filter((g) => myTeamIds.includes(g.professional_id))
 
       // Última Atividade Clínica Real
       const activityTimestamps: number[] = [
         ...myAppts.map((a) => (a.created_at ? new Date(a.created_at).getTime() : 0)),
         ...myReports.map((r) => (r.created_at ? new Date(r.created_at).getTime() : 0)),
+        ...myAssessments.map((a) => (a.created_at ? new Date(a.created_at).getTime() : 0)),
         ...myPatients.map((c) => (c.created_at ? new Date(c.created_at).getTime() : 0)),
         ...myGuardians.map((g) => (g.created_at ? new Date(g.created_at).getTime() : 0)),
       ].filter((t) => t > 0)
@@ -518,7 +523,7 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
         teamCount: 1 + myTeam.length,
         patientsCount: myPatients.length,
         appointmentsCount: myAppts.length,
-        aiReportsCount: myReports.length,
+        aiReportsCount: myReports.length + myAssessments.length,
         subscriptionStatus: subStatusDisplay,
         isPaying,
         lastActivityDate,
@@ -698,9 +703,22 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
       profs.length + children.length + appointments.length + subscriptions.length + events.length + guardians.length + reports.length
     const estimatedSizeMb = Number(((totalRowsCount * 3.5) / 1024).toFixed(2))
 
+    const assessmentsWithAi = assessments.filter((a) => !!a.ai_analysis || !!a.ai_analyzed_at)
+    const assessmentsAiToday = assessmentsWithAi.filter((a) => {
+      const ts = a.ai_analyzed_at || a.created_at
+      return ts && ts >= todayStartStr
+    })
+    const assessmentsAiLast7Days = assessmentsWithAi.filter((a) => {
+      const ts = a.ai_analyzed_at || a.created_at
+      return ts && ts >= sevenDaysAgoStr
+    })
+
     const reportsToday = reports.filter((r) => r.created_at && r.created_at >= todayStartStr)
     const reportsLast7Days = reports.filter((r) => r.created_at && r.created_at >= sevenDaysAgoStr)
-    const todayReportsCount = reportsToday.length
+    
+    const todayReportsCount = reportsToday.length + assessmentsAiToday.length
+    const totalAiReportsCount = reports.length + assessmentsWithAi.length
+    const weeklyAiReportsCount = reportsLast7Days.length + assessmentsAiLast7Days.length
 
     const infra = {
       supabase: {
@@ -713,7 +731,7 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
           professionals: profs.length,
           children: children.length,
           appointments: appointments.length,
-          reports: reports.length,
+          reports: totalAiReportsCount,
           guardians: guardians.length,
           subscriptions: subscriptions.length,
           subscriptionEvents: events.length,
@@ -721,8 +739,8 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
       },
       geminiAi: {
         todayAiReportsGenerated: todayReportsCount,
-        totalAiReportsGenerated: reports.length,
-        weeklyAiReportsGenerated: reportsLast7Days.length,
+        totalAiReportsGenerated: totalAiReportsCount,
+        weeklyAiReportsGenerated: weeklyAiReportsCount,
         dailyLimit: 1500,
         dailyPercentageUsed: Number(((todayReportsCount / 1500) * 100).toFixed(1)),
         totalAiAppointments: appointments.filter((a) => a.notes && a.notes.length > 50).length,
