@@ -57,6 +57,8 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
   const [showEditorModal, setShowEditorModal] = useState(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [showFinalizeModal, setShowFinalizeModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletingReport, setDeletingReport] = useState(false)
   const [selectedReport, setSelectedReport] = useState<Report | null>(null)
   const [saving, setSaving] = useState(false)
   const [finalizing, setFinalizing] = useState(false)
@@ -258,6 +260,36 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
       toast.error(err.message || "Erro ao finalizar relatório")
     } finally {
       setFinalizing(false)
+    }
+  }
+
+  // 4. EXCLUIR RELATÓRIO
+  async function handleDeleteReport() {
+    if (!activeReport) return
+    setDeletingReport(true)
+    try {
+      const { error } = await supabase
+        .from("reports")
+        .delete()
+        .eq("id", activeReport.id)
+
+      if (error) throw error
+
+      // Reset child status back to active if it was in report mode
+      await supabase
+        .from("children")
+        .update({ status: "active" })
+        .eq("id", child.id)
+
+      toast.success("Relatório excluído com sucesso! Agora você pode criar um novo.", { icon: "🗑️" })
+      setShowDeleteModal(false)
+      setSelectedReport(null)
+      onReloadChild?.()
+      await loadReports()
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir relatório")
+    } finally {
+      setDeletingReport(false)
     }
   }
 
@@ -512,6 +544,16 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
                   </button>
                 </>
               )}
+
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                className="px-3.5 py-2.5 rounded-xl bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#DC2626] border border-[#FECACA] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+                title="Excluir este relatório para criar outro"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-[#DC2626]" />
+                <span>Excluir</span>
+              </button>
             </div>
           </div>
 
@@ -799,6 +841,46 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
               >
                 {finalizing ? <Clock className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 stroke-[3]" />}
                 <span>{finalizing ? "Finalizando..." : "Sim, Finalizar Relatório"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DO RELATÓRIO
+          ========================================================================= */}
+      {showDeleteModal && activeReport && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border-2 border-[#FECACA] max-w-md w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95">
+            <div className="w-12 h-12 rounded-2xl bg-[#FEF2F2] border-2 border-[#FECACA] text-[#DC2626] flex items-center justify-center mx-auto shadow-xs">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1.5">
+              <h3 className="text-base font-black text-[#0D2329]">Excluir Relatório?</h3>
+              <p className="text-xs font-semibold text-[#6B7C83] leading-relaxed">
+                Tem certeza que deseja excluir o relatório de <strong>{child.full_name}</strong>? Este rascunho será removido para que você possa iniciar um novo relatório do zero.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-[#6B7C83] hover:bg-[#F7FAFA] border border-[#D8E5E7] transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                disabled={deletingReport}
+                onClick={handleDeleteReport}
+                className="px-5 py-2.5 rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-black flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+              >
+                {deletingReport ? <Clock className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                <span>{deletingReport ? "Excluindo..." : "Sim, Excluir Relatório"}</span>
               </button>
             </div>
           </div>
