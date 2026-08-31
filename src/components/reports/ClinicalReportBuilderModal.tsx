@@ -268,29 +268,66 @@ export function ClinicalReportBuilderModal({
 
       if (assessments && assessments.length > 0) {
         const latest = assessments[0]
-        const answersList = latest.answers || []
-        if (answersList.length > 0) {
-          // Map answers to anamnese sections
-          const ansMap: Record<string, string> = {}
-          answersList.forEach((a: any) => {
-            const qTitle = a.question?.title || ""
-            if (qTitle && a.answer_text) {
-              ansMap[qTitle.toLowerCase()] = a.answer_text
-            }
-          })
 
-          setAnamnese((prev) => ({
-            ...prev,
-            family: ansMap["família"] || ansMap["estrutura familiar"] || prev.family,
-            conceptionAndPregnancy: ansMap["gestação"] || ansMap["parto"] || prev.conceptionAndPregnancy,
-            breastfeedingAndDiet: ansMap["alimentação"] || ansMap["amamentação"] || prev.breastfeedingAndDiet,
-            psychomotorAndLanguage: ansMap["desenvolvimento"] || ansMap["fala"] || prev.psychomotorAndLanguage,
-            sleep: ansMap["sono"] || prev.sleep,
-            familyHealthHistory: ansMap["saúde"] || ansMap["histórico"] || prev.familyHealthHistory,
-            schooling: ansMap["escola"] || ansMap["escolaridade"] || prev.schooling,
-            relationshipsAndSociability: ansMap["sociabilidade"] || ansMap["amigos"] || prev.relationshipsAndSociability,
-          }))
+        // Parse answers from reason JSON (saved from ChildAssessmentTab)
+        let parsedReasonAnswers: Record<string, string> = {}
+        if (latest.reason) {
+          try {
+            parsedReasonAnswers = JSON.parse(latest.reason)
+          } catch (e) {
+            // not JSON
+          }
         }
+
+        const answersList = latest.answers || []
+        const ansMap: Record<string, string> = {}
+        answersList.forEach((a: any) => {
+          const qTitle = a.question?.title || ""
+          const qId = a.question_id || ""
+          if (a.answer_text) {
+            if (qTitle) ansMap[qTitle.toLowerCase()] = a.answer_text
+            if (qId) ansMap[qId.toLowerCase()] = a.answer_text
+          }
+        })
+
+        const getAnswer = (qKey: string, ...titleKeywords: string[]) => {
+          if (parsedReasonAnswers[qKey] && parsedReasonAnswers[qKey].trim()) {
+            return parsedReasonAnswers[qKey]
+          }
+          if (ansMap[qKey.toLowerCase()]) {
+            return ansMap[qKey.toLowerCase()]
+          }
+          for (const kw of titleKeywords) {
+            for (const [k, v] of Object.entries(ansMap)) {
+              if (k.includes(kw.toLowerCase()) && v) return v
+            }
+          }
+          return null
+        }
+
+        const ansQ1 = getAnswer("q1", "queixa")
+        const ansQ4 = getAnswer("q4", "escola")
+        const ansQ6 = getAnswer("q6", "rotina", "sono")
+        const ansQ7 = getAnswer("q7", "lições", "comportamento")
+        const ansQ9 = getAnswer("q9", "outro problema", "saúde")
+        const ansQ10 = getAnswer("q10", "qualidades", "sociabilidade")
+        const ansQ11 = getAnswer("q11", "outros filhos", "família")
+
+        if (ansQ1) {
+          setPatientData((prev) => ({ ...prev, mainComplaint: ansQ1 }))
+        }
+
+        setAnamnese((prev) => ({
+          ...prev,
+          family: ansQ11 || getAnswer("família", "estrutura familiar") || prev.family,
+          conceptionAndPregnancy: getAnswer("gestação", "parto") || prev.conceptionAndPregnancy,
+          breastfeedingAndDiet: getAnswer("alimentação", "amamentação") || prev.breastfeedingAndDiet,
+          psychomotorAndLanguage: getAnswer("desenvolvimento", "fala") || prev.psychomotorAndLanguage,
+          sleep: ansQ6 || getAnswer("sono") || prev.sleep,
+          familyHealthHistory: ansQ9 || getAnswer("saúde", "histórico") || prev.familyHealthHistory,
+          schooling: ansQ4 || ansQ7 || getAnswer("escola", "escolaridade") || prev.schooling,
+          relationshipsAndSociability: ansQ10 || getAnswer("sociabilidade", "amigos") || prev.relationshipsAndSociability,
+        }))
 
         // Parse School Interview if saved in notes
         if (latest.notes && latest.notes.includes("__SCHOOL_INTERVIEW__:")) {
