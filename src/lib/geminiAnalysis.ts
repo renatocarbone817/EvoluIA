@@ -250,3 +250,149 @@ export async function generateInitialAssessmentAI(
 
   return { analysis, projectUsed: usedProject || "evoluia-ai" }
 }
+
+export async function generateClinicalReportAI(params: {
+  childName: string
+  ageFormatted: string
+  mainComplaint: string
+  familyAnswers: Array<{ num: number; title: string; answer: string }>
+  schoolAnswers: Array<{ num: number; title: string; answer: string }>
+  schoolTraits?: Record<string, boolean>
+  sessionsCount: number
+  selectedInstruments: string[]
+}): Promise<{
+  synthesis: string
+  diagnosticHypothesis: string
+  dsm5Criteria: string[]
+  referrals: string[]
+  recommendationsFamily: string[]
+  recommendationsSchool: string[]
+  finalConsiderations: string
+  clinicalObservation: string
+}> {
+  const familyText = params.familyAnswers
+    .map((q) => `${q.num}. ${q.title}: ${q.answer || "(não respondido)"}`)
+    .join("\n")
+
+  const schoolText = params.schoolAnswers
+    .map((q) => `${q.num}. ${q.title}: ${q.answer || "(não respondido)"}`)
+    .join("\n")
+
+  const traitsText = params.schoolTraits
+    ? Object.entries(params.schoolTraits)
+        .filter(([_, v]) => Boolean(v))
+        .map(([k]) => k)
+        .join(", ") || "Nenhum traço específico assinalado"
+    : "Não informado"
+
+  const prompt = `Você é uma Inteligência Artificial especialista em Psicopedagogia Clínica e Neurodesenvolvimento Infantil (Padrão CBO 2394-25 e DSM-5-TR).
+
+Analise ESTREITAMENTE as informações reais fornecidas abaixo para a elaboração do Laudo Psicopedagógico do paciente "${params.childName}" (${params.ageFormatted}).
+
+DADOS DO PACIENTE:
+Nome: ${params.childName}
+Idade: ${params.ageFormatted}
+Queixa Principal: ${params.mainComplaint || "Não informada"}
+Total de Sessões: ${params.sessionsCount} sessões clínicas
+Instrumentos Selecionados: ${params.selectedInstruments.join(", ") || "Avaliação Clínica"}
+
+RELATOS DA FAMÍLIA (ANAMNESE):
+${familyText}
+
+RELATOS DA ESCOLA (ENTREVISTA ESCOLAR):
+${schoolText}
+Traços observados pela escola: ${traitsText}
+
+INSTRUÇÕES CRÍTICAS:
+1. Analise APENAS os fatos relatados. NÃO invente transtornos se as respostas forem curtas, aleatórias ou sem sentido.
+2. Se as respostas fornecidas forem de teste, vazias ou desconexas (ex: "asdasd", "aaaaaa"), indique explicitamente na hipótese diagnóstica que os dados são preliminares/insuficientes para conclusão diagnóstica.
+3. Se os relatos indicarem padrões clínicos reais (ex: dificuldades atencionais, dislexia, ansiedade, etc.), formule uma hipótese diagnóstica técnica e fundamentada no DSM-5-TR.
+4. Retorne EXCLUSIVAMENTE um objeto JSON válido, sem crases de markdown e sem texto adicional fora do JSON, no seguinte formato:
+
+{
+  "synthesis": "Síntese técnica da avaliação ao longo das sessões...",
+  "diagnosticHypothesis": "Hipótese diagnóstica fundamentada no DSM-5-TR...",
+  "dsm5Criteria": [
+    "Critério 1 observado",
+    "Critério 2 observado"
+  ],
+  "referrals": [
+    "Encaminhamento 1",
+    "Encaminhamento 2"
+  ],
+  "recommendationsFamily": [
+    "Orientação familiar 1",
+    "Orientação familiar 2"
+  ],
+  "recommendationsSchool": [
+    "Orientação escolar 1",
+    "Orientação escolar 2"
+  ],
+  "finalConsiderations": "Considerações finais técnicas e fechamento...",
+  "clinicalObservation": "Observações sobre a postura clínica, engajamento e vínculo..."
+}`
+
+  const MAX_RETRIES = 5
+  let lastError: string | null = null
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const { data: keyData, error: rpcError } = await supabase
+      .rpc("pick_next_gemini_key")
+      .single()
+
+    if (rpcError || !keyData) break
+
+    const { key_id, api_key, project_name } = keyData as {
+      key_id: number
+      api_key: string
+      project_name: string
+    }
+
+    try {
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${api_key}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 4096,
+              responseMimeType: "application/json",
+            },
+          }),
+        }
+      )
+
+      if (!geminiRes.ok) {
+        if (geminiRes.status === 429 || geminiRes.status === 403) {
+          await supabase.from("gemini_api_keys").update({ is_active: false }).eq("id", key_id)
+        }
+        continue
+      }
+
+      const geminiData = await geminiRes.json()
+      const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
+      if (rawText) {
+        const cleaned = rawText.replace(/```json/g, "").replace(/```/g, "").trim()
+        const parsed = JSON.parse(cleaned)
+        return {
+          synthesis: parsed.synthesis || "",
+          diagnosticHypothesis: parsed.diagnosticHypothesis || "",
+          dsm5Criteria: Array.isArray(parsed.dsm5Criteria) ? parsed.dsm5Criteria : [],
+          referrals: Array.isArray(parsed.referrals) ? parsed.referrals : [],
+          recommendationsFamily: Array.isArray(parsed.recommendationsFamily) ? parsed.recommendationsFamily : [],
+          recommendationsSchool: Array.isArray(parsed.recommendationsSchool) ? parsed.recommendationsSchool : [],
+          finalConsiderations: parsed.finalConsiderations || "",
+          clinicalObservation: parsed.clinicalObservation || "",
+        }
+      }
+    } catch (err: any) {
+      lastError = err?.message || String(err)
+      continue
+    }
+  }
+
+  throw new Error(lastError || "Não foi possível conectar à IA no momento.")
+}

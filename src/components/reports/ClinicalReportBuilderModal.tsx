@@ -38,6 +38,7 @@ import {
   type InterviewQuestionItem,
 } from "@/lib/customInterviewService"
 import { ClinicalReportPreviewModal } from "./ClinicalReportPreviewModal"
+import { generateClinicalReportAI } from "@/lib/geminiAnalysis"
 
 interface ClinicalReportBuilderModalProps {
   isOpen: boolean
@@ -838,18 +839,47 @@ const completeData: CompleteReportData = {
     }
   }
 
-  // Gera rascunho com IA Gemini
+  // Gera rascunho com IA Gemini Real baseada nos dados do paciente
   async function handleGenerateAISuggestions() {
     setGeneratingAI(true)
+    const toastId = toast.loading("Analisando relatos e gerando hipótese clínica com IA...", { icon: "🧠" })
     try {
-      await new Promise((r) => setTimeout(r, 1500))
-      setSynthesis(
-        "A presente avaliação psicopedagógica de " + child.full_name + " foi realizada ao longo de " + sessionsCount + " sessões clínicas. A integração dos instrumentos aplicados, associada às observações comportamentais e aos relatos da família e da escola, revelou um perfil cognitivo com potencial preservado nas tarefas visuais e lúdicas, apresentando defasagem na memória de trabalho auditiva, discriminação fonológica e sustentação atencional em tarefas que demandam esforço cognitivo contínuo."
-      )
-      setDiagnosticHypothesis(
-        "Os dados convergentes obtidos na avaliação apontam para hipótese diagnóstica de Transtorno do Déficit de Atenção/Hiperatividade (TDAH) com predomínio desatento (CID-11 6A05.0 / DSM-5-TR), associado a impacto secundário no processo de aquisição da leitura e escrita."
-      )
-      toast.success("Sugestão clínica refinada com sucesso pela IA!", { icon: "✨" })
+      const familyPayload = familyQuestions.map((q) => ({
+        num: q.num,
+        title: q.title,
+        answer: familyAnswers[q.id] || "",
+      }))
+
+      const schoolPayload = schoolQuestions.map((q) => ({
+        num: q.num,
+        title: q.title,
+        answer: schoolAnswers[q.id] || "",
+      }))
+
+      const aiResult = await generateClinicalReportAI({
+        childName: child.full_name,
+        ageFormatted: patientData.ageFormatted || "Não informada",
+        mainComplaint: patientData.mainComplaint || child.main_complaint || "",
+        familyAnswers: familyPayload,
+        schoolAnswers: schoolPayload,
+        schoolTraits,
+        sessionsCount,
+        selectedInstruments,
+      })
+
+      if (aiResult.synthesis) setSynthesis(aiResult.synthesis)
+      if (aiResult.diagnosticHypothesis) setDiagnosticHypothesis(aiResult.diagnosticHypothesis)
+      if (aiResult.dsm5Criteria && aiResult.dsm5Criteria.length > 0) setDsm5Criteria(aiResult.dsm5Criteria)
+      if (aiResult.referrals && aiResult.referrals.length > 0) setReferrals(aiResult.referrals)
+      if (aiResult.recommendationsFamily && aiResult.recommendationsFamily.length > 0) setRecommendationsFamily(aiResult.recommendationsFamily)
+      if (aiResult.recommendationsSchool && aiResult.recommendationsSchool.length > 0) setRecommendationsSchool(aiResult.recommendationsSchool)
+      if (aiResult.finalConsiderations) setFinalConsiderations(aiResult.finalConsiderations)
+      if (aiResult.clinicalObservation) setClinicalObservation(aiResult.clinicalObservation)
+
+      toast.success("Hipótese clínica e critérios gerados com sucesso pela IA!", { id: toastId, icon: "✨" })
+    } catch (err: any) {
+      console.error("Erro ao gerar sugestão com IA:", err)
+      toast.error(err?.message || "Não foi possível gerar com IA no momento. Digite manualmente.", { id: toastId })
     } finally {
       setGeneratingAI(false)
     }
