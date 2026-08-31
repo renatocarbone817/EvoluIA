@@ -1,7 +1,26 @@
 import { generateInitialAssessmentAI } from "@/lib/geminiAnalysis"
 import { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "react-router-dom"
-import { Plus, CheckCircle, Clock, Save, Edit3, BookOpen, Printer, Sparkles, RotateCcw, Loader2, AlertCircle, Calendar } from "lucide-react"
+import {
+  Plus,
+  CheckCircle,
+  Clock,
+  Save,
+  Edit3,
+  BookOpen,
+  Printer,
+  Sparkles,
+  RotateCcw,
+  Loader2,
+  AlertCircle,
+  Calendar,
+  School,
+  User,
+  Check,
+  Download,
+  Share2,
+  CheckSquare,
+} from "lucide-react"
 import { NewAppointmentDialog } from "@/pages/appointments/NewAppointmentDialog"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
@@ -95,6 +114,75 @@ export const DEFAULT_ASSESSMENT_QUESTIONS = [
     num: 13,
     title: "GOSTARIAM DE ACRESCENTAR ALGO?",
     placeholder: "Outras informações relevantes trazidas na entrevista inicial...",
+  },
+]
+
+export const DEFAULT_SCHOOL_QUESTIONS = [
+  {
+    id: "sq1",
+    num: 1,
+    title: "COMO É O DESENVOLVIMENTO DO ALUNO NA SALA DE AULA?",
+    placeholder: "Descreva o ritmo de aprendizagem, participação e realização das propostas...",
+  },
+  {
+    id: "sq2",
+    num: 2,
+    title: "COMO É O COMPORTAMENTO DO ALUNO NA SALA DE AULA?",
+    placeholder: "Relacionamento com a professora e colegas, respeito às regras da sala...",
+  },
+  {
+    id: "sq3",
+    num: 3,
+    title: "QUAIS AS PRINCIPAIS DIFICULDADES APRESENTADAS PELO ALUNO?",
+    placeholder: "Leitura, escrita, matemática, raciocínio lógico, foco ou atenção...",
+  },
+  {
+    id: "sq4",
+    num: 4,
+    title: "QUAIS AS SUAS CARACTERÍSTICAS QUANTO À APRENDIZAGEM E ASSIMILAÇÃO DE CONTEÚDOS?",
+    placeholder: "Dificuldade na memorização, fixação de sílabas, compreensão de instruções...",
+  },
+  {
+    id: "sq5",
+    num: 5,
+    title: "FAZ AS ATIVIDADES ESCOLARES EM SALA?",
+    placeholder: "Conclui no tempo esperado, necessita de cobrança constante, desiste fácil...",
+  },
+  {
+    id: "sq6",
+    num: 6,
+    title: "FAZ AS ATIVIDADES PARA CASA?",
+    placeholder: "Traz os deveres feitos com regularidade, esquece os cadernos...",
+  },
+  {
+    id: "sq7",
+    num: 7,
+    title: "COMO REAGE QUANDO É CONTRARIADO?",
+    placeholder: "Aceita correções, chora, fecha a cara, reage com agressividade ou passividade...",
+  },
+  {
+    id: "sq8",
+    num: 8,
+    title: "TEM DIFICULDADE DE TRABALHAR EM GRUPO? COMO SE MANIFESTA ESTA DIFICULDADE?",
+    placeholder: "Isola-se, quer impor suas ideias, colabora bem com os colegas...",
+  },
+  {
+    id: "sq9",
+    num: 9,
+    title: "TEM DIFICULDADE EM ORGANIZAR SUAS TAREFAS E ATIVIDADES PESSOAIS?",
+    placeholder: "Organização da mochila, estojo, caderno de recados, cuidar dos seus pertences...",
+  },
+  {
+    id: "sq10",
+    num: 10,
+    title: "OS COLEGAS DA TURMA O EVITAM?",
+    placeholder: "É aceito no recreio e nos jogos, sofre rejeição ou prefere ficar sozinho...",
+  },
+  {
+    id: "sq11",
+    num: 11,
+    title: "RELATE QUALQUER INFORMAÇÃO QUE NÃO TENHA SIDO ABORDADA OU QUE JULGUE IMPORTANTE:",
+    placeholder: "Outras observações pedagógicas ou comportamentais relevantes...",
   },
 ]
 
@@ -195,6 +283,9 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
   const [searchParams] = useSearchParams()
   const appointmentId = searchParams.get("appointmentId")
 
+  // Sub-aba: "familiar" vs "escolar"
+  const [activeSubTab, setActiveSubTab] = useState<"familiar" | "escolar">("familiar")
+
   const [assessment, setAssessment] = useState<InitialAssessment | null>(null)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
@@ -202,12 +293,35 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
   const [isEditing, setIsEditing] = useState(true)
   const [showAppointmentModal, setShowAppointmentModal] = useState(false)
 
+  // School Interview State (Modelo Priscila Carbone)
+  const [schoolAnswers, setSchoolAnswers] = useState<Record<string, string>>({})
+  const [schoolObserver, setSchoolObserver] = useState({
+    name: "",
+    role: "Professora Regente",
+    date: new Date().toISOString().split("T")[0],
+  })
+  const [schoolTraits, setSchoolTraits] = useState<Record<string, boolean>>({
+    agressivo: false,
+    passivo: false,
+    dependente: false,
+    medroso: false,
+    retraido: false,
+    melancolico: false,
+    calmo: false,
+    desligado: false,
+    sem_limites: false,
+    agitado: false,
+    depressivo: false,
+    ressentido: false,
+  })
+  const [savingSchool, setSavingSchool] = useState(false)
+  const [isEditingSchool, setIsEditingSchool] = useState(true)
+
   // AI analysis state
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null)
   const [aiAnalyzedAt, setAiAnalyzedAt] = useState<string | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
   const aiSectionRef = useRef<HTMLDivElement>(null)
-
 
   // Base info
   const [baseForm, setBaseForm] = useState({
@@ -234,7 +348,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
         .eq("child_id", childId)
         .order("created_at", { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (assessmentData) {
         setAssessment(assessmentData)
@@ -252,7 +366,6 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
             const parsed = JSON.parse(assessmentData.reason)
             setAnswers(parsed)
           } else {
-            // Check assessment_answers table
             const { data: answersData } = await supabase
               .from("assessment_answers")
               .select("*")
@@ -270,6 +383,20 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
           console.error(e)
         }
 
+        // Parse School Interview if saved in notes
+        try {
+          if (assessmentData.notes && assessmentData.notes.includes("__SCHOOL_INTERVIEW__:")) {
+            const raw = assessmentData.notes.split("__SCHOOL_INTERVIEW__:")[1]
+            const parsedSchool = JSON.parse(raw)
+            if (parsedSchool.answers) setSchoolAnswers(parsedSchool.answers)
+            if (parsedSchool.observer) setSchoolObserver(parsedSchool.observer)
+            if (parsedSchool.traits) setSchoolTraits(parsedSchool.traits)
+            setIsEditingSchool(false)
+          }
+        } catch (e) {
+          console.error("Error parsing school interview:", e)
+        }
+
         setIsEditing(false)
 
         // Load existing AI analysis if available
@@ -279,6 +406,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
         }
       } else {
         setIsEditing(true)
+        setIsEditingSchool(true)
       }
     } finally {
       setLoading(false)
@@ -289,7 +417,6 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
     if (!assessment?.id) return
     setAiLoading(true)
 
-    // Rola a tela imediatamente e suavemente para o bloco da IA lá embaixo
     setTimeout(() => {
       aiSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
     }, 50)
@@ -302,15 +429,12 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
         .maybeSingle()
 
       const childFullName = childName || childData?.full_name || "paciente"
-
-      // Chama diretamente o serviço Gemini com rotação de chaves e o novo prompt oficial
       const result = await generateInitialAssessmentAI(assessment.id, childFullName, answers)
 
       setAiAnalysis(result.analysis)
       setAiAnalyzedAt(new Date().toISOString())
       toast.success("Análise gerada com sucesso com as novas diretrizes clínicas! ✨")
 
-      // Mantém o foco no resultado gerado
       setTimeout(() => {
         aiSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
       }, 100)
@@ -342,373 +466,429 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
             school_name: baseForm.school_name || null,
             teacher_name: baseForm.teacher_name || null,
             reason: answersJsonString,
-            notes: baseForm.notes || null,
             status: "completed",
           })
           .eq("id", aId)
 
         if (error) throw error
       } else {
-        const { data: newAssessment, error } = await supabase
+        const { data: newAss, error } = await supabase
           .from("initial_assessments")
           .insert({
-            professional_id: profId,
             child_id: childId,
+            professional_id: profId,
             date: baseForm.date,
             referral_source: baseForm.referral_source || null,
             school_name: baseForm.school_name || null,
             teacher_name: baseForm.teacher_name || null,
             reason: answersJsonString,
-            notes: baseForm.notes || null,
             status: "completed",
           })
           .select()
           .single()
 
         if (error) throw error
-        setAssessment(newAssessment)
+        setAssessment(newAss)
+        aId = newAss.id
       }
 
-      toast.success("Entrevista Inicial salva com sucesso! ✅")
+      // Sync with assessment_answers table
+      if (aId) {
+        const answerEntries = Object.entries(answers)
+          .filter(([_, text]) => text && text.trim() !== "")
+          .map(([qId, text]) => ({
+            assessment_id: aId,
+            question_id: qId,
+            answer_text: text.trim(),
+          }))
+
+        if (answerEntries.length > 0) {
+          await supabase.from("assessment_answers").delete().eq("assessment_id", aId)
+          await supabase.from("assessment_answers").insert(answerEntries)
+        }
+      }
+
       setIsEditing(false)
-
-      // If came from agenda (has appointmentId in URL), mark appointment as realizado
-      if (appointmentId) {
-        await supabase
-          .from("appointments")
-          .update({ status: "done" })
-          .eq("id", appointmentId)
-      }
-
-      loadAssessmentData()
+      toast.success("Anamnese Familiar salva com sucesso!", { icon: "✅" })
     } catch (err: any) {
       console.error(err)
-      toast.error(err.message || "Erro ao salvar avaliação inicial")
+      toast.error("Erro ao salvar avaliação.")
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-20 bg-muted animate-pulse rounded-xl" />
-        <div className="h-64 bg-muted animate-pulse rounded-xl" />
-      </div>
-    )
+  async function handleSaveSchoolInterview() {
+    if (!profId) return
+    setSavingSchool(true)
+    try {
+      const schoolPayload = {
+        answers: schoolAnswers,
+        observer: schoolObserver,
+        traits: schoolTraits,
+        savedAt: new Date().toISOString(),
+      }
+
+      const schoolString = `__SCHOOL_INTERVIEW__:${JSON.stringify(schoolPayload)}`
+
+      let aId = assessment?.id
+      if (aId) {
+        await supabase
+          .from("initial_assessments")
+          .update({
+            notes: schoolString,
+            teacher_name: schoolObserver.name || baseForm.teacher_name || null,
+          })
+          .eq("id", aId)
+      } else {
+        const { data: newAss } = await supabase
+          .from("initial_assessments")
+          .insert({
+            child_id: childId,
+            professional_id: profId,
+            date: new Date().toISOString().split("T")[0],
+            notes: schoolString,
+            status: "completed",
+          })
+          .select()
+          .single()
+
+        if (newAss) setAssessment(newAss)
+      }
+
+      setIsEditingSchool(false)
+      toast.success("Questionário de Visita Escolar salvo com sucesso!", { icon: "🏫" })
+    } catch (err) {
+      toast.error("Erro ao salvar questionário escolar.")
+    } finally {
+      setSavingSchool(false)
+    }
+  }
+
+  function handlePrintSchoolForm() {
+    window.print()
   }
 
   return (
-    <div className="printable-report space-y-6 w-full max-w-full print:max-w-none print:w-full print:p-0">
-      {/* Print-only Formal Header */}
-      <div className="hidden print:block text-center border-b-2 border-[#19323A] pb-6 mb-6 space-y-1.5">
-        <h1 className="text-2xl font-black uppercase tracking-wide text-[#19323A]">
-          Entrevista Inicial
-        </h1>
-        <p className="text-xs font-bold text-[#245C6B]">
-          Clínica: {professional?.clinic_name || "EvoluIA — Gestão Psicopedagógica"}
-        </p>
-        <p className="text-xs font-semibold text-[#6B7C83]">
-          Profissional: <strong>{professional?.full_name}</strong> {professional?.crp ? `· CBO: ${professional.crp}` : ""}
-        </p>
-        <p className="text-xs font-semibold text-[#6B7C83]">
-          Paciente: <strong>{childName || "Paciente"}</strong> · Data da Entrevista: <strong>{baseForm.date ? formatDate(baseForm.date) : formatDate(new Date().toISOString())}</strong>
-        </p>
-        {(baseForm.school_name || baseForm.referral_source) && (
-          <p className="text-xs font-medium text-[#6B7C83]">
-            {baseForm.school_name ? `Escola: ${baseForm.school_name}` : ""} {baseForm.referral_source ? `· Indicação: ${baseForm.referral_source}` : ""}
-          </p>
+    <div className="space-y-6">
+      {/* Alternador de Abas: Familiar vs Escolar */}
+      <div className="flex items-center justify-between gap-3 p-1.5 bg-[#F8FAFB] rounded-2xl border-2 border-[#D8E5E7] flex-wrap">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveSubTab("familiar")}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+              activeSubTab === "familiar"
+                ? "bg-[#7C3AED] text-white shadow-xs"
+                : "bg-white text-[#6B7C83] hover:text-[#0D2329] border border-[#D8E5E7]"
+            }`}
+          >
+            <User className="w-4 h-4" />
+            <span>👨‍👩‍👧 Anamnese Familiar (13 Perguntas)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab("escolar")}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+              activeSubTab === "escolar"
+                ? "bg-[#0284C7] text-white shadow-xs"
+                : "bg-white text-[#6B7C83] hover:text-[#0D2329] border border-[#D8E5E7]"
+            }`}
+          >
+            <School className="w-4 h-4" />
+            <span>🏫 Entrevista / Visita Escolar (Modelo Priscila Carbone)</span>
+          </button>
+        </div>
+
+        {activeSubTab === "escolar" && (
+          <button
+            type="button"
+            onClick={handlePrintSchoolForm}
+            className="px-4 py-2 rounded-xl bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] text-xs font-black flex items-center gap-1.5 shadow-2xs transition-all"
+          >
+            <Printer className="w-3.5 h-3.5 text-[#0284C7]" />
+            <span>Imprimir Folha para a Escola</span>
+          </button>
         )}
       </div>
 
-      {/* Top action bar (hidden on print) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 pb-4 border-b-2 border-[#EEF5F6] print:hidden w-full max-w-full">
-        <div className="space-y-0.5 min-w-0">
-          <h2 className="text-base sm:text-xl font-black text-[#0D2329] flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-[#7C3AED] shrink-0" />
-            <span>Entrevista Inicial</span>
-          </h2>
-          <p className="text-xs font-semibold text-[#6B7C83]">
-            13 perguntas estruturadas para a primeira entrevista com os pais e responsáveis.
-          </p>
-        </div>
+      {/* =========================================================================
+          ABA 1: ANAMNESE FAMILIAR (13 PERGUNTAS)
+          ========================================================================= */}
+      {activeSubTab === "familiar" && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Header Card */}
+          <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] border border-[#DDD6FE] flex items-center justify-center font-black shrink-0 shadow-2xs">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-[#0D2329]">
+                  Anamnese Inicial com a Família
+                </h3>
+                <p className="text-xs font-semibold text-[#6B7C83]">
+                  As 13 perguntas essenciais para investigação do histórico de desenvolvimento.
+                </p>
+              </div>
+            </div>
 
-        {/* Action Buttons Toolbar (Modern Scrollable Horizontal Bar) */}
-        <div className="overflow-x-auto -mx-1 px-1 scrollbar-none shrink-0 w-full sm:w-auto">
-          <div className="flex items-center gap-2 w-max sm:w-auto">
-            {assessment && !isEditing ? (
-              <>
-                {/* 1. Imprimir */}
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="px-3.5 py-2 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#7C3AED] hover:bg-[#F8FAFB] text-xs font-black text-[#0D2329] transition-all shadow-2xs active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
-                  title="Imprimir entrevista"
-                >
-                  <Printer className="w-3.5 h-3.5 text-[#6B7C83]" />
-                  <span>Imprimir</span>
-                </button>
-
-                {/* 2. Editar Respostas */}
+            <div className="flex items-center gap-2">
+              {!isEditing ? (
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="px-3.5 py-2 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] border-2 border-[#DDD6FE] font-black text-xs transition-all shadow-2xs active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
-                  title="Editar perguntas e respostas"
+                  className="px-4 py-2 rounded-xl bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE] text-xs font-black flex items-center gap-1.5 transition-all"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
                   <span>Editar Respostas</span>
                 </button>
-
-                {/* 3. Reanalisar com IA */}
-                <button
-                  type="button"
-                  onClick={handleAnalyzeWithAI}
-                  disabled={aiLoading}
-                  className="px-4 py-2 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 disabled:opacity-50 whitespace-nowrap"
-                >
-                  {aiLoading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-3.5 h-3.5" />
-                  )}
-                  <span>{aiLoading ? "Analisando..." : aiAnalysis ? "Reanalisar com IA" : "✨ Analisar com IA"}</span>
-                </button>
-
-                {/* 4. Agendar Sessões */}
-                <button
-                  type="button"
-                  onClick={() => setShowAppointmentModal(true)}
-                  className="px-4 py-2 rounded-2xl bg-gradient-to-r from-[#0284C7] to-[#0369A1] hover:from-[#0369A1] hover:to-[#075985] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 whitespace-nowrap"
-                  title="Agendar sessões para esta criança"
-                >
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>+ Agendar Sessões</span>
-                </button>
-              </>
-            ) : (
-              <div className="flex items-center gap-2">
-                {assessment && (
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="px-4 py-2.5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:bg-[#F8FAFB] text-xs font-black text-[#6B7C83] transition-all active:scale-95"
-                  >
-                    Cancelar
-                  </button>
-                )}
+              ) : (
                 <button
                   type="button"
                   disabled={saving}
                   onClick={handleSaveAssessment}
-                  className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 whitespace-nowrap"
+                  className="px-5 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-xs transition-all active:scale-95"
                 >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Save className="w-4 h-4 stroke-[2.5]" />}
-                  <span>{saving ? "Salvando..." : "Salvar Entrevista"}</span>
+                  <Save className="w-4 h-4" />
+                  <span>{saving ? "Salvando..." : "Salvar Anamnese"}</span>
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* General info card */}
-      <div className="p-5 sm:p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4 w-full max-w-full">
-        <div className="border-b border-[#EEF5F6] pb-3 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#7C3AED]" />
-          <h3 className="text-xs font-black uppercase tracking-wider text-[#0D2329]">
-            Dados Gerais da Entrevista Inicial
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Input
-            label="Data da Entrevista"
-            type="date"
-            disabled={!isEditing}
-            value={baseForm.date}
-            onChange={(e) => setBaseForm({ ...baseForm, date: e.target.value })}
-          />
-          <Input
-            label="Origem da Indicação"
-            placeholder="Ex: Escola, Professora, Neuropediatra..."
-            disabled={!isEditing}
-            value={baseForm.referral_source}
-            onChange={(e) => setBaseForm({ ...baseForm, referral_source: e.target.value })}
-          />
-          <Input
-            label="Escola / Contato"
-            placeholder="Nome da escola ou professora..."
-            disabled={!isEditing}
-            value={baseForm.school_name}
-            onChange={(e) => setBaseForm({ ...baseForm, school_name: e.target.value })}
-          />
-        </div>
-      </div>
-
-      {/* 13 Structured Questions */}
-      <div className="space-y-4">
-        {DEFAULT_ASSESSMENT_QUESTIONS.map((q) => {
-          const value = answers[q.id] || ""
-          return (
-            <div
-              key={q.id}
-              className={`p-5 sm:p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm transition-all print:break-inside-avoid print:border print:border-[#D8E5E7] print:shadow-none print:bg-white w-full max-w-full space-y-3 ${
-                isEditing ? "hover:border-[#7C3AED]/40" : ""
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <span className="shrink-0 w-7 h-7 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] font-black text-xs flex items-center justify-center shadow-2xs mt-0.5 print:bg-[#19323A] print:text-white">
-                  {q.num}
-                </span>
-                <label className="text-xs sm:text-sm font-black text-[#0D2329] leading-snug">
-                  {q.title}
+          {/* As 13 Perguntas */}
+          <div className="space-y-4">
+            {DEFAULT_ASSESSMENT_QUESTIONS.map((q) => (
+              <div key={q.id} className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] space-y-2 shadow-xs">
+                <label className="text-xs font-black text-[#0D2329] flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-lg bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 text-[11px] font-black">
+                    {q.num}
+                  </span>
+                  <span>{q.title}</span>
                 </label>
-              </div>
 
                 {isEditing ? (
-                  <Textarea
-                    placeholder={q.placeholder}
-                    value={value}
+                  <textarea
+                    rows={3}
+                    value={answers[q.id] || ""}
                     onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
-                    rows={2}
-                    className="mt-1"
+                    placeholder={q.placeholder}
+                    className="w-full p-3 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white focus:outline-none focus:border-[#7C3AED] leading-relaxed resize-none"
                   />
                 ) : (
-                  <div className="pl-8 pt-1 print:pl-7 print:pt-0">
-                    {value ? (
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed bg-muted/30 p-3 rounded-lg border border-border/50 print:bg-[#F7FAFA] print:text-[#19323A] print:border-[#D8E5E7] print:p-2.5">
-                        {value}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground/60 italic print:text-[#8DA3A8]">
-                        Não respondido.
-                      </p>
-                    )}
-                  </div>
+                  <p className="text-xs font-semibold text-[#2E4A52] bg-[#F8FAFB] p-3 rounded-xl border border-[#EEF5F6] leading-relaxed italic">
+                    "{answers[q.id] || "Não informado."}"
+                  </p>
                 )}
-            </div>
-          )
-        })}
-      </div>
-
-      {/* ✨ ÁREA DA IA (COM AUTO-SCROLL AUTOMÁTICO E FEEDBACK VISUAL) */}
-      <div ref={aiSectionRef} className="scroll-mt-8 space-y-6">
-        {/* AI Loading Card (Exibido com destaque imediato ao clicar) */}
-        {aiLoading && (
-          <div className="rounded-3xl border-2 border-[#DDD6FE] bg-gradient-to-br from-[#F5F3FF] to-[#EDE9FE]/70 p-6 sm:p-8 space-y-5 shadow-lg animate-in fade-in zoom-in-95 print:hidden">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-white border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center animate-pulse shadow-xs">
-                <Sparkles className="w-6 h-6" />
               </div>
-              <div className="space-y-1.5 flex-1">
-                <div className="h-5 w-64 bg-[#DDD6FE] rounded-lg animate-pulse" />
-                <div className="h-3.5 w-40 bg-[#DDD6FE]/60 rounded-lg animate-pulse" />
-              </div>
-            </div>
-
-            <div className="space-y-2.5 pt-1">
-              <div className="h-3 w-full bg-[#DDD6FE]/50 rounded-lg animate-pulse" />
-              <div className="h-3 w-5/6 bg-[#DDD6FE]/50 rounded-lg animate-pulse" />
-              <div className="h-3 w-4/6 bg-[#DDD6FE]/50 rounded-lg animate-pulse" />
-            </div>
-
-            <div className="p-4 rounded-2xl bg-white/90 border-2 border-[#DDD6FE] flex items-center justify-center gap-2.5 shadow-2xs">
-              <Loader2 className="w-4 h-4 text-[#7C3AED] animate-spin" />
-              <p className="text-xs sm:text-sm text-[#7C3AED] font-black tracking-wide animate-pulse text-center">
-                ✨ A IA está gerando a análise psicopedagógica da entrevista...
-              </p>
-            </div>
+            ))}
           </div>
-        )}
 
-        {/* ✨ AI ANALYSIS RESULT CARD (Design Moderno & Hierárquico) */}
-        {!aiLoading && aiAnalysis && (
-          <div className="rounded-3xl border-2 border-[#D8E5E7] bg-white p-6 sm:p-8 space-y-6 shadow-sm print:hidden animate-in fade-in">
-            {/* Card Header */}
-            <div className="flex items-start justify-between gap-4 pb-4 border-b-2 border-[#EEF5F6]">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 shadow-2xs">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-black text-[#0D2329] text-base sm:text-lg tracking-tight">
-                      Análise Clínica Preliminar — Apoio Psicopedagógico
-                    </h3>
-                    <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0]">
-                      Gemini 3.6 Flash
-                    </span>
-                  </div>
-                  {aiAnalyzedAt && (
-                    <p className="text-[11px] text-[#6B7C83] font-semibold mt-0.5">
-                      Gerada em {new Date(aiAnalyzedAt).toLocaleDateString("pt-BR")} às{" "}
-                      {new Date(aiAnalyzedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                    </p>
-                  )}
-                </div>
+          {/* Bloco de Análise IA */}
+          <div ref={aiSectionRef} className="p-6 rounded-3xl bg-gradient-to-br from-[#EDE9FE] to-[#F0FDF4] border-2 border-[#DDD6FE] space-y-4 shadow-sm">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#7C3AED]" />
+                <h3 className="text-sm font-black text-[#0D2329]">
+                  Supervisão Clínica com IA Gemini
+                </h3>
               </div>
-
               <button
                 type="button"
+                disabled={aiLoading || isEditing}
                 onClick={handleAnalyzeWithAI}
-                disabled={aiLoading}
-                className="flex items-center gap-1.5 text-xs font-black text-[#7C3AED] bg-[#F7FAFA] hover:bg-[#EDE9FE] border-2 border-[#D8E5E7] hover:border-[#7C3AED] px-3.5 py-2 rounded-2xl transition-all shadow-2xs shrink-0 active:scale-95 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-xs transition-all active:scale-95 disabled:opacity-50"
               >
-                {aiLoading ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <RotateCcw className="w-3.5 h-3.5" />
-                )}
-                <span>Reanalisar</span>
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{aiLoading ? "Gerando Análise..." : "Analisar Anamnese com IA"}</span>
               </button>
             </div>
 
-            {/* AI Content — Hierarchical Clean Container */}
-            <div className="bg-[#F8FAFB] rounded-3xl p-5 sm:p-7 border-2 border-[#D8E5E7] shadow-inner space-y-1">
-              {renderFormattedMarkdown(aiAnalysis)}
-            </div>
-
-            <p className="text-[11px] text-[#8CAAB1] font-bold border-t border-[#EEF5F6] pt-3 flex items-center gap-1.5">
-              <span>🔒</span>
-              <span>Documento preliminar gerado por IA para apoio ao planejamento da psicopedagoga. Não substitui a avaliação clínica presencial.</span>
-            </p>
+            {aiAnalysis ? (
+              <div className="p-5 rounded-2xl bg-white border border-[#D8E5E7] space-y-3 leading-relaxed">
+                {renderFormattedMarkdown(aiAnalysis)}
+              </div>
+            ) : (
+              <p className="text-xs font-semibold text-[#6B7C83] italic">
+                Salve as respostas da anamnese e clique no botão acima para gerar uma síntese clínica completa com hipóteses de desenvolvimento.
+              </p>
+            )}
           </div>
-        )}
-      </div>
-
-      {/* Bottom save bar */}
-      {isEditing && (
-        <div className="flex items-center justify-end gap-3 pt-4 sticky bottom-4 bg-white/95 backdrop-blur-md p-4 rounded-3xl border-2 border-[#D8E5E7] shadow-xl print:hidden">
-          {assessment && (
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="px-5 py-2.5 rounded-2xl bg-[#F7FAFA] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] border-2 border-[#D8E5E7] text-xs font-black transition-all active:scale-95"
-            >
-              Cancelar
-            </button>
-          )}
-          <button
-            type="button"
-            disabled={saving}
-            onClick={handleSaveAssessment}
-            className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Save className="w-4 h-4 stroke-[2.5]" />}
-            <span>{saving ? "Salvando..." : "Salvar Entrevista Inicial"}</span>
-          </button>
         </div>
       )}
-      {/* Dialog de Novo Agendamento Direto da Entrevista Inicial */}
-      <NewAppointmentDialog
-        open={showAppointmentModal}
-        onClose={() => setShowAppointmentModal(false)}
-        onSuccess={() => {
-          setShowAppointmentModal(false)
-          toast.success("Sessão agendada com sucesso! 📅", { icon: "🎉" })
-        }}
-        defaultChildId={childId}
-      />
+
+      {/* =========================================================================
+          ABA 2: ENTREVISTA / VISITA ESCOLAR (MODELO OFICIAL PRISCILA CARBONE)
+          ========================================================================= */}
+      {activeSubTab === "escolar" && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Header do Questionário Escolar */}
+          <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-[#E0F2FE] text-[#0284C7] border border-[#BAE6FD] flex items-center justify-center font-black shrink-0 shadow-2xs">
+                <School className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-[#0D2329]">
+                  Questionário de Visita Psicopedagógica no Âmbito Escolar
+                </h3>
+                <p className="text-xs font-semibold text-[#6B7C83]">
+                  Modelo Oficial do Espaço Multidisciplinar Aprender Ensinando (Priscila Carbone CBO 2394-25).
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {!isEditingSchool ? (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingSchool(true)}
+                  className="px-4 py-2 rounded-xl bg-[#E0F2FE] text-[#0284C7] hover:bg-[#BAE6FD] text-xs font-black flex items-center gap-1.5 transition-all"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Editar Respostas</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={savingSchool}
+                  onClick={handleSaveSchoolInterview}
+                  className="px-5 py-2.5 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-black flex items-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{savingSchool ? "Salvando..." : "Salvar Questionário Escolar"}</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Dados do Observador / Professora */}
+          <div className="p-5 rounded-2xl bg-[#F8FAFB] border-2 border-[#D8E5E7] grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-[11px] font-black text-[#0D2329]">Nome do Observador / Professora</label>
+              <input
+                type="text"
+                disabled={!isEditingSchool}
+                value={schoolObserver.name}
+                onChange={(e) => setSchoolObserver({ ...schoolObserver, name: e.target.value })}
+                placeholder="Ex: Profª Ana Maria"
+                className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white disabled:bg-[#EEF5F6]"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-black text-[#0D2329]">Disciplina / Cargo</label>
+              <input
+                type="text"
+                disabled={!isEditingSchool}
+                value={schoolObserver.role}
+                onChange={(e) => setSchoolObserver({ ...schoolObserver, role: e.target.value })}
+                placeholder="Ex: Professora Regente / Coordenação"
+                className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white disabled:bg-[#EEF5F6]"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-black text-[#0D2329]">Data da Entrevista / Visita</label>
+              <input
+                type="date"
+                disabled={!isEditingSchool}
+                value={schoolObserver.date}
+                onChange={(e) => setSchoolObserver({ ...schoolObserver, date: e.target.value })}
+                className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white disabled:bg-[#EEF5F6]"
+              />
+            </div>
+          </div>
+
+          {/* As 11 Perguntas da Priscila */}
+          <div className="space-y-4">
+            {DEFAULT_SCHOOL_QUESTIONS.map((q) => (
+              <div key={q.id} className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] space-y-2 shadow-xs">
+                <label className="text-xs font-black text-[#0D2329] flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-lg bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center shrink-0 text-[11px] font-black">
+                    {q.num}
+                  </span>
+                  <span>{q.title}</span>
+                </label>
+
+                {isEditingSchool ? (
+                  <textarea
+                    rows={2}
+                    value={schoolAnswers[q.id] || ""}
+                    onChange={(e) => setSchoolAnswers({ ...schoolAnswers, [q.id]: e.target.value })}
+                    placeholder={q.placeholder}
+                    className="w-full p-3 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white focus:outline-none focus:border-[#0284C7] leading-relaxed resize-none"
+                  />
+                ) : (
+                  <p className="text-xs font-semibold text-[#2E4A52] bg-[#F8FAFB] p-3 rounded-xl border border-[#EEF5F6] leading-relaxed italic">
+                    "{schoolAnswers[q.id] || "Não informado pela escola."}"
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Checklist dos 12 Traços Comportamentais (Página 3 da Priscila) */}
+          <div className="p-6 rounded-2xl bg-white border-2 border-[#D8E5E7] space-y-4 shadow-xs">
+            <h4 className="text-xs font-black uppercase text-[#0284C7] tracking-wider flex items-center gap-2">
+              <CheckSquare className="w-4 h-4 text-[#0284C7]" />
+              <span>Em qual ou quais dessas características o aluno se encaixa? (Checklist Oficial)</span>
+            </h4>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+              {[
+                { key: "agressivo", label: "Agressivo" },
+                { key: "passivo", label: "Passivo" },
+                { key: "dependente", label: "Dependente" },
+                { key: "medroso", label: "Medroso" },
+                { key: "retraido", label: "Retraído" },
+                { key: "melancolico", label: "Melancólico" },
+                { key: "calmo", label: "Calmo" },
+                { key: "desligado", label: "Desligado" },
+                { key: "sem_limites", label: "Sem limites" },
+                { key: "agitado", label: "Agitado" },
+                { key: "depressivo", label: "Depressivo" },
+                { key: "ressentido", label: "Ressentido" },
+              ].map((item) => (
+                <label
+                  key={item.key}
+                  className={`p-3 rounded-xl border-2 flex items-center gap-2.5 transition-all select-none ${
+                    isEditingSchool ? "cursor-pointer" : "cursor-default"
+                  } ${
+                    schoolTraits[item.key]
+                      ? "bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD] font-black"
+                      : "bg-[#F8FAFB] text-[#6B7C83] border-[#D8E5E7] font-semibold"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    disabled={!isEditingSchool}
+                    checked={Boolean(schoolTraits[item.key])}
+                    onChange={(e) => setSchoolTraits({ ...schoolTraits, [item.key]: e.target.checked })}
+                    className="accent-[#0284C7] w-4 h-4"
+                  />
+                  <span className="text-xs">{item.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Botão de Salvar no Rodapé */}
+          {isEditingSchool && (
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                disabled={savingSchool}
+                onClick={handleSaveSchoolInterview}
+                className="px-6 py-3 rounded-2xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-black flex items-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                <span>{savingSchool ? "Salvando..." : "Salvar Questionário Escolar"}</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

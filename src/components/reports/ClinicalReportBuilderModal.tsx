@@ -291,6 +291,30 @@ export function ClinicalReportBuilderModal({
             relationshipsAndSociability: ansMap["sociabilidade"] || ansMap["amigos"] || prev.relationshipsAndSociability,
           }))
         }
+
+        // Parse School Interview if saved in notes
+        if (latest.notes && latest.notes.includes("__SCHOOL_INTERVIEW__:")) {
+          try {
+            const raw = latest.notes.split("__SCHOOL_INTERVIEW__:")[1]
+            const parsedSchool = JSON.parse(raw)
+            if (parsedSchool.answers) {
+              setSchoolInterview((prev) => ({
+                ...prev,
+                development: parsedSchool.answers.sq1 || prev.development,
+                behavior: parsedSchool.answers.sq2 || prev.behavior,
+                mainDifficulties: parsedSchool.answers.sq3 || prev.mainDifficulties,
+                learningAndAssimilation: parsedSchool.answers.sq4 || prev.learningAndAssimilation,
+                homework: parsedSchool.answers.sq6 || prev.homework,
+                organization: parsedSchool.answers.sq9 || prev.organization,
+                limitsAndFrustration: parsedSchool.answers.sq7 || prev.limitsAndFrustration,
+                additionalNotes: parsedSchool.answers.sq11 || prev.additionalNotes,
+                traits: parsedSchool.traits || prev.traits,
+              }))
+            }
+          } catch (e) {
+            console.error("Error parsing school interview in modal:", e)
+          }
+        }
       }
     } catch (err) {
       console.error("Erro ao carregar contexto da criança:", err)
