@@ -1085,7 +1085,7 @@ export function AppointmentsPage() {
 
                       <div className="flex-1 min-h-[48px] rounded-2xl p-1.5 group-hover:bg-[#F8FAFB] transition-colors">
                         {slotAppts.length > 0 ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-2.5 w-full">
                             {slotAppts.map((appt) => {
                               const style = getAppointmentStyle(appt)
                               const startTime = new Date(appt.start_time)
@@ -1097,21 +1097,28 @@ export function AppointmentsPage() {
                                 <div
                                   key={appt.id}
                                   onClick={() => handleStartAppointment(appt)}
-                                  className={`p-3.5 rounded-2xl border-2 ${style.border} ${style.bg} flex items-center justify-between gap-3 shadow-2xs hover:shadow-xs cursor-pointer transition-all`}
+                                  className={`p-3.5 sm:p-4 rounded-2xl border-2 ${style.border} ${style.bg} flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs hover:shadow-xs cursor-pointer transition-all w-full`}
                                 >
-                                  <div className="flex items-center gap-3 min-w-0">
+                                  {/* Lado Esquerdo: Avatar + Nome + Horário + Tipo */}
+                                  <div className="flex items-center gap-3 min-w-0 flex-1">
                                     <ChildAvatar photoUrl={appt.child?.photo_url} name={displayName} size="md" />
-                                    <div className="min-w-0">
-                                      <h4 className={`font-black text-sm truncate ${style.text}`}>{displayName}</h4>
-                                      <p className={`text-xs font-semibold ${style.subtext}`}>{appt.type}</p>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <h4 className="font-black text-sm text-[#0D2329] truncate">
+                                          {displayName}
+                                        </h4>
+                                        <span className="text-[11px] font-black text-[#6B7C83] px-2 py-0.5 rounded-lg bg-black/5 shrink-0">
+                                          {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
+                                        </span>
+                                      </div>
+                                      <p className={`text-xs font-semibold ${style.subtext} truncate mt-0.5`}>
+                                        {appt.type}
+                                      </p>
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                                    <span className="text-xs font-black text-[#0D2329]">
-                                      {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
-                                    </span>
-
+                                  {/* Lado Direito: Badges de Status + Ações + Excluir */}
+                                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center" onClick={(e) => e.stopPropagation()}>
                                     {appt.status === "done" ? (
                                       <div className="flex items-center gap-2">
                                         <span className="text-xs font-black text-[#065F46] px-3 py-1.5 rounded-xl bg-[#D1FAE5] border border-[#A7F3D0] flex items-center gap-1.5 shadow-2xs">
@@ -1127,7 +1134,7 @@ export function AppointmentsPage() {
                                               navigate(`/atendimento/${appt.id}`)
                                             }
                                           }}
-                                          className="text-xs font-bold text-[#7C3AED] hover:underline cursor-pointer"
+                                          className="text-xs font-bold text-[#7C3AED] hover:underline cursor-pointer px-1 py-1"
                                         >
                                           Ver Prontuário →
                                         </button>
@@ -1145,7 +1152,7 @@ export function AppointmentsPage() {
                                               navigate(`/criancas/${appt.child_id}`)
                                             }
                                           }}
-                                          className="text-xs font-bold text-[#7C3AED] hover:underline cursor-pointer"
+                                          className="text-xs font-bold text-[#7C3AED] hover:underline cursor-pointer px-1 py-1"
                                         >
                                           Ver Detalhes →
                                         </button>
@@ -1176,7 +1183,7 @@ export function AppointmentsPage() {
                                     <button
                                       type="button"
                                       onClick={(e) => handleDeleteAppointment(e, appt.id)}
-                                      className="p-1.5 rounded-xl hover:bg-red-50 text-[#8CAAB1] hover:text-[#EF4444] transition-all cursor-pointer"
+                                      className="p-1.5 rounded-xl hover:bg-red-50 text-[#8CAAB1] hover:text-[#EF4444] transition-all cursor-pointer ml-1"
                                       title="Excluir Agendamento"
                                     >
                                       <Trash2 className="w-4 h-4" />
