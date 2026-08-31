@@ -110,7 +110,7 @@ export function Sidebar() {
 
             <div className="flex-1 min-w-0">
               <p className="text-xs font-black text-white group-hover:text-[#A855F7] transition-colors truncate leading-tight">
-                {professional?.full_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Minha Conta"}
+                {professional?.full_name || user?.email?.split("@")[0] || "Minha Conta"}
               </p>
               <p className="text-[10px] font-bold text-[#A855F7] truncate leading-tight mt-0.5">
                 {professional?.crp ? `CBO ${professional.crp}` : "Psicopedagoga Clínica"}
