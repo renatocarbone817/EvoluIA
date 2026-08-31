@@ -55,11 +55,30 @@ export default async function handler(req, res) {
     }
 
     // 2. Fetch appointments for this professional
-    const apptsUrl = `${SUPABASE_URL}/rest/v1/appointments?professional_id=eq.${cleanId}&select=*,child:children(id,full_name)&order=start_time.asc`;
+    const apptsUrl = `${SUPABASE_URL}/rest/v1/appointments?professional_id=eq.${cleanId}&select=*&order=start_time.asc`;
     const apptsRes = await fetch(apptsUrl, { headers });
     const appointments = (await apptsRes.json()) || [];
 
-    // 3. Generate iCalendar RFC 5545 String
+    // 3. Fetch children names for these appointments
+    const childMap = {};
+    if (Array.isArray(appointments) && appointments.length > 0) {
+      const childIds = [...new Set(appointments.map((a) => a.child_id).filter(Boolean))];
+      if (childIds.length > 0) {
+        try {
+          const childrenRes = await fetch(`${SUPABASE_URL}/rest/v1/children?id=in.(${childIds.join(",")})&select=id,full_name`, { headers });
+          const childrenData = await childrenRes.json();
+          if (Array.isArray(childrenData)) {
+            childrenData.forEach((c) => {
+              childMap[c.id] = c.full_name;
+            });
+          }
+        } catch (e) {
+          console.warn("Could not fetch children names:", e);
+        }
+      }
+    }
+
+    // 4. Generate iCalendar RFC 5545 String
     const lines = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
@@ -80,7 +99,7 @@ export default async function handler(req, res) {
         const endISO = formatICSDate(
           appt.end_time || new Date(new Date(appt.start_time).getTime() + 50 * 60 * 1000)
         );
-        const childName = appt.child?.full_name || "Paciente";
+        const childName = (appt.child_id && childMap[appt.child_id]) || appt.child?.full_name || "Paciente";
         const title = `${childName} - ${appt.type || "Sessão"}`;
         const desc = `Paciente: ${childName}\\nTipo: ${appt.type || "Atendimento"}\\nStatus: ${appt.status || "Agendado"}${
           appt.notes ? `\\nObservações: ${appt.notes.replace(/\r?\n/g, " ")}` : ""
