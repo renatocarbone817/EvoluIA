@@ -391,7 +391,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
       {/* Print-only Formal Header */}
       <div className="hidden print:block text-center border-b-2 border-[#19323A] pb-6 mb-6 space-y-1.5">
         <h1 className="text-2xl font-black uppercase tracking-wide text-[#19323A]">
-          Entrevista Inicial — Anamnese com os Pais
+          Entrevista Inicial
         </h1>
         <p className="text-xs font-bold text-[#245C6B]">
           Clínica: {professional?.clinic_name || "EvoluIA — Gestão Psicopedagógica"}
@@ -414,7 +414,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
         <div className="space-y-0.5 min-w-0">
           <h2 className="text-base sm:text-xl font-black text-[#0D2329] flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-[#7C3AED] shrink-0" />
-            <span>Entrevista Inicial (Anamnese com os Pais)</span>
+            <span>Entrevista Inicial</span>
           </h2>
           <p className="text-xs font-semibold text-[#6B7C83]">
             13 perguntas estruturadas para a primeira entrevista com os pais e responsáveis.
