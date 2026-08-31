@@ -73,7 +73,7 @@ export function PlanPage() {
     if (!details) return
 
     const userEmail = (professional?.email || user?.email || details?.subscription?.customer_email || "").trim()
-    const userName = (professional?.full_name || user?.user_metadata?.full_name || "").trim()
+    const userName = (professional?.full_name || "").trim()
     const checkoutUrl = buildHotmartCheckoutUrl(targetPlan.hotmartCheckoutUrl, userEmail, userName)
 
     // Se estiver em período de teste (trial), permite assinar qualquer um dos 5 planos diretamente

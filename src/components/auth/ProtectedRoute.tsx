@@ -87,7 +87,7 @@ export function ProtectedRoute() {
   // Se o teste expirou e o usuário não está na página de planos
   if (trialExpired && location.pathname !== "/meu-plano") {
     const userEmail = (professional?.email || user?.email || "").trim()
-    const userName = (professional?.full_name || user?.user_metadata?.full_name || "").trim()
+    const userName = (professional?.full_name || "").trim()
 
     return (
       <div className="min-h-screen bg-slate-900 text-white flex flex-col justify-center items-center p-4 sm:p-6 font-sans">
