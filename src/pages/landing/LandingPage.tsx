@@ -276,27 +276,27 @@ export function LandingPage() {
                   </div>
 
                   {/* Interactive Switcher */}
-                  <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-2xl text-xs font-bold border-2 border-slate-200">
+                  <div className="w-full sm:w-auto grid grid-cols-2 sm:flex sm:items-center gap-1.5 p-1.5 rounded-2xl bg-slate-100 border-2 border-slate-200">
                     {[
-                      { id: "laudo", label: "🤖 1. Laudo com IA", icon: Sparkles },
-                      { id: "whatsapp", label: "📲 2. WhatsApp & PIX", icon: MessageCircle },
-                      { id: "prontuario", label: "📋 3. Prontuário", icon: FileText },
-                      { id: "financeiro", label: "💵 4. Financeiro", icon: DollarSign },
+                      { id: "laudo", label: "Laudos com IA", emoji: "🤖" },
+                      { id: "whatsapp", label: "WhatsApp & PIX", emoji: "💬" },
+                      { id: "prontuario", label: "Prontuário & PEI", emoji: "📋" },
+                      { id: "financeiro", label: "Financeiro", emoji: "💵" },
                     ].map((tab) => {
-                      const Icon = tab.icon
                       const isActive = interactiveTab === tab.id
                       return (
                         <button
                           key={tab.id}
+                          type="button"
                           onClick={() => setInteractiveTab(tab.id as any)}
-                          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all cursor-pointer ${
+                          className={`flex items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 rounded-xl text-xs transition-all cursor-pointer select-none text-center ${
                             isActive
-                              ? "bg-[#7C3AED] text-white shadow-md font-black scale-102"
-                              : "text-[#64748B] hover:text-[#0F172A] hover:bg-slate-200"
+                              ? "bg-[#7C3AED] text-white shadow-md font-black scale-[1.02]"
+                              : "bg-white text-slate-700 hover:text-slate-900 border border-slate-200 hover:bg-slate-50 font-bold"
                           }`}
                         >
-                          <Icon className="w-3.5 h-3.5" />
-                          <span>{tab.label}</span>
+                          <span className="text-sm">{tab.emoji}</span>
+                          <span className="whitespace-nowrap">{tab.label}</span>
                         </button>
                       )
                     })}
