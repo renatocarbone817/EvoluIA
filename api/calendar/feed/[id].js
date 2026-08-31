@@ -1,5 +1,8 @@
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://fporviwejryfxaoapowc.supabase.co";
-const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwb3J2aXdlanJ5Znhhb2Fwb3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2ODY5NzIsImV4cCI6MjEwMzI2Mjk3Mn0.JYfzqyrkaCyXGU8FVbJv3Bu4vmgo5gnhbq0gogmUDoA";
+const SUPABASE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwb3J2aXdlanJ5Znhhb2Fwb3djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2ODY5NzIsImV4cCI6MjEwMzI2Mjk3Mn0.JYfzqyrkaCyXGU8FVbJv3Bu4vmgo5gnhbq0gogmUDoA";
 
 function formatICSDate(d) {
   return new Date(d).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
@@ -34,60 +37,29 @@ export default async function handler(req, res) {
       return res.status(400).send("ID de profissional ou token da agenda não fornecido.");
     }
 
-    // 1. Authenticate with Supabase
-    const authRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-      method: "POST",
-      headers: {
-        apikey: SUPABASE_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: "priscila@evolui.com.br",
-        password: "senha123",
-      }),
-    });
+    const headers = {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+    };
 
-    const authData = await authRes.json();
-    const token = authData.access_token || SUPABASE_KEY;
-
-    // 2. Fetch professional details
-    const profRes = await fetch(`${SUPABASE_URL}/rest/v1/professionals?id=eq.${cleanId}&select=*`, {
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    const profs = await profRes.json();
-    const prof = profs && profs[0] ? profs[0] : null;
-    const profName = prof ? prof.full_name : "Agenda EvoluIA";
-
-    // 3. Find all accessible professional IDs
-    let profIds = [cleanId];
-    if (prof) {
-      if (prof.role === "master" || !prof.master_id) {
-        const subRes = await fetch(`${SUPABASE_URL}/rest/v1/professionals?master_id=eq.${prof.id}&select=id`, {
-          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` },
-        });
-        const subProfs = await subRes.json();
-        if (subProfs && Array.isArray(subProfs)) {
-          profIds = profIds.concat(subProfs.map((p) => p.id));
-        }
-      } else if (prof.master_id && prof.allow_master_data_access) {
-        profIds.push(prof.master_id);
+    // 1. Fetch professional details
+    let profName = "Agenda EvoluIA";
+    try {
+      const profRes = await fetch(`${SUPABASE_URL}/rest/v1/professionals?id=eq.${cleanId}&select=*`, { headers });
+      const profs = await profRes.json();
+      if (profs && profs[0]) {
+        profName = profs[0].clinic_name || profs[0].full_name || "Agenda EvoluIA";
       }
+    } catch (e) {
+      console.warn("Could not fetch professional:", e);
     }
 
-    // 4. Fetch appointments
-    const apptsUrl = `${SUPABASE_URL}/rest/v1/appointments?professional_id=in.(${profIds.join(",")})&select=*,child:children(id,full_name)&order=start_time.asc`;
-    const apptsRes = await fetch(apptsUrl, {
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    // 2. Fetch appointments for this professional
+    const apptsUrl = `${SUPABASE_URL}/rest/v1/appointments?professional_id=eq.${cleanId}&select=*,child:children(id,full_name)&order=start_time.asc`;
+    const apptsRes = await fetch(apptsUrl, { headers });
     const appointments = (await apptsRes.json()) || [];
 
-    // 5. Generate iCalendar RFC 5545 String
+    // 3. Generate iCalendar RFC 5545 String
     const lines = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
@@ -100,34 +72,36 @@ export default async function handler(req, res) {
       "X-PUBLISHED-TTL:PT15M",
     ];
 
-    appointments.forEach((appt) => {
-      if (appt.status === "cancelled") return;
+    if (Array.isArray(appointments)) {
+      appointments.forEach((appt) => {
+        if (appt.status === "cancelled") return;
 
-      const startISO = formatICSDate(appt.start_time);
-      const endISO = formatICSDate(
-        appt.end_time || new Date(new Date(appt.start_time).getTime() + 50 * 60 * 1000)
-      );
-      const childName = appt.child?.full_name || "Paciente";
-      const title = `${childName} - ${appt.type || "Sessão"}`;
-      const desc = `Paciente: ${childName}\\nTipo: ${appt.type || "Atendimento"}\\nStatus: ${appt.status || "Agendado"}${
-        appt.notes ? `\\nObservações: ${appt.notes.replace(/\r?\n/g, " ")}` : ""
-      }`;
+        const startISO = formatICSDate(appt.start_time);
+        const endISO = formatICSDate(
+          appt.end_time || new Date(new Date(appt.start_time).getTime() + 50 * 60 * 1000)
+        );
+        const childName = appt.child?.full_name || "Paciente";
+        const title = `${childName} - ${appt.type || "Sessão"}`;
+        const desc = `Paciente: ${childName}\\nTipo: ${appt.type || "Atendimento"}\\nStatus: ${appt.status || "Agendado"}${
+          appt.notes ? `\\nObservações: ${appt.notes.replace(/\r?\n/g, " ")}` : ""
+        }`;
 
-      lines.push("BEGIN:VEVENT");
-      lines.push(`UID:evoluia-${appt.id}@evoluia.app`);
-      lines.push(`DTSTAMP:${formatICSDate(new Date())}`);
-      lines.push(`DTSTART:${startISO}`);
-      lines.push(`DTEND:${endISO}`);
-      lines.push(`SUMMARY:${escapeICSText(title)}`);
-      lines.push(`DESCRIPTION:${desc}`);
-      lines.push("STATUS:CONFIRMED");
-      lines.push("BEGIN:VALARM");
-      lines.push("TRIGGER:-PT30M");
-      lines.push("ACTION:DISPLAY");
-      lines.push(`DESCRIPTION:${escapeICSText(`Lembrete EvoluIA: ${title}`)}`);
-      lines.push("END:VALARM");
-      lines.push("END:VEVENT");
-    });
+        lines.push("BEGIN:VEVENT");
+        lines.push(`UID:evoluia-${appt.id}@evoluia.app`);
+        lines.push(`DTSTAMP:${formatICSDate(new Date())}`);
+        lines.push(`DTSTART:${startISO}`);
+        lines.push(`DTEND:${endISO}`);
+        lines.push(`SUMMARY:${escapeICSText(title)}`);
+        lines.push(`DESCRIPTION:${desc}`);
+        lines.push("STATUS:CONFIRMED");
+        lines.push("BEGIN:VALARM");
+        lines.push("TRIGGER:-PT30M");
+        lines.push("ACTION:DISPLAY");
+        lines.push(`DESCRIPTION:${escapeICSText(`Lembrete EvoluIA: ${title}`)}`);
+        lines.push("END:VALARM");
+        lines.push("END:VEVENT");
+      });
+    }
 
     lines.push("END:VCALENDAR");
     const icsString = lines.join("\r\n");
