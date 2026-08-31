@@ -197,7 +197,7 @@ export function LandingPage() {
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] text-white">
               Chega de perder seus domingos digitando{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#A855F7] via-[#C084FC] to-[#38BDF8]">
-                laudos e cadernos.
+                laudos e relatórios.
               </span>
             </h1>
 
