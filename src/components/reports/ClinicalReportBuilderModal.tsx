@@ -180,10 +180,10 @@ export function ClinicalReportBuilderModal({
     "Durante as sessões avaliativas, o paciente demonstrou receptividade às propostas lúdicas e vínculo positivo com a profissional. Observou-se variação no tempo de sustentação atencional conforme o nível de exigência da tarefa, com oscilações de foco em propostas de raciocínio lógico e maior engajamento em jogos dinâmicos."
   )
 
-  const [sessionsCount, setSessionsCount] = useState(12)
+  const [sessionsCount, setSessionsCount] = useState(1)
 
   const [synthesis, setSynthesis] = useState(
-    "A presente avaliação psicopedagógica foi realizada ao longo de 12 sessões, contemplando a aplicação de testes e instrumentos avaliativos, bem como entrevistas com o paciente, familiares e escola. A integração dessas informações possibilitou uma compreensão abrangente do funcionamento cognitivo, comportamental, emocional e acadêmico do paciente, permitindo a elaboração das conclusões e o levantamento da hipótese diagnóstica."
+    "A presente avaliação psicopedagógica foi realizada contemplando a aplicação de testes e instrumentos avaliativos, bem como entrevistas com o paciente, familiares e escola. A integração dessas informações possibilitou uma compreensão abrangente do funcionamento cognitivo, comportamental, emocional e acadêmico do paciente, permitindo a elaboração das conclusões e o levantamento da hipótese diagnóstica."
   )
 
   const [diagnosticHypothesis, setDiagnosticHypothesis] = useState(
@@ -306,6 +306,31 @@ export function ClinicalReportBuilderModal({
           }
         }
       }
+
+      // 4. Fetch Actual Sessions Count from database
+      const { count: sessionCount, data: sessionList } = await supabase
+        .from("sessions")
+        .select("id", { count: "exact" })
+        .eq("child_id", child.id)
+
+      let realCount = sessionCount !== null && sessionCount !== undefined && sessionCount > 0
+        ? sessionCount
+        : (sessionList && sessionList.length > 0 ? sessionList.length : 0)
+
+      if (realCount === 0) {
+        const { count: appCount } = await supabase
+          .from("appointments")
+          .select("id", { count: "exact" })
+          .eq("child_id", child.id)
+        if (appCount && appCount > 0) realCount = appCount
+      }
+
+      const finalCount = realCount > 0 ? realCount : 1
+      setSessionsCount(finalCount)
+
+      setSynthesis(
+        `A presente avaliação psicopedagógica foi realizada ao longo de ${finalCount} sessão${finalCount !== 1 ? "ões" : ""}, contemplando a aplicação de testes e instrumentos avaliativos, bem como entrevistas com o paciente, familiares e escola. A integração dessas informações possibilitou uma compreensão abrangente do funcionamento cognitivo, comportamental, emocional e acadêmico do paciente, permitindo a elaboração das conclusões e o levantamento da hipótese diagnóstica.`
+      )
     } catch (err) {
       console.error("Erro ao carregar contexto da criança:", err)
     } finally {
