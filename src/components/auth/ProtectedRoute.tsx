@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { useAuthStore } from "@/store/authStore"
 import { validateUserAccess, getMasterSubscription, isTrialExpired } from "@/lib/subscriptionService"
-import { PLANS_LIST, getPlanConfig } from "@/lib/plans"
+import { PLANS_LIST, getPlanConfig, buildHotmartCheckoutUrl } from "@/lib/plans"
 import { Brain, Lock, Sparkles, ShieldCheck, CheckCircle2, RefreshCw, Users, LogOut } from "lucide-react"
 import toast from "react-hot-toast"
 
@@ -86,7 +86,8 @@ export function ProtectedRoute() {
 
   // Se o teste expirou e o usuário não está na página de planos
   if (trialExpired && location.pathname !== "/meu-plano") {
-    const userEmailParam = user.email ? `&email=${encodeURIComponent(user.email)}` : ""
+    const userEmail = (professional?.email || user?.email || "").trim()
+    const userName = (professional?.full_name || user?.user_metadata?.full_name || "").trim()
 
     return (
       <div className="min-h-screen bg-slate-900 text-white flex flex-col justify-center items-center p-4 sm:p-6 font-sans">
@@ -137,7 +138,7 @@ export function ProtectedRoute() {
                 </div>
 
                 <a
-                  href={`${plan.hotmartCheckoutUrl}${userEmailParam}`}
+                  href={buildHotmartCheckoutUrl(plan.hotmartCheckoutUrl, userEmail, userName)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all text-center"

@@ -23,6 +23,7 @@ import {
   HOTMART_MANAGE_SUBSCRIPTION_URL,
   getPlanConfig,
   getSubscriptionStatusLabel,
+  buildHotmartCheckoutUrl,
   type PlanConfig,
   type PlanId,
 } from "@/lib/plans"
@@ -71,11 +72,13 @@ export function PlanPage() {
   const handlePlanClick = (targetPlan: PlanConfig) => {
     if (!details) return
 
-    const userEmailParam = user?.email ? `&email=${encodeURIComponent(user.email)}` : ""
+    const userEmail = (professional?.email || user?.email || details?.subscription?.customer_email || "").trim()
+    const userName = (professional?.full_name || user?.user_metadata?.full_name || "").trim()
+    const checkoutUrl = buildHotmartCheckoutUrl(targetPlan.hotmartCheckoutUrl, userEmail, userName)
 
     // Se estiver em período de teste (trial), permite assinar qualquer um dos 5 planos diretamente
     if (details.isTrial) {
-      window.open(`${targetPlan.hotmartCheckoutUrl}${userEmailParam}`, "_blank", "noopener,noreferrer")
+      window.open(checkoutUrl, "_blank", "noopener,noreferrer")
       toast.success(`Redirecionando para o checkout do ${targetPlan.name} na Hotmart...`)
       return
     }
@@ -88,7 +91,7 @@ export function PlanPage() {
 
     // 2. Upgrade (plano maior)
     if (targetPlan.maxProfessionals > details.planConfig.maxProfessionals) {
-      window.open(`${targetPlan.hotmartCheckoutUrl}${userEmailParam}`, "_blank", "noopener,noreferrer")
+      window.open(checkoutUrl, "_blank", "noopener,noreferrer")
       toast.success(`Redirecionando para o checkout do ${targetPlan.name} na Hotmart...`)
       return
     }
@@ -103,7 +106,7 @@ export function PlanPage() {
     }
 
     // Se cabe, redireciona para a troca/checkout na Hotmart
-    window.open(`${targetPlan.hotmartCheckoutUrl}${userEmailParam}`, "_blank", "noopener,noreferrer")
+    window.open(checkoutUrl, "_blank", "noopener,noreferrer")
     toast.success(`Redirecionando para o ${targetPlan.name} na Hotmart...`)
   }
 

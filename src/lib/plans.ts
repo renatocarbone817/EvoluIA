@@ -120,6 +120,35 @@ export const PLANS_LIST: PlanConfig[] = [
 
 export const HOTMART_MANAGE_SUBSCRIPTION_URL = "https://consumer.hotmart.com/purchase"
 
+/**
+ * Constrói a URL do checkout da Hotmart com e-mail e nome do comprador pré-preenchidos
+ */
+export function buildHotmartCheckoutUrl(
+  baseUrl: string,
+  email?: string | null,
+  name?: string | null
+): string {
+  try {
+    const url = new URL(baseUrl)
+    if (email && email.trim()) {
+      url.searchParams.set("email", email.trim().toLowerCase())
+    }
+    if (name && name.trim()) {
+      url.searchParams.set("name", name.trim())
+    }
+    return url.toString()
+  } catch {
+    let finalUrl = baseUrl
+    const params: string[] = []
+    if (email && email.trim()) params.push(`email=${encodeURIComponent(email.trim().toLowerCase())}`)
+    if (name && name.trim()) params.push(`name=${encodeURIComponent(name.trim())}`)
+    if (params.length > 0) {
+      finalUrl += (finalUrl.includes("?") ? "&" : "?") + params.join("&")
+    }
+    return finalUrl
+  }
+}
+
 export function getPlanConfig(planId?: string | null): PlanConfig {
   if (!planId) return PLANS.individual
   const normalized = planId.toLowerCase().trim() as PlanId
