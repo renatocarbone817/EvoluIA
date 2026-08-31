@@ -669,11 +669,12 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
           .intro-box {
             background: #F0F7FA;
             border-left: 3.5px solid #005B94;
-            padding: 7px 10px;
-            font-size: 10px;
-            line-height: 1.35;
+            padding: 11px 14px;
+            font-size: 10.5px;
+            line-height: 1.45;
             color: #334155;
-            margin-bottom: 12px;
+            margin-top: 12px;
+            margin-bottom: 20px;
             border-radius: 0 4px 4px 0;
           }
 
@@ -710,19 +711,19 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
           }
 
           .footer-signature {
-            margin-top: 10px;
+            margin-top: 28px;
             font-size: 11px;
           }
           .sig-row {
             display: flex;
             justify-content: space-between;
-            gap: 20px;
-            margin-top: 15px;
+            gap: 24px;
+            margin-top: 36px;
           }
           .sig-box {
             flex: 1;
             border-top: 1px solid #475569;
-            padding-top: 4px;
+            padding-top: 5px;
             text-align: center;
             font-size: 10px;
             font-weight: 600;
@@ -862,12 +863,12 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
             </div>
 
             <!-- Assinatura & Data -->
-            <div class="footer-signature" style="margin-top: 14px;">
+            <div class="footer-signature" style="margin-top: 28px;">
               <p style="margin: 0; font-size: 11px; color: #334155; font-weight: 600;">
                 ${cityState}, ______ de __________________________ de 2026.
               </p>
 
-              <div class="sig-row" style="margin-top: 22px;">
+              <div class="sig-row" style="margin-top: 36px;">
                 <div class="sig-box">
                   ${schoolObserver.name ? `${schoolObserver.name} (${schoolObserver.role})` : "Nome do Observador / Disciplina / Cargo"}
                 </div>
