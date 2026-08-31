@@ -474,6 +474,152 @@ export function ClinicalReportBuilderModal({
         })
       }
 
+      if (selectedInstruments.includes("TAREFA SPAN DE DIGITOS")) {
+        testsResults.push({
+          id: "span_digitos",
+          title: "Tarefa Span de Dígitos (Memória Operacional Auditiva)",
+          objective: "Avalia a capacidade de retenção imediata da alça fonológica da memória de trabalho (ordem direta) e a manipulação ativa da memória operacional (ordem inversa).",
+          tableHeaders: ["Modalidade", "Span Atingido", "Classificação Clínica"],
+          tableRows: [
+            ["Ordem Direta (Memória Imediata)", "5 dígitos", "Médio / Adequado"],
+            ["Ordem Inversa (Memória Operacional)", "3 dígitos", "Médio Inferior"],
+          ],
+          interpretationText: "Apresenta capacidade de retenção passiva auditiva dentro do esperado, com leve declínio quando exigida a reversão mental da sequência numérica.",
+        })
+      }
+
+      if (selectedInstruments.includes("PROTOCOLO DE OBSERVAÇÃO PSICOMOTORA (POP-TT)")) {
+        testsResults.push({
+          id: "pop_tt",
+          title: "Protocolo de Observação Psicomotora (POP-TT)",
+          objective: "Mapeia os fatores psicomotores essenciais para a aprendizagem escolar: tônus, equilíbrio, lateralidade, noção do corpo, estruturação espaço-temporal, praxia global e praxia fina.",
+          tableHeaders: ["Fator Psicomotor", "Pontuação", "Perfil / Desempenho"],
+          tableRows: [
+            ["Tônus e Equilíbrio", "Bom", "Preservado"],
+            ["Lateralidade e Noção de Corpo", "Definida", "Adequado"],
+            ["Estruturação Espaço-Temporal", "Regular", "Atenção Necessária"],
+            ["Praxia Global e Praxia Fina", "Bom", "Adequado"],
+          ],
+          interpretationText: "Apresenta perfil psicomotor global satisfatório, com necessidade de estimulação no planejamento espacial e organização gráfica no caderno.",
+        })
+      }
+
+      if (selectedInstruments.includes("ESCALA AVALIAÇÃO TDAH- ETDAH – CRIANÇA")) {
+        testsResults.push({
+          id: "etdah_crianca",
+          title: "Escala de Avaliação de TDAH (ETDAH - Criança)",
+          objective: "Autoavaliação do paciente quanto à sua percepção de atenção, impulsividade e dificuldades nas rotinas diárias e escolares.",
+          tableHeaders: ["Fator Avaliado", "Pontos Brutos", "Percentil", "Classificação"],
+          tableRows: [
+            ["Fator 1: Atenção e Foco", "32", "60", "Média"],
+            ["Fator 2: Hiperatividade/Impulsividade", "20", "25", "Inferior"],
+          ],
+          interpretationText: "A percepção da criança converge com os relatos familiares, reconhecendo dispersão ocasional sem percepção de agitação física acentuada.",
+        })
+      }
+
+      if (selectedInstruments.includes("TESTE DISCRIMINAÇÃO FONOLÓGICA")) {
+        testsResults.push({
+          id: "discriminacao_fonologica",
+          title: "Teste de Discriminação Fonológica",
+          objective: "Avalia a habilidade de diferenciar pares mínimos de fonemas da língua portuguesa essenciais para a alfabetização e ortografia.",
+          tableHeaders: ["Subteste", "Acertos", "Percentual", "Classificação"],
+          tableRows: [
+            ["Pares de Palavras Diferentes", "18/20", "90%", "Médio"],
+            ["Pares de Palavras Semelhantes / P-B, T-D, F-V", "14/20", "70%", "Médio Inferior"],
+          ],
+          interpretationText: "Identifica-se oscilação na discriminação de fonemas de ponto articulatório próximo (surdos/sonoros), demandando reforço na consciência fonológica.",
+        })
+      }
+
+      if (selectedInstruments.includes("TIN TESTE DE NOMEAÇÃO (VERSÃO REDUZIDA)")) {
+        testsResults.push({
+          id: "tin_nomeacao",
+          title: "Teste de Nomeação Rápida e Automática (TIN)",
+          objective: "Mede o acesso lexical, a velocidade de recuperação de informações fonológicas na memória de longo prazo e a fluência verbal.",
+          tableHeaders: ["Prancha / Estímulo", "Tempo de Execução", "Erros", "Classificação"],
+          tableRows: [
+            ["Nomeação de Figuras / Objetos", "38 seg", "1 erro", "Dentro da Média"],
+            ["Nomeação de Letras e Cores", "45 seg", "2 erros", "Média"],
+          ],
+          interpretationText: "Velocidade de processamento e acesso ao léxico preservados, permitindo bom fluxo na decodificação leitora.",
+        })
+      }
+
+      if (selectedInstruments.includes("QUESTIONÁRIO PARA TRIAGEM DE DISTÚRBIO DO PROCESSAMENTO AUDITIVO CENTRAL (DPAC)")) {
+        testsResults.push({
+          id: "dpac_triagem",
+          title: "Questionário de Rastreio de DPAC (Triagem Auditiva Central)",
+          objective: "Investiga comportamentos auditivos em ambientes ruidosos, compreensão de ordens verbais sequenciais e localização sonora.",
+          tableHeaders: ["Área Comportamental", "Pontuação", "Indicativo"],
+          tableRows: [
+            ["Audição em Ambiente Ruidoso", "Alta Frequência", "Indicativo de Dificuldade"],
+            ["Compreensão de Mensagens Rápidas", "Moderada", "Atenção Necessária"],
+            ["Memória Sequencial Auditiva", "Moderada", "Defasagem Leve"],
+          ],
+          interpretationText: "Apresenta sinais comportamentais sugestivos de alteração nas habilidades auditivas centrais, justificando encaminhamento para exame de PAC.",
+        })
+      }
+
+      if (selectedInstruments.includes("ESCALA DE AUTISMO VERSÃO INFANTIL 04 A 11 ANOS (AQ-10)")) {
+        testsResults.push({
+          id: "aq10",
+          title: "Escala de Rastreio do Espectro Autista Infantil (AQ-10)",
+          objective: "Rastreio breve de traços e características do espectro autista em crianças de 4 a 11 anos.",
+          tableHeaders: ["Instrumento", "Pontuação Obtida", "Ponto de Corte", "Classificação"],
+          tableRows: [
+            ["AQ-10 Versão Infantil", "03 pontos", "06 ou mais pontos", "Abaixo do Ponto de Corte (Sem Indicativos)"],
+          ],
+          interpretationText: "O escore obtido situou-se abaixo da nota de corte clínico de rastreio para o espectro autista.",
+        })
+      }
+
+      if (selectedInstruments.includes("EOCA - ENTREVISTA OPERATIVA CENTRADA NA APRENDIZAGEM")) {
+        testsResults.push({
+          id: "eoca",
+          title: "EOCA - Entrevista Operativa Centrada na Aprendizagem",
+          objective: "Observa a postura da criança frente ao material escolar, modalidade de aprendizagem (assimilativa/acomodativa), vínculo com o aprender e autonomia.",
+          tableHeaders: ["Aspecto Observado", "Manifestação Clínica"],
+          tableRows: [
+            ["Modalidade de Aprendizagem", "Predomínio de exploração lúdica com busca de mediação"],
+            ["Vínculo com o Objeto do Conhecimento", "Positivo, curioso, demonstrando receptividade"],
+            ["Organização do Espaço e Materiais", "Necessita de estruturação externa para ordenação"],
+          ],
+          interpretationText: "Apresenta boa disponibilidade afetiva para aprender, beneficiando-se significativamente de propostas organizadas e mediação encorajadora.",
+        })
+      }
+
+      if (selectedInstruments.includes("PROVAS OPERATÓRIAS DE JEAN PIAGET")) {
+        testsResults.push({
+          id: "provas_piaget",
+          title: "Provas Operatórias de Jean Piaget (Diagnóstico do Pensamento Lógico)",
+          objective: "Avalia a estrutura do pensamento cognitivo, conservação de quantidades (líquida, massa, comprimento), seriação e classificação.",
+          tableHeaders: ["Prova Aplicada", "Estágio Operatório Atingido", "Interpretação"],
+          tableRows: [
+            ["Conservação de Matéria / Massa", "Intermediário / Transição", "Em consolidação"],
+            ["Conservação de Líquidos", "Operatório Concreto", "Preservado"],
+            ["Seriação e Classificação", "Operatório Concreto", "Preservado"],
+          ],
+          interpretationText: "O paciente demonstra estruturas de pensamento lógico compatíveis com o estágio operatório concreto para a sua faixa etária.",
+        })
+      }
+
+      if (selectedInstruments.includes("TDE-II - TESTE DE DESEMPENHO ESCOLAR")) {
+        testsResults.push({
+          id: "tde2",
+          title: "TDE-II - Teste de Desempenho Escolar (2ª Edição)",
+          objective: "Avalia as habilidades acadêmicas fundamentais em três subtestes: Escrita (ortografia), Leitura (decodificação/fluência) e Aritmética (cálculo matemático).",
+          tableHeaders: ["Subteste", "Escore Bruto", "Percentil", "Classificação Normativa"],
+          tableRows: [
+            ["Subteste de Escrita", "24", "45", "Médio"],
+            ["Subteste de Aritmética", "28", "55", "Médio"],
+            ["Subteste de Leitura", "32", "40", "Médio Inferior"],
+            ["ESCORE TOTAL TDE-II", "84", "45", "Médio"],
+          ],
+          interpretationText: "Desempenho acadêmico global dentro do padrão médio, com maior oscilação no subteste de leitura decorrente de lapsos atencionais na decodificação.",
+        })
+      }
+
       const completeData: CompleteReportData = {
         patient: {
           fullName: patientData.fullName || child.full_name,
