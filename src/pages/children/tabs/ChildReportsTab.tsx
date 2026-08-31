@@ -29,6 +29,7 @@ import { formatDate } from "@/lib/utils"
 import toast from "react-hot-toast"
 import type { Report, Document, Child } from "@/types/database"
 import { addDashboardTask, completeDashboardTaskForChild } from "@/lib/dashboardTasks"
+import { ClinicalReportBuilderModal } from "@/components/reports/ClinicalReportBuilderModal"
 
 interface ChildReportsTabProps {
   child: Child
@@ -52,6 +53,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
   const [existingDocs, setExistingDocs] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [startingReport, setStartingReport] = useState(false)
+  const [showClinicalModal, setShowClinicalModal] = useState(false)
   const [showEditorModal, setShowEditorModal] = useState(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [showFinalizeModal, setShowFinalizeModal] = useState(false)
@@ -352,27 +354,36 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
     <div className="space-y-6 animate-in fade-in">
       {/* CENÁRIO 1: A CRIANÇA AINDA NÃO POSSUI RELATÓRIO */}
       {!activeReport ? (
-        <div className="p-8 sm:p-12 rounded-3xl bg-white border-2 border-dashed border-[#D8E5E7] text-center space-y-4 shadow-xs">
+        <div className="p-8 sm:p-12 rounded-3xl bg-white border-2 border-dashed border-[#D8E5E7] text-center space-y-5 shadow-xs">
           <div className="w-16 h-16 rounded-3xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center mx-auto shadow-xs">
             <FileText className="w-8 h-8" />
           </div>
 
           <div className="space-y-1.5 max-w-md mx-auto">
-            <h3 className="text-lg font-black text-[#0D2329]">Relatório da Criança</h3>
+            <h3 className="text-lg font-black text-[#0D2329]">Relatório / Laudo Clínico</h3>
             <p className="text-xs font-semibold text-[#6B7C83] leading-relaxed">
-              Nenhum relatório foi iniciado para esta criança. Inicie um relatório para organizar e reunir as informações do acompanhamento, sessões, documentos e evolução de <strong>{child.full_name}</strong>.
+              Gere o laudo psicopedagógico completo de <strong>{child.full_name}</strong> com as 13 perguntas da Anamnese, os 21 instrumentos clínicos e exportação direta para Microsoft Word (.docx).
             </p>
           </div>
 
-          <div className="pt-2">
+          <div className="pt-2 flex items-center justify-center gap-3 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setShowClinicalModal(true)}
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#2563EB] via-[#6366F1] to-[#7C3AED] hover:from-[#1D4ED8] hover:to-[#6D28D9] text-white text-xs font-black inline-flex items-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>✨ Gerar Laudo Completo em Word (.docx)</span>
+            </button>
+
             <button
               type="button"
               disabled={startingReport}
               onClick={handleStartReport}
-              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black inline-flex items-center gap-2 shadow-md active:scale-95 transition-all"
+              className="px-5 py-3.5 rounded-2xl bg-white hover:bg-[#F8FAFB] border-2 border-[#D8E5E7] hover:border-[#7C3AED] text-[#0D2329] text-xs font-black inline-flex items-center gap-2 shadow-2xs active:scale-95 transition-all"
             >
               {startingReport ? <Clock className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 stroke-[3]" />}
-              <span>{startingReport ? "Iniciando..." : "+ Iniciar Relatório"}</span>
+              <span>{startingReport ? "Iniciando..." : "+ Iniciar Rascunho Simples"}</span>
             </button>
           </div>
         </div>
@@ -419,15 +430,24 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
 
             {/* Action Buttons */}
             <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowClinicalModal(true)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] hover:from-[#1D4ED8] hover:to-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Gerar Laudo Word (.docx)</span>
+              </button>
+
               {isDraft && (
                 <>
                   <button
                     type="button"
                     onClick={() => setShowEditorModal(true)}
-                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-xs transition-all active:scale-95"
+                    className="px-4 py-2.5 rounded-xl bg-[#F8FAFB] hover:bg-[#EDE9FE] border-2 border-[#D8E5E7] hover:border-[#7C3AED] text-[#0D2329] text-xs font-black flex items-center gap-2 shadow-2xs transition-all active:scale-95"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
-                    <span>Continuar Relatório</span>
+                    <span>Edição Simples</span>
                   </button>
 
                   <button
@@ -436,7 +456,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
                     className="px-4 py-2.5 rounded-xl bg-[#E8F8F5] hover:bg-[#10B981] text-[#065F46] hover:text-white border border-[#10B981]/30 text-xs font-black flex items-center gap-2 transition-all shadow-2xs active:scale-95"
                   >
                     <Check className="w-3.5 h-3.5 stroke-[3]" />
-                    <span>Finalizar Relatório</span>
+                    <span>Finalizar</span>
                   </button>
                 </>
               )}
@@ -449,7 +469,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
                     className="px-4 py-2.5 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-black flex items-center gap-2 shadow-xs transition-all active:scale-95"
                   >
                     <Eye className="w-3.5 h-3.5" />
-                    <span>Visualizar Relatório</span>
+                    <span>Visualizar</span>
                   </button>
 
                   <button
@@ -874,6 +894,19 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
           </div>
         </div>
       )}
+
+      {/* MODAL DE CONSTRUÇÃO DO LAUDO COMPLETO (.DOCX) */}
+      <ClinicalReportBuilderModal
+        isOpen={showClinicalModal}
+        onClose={() => setShowClinicalModal(false)}
+        child={child}
+        reportId={activeReport?.id}
+        onSaved={() => {
+          loadReports()
+          loadExistingDocuments()
+          if (onReloadChild) onReloadChild()
+        }}
+      />
     </div>
   )
 }
