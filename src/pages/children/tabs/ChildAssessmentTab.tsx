@@ -580,19 +580,6 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
     const email = professional?.email || "psicopedagogapriscilacarbone@gmail.com"
     const address = professional?.address || "RUA BAHIA 3600 CENTRO VOTUPORANGA"
 
-    const questionsHtml = DEFAULT_SCHOOL_QUESTIONS.map(
-      (q) => `
-      <div style="margin-bottom: 20px; page-break-inside: avoid;">
-        <p style="font-size: 13px; font-weight: bold; color: #111827; margin: 0 0 6px 0;">
-          ${q.num}. ${q.title}
-        </p>
-        <div style="font-size: 12px; color: #222; min-height: 52px; border-bottom: 1px solid #777; padding-bottom: 4px; line-height: 22px;">
-          ${schoolAnswers[q.id] || '<div style="border-bottom: 1px solid #bbb; height: 22px;"></div><div style="border-bottom: 1px solid #bbb; height: 22px;"></div>'}
-        </div>
-      </div>
-    `
-    ).join("")
-
     const traitsList = [
       { key: "agressivo", label: "agressivo" },
       { key: "passivo", label: "passivo" },
@@ -611,9 +598,12 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
     const traitsHtml = traitsList
       .map(
         (t) => `
-      <span style="display: inline-block; width: 23%; margin-bottom: 10px; font-size: 12px;">
-        (${schoolTraits[t.key] ? " <strong>X</strong> " : " &nbsp; "}) ${t.label}
-      </span>
+      <div style="font-size: 11px; display: flex; align-items: center; gap: 4px;">
+        <span style="display: inline-block; width: 14px; height: 14px; border: 1.5px solid #333; border-radius: 3px; text-align: center; line-height: 12px; font-weight: bold; font-size: 10px;">
+          ${schoolTraits[t.key] ? "✓" : ""}
+        </span>
+        <span>${t.label}</span>
+      </div>
     `
       )
       .join("")
@@ -625,111 +615,274 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
         <meta charset="utf-8">
         <title>Questionário de Visita Escolar - ${childName || "Paciente"}</title>
         <style>
-          @page { size: A4; margin: 18mm 15mm 18mm 15mm; }
+          @page {
+            size: A4 portrait;
+            margin: 10mm 14mm 10mm 14mm;
+          }
+          * { box-sizing: border-box; }
           body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             color: #111;
             margin: 0;
-            padding: 15px;
+            padding: 0;
             background: #fff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .page {
+            height: 277mm;
+            max-height: 277mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            page-break-after: always;
+            break-after: page;
+          }
+          .page:last-child {
+            page-break-after: avoid;
+            break-after: avoid;
           }
           .header-banner {
-            background-color: #005B94;
-            color: #ffffff;
+            background-color: #005B94 !important;
+            color: #ffffff !important;
             text-align: center;
-            padding: 12px 10px;
+            padding: 9px 10px;
             border-radius: 4px;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
           }
-          .header-banner h1 { margin: 0; font-size: 15px; text-transform: uppercase; font-weight: bold; }
-          .header-banner h2 { margin: 4px 0 0; font-size: 12px; font-weight: normal; }
-          .title-section { text-align: center; margin-bottom: 18px; }
-          .title-section h3 { margin: 0; font-size: 14px; font-weight: bold; color: #005B94; text-transform: uppercase; }
+          .header-banner h1 { margin: 0; font-size: 13.5px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; }
+          .header-banner h2 { margin: 3px 0 0; font-size: 11px; font-weight: 600; opacity: 0.95; }
+          
+          .title-section { text-align: center; margin-bottom: 10px; }
+          .title-section h3 { margin: 0; font-size: 12.5px; font-weight: 800; color: #005B94; text-transform: uppercase; letter-spacing: 0.3px; }
+          
           .patient-box {
-            border: 1px solid #bbb;
-            padding: 10px 14px;
+            border: 1.5px solid #005B94;
+            padding: 8px 12px;
             border-radius: 6px;
-            margin-bottom: 16px;
-            font-size: 12.5px;
+            margin-bottom: 10px;
+            font-size: 11.5px;
+            background: #F8FAFC;
           }
-          .patient-box p { margin: 4px 0; }
+          .patient-box p { margin: 3px 0; }
+          
           .intro-box {
-            background: #f8fafb;
-            border-left: 4px solid #005B94;
-            padding: 10px 12px;
-            font-size: 11px;
-            line-height: 1.45;
-            color: #444;
-            margin-bottom: 20px;
-          }
-          .footer-signature {
-            margin-top: 30px;
-            page-break-inside: avoid;
-            font-size: 12px;
-          }
-          .footer-banner {
-            background-color: #005B94;
-            color: #ffffff;
-            text-align: center;
-            padding: 8px;
+            background: #F0F7FA;
+            border-left: 3.5px solid #005B94;
+            padding: 7px 10px;
             font-size: 10px;
-            margin-top: 25px;
-            border-radius: 4px;
+            line-height: 1.35;
+            color: #334155;
+            margin-bottom: 12px;
+            border-radius: 0 4px 4px 0;
           }
-          @media print {
-            body { padding: 0; }
+
+          .question-block {
+            margin-bottom: 11px;
+          }
+          .question-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #0F172A;
+            margin: 0 0 4px 0;
+          }
+          .write-line {
+            border-bottom: 1px solid #94A3B8;
+            height: 19px;
+            width: 100%;
+          }
+          .answer-text {
+            font-size: 11px;
+            color: #1E293B;
+            line-height: 19px;
+            min-height: 19px;
+            border-bottom: 1px solid #64748B;
+          }
+          
+          .checklist-box {
+            border: 1px solid #CBD5E1;
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: #FAFAFA;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 7px;
+          }
+
+          .footer-signature {
+            margin-top: 10px;
+            font-size: 11px;
+          }
+          .sig-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 15px;
+          }
+          .sig-box {
+            flex: 1;
+            border-top: 1px solid #475569;
+            padding-top: 4px;
+            text-align: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: #334155;
+          }
+
+          .footer-banner {
+            background-color: #005B94 !important;
+            color: #ffffff !important;
+            text-align: center;
+            padding: 6px;
+            font-size: 9.5px;
+            font-weight: 600;
+            border-radius: 4px;
+            margin-top: 8px;
           }
         </style>
       </head>
       <body>
-        <div class="header-banner">
-          <h1>${clinicTitle}</h1>
-          <h2>PSICOPEDAGOGA ${profName.toUpperCase()} ${crpOrCbo}</h2>
-        </div>
 
-        <div class="title-section">
-          <h3>QUESTIONÁRIO VISITA PSICOPEDAGÓGICA NO ÂMBITO ESCOLAR</h3>
-        </div>
+        <!-- =========================================================================
+             FOLHA 1 (PÁGINA 1 DE 2)
+             ========================================================================= -->
+        <div class="page">
+          <div>
+            <div class="header-banner">
+              <h1>${clinicTitle}</h1>
+              <h2>PSICOPEDAGOGA ${profName.toUpperCase()} ${crpOrCbo}</h2>
+            </div>
 
-        <div class="patient-box">
-          <p><strong>PACIENTE:</strong> ${childName || "_________________________________________________________"}</p>
-          <p><strong>ESCOLA:</strong> ${baseForm.school_name || "___________________________________________________________"}</p>
-        </div>
+            <div class="title-section">
+              <h3>QUESTIONÁRIO VISITA PSICOPEDAGÓGICA NO ÂMBITO ESCOLAR</h3>
+            </div>
 
-        <div class="intro-box">
-          <strong>Prezado observador:</strong> ao responder o guia abaixo, relate de forma clara e com riqueza de detalhes todas as informações prestadas. Assim poderemos ter uma visão mais abrangente da situação do aluno. Por gentileza, registre seu nome e a sua relação com o aluno (se é professor, coordenador, diretor, etc).
-        </div>
+            <div class="patient-box">
+              <p><strong>PACIENTE:</strong> ${childName || "_________________________________________________________"}</p>
+              <p><strong>ESCOLA:</strong> ${baseForm.school_name || "___________________________________________________________"}</p>
+            </div>
 
-        <div>
-          ${questionsHtml}
-        </div>
+            <div class="intro-box">
+              <strong>Prezado observador:</strong> Ao responder este guia, relate com riqueza de detalhes as informações observadas. Por gentileza, registre seu nome e cargo (professor, coordenador, diretor, etc).
+            </div>
 
-        <div style="margin-top: 20px; page-break-inside: avoid;">
-          <p style="font-size: 13px; font-weight: bold; color: #111827; margin-bottom: 8px;">
-            12. EM QUAL OU QUAIS DESSAS CARACTERÍSTICAS O ALUNO SE ENCAIXA?
-          </p>
-          <div style="padding: 10px; border: 1px solid #bbb; border-radius: 6px;">
-            ${traitsHtml}
+            <!-- P1 -->
+            <div class="question-block">
+              <p class="question-title">1. Como é o desenvolvimento do aluno na sala de aula?</p>
+              ${schoolAnswers.sq1 ? `<div class="answer-text">${schoolAnswers.sq1}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
+            </div>
+
+            <!-- P2 -->
+            <div class="question-block">
+              <p class="question-title">2. Como é o comportamento do aluno na sala de aula?</p>
+              ${schoolAnswers.sq2 ? `<div class="answer-text">${schoolAnswers.sq2}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
+            </div>
+
+            <!-- P3 -->
+            <div class="question-block">
+              <p class="question-title">3. Quais as principais dificuldades apresentadas pelo aluno?</p>
+              ${schoolAnswers.sq3 ? `<div class="answer-text">${schoolAnswers.sq3}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
+            </div>
+
+            <!-- P4 -->
+            <div class="question-block">
+              <p class="question-title">4. Quais as suas características quanto à aprendizagem e assimilação de conteúdos?</p>
+              ${schoolAnswers.sq4 ? `<div class="answer-text">${schoolAnswers.sq4}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
+            </div>
+
+            <!-- P5 & P6 em Linhas Práticas -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px;">
+              <div class="question-block">
+                <p class="question-title">5. Faz as atividades escolares?</p>
+                ${schoolAnswers.sq5 ? `<div class="answer-text">${schoolAnswers.sq5}</div>` : `<div class="write-line"></div>`}
+              </div>
+              <div class="question-block">
+                <p class="question-title">6. Faz as atividades para casa?</p>
+                ${schoolAnswers.sq6 ? `<div class="answer-text">${schoolAnswers.sq6}</div>` : `<div class="write-line"></div>`}
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-banner">
+            ${address} · TEL: ${phone} · EMAIL: ${email}
           </div>
         </div>
 
-        <div class="footer-signature">
-          <p>${cityState}, _____ de ____________________ de 2026.</p>
-          <div style="margin-top: 25px;">
-            <p><strong>Observador / Disciplina / Cargo:</strong> ${schoolObserver.name ? `${schoolObserver.name} - ${schoolObserver.role}` : "________________________________________________________"}</p>
-            <p style="margin-top: 25px;"><strong>Assinatura do Observador:</strong> ________________________________________________________</p>
-          </div>
-        </div>
+        <!-- =========================================================================
+             FOLHA 2 (PÁGINA 2 DE 2)
+             ========================================================================= -->
+        <div class="page">
+          <div>
+            <div class="header-banner">
+              <h1>${clinicTitle}</h1>
+              <h2>PSICOPEDAGOGA ${profName.toUpperCase()} ${crpOrCbo} — AVALIAÇÃO ESCOLAR (CONTINUAÇÃO)</h2>
+            </div>
 
-        <div class="footer-banner">
-          ${address} · TEL: ${phone} · EMAIL: ${email}
+            <!-- P7 -->
+            <div class="question-block">
+              <p class="question-title">7. Como reage quando é contrariado?</p>
+              ${schoolAnswers.sq7 ? `<div class="answer-text">${schoolAnswers.sq7}</div>` : `<div class="write-line"></div><div class="write-line"></div>`}
+            </div>
+
+            <!-- P8 -->
+            <div class="question-block">
+              <p class="question-title">8. Tem dificuldade de trabalhar em grupo? Como se manifesta esta dificuldade?</p>
+              ${schoolAnswers.sq8 ? `<div class="answer-text">${schoolAnswers.sq8}</div>` : `<div class="write-line"></div><div class="write-line"></div>`}
+            </div>
+
+            <!-- P9 -->
+            <div class="question-block">
+              <p class="question-title">9. Tem dificuldade em organizar suas tarefas e atividades pessoais?</p>
+              ${schoolAnswers.sq9 ? `<div class="answer-text">${schoolAnswers.sq9}</div>` : `<div class="write-line"></div><div class="write-line"></div>`}
+            </div>
+
+            <!-- P10 -->
+            <div class="question-block">
+              <p class="question-title">10. Os colegas da turma o evitam?</p>
+              ${schoolAnswers.sq10 ? `<div class="answer-text">${schoolAnswers.sq10}</div>` : `<div class="write-line"></div><div class="write-line"></div>`}
+            </div>
+
+            <!-- P11 Checklist -->
+            <div class="question-block" style="margin-top: 8px;">
+              <p class="question-title">11. Em qual ou quais dessas características o aluno se encaixa?</p>
+              <div class="checklist-box">
+                ${traitsHtml}
+              </div>
+            </div>
+
+            <!-- P12 Outras Informações -->
+            <div class="question-block" style="margin-top: 10px;">
+              <p class="question-title">12. Relate qualquer informação que não tenha sido abordada ou que julgue importante:</p>
+              ${schoolAnswers.sq11 ? `<div class="answer-text">${schoolAnswers.sq11}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
+            </div>
+
+            <!-- Assinatura & Data -->
+            <div class="footer-signature">
+              <p style="margin: 0; font-size: 10.5px; color: #475569;">
+                ${cityState}, ______ de __________________________ de 2026.
+              </p>
+
+              <div class="sig-row">
+                <div class="sig-box">
+                  ${schoolObserver.name ? `${schoolObserver.name} (${schoolObserver.role})` : "Nome do Observador / Disciplina / Cargo"}
+                </div>
+                <div class="sig-box">
+                  Assinatura do Observador / Equipe Pedagógica
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-banner">
+            ${address} · TEL: ${phone} · EMAIL: ${email}
+          </div>
         </div>
 
         <script>
           window.onload = function() {
             setTimeout(function() {
               window.print();
-            }, 300);
+            }, 350);
           };
         </script>
       </body>
