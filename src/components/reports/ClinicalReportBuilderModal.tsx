@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react"
 import {
   FileText,
+  Eye,
   Download,
   Sparkles,
   CheckCircle2,
@@ -115,6 +116,7 @@ export function ClinicalReportBuilderModal({
   const [generatingDocx, setGeneratingDocx] = useState(false)
   const [generatingAI, setGeneratingAI] = useState(false)
   const [savingToDatabase, setSavingToDatabase] = useState(false)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
 
   const profId = professional?.id || child.professional_id
   const familyQuestions = useMemo(() => getCustomFamilyQuestions(profId), [profId])
@@ -347,280 +349,285 @@ export function ClinicalReportBuilderModal({
   }
 
   // Gera o docx e faz o download
+  
+  function getGeneratedTestsResults(): ReportTestResult[] {
+    const testsResults: ReportTestResult[] = []
+
+    if (selectedInstruments.includes("SNAP-IV (PAIS E PROFESSORES)")) {
+      testsResults.push({
+        id: "snap4",
+        title: "Questionário SNAP-IV (Pais e Professores)",
+        objective:
+          "O Questionário SNAP-IV é um instrumento construído a partir dos critérios do DSM-5-TR para rastreio de sintomas de Desatenção, Hiperatividade/Impulsividade e Transtorno Opositor Desafiador.",
+        tableHeaders: ["Dimensão Avaliada", "Pontuação Família", "Pontuação Escola", "Interpretação"],
+        tableRows: [
+          ["Desatenção (Itens 1 a 9)", "07 pontos", "07 pontos", "Indicativo Significativo"],
+          ["Hiperatividade (Itens 10 a 18)", "04 pontos", "04 pontos", "Dentro do Esperado"],
+          ["Transtorno Opositor (Itens 19 a 26)", "01 ponto", "01 ponto", "Sem Indicativos"],
+        ],
+        scoreCutoffText: "Nota de corte: Acima de 6 pontos nas respostas 'bastante/demais' apresenta indicativo clínico.",
+        interpretationText:
+          "Segundo os questionários respondidos pela família e pela escola, os prejuízos de desatenção manifestam-se em ambos os ambientes, confirmando a pervasividade dos sintomas.",
+      })
+    }
+
+    if (selectedInstruments.includes("ESCALA CONNERS (PAIS E PROFESSORES)")) {
+      testsResults.push({
+        id: "conners",
+        title: "Escala Conners (Pais e Professores)",
+        objective:
+          "Avalia os fatores traçados no DSM-5-TR para sintomas de déficit de atenção e hiperatividade em crianças e adolescentes em múltiplos contextos.",
+        scoreCutoffText: "Versão Pais: 23 pontos (Corte: 58) | Versão Professores: 30 pontos (Corte: 64)",
+        interpretationText: "O paciente não ultrapassou os pontos de corte globais de hiperatividade motora na Escala Conners.",
+      })
+    }
+
+    if (selectedInstruments.includes("ESCALA AVALIAÇÃO TDAH- ETDAH – PAIS")) {
+      testsResults.push({
+        id: "etdah",
+        title: "Escala de Avaliação de TDAH (ETDAH - Pais)",
+        objective:
+          "Mapeia os fatores de Regulação Emocional (RE), Hiperatividade-Impulsividade (HI), Comportamento Adaptativo (CA) e Atenção (A).",
+        tableHeaders: ["Fatores Avaliados", "Pontos Brutos", "Percentil", "Classificação Clínica"],
+        tableRows: [
+          ["Regulação Emocional (RE)", "37", "40", "Média Inferior (Preservado)"],
+          ["Hiperatividade-Impulsividade (HI)", "26", "20", "Inferior (Sem Hiperatividade)"],
+          ["Comportamento Adaptativo (CA)", "53", "65", "Média (Prejuízo Leve)"],
+          ["Atenção Sustentada (A)", "39", "65", "Média Superior (Prejuízo Significativo)"],
+          ["ESCORE GERAL", "155", "55", "Média"],
+        ],
+        interpretationText:
+          "Conclui-se que o paciente apresenta indicativos para Déficit de Atenção, com prejuízos na sustentação do esforço mental e organização adaptativa.",
+      })
+    }
+
+    if (selectedInstruments.includes("TESTE AUDIBILIZAÇÃO")) {
+      testsResults.push({
+        id: "audibilizacao",
+        title: "Teste de Audibilização",
+        objective: "Sonda a capacidade de audibilização e memória de trabalho em crianças em fase de alfabetização.",
+        tableHeaders: ["Subteste", "Pontuação", "Classificação"],
+        tableRows: [
+          ["Parte 1: Discriminação Fonética", "19", "Médio Inferior"],
+          ["Parte 2: Memória de Frases e Dígitos", "17", "Inferior"],
+          ["Memória para Figuras", "36", "Média Superior (Preservada)"],
+          ["TOTAL GERAL", "72", "Médio Inferior"],
+        ],
+        interpretationText:
+          "Apresenta dificuldades no reconhecimento e discriminação de sons da fala e memória imediata de dígitos, mantendo preservada a memória visual de longo prazo.",
+      })
+    }
+
+    if (selectedInstruments.includes("TAREFA BLOCO CUBO DE CORSI")) {
+      testsResults.push({
+        id: "corsi",
+        title: "Tarefa Blocos / Cubos de Corsi",
+        objective: "Avalia a memória visuoespacial de curto prazo (ordem direta) e funções executivas/planejamento (ordem indireta).",
+        tableHeaders: ["Modalidade", "Pontuação Padrão", "Classificação"],
+        tableRows: [
+          ["Ordem Direta (Memória de Curto Prazo)", "93", "Dentro da Média"],
+          ["Ordem Indireta (Memória Operacional/Trabalho)", "78", "Limítrofe / Abaixo da Média"],
+        ],
+        interpretationText:
+          "O paciente apresenta boa retenção passiva visuoespacial, porém demonstra lentificação e perda da sequência em tarefas de manipulação mental e ordem inversa.",
+      })
+    }
+
+    if (selectedInstruments.includes("TESTE TRILHAS PRÉ ESCOLARES A-B")) {
+      testsResults.push({
+        id: "trilhas",
+        title: "Teste de Trilhas Pré-Escolares (Partes A e B)",
+        objective: "Mede flexibilidade cognitiva, velocidade de processamento visual e atenção alternada.",
+        scoreCutoffText: "Trilha A: 48 segundos (Média) | Trilha B: 112 segundos (Percentil 25 - Abaixo da Média)",
+        interpretationText:
+          "Observa-se bom rastreio visual simples, mas presença de hesitação e alternância custosa ao intercalar duas categorias distintas (letras e números).",
+      })
+    }
+
+    if (selectedInstruments.includes("TESTE DE ATENÇÃO POR CANCELAMENTO TAC")) {
+      testsResults.push({
+        id: "tac",
+        title: "Teste de Atenção por Cancelamento (TAC)",
+        objective: "Avalia atenção seletiva sustentada e velocidade psicomotora.",
+        tableHeaders: ["Parte do Teste", "Acertos", "Erros/Omissões", "Classificação"],
+        tableRows: [
+          ["Parte 1 (Alvo Único)", "94%", "2 omissões", "Médio"],
+          ["Parte 2 (Alvo Duplo / Distratores)", "76%", "8 omissões", "Médio Inferior"],
+        ],
+        interpretationText:
+          "Declínio do rendimento ao longo do teste por fadiga atencional e aumento de omissões perante estímulos concorrentes.",
+      })
+    }
+
+    if (selectedInstruments.includes("INSTRUMENTO DE AVALIAÇÃO DE REPERTÓRIO BÁSICO PARA A ALFABETIZAÇÃO IAR")) {
+      testsResults.push({
+        id: "iar",
+        title: "Instrumento de Avaliação de Repertório Básico para Alfabetização (IAR)",
+        objective: "Avalia conceitos básicos, esquema corporal, discriminação visual/auditiva e coordenação visomotora.",
+        tableHeaders: ["Área", "Desempenho", "Status"],
+        tableRows: [
+          ["Conceitos Espaciais e Temporais", "Adequado", "Preservado"],
+          ["Discriminação Auditiva de Sons", "Defasado", "Atenção Necessária"],
+          ["Coordenação Visomotora Fina", "Adequado", "Preservado"],
+        ],
+        interpretationText: "Repertório geral satisfatório com necessidade de reforço em consciência fonológica.",
+      })
+    }
+
+    if (selectedInstruments.includes("TAREFA SPAN DE DIGITOS")) {
+      testsResults.push({
+        id: "span_digitos",
+        title: "Tarefa Span de Dígitos (Memória Operacional Auditiva)",
+        objective: "Avalia a capacidade de retenção imediata da alça fonológica da memória de trabalho (ordem direta) e a manipulação ativa da memória operacional (ordem inversa).",
+        tableHeaders: ["Modalidade", "Span Atingido", "Classificação Clínica"],
+        tableRows: [
+          ["Ordem Direta (Memória Imediata)", "5 dígitos", "Médio / Adequado"],
+          ["Ordem Inversa (Memória Operacional)", "3 dígitos", "Médio Inferior"],
+        ],
+        interpretationText: "Apresenta capacidade de retenção passiva auditiva dentro do esperado, com leve declínio quando exigida a reversão mental da sequência numérica.",
+      })
+    }
+
+    if (selectedInstruments.includes("PROTOCOLO DE OBSERVAÇÃO PSICOMOTORA (POP-TT)")) {
+      testsResults.push({
+        id: "pop_tt",
+        title: "Protocolo de Observação Psicomotora (POP-TT)",
+        objective: "Mapeia os fatores psicomotores essenciais para a aprendizagem escolar: tônus, equilíbrio, lateralidade, noção do corpo, estruturação espaço-temporal, praxia global e praxia fina.",
+        tableHeaders: ["Fator Psicomotor", "Pontuação", "Perfil / Desempenho"],
+        tableRows: [
+          ["Tônus e Equilíbrio", "Bom", "Preservado"],
+          ["Lateralidade e Noção de Corpo", "Definida", "Adequado"],
+          ["Estruturação Espaço-Temporal", "Regular", "Atenção Necessária"],
+          ["Praxia Global e Praxia Fina", "Bom", "Adequado"],
+        ],
+        interpretationText: "Apresenta perfil psicomotor global satisfatório, com necessidade de estimulação no planejamento espacial e organização gráfica no caderno.",
+      })
+    }
+
+    if (selectedInstruments.includes("ESCALA AVALIAÇÃO TDAH- ETDAH – CRIANÇA")) {
+      testsResults.push({
+        id: "etdah_crianca",
+        title: "Escala de Avaliação de TDAH (ETDAH - Criança)",
+        objective: "Autoavaliação do paciente quanto à sua percepção de atenção, impulsividade e dificuldades nas rotinas diárias e escolares.",
+        tableHeaders: ["Fator Avaliado", "Pontos Brutos", "Percentil", "Classificação"],
+        tableRows: [
+          ["Fator 1: Atenção e Foco", "32", "60", "Média"],
+          ["Fator 2: Hiperatividade/Impulsividade", "20", "25", "Inferior"],
+        ],
+        interpretationText: "A percepção da criança converge com os relatos familiares, reconhecendo dispersão ocasional sem percepção de agitação física acentuada.",
+      })
+    }
+
+    if (selectedInstruments.includes("TESTE DISCRIMINAÇÃO FONOLÓGICA")) {
+      testsResults.push({
+        id: "discriminacao_fonologica",
+        title: "Teste de Discriminação Fonológica",
+        objective: "Avalia a habilidade de diferenciar pares mínimos de fonemas da língua portuguesa essenciais para a alfabetização e ortografia.",
+        tableHeaders: ["Subteste", "Acertos", "Percentual", "Classificação"],
+        tableRows: [
+          ["Pares de Palavras Diferentes", "18/20", "90%", "Médio"],
+          ["Pares de Palavras Semelhantes / P-B, T-D, F-V", "14/20", "70%", "Médio Inferior"],
+        ],
+        interpretationText: "Identifica-se oscilação na discriminação de fonemas de ponto articulatório próximo (surdos/sonoros), demandando reforço na consciência fonológica.",
+      })
+    }
+
+    if (selectedInstruments.includes("TIN TESTE DE NOMEAÇÃO (VERSÃO REDUZIDA)")) {
+      testsResults.push({
+        id: "tin_nomeacao",
+        title: "Teste de Nomeação Rápida e Automática (TIN)",
+        objective: "Mede o acesso lexical, a velocidade de recuperação de informações fonológicas na memória de longo prazo e a fluência verbal.",
+        tableHeaders: ["Prancha / Estímulo", "Tempo de Execução", "Erros", "Classificação"],
+        tableRows: [
+          ["Nomeação de Figuras / Objetos", "38 seg", "1 erro", "Dentro da Média"],
+          ["Nomeação de Letras e Cores", "45 seg", "2 erros", "Média"],
+        ],
+        interpretationText: "Velocidade de processamento e acesso ao léxico preservados, permitindo bom fluxo na decodificação leitora.",
+      })
+    }
+
+    if (selectedInstruments.includes("QUESTIONÁRIO PARA TRIAGEM DE DISTÚRBIO DO PROCESSAMENTO AUDITIVO CENTRAL (DPAC)")) {
+      testsResults.push({
+        id: "dpac_triagem",
+        title: "Questionário de Rastreio de DPAC (Triagem Auditiva Central)",
+        objective: "Investiga comportamentos auditivos em ambientes ruidosos, compreensão de ordens verbais sequenciais e localização sonora.",
+        tableHeaders: ["Área Comportamental", "Pontuação", "Indicativo"],
+        tableRows: [
+          ["Audição em Ambiente Ruidoso", "Alta Frequência", "Indicativo de Dificuldade"],
+          ["Compreensão de Mensagens Rápidas", "Moderada", "Atenção Necessária"],
+          ["Memória Sequencial Auditiva", "Moderada", "Defasagem Leve"],
+        ],
+        interpretationText: "Apresenta sinais comportamentais sugestivos de alteração nas habilidades auditivas centrais, justificando encaminhamento para exame de PAC.",
+      })
+    }
+
+    if (selectedInstruments.includes("ESCALA DE AUTISMO VERSÃO INFANTIL 04 A 11 ANOS (AQ-10)")) {
+      testsResults.push({
+        id: "aq10",
+        title: "Escala de Rastreio do Espectro Autista Infantil (AQ-10)",
+        objective: "Rastreio breve de traços e características do espectro autista em crianças de 4 a 11 anos.",
+        tableHeaders: ["Instrumento", "Pontuação Obtida", "Ponto de Corte", "Classificação"],
+        tableRows: [
+          ["AQ-10 Versão Infantil", "03 pontos", "06 ou mais pontos", "Abaixo do Ponto de Corte (Sem Indicativos)"],
+        ],
+        interpretationText: "O escore obtido situou-se abaixo da nota de corte clínico de rastreio para o espectro autista.",
+      })
+    }
+
+    if (selectedInstruments.includes("EOCA - ENTREVISTA OPERATIVA CENTRADA NA APRENDIZAGEM")) {
+      testsResults.push({
+        id: "eoca",
+        title: "EOCA - Entrevista Operativa Centrada na Aprendizagem",
+        objective: "Observa a postura da criança frente ao material escolar, modalidade de aprendizagem (assimilativa/acomodativa), vínculo com o aprender e autonomia.",
+        tableHeaders: ["Aspecto Observado", "Manifestação Clínica"],
+        tableRows: [
+          ["Modalidade de Aprendizagem", "Predomínio de exploração lúdica com busca de mediação"],
+          ["Vínculo com o Objeto do Conhecimento", "Positivo, curioso, demonstrando receptividade"],
+          ["Organização do Espaço e Materiais", "Necessita de estruturação externa para ordenação"],
+        ],
+        interpretationText: "Apresenta boa disponibilidade afetiva para aprender, beneficiando-se significativamente de propostas organizadas e mediação encorajadora.",
+      })
+    }
+
+    if (selectedInstruments.includes("PROVAS OPERATÓRIAS DE JEAN PIAGET")) {
+      testsResults.push({
+        id: "provas_piaget",
+        title: "Provas Operatórias de Jean Piaget (Diagnóstico do Pensamento Lógico)",
+        objective: "Avalia a estrutura do pensamento cognitivo, conservação de quantidades (líquida, massa, comprimento), seriação e classificação.",
+        tableHeaders: ["Prova Aplicada", "Estágio Operatório Atingido", "Interpretação"],
+        tableRows: [
+          ["Conservação de Matéria / Massa", "Intermediário / Transição", "Em consolidação"],
+          ["Conservação de Líquidos", "Operatório Concreto", "Preservado"],
+          ["Seriação e Classificação", "Operatório Concreto", "Preservado"],
+        ],
+        interpretationText: "O paciente demonstra estruturas de pensamento lógico compatíveis com o estágio operatório concreto para a sua faixa etária.",
+      })
+    }
+
+    if (selectedInstruments.includes("TDE-II - TESTE DE DESEMPENHO ESCOLAR")) {
+      testsResults.push({
+        id: "tde2",
+        title: "TDE-II - Teste de Desempenho Escolar (2ª Edição)",
+        objective: "Avalia as habilidades acadêmicas fundamentais em três subtestes: Escrita (ortografia), Leitura (decodificação/fluência) e Aritmética (cálculo matemático).",
+        tableHeaders: ["Subteste", "Escore Bruto", "Percentil", "Classificação Normativa"],
+        tableRows: [
+          ["Subteste de Escrita", "24", "45", "Médio"],
+          ["Subteste de Aritmética", "28", "55", "Médio"],
+          ["Subteste de Leitura", "32", "40", "Médio Inferior"],
+          ["ESCORE TOTAL TDE-II", "84", "45", "Médio"],
+        ],
+        interpretationText: "Desempenho acadêmico global dentro do padrão médio, com maior oscilação no subteste de leitura decorrente de lapsos atencionais na decodificação.",
+      })
+    }
+
+    return testsResults
+  }
+
   async function handleDownloadWord() {
     setGeneratingDocx(true)
     try {
-      // Build test results
-      const testsResults: ReportTestResult[] = []
-
-      if (selectedInstruments.includes("SNAP-IV (PAIS E PROFESSORES)")) {
-        testsResults.push({
-          id: "snap4",
-          title: "Questionário SNAP-IV (Pais e Professores)",
-          objective:
-            "O Questionário SNAP-IV é um instrumento construído a partir dos critérios do DSM-5-TR para rastreio de sintomas de Desatenção, Hiperatividade/Impulsividade e Transtorno Opositor Desafiador.",
-          tableHeaders: ["Dimensão Avaliada", "Pontuação Família", "Pontuação Escola", "Interpretação"],
-          tableRows: [
-            ["Desatenção (Itens 1 a 9)", "07 pontos", "07 pontos", "Indicativo Significativo"],
-            ["Hiperatividade (Itens 10 a 18)", "04 pontos", "04 pontos", "Dentro do Esperado"],
-            ["Transtorno Opositor (Itens 19 a 26)", "01 ponto", "01 ponto", "Sem Indicativos"],
-          ],
-          scoreCutoffText: "Nota de corte: Acima de 6 pontos nas respostas 'bastante/demais' apresenta indicativo clínico.",
-          interpretationText:
-            "Segundo os questionários respondidos pela família e pela escola, os prejuízos de desatenção manifestam-se em ambos os ambientes, confirmando a pervasividade dos sintomas.",
-        })
-      }
-
-      if (selectedInstruments.includes("ESCALA CONNERS (PAIS E PROFESSORES)")) {
-        testsResults.push({
-          id: "conners",
-          title: "Escala Conners (Pais e Professores)",
-          objective:
-            "Avalia os fatores traçados no DSM-5-TR para sintomas de déficit de atenção e hiperatividade em crianças e adolescentes em múltiplos contextos.",
-          scoreCutoffText: "Versão Pais: 23 pontos (Corte: 58) | Versão Professores: 30 pontos (Corte: 64)",
-          interpretationText: "O paciente não ultrapassou os pontos de corte globais de hiperatividade motora na Escala Conners.",
-        })
-      }
-
-      if (selectedInstruments.includes("ESCALA AVALIAÇÃO TDAH- ETDAH – PAIS")) {
-        testsResults.push({
-          id: "etdah",
-          title: "Escala de Avaliação de TDAH (ETDAH - Pais)",
-          objective:
-            "Mapeia os fatores de Regulação Emocional (RE), Hiperatividade-Impulsividade (HI), Comportamento Adaptativo (CA) e Atenção (A).",
-          tableHeaders: ["Fatores Avaliados", "Pontos Brutos", "Percentil", "Classificação Clínica"],
-          tableRows: [
-            ["Regulação Emocional (RE)", "37", "40", "Média Inferior (Preservado)"],
-            ["Hiperatividade-Impulsividade (HI)", "26", "20", "Inferior (Sem Hiperatividade)"],
-            ["Comportamento Adaptativo (CA)", "53", "65", "Média (Prejuízo Leve)"],
-            ["Atenção Sustentada (A)", "39", "65", "Média Superior (Prejuízo Significativo)"],
-            ["ESCORE GERAL", "155", "55", "Média"],
-          ],
-          interpretationText:
-            "Conclui-se que o paciente apresenta indicativos para Déficit de Atenção, com prejuízos na sustentação do esforço mental e organização adaptativa.",
-        })
-      }
-
-      if (selectedInstruments.includes("TESTE AUDIBILIZAÇÃO")) {
-        testsResults.push({
-          id: "audibilizacao",
-          title: "Teste de Audibilização",
-          objective: "Sonda a capacidade de audibilização e memória de trabalho em crianças em fase de alfabetização.",
-          tableHeaders: ["Subteste", "Pontuação", "Classificação"],
-          tableRows: [
-            ["Parte 1: Discriminação Fonética", "19", "Médio Inferior"],
-            ["Parte 2: Memória de Frases e Dígitos", "17", "Inferior"],
-            ["Memória para Figuras", "36", "Média Superior (Preservada)"],
-            ["TOTAL GERAL", "72", "Médio Inferior"],
-          ],
-          interpretationText:
-            "Apresenta dificuldades no reconhecimento e discriminação de sons da fala e memória imediata de dígitos, mantendo preservada a memória visual de longo prazo.",
-        })
-      }
-
-      if (selectedInstruments.includes("TAREFA BLOCO CUBO DE CORSI")) {
-        testsResults.push({
-          id: "corsi",
-          title: "Tarefa Blocos / Cubos de Corsi",
-          objective: "Avalia a memória visuoespacial de curto prazo (ordem direta) e funções executivas/planejamento (ordem indireta).",
-          tableHeaders: ["Modalidade", "Pontuação Padrão", "Classificação"],
-          tableRows: [
-            ["Ordem Direta (Memória de Curto Prazo)", "93", "Dentro da Média"],
-            ["Ordem Indireta (Memória Operacional/Trabalho)", "78", "Limítrofe / Abaixo da Média"],
-          ],
-          interpretationText:
-            "O paciente apresenta boa retenção passiva visuoespacial, porém demonstra lentificação e perda da sequência em tarefas de manipulação mental e ordem inversa.",
-        })
-      }
-
-      if (selectedInstruments.includes("TESTE TRILHAS PRÉ ESCOLARES A-B")) {
-        testsResults.push({
-          id: "trilhas",
-          title: "Teste de Trilhas Pré-Escolares (Partes A e B)",
-          objective: "Mede flexibilidade cognitiva, velocidade de processamento visual e atenção alternada.",
-          scoreCutoffText: "Trilha A: 48 segundos (Média) | Trilha B: 112 segundos (Percentil 25 - Abaixo da Média)",
-          interpretationText:
-            "Observa-se bom rastreio visual simples, mas presença de hesitação e alternância custosa ao intercalar duas categorias distintas (letras e números).",
-        })
-      }
-
-      if (selectedInstruments.includes("TESTE DE ATENÇÃO POR CANCELAMENTO TAC")) {
-        testsResults.push({
-          id: "tac",
-          title: "Teste de Atenção por Cancelamento (TAC)",
-          objective: "Avalia atenção seletiva sustentada e velocidade psicomotora.",
-          tableHeaders: ["Parte do Teste", "Acertos", "Erros/Omissões", "Classificação"],
-          tableRows: [
-            ["Parte 1 (Alvo Único)", "94%", "2 omissões", "Médio"],
-            ["Parte 2 (Alvo Duplo / Distratores)", "76%", "8 omissões", "Médio Inferior"],
-          ],
-          interpretationText:
-            "Declínio do rendimento ao longo do teste por fadiga atencional e aumento de omissões perante estímulos concorrentes.",
-        })
-      }
-
-      if (selectedInstruments.includes("INSTRUMENTO DE AVALIAÇÃO DE REPERTÓRIO BÁSICO PARA A ALFABETIZAÇÃO IAR")) {
-        testsResults.push({
-          id: "iar",
-          title: "Instrumento de Avaliação de Repertório Básico para Alfabetização (IAR)",
-          objective: "Avalia conceitos básicos, esquema corporal, discriminação visual/auditiva e coordenação visomotora.",
-          tableHeaders: ["Área", "Desempenho", "Status"],
-          tableRows: [
-            ["Conceitos Espaciais e Temporais", "Adequado", "Preservado"],
-            ["Discriminação Auditiva de Sons", "Defasado", "Atenção Necessária"],
-            ["Coordenação Visomotora Fina", "Adequado", "Preservado"],
-          ],
-          interpretationText: "Repertório geral satisfatório com necessidade de reforço em consciência fonológica.",
-        })
-      }
-
-      if (selectedInstruments.includes("TAREFA SPAN DE DIGITOS")) {
-        testsResults.push({
-          id: "span_digitos",
-          title: "Tarefa Span de Dígitos (Memória Operacional Auditiva)",
-          objective: "Avalia a capacidade de retenção imediata da alça fonológica da memória de trabalho (ordem direta) e a manipulação ativa da memória operacional (ordem inversa).",
-          tableHeaders: ["Modalidade", "Span Atingido", "Classificação Clínica"],
-          tableRows: [
-            ["Ordem Direta (Memória Imediata)", "5 dígitos", "Médio / Adequado"],
-            ["Ordem Inversa (Memória Operacional)", "3 dígitos", "Médio Inferior"],
-          ],
-          interpretationText: "Apresenta capacidade de retenção passiva auditiva dentro do esperado, com leve declínio quando exigida a reversão mental da sequência numérica.",
-        })
-      }
-
-      if (selectedInstruments.includes("PROTOCOLO DE OBSERVAÇÃO PSICOMOTORA (POP-TT)")) {
-        testsResults.push({
-          id: "pop_tt",
-          title: "Protocolo de Observação Psicomotora (POP-TT)",
-          objective: "Mapeia os fatores psicomotores essenciais para a aprendizagem escolar: tônus, equilíbrio, lateralidade, noção do corpo, estruturação espaço-temporal, praxia global e praxia fina.",
-          tableHeaders: ["Fator Psicomotor", "Pontuação", "Perfil / Desempenho"],
-          tableRows: [
-            ["Tônus e Equilíbrio", "Bom", "Preservado"],
-            ["Lateralidade e Noção de Corpo", "Definida", "Adequado"],
-            ["Estruturação Espaço-Temporal", "Regular", "Atenção Necessária"],
-            ["Praxia Global e Praxia Fina", "Bom", "Adequado"],
-          ],
-          interpretationText: "Apresenta perfil psicomotor global satisfatório, com necessidade de estimulação no planejamento espacial e organização gráfica no caderno.",
-        })
-      }
-
-      if (selectedInstruments.includes("ESCALA AVALIAÇÃO TDAH- ETDAH – CRIANÇA")) {
-        testsResults.push({
-          id: "etdah_crianca",
-          title: "Escala de Avaliação de TDAH (ETDAH - Criança)",
-          objective: "Autoavaliação do paciente quanto à sua percepção de atenção, impulsividade e dificuldades nas rotinas diárias e escolares.",
-          tableHeaders: ["Fator Avaliado", "Pontos Brutos", "Percentil", "Classificação"],
-          tableRows: [
-            ["Fator 1: Atenção e Foco", "32", "60", "Média"],
-            ["Fator 2: Hiperatividade/Impulsividade", "20", "25", "Inferior"],
-          ],
-          interpretationText: "A percepção da criança converge com os relatos familiares, reconhecendo dispersão ocasional sem percepção de agitação física acentuada.",
-        })
-      }
-
-      if (selectedInstruments.includes("TESTE DISCRIMINAÇÃO FONOLÓGICA")) {
-        testsResults.push({
-          id: "discriminacao_fonologica",
-          title: "Teste de Discriminação Fonológica",
-          objective: "Avalia a habilidade de diferenciar pares mínimos de fonemas da língua portuguesa essenciais para a alfabetização e ortografia.",
-          tableHeaders: ["Subteste", "Acertos", "Percentual", "Classificação"],
-          tableRows: [
-            ["Pares de Palavras Diferentes", "18/20", "90%", "Médio"],
-            ["Pares de Palavras Semelhantes / P-B, T-D, F-V", "14/20", "70%", "Médio Inferior"],
-          ],
-          interpretationText: "Identifica-se oscilação na discriminação de fonemas de ponto articulatório próximo (surdos/sonoros), demandando reforço na consciência fonológica.",
-        })
-      }
-
-      if (selectedInstruments.includes("TIN TESTE DE NOMEAÇÃO (VERSÃO REDUZIDA)")) {
-        testsResults.push({
-          id: "tin_nomeacao",
-          title: "Teste de Nomeação Rápida e Automática (TIN)",
-          objective: "Mede o acesso lexical, a velocidade de recuperação de informações fonológicas na memória de longo prazo e a fluência verbal.",
-          tableHeaders: ["Prancha / Estímulo", "Tempo de Execução", "Erros", "Classificação"],
-          tableRows: [
-            ["Nomeação de Figuras / Objetos", "38 seg", "1 erro", "Dentro da Média"],
-            ["Nomeação de Letras e Cores", "45 seg", "2 erros", "Média"],
-          ],
-          interpretationText: "Velocidade de processamento e acesso ao léxico preservados, permitindo bom fluxo na decodificação leitora.",
-        })
-      }
-
-      if (selectedInstruments.includes("QUESTIONÁRIO PARA TRIAGEM DE DISTÚRBIO DO PROCESSAMENTO AUDITIVO CENTRAL (DPAC)")) {
-        testsResults.push({
-          id: "dpac_triagem",
-          title: "Questionário de Rastreio de DPAC (Triagem Auditiva Central)",
-          objective: "Investiga comportamentos auditivos em ambientes ruidosos, compreensão de ordens verbais sequenciais e localização sonora.",
-          tableHeaders: ["Área Comportamental", "Pontuação", "Indicativo"],
-          tableRows: [
-            ["Audição em Ambiente Ruidoso", "Alta Frequência", "Indicativo de Dificuldade"],
-            ["Compreensão de Mensagens Rápidas", "Moderada", "Atenção Necessária"],
-            ["Memória Sequencial Auditiva", "Moderada", "Defasagem Leve"],
-          ],
-          interpretationText: "Apresenta sinais comportamentais sugestivos de alteração nas habilidades auditivas centrais, justificando encaminhamento para exame de PAC.",
-        })
-      }
-
-      if (selectedInstruments.includes("ESCALA DE AUTISMO VERSÃO INFANTIL 04 A 11 ANOS (AQ-10)")) {
-        testsResults.push({
-          id: "aq10",
-          title: "Escala de Rastreio do Espectro Autista Infantil (AQ-10)",
-          objective: "Rastreio breve de traços e características do espectro autista em crianças de 4 a 11 anos.",
-          tableHeaders: ["Instrumento", "Pontuação Obtida", "Ponto de Corte", "Classificação"],
-          tableRows: [
-            ["AQ-10 Versão Infantil", "03 pontos", "06 ou mais pontos", "Abaixo do Ponto de Corte (Sem Indicativos)"],
-          ],
-          interpretationText: "O escore obtido situou-se abaixo da nota de corte clínico de rastreio para o espectro autista.",
-        })
-      }
-
-      if (selectedInstruments.includes("EOCA - ENTREVISTA OPERATIVA CENTRADA NA APRENDIZAGEM")) {
-        testsResults.push({
-          id: "eoca",
-          title: "EOCA - Entrevista Operativa Centrada na Aprendizagem",
-          objective: "Observa a postura da criança frente ao material escolar, modalidade de aprendizagem (assimilativa/acomodativa), vínculo com o aprender e autonomia.",
-          tableHeaders: ["Aspecto Observado", "Manifestação Clínica"],
-          tableRows: [
-            ["Modalidade de Aprendizagem", "Predomínio de exploração lúdica com busca de mediação"],
-            ["Vínculo com o Objeto do Conhecimento", "Positivo, curioso, demonstrando receptividade"],
-            ["Organização do Espaço e Materiais", "Necessita de estruturação externa para ordenação"],
-          ],
-          interpretationText: "Apresenta boa disponibilidade afetiva para aprender, beneficiando-se significativamente de propostas organizadas e mediação encorajadora.",
-        })
-      }
-
-      if (selectedInstruments.includes("PROVAS OPERATÓRIAS DE JEAN PIAGET")) {
-        testsResults.push({
-          id: "provas_piaget",
-          title: "Provas Operatórias de Jean Piaget (Diagnóstico do Pensamento Lógico)",
-          objective: "Avalia a estrutura do pensamento cognitivo, conservação de quantidades (líquida, massa, comprimento), seriação e classificação.",
-          tableHeaders: ["Prova Aplicada", "Estágio Operatório Atingido", "Interpretação"],
-          tableRows: [
-            ["Conservação de Matéria / Massa", "Intermediário / Transição", "Em consolidação"],
-            ["Conservação de Líquidos", "Operatório Concreto", "Preservado"],
-            ["Seriação e Classificação", "Operatório Concreto", "Preservado"],
-          ],
-          interpretationText: "O paciente demonstra estruturas de pensamento lógico compatíveis com o estágio operatório concreto para a sua faixa etária.",
-        })
-      }
-
-      if (selectedInstruments.includes("TDE-II - TESTE DE DESEMPENHO ESCOLAR")) {
-        testsResults.push({
-          id: "tde2",
-          title: "TDE-II - Teste de Desempenho Escolar (2ª Edição)",
-          objective: "Avalia as habilidades acadêmicas fundamentais em três subtestes: Escrita (ortografia), Leitura (decodificação/fluência) e Aritmética (cálculo matemático).",
-          tableHeaders: ["Subteste", "Escore Bruto", "Percentil", "Classificação Normativa"],
-          tableRows: [
-            ["Subteste de Escrita", "24", "45", "Médio"],
-            ["Subteste de Aritmética", "28", "55", "Médio"],
-            ["Subteste de Leitura", "32", "40", "Médio Inferior"],
-            ["ESCORE TOTAL TDE-II", "84", "45", "Médio"],
-          ],
-          interpretationText: "Desempenho acadêmico global dentro do padrão médio, com maior oscilação no subteste de leitura decorrente de lapsos atencionais na decodificação.",
-        })
-      }
-
-      const completeData: CompleteReportData = {
+      const testsResults = getGeneratedTestsResults()
+const completeData: CompleteReportData = {
         patient: {
           fullName: patientData.fullName || child.full_name,
           birthDate: patientData.birthDate,
@@ -804,14 +811,25 @@ export function ClinicalReportBuilderModal({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-4 py-2.5 rounded-2xl bg-white hover:bg-[#F8FAFB] text-[#0D2329] border-2 border-[#D8E5E7] hover:border-[#7C3AED] text-xs font-black flex items-center gap-2 transition-all shadow-2xs cursor-pointer shrink-0 ml-auto sm:ml-0"
+        <div className="flex items-center gap-2.5 ml-auto sm:ml-0 shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowPreviewModal(true)}
+            className="px-4 py-2.5 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] border-2 border-[#DDD6FE] hover:border-[#7C3AED] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+          >
+            <Eye className="w-4 h-4" />
+            <span>Visualizar Laudo</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onClose}
+          className="px-4 py-2.5 rounded-2xl bg-white hover:bg-[#F8FAFB] text-[#0D2329] border-2 border-[#D8E5E7] hover:border-[#7C3AED] text-xs font-black flex items-center gap-2 transition-all shadow-2xs cursor-pointer"
         >
           <X className="w-4 h-4 text-[#6B7C83]" />
           <span>Voltar aos Relatórios</span>
-        </button>
+          </button>
+        </div>
       </div>
 
       {/* Barra de Etapas / Abas do Relatório (Grid 5 Colunas Sem Scroll) */}
@@ -1396,6 +1414,15 @@ export function ClinicalReportBuilderModal({
         <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
           <button
             type="button"
+            onClick={() => setShowPreviewModal(true)}
+            className="px-4 py-2.5 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] border-2 border-[#DDD6FE] hover:border-[#7C3AED] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+          >
+            <Eye className="w-4 h-4" />
+            <span>Visualizar Laudo</span>
+          </button>
+
+          <button
+            type="button"
             disabled={savingToDatabase}
             onClick={handleSaveToSupabase}
             className="px-4 py-2.5 rounded-2xl bg-white hover:bg-[#F0FDF4] border-2 border-[#D8E5E7] hover:border-[#10B981] text-[#0D2329] text-xs font-black transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
@@ -1415,6 +1442,50 @@ export function ClinicalReportBuilderModal({
           </button>
         </div>
       </div>
+    
+      {/* Modal de Prévia Completa do Laudo */}
+      <ClinicalReportPreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        onDownloadDocx={handleDownloadWord}
+        patientData={patientData}
+        professionalData={{
+          professionalName: professional?.full_name || "Psicopedagoga Responsável",
+          cboOrCrp: professional?.crp || "2394-25",
+          clinicName: professional?.clinic_name || "",
+          clinicLogoUrl: (professional as any)?.clinic_logo_url || "",
+          logoUrl: professional?.logo_url || "",
+          address: professional?.address || "",
+          phone: professional?.phone || "",
+          city: professional?.city || "",
+          state: professional?.state || "",
+        }}
+        familyQuestions={familyQuestions.map((q) => ({
+          id: q.id,
+          num: q.num,
+          title: q.title,
+          answer: familyAnswers[q.id] || "",
+        }))}
+        schoolQuestions={schoolQuestions.map((q) => ({
+          id: q.id,
+          num: q.num,
+          title: q.title,
+          answer: schoolAnswers[q.id] || "",
+        }))}
+        schoolObserver={schoolObserver}
+        schoolTraits={schoolTraits}
+        selectedInstruments={selectedInstruments}
+        testsResults={getGeneratedTestsResults()}
+        clinicalObservation={clinicalObservation}
+        sessionsCount={sessionsCount}
+        synthesis={synthesis}
+        diagnosticHypothesis={diagnosticHypothesis}
+        dsm5Criteria={dsm5Criteria}
+        finalConsiderations={finalConsiderations}
+        referrals={referrals}
+        recommendationsFamily={recommendationsFamily}
+        recommendationsSchool={recommendationsSchool}
+      />
     </div>
   )
 }
