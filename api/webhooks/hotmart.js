@@ -198,6 +198,20 @@ export default async function handler(req, res) {
           }),
         })
 
+        // 3.1 Atualizar tag soberana no bio do profissional
+        await fetch(`${SUPABASE_URL}/rest/v1/professionals?id=eq.${masterUserId}`, {
+          method: "PATCH",
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            bio: `[PLAN:${planInfo.plan_id}:${newStatus}]`,
+            updated_at: new Date().toISOString(),
+          }),
+        })
+
         // 4. Log de auditoria
         await fetch(`${SUPABASE_URL}/rest/v1/subscription_events`, {
           method: "POST",
