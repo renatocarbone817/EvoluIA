@@ -566,7 +566,179 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
   }
 
   function handlePrintSchoolForm() {
-    window.print()
+    const printWin = window.open("", "_blank", "width=850,height=900")
+    if (!printWin) {
+      toast.error("Por favor, permita pop-ups no navegador para imprimir o questionário.")
+      return
+    }
+
+    const clinicTitle = professional?.clinic_name || "ESPAÇO MULTIDISCIPLINAR APRENDER ENSINANDO"
+    const profName = professional?.full_name || "Priscila Carbone"
+    const crpOrCbo = professional?.crp ? `CBO ${professional.crp}` : "CBO 2394-25"
+    const cityState = `${professional?.city || "Votuporanga"} - ${professional?.state || "SP"}`
+    const phone = professional?.phone || "(17) 99191-0452"
+    const email = professional?.email || "psicopedagogapriscilacarbone@gmail.com"
+    const address = professional?.address || "RUA BAHIA 3600 CENTRO VOTUPORANGA"
+
+    const questionsHtml = DEFAULT_SCHOOL_QUESTIONS.map(
+      (q) => `
+      <div style="margin-bottom: 20px; page-break-inside: avoid;">
+        <p style="font-size: 13px; font-weight: bold; color: #111827; margin: 0 0 6px 0;">
+          ${q.num}. ${q.title}
+        </p>
+        <div style="font-size: 12px; color: #222; min-height: 52px; border-bottom: 1px solid #777; padding-bottom: 4px; line-height: 22px;">
+          ${schoolAnswers[q.id] || '<div style="border-bottom: 1px solid #bbb; height: 22px;"></div><div style="border-bottom: 1px solid #bbb; height: 22px;"></div>'}
+        </div>
+      </div>
+    `
+    ).join("")
+
+    const traitsList = [
+      { key: "agressivo", label: "agressivo" },
+      { key: "passivo", label: "passivo" },
+      { key: "dependente", label: "dependente" },
+      { key: "medroso", label: "medroso" },
+      { key: "retraido", label: "retraído" },
+      { key: "melancolico", label: "melancólico" },
+      { key: "calmo", label: "calmo" },
+      { key: "desligado", label: "desligado" },
+      { key: "sem_limites", label: "sem limites" },
+      { key: "agitado", label: "agitado" },
+      { key: "depressivo", label: "depressivo" },
+      { key: "ressentido", label: "ressentido" },
+    ]
+
+    const traitsHtml = traitsList
+      .map(
+        (t) => `
+      <span style="display: inline-block; width: 23%; margin-bottom: 10px; font-size: 12px;">
+        (${schoolTraits[t.key] ? " <strong>X</strong> " : " &nbsp; "}) ${t.label}
+      </span>
+    `
+      )
+      .join("")
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="utf-8">
+        <title>Questionário de Visita Escolar - ${childName || "Paciente"}</title>
+        <style>
+          @page { size: A4; margin: 18mm 15mm 18mm 15mm; }
+          body {
+            font-family: Arial, sans-serif;
+            color: #111;
+            margin: 0;
+            padding: 15px;
+            background: #fff;
+          }
+          .header-banner {
+            background-color: #005B94;
+            color: #ffffff;
+            text-align: center;
+            padding: 12px 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+          }
+          .header-banner h1 { margin: 0; font-size: 15px; text-transform: uppercase; font-weight: bold; }
+          .header-banner h2 { margin: 4px 0 0; font-size: 12px; font-weight: normal; }
+          .title-section { text-align: center; margin-bottom: 18px; }
+          .title-section h3 { margin: 0; font-size: 14px; font-weight: bold; color: #005B94; text-transform: uppercase; }
+          .patient-box {
+            border: 1px solid #bbb;
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 12.5px;
+          }
+          .patient-box p { margin: 4px 0; }
+          .intro-box {
+            background: #f8fafb;
+            border-left: 4px solid #005B94;
+            padding: 10px 12px;
+            font-size: 11px;
+            line-height: 1.45;
+            color: #444;
+            margin-bottom: 20px;
+          }
+          .footer-signature {
+            margin-top: 30px;
+            page-break-inside: avoid;
+            font-size: 12px;
+          }
+          .footer-banner {
+            background-color: #005B94;
+            color: #ffffff;
+            text-align: center;
+            padding: 8px;
+            font-size: 10px;
+            margin-top: 25px;
+            border-radius: 4px;
+          }
+          @media print {
+            body { padding: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header-banner">
+          <h1>${clinicTitle}</h1>
+          <h2>PSICOPEDAGOGA ${profName.toUpperCase()} ${crpOrCbo}</h2>
+        </div>
+
+        <div class="title-section">
+          <h3>QUESTIONÁRIO VISITA PSICOPEDAGÓGICA NO ÂMBITO ESCOLAR</h3>
+        </div>
+
+        <div class="patient-box">
+          <p><strong>PACIENTE:</strong> ${childName || "_________________________________________________________"}</p>
+          <p><strong>ESCOLA:</strong> ${baseForm.school_name || "___________________________________________________________"}</p>
+        </div>
+
+        <div class="intro-box">
+          <strong>Prezado observador:</strong> ao responder o guia abaixo, relate de forma clara e com riqueza de detalhes todas as informações prestadas. Assim poderemos ter uma visão mais abrangente da situação do aluno. Por gentileza, registre seu nome e a sua relação com o aluno (se é professor, coordenador, diretor, etc).
+        </div>
+
+        <div>
+          ${questionsHtml}
+        </div>
+
+        <div style="margin-top: 20px; page-break-inside: avoid;">
+          <p style="font-size: 13px; font-weight: bold; color: #111827; margin-bottom: 8px;">
+            12. EM QUAL OU QUAIS DESSAS CARACTERÍSTICAS O ALUNO SE ENCAIXA?
+          </p>
+          <div style="padding: 10px; border: 1px solid #bbb; border-radius: 6px;">
+            ${traitsHtml}
+          </div>
+        </div>
+
+        <div class="footer-signature">
+          <p>${cityState}, _____ de ____________________ de 2026.</p>
+          <div style="margin-top: 25px;">
+            <p><strong>Observador / Disciplina / Cargo:</strong> ${schoolObserver.name ? `${schoolObserver.name} - ${schoolObserver.role}` : "________________________________________________________"}</p>
+            <p style="margin-top: 25px;"><strong>Assinatura do Observador:</strong> ________________________________________________________</p>
+          </div>
+        </div>
+
+        <div class="footer-banner">
+          ${address} · TEL: ${phone} · EMAIL: ${email}
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          };
+        </script>
+      </body>
+      </html>
+    `
+
+    printWin.document.open()
+    printWin.document.write(htmlContent)
+    printWin.document.close()
   }
 
   return (
