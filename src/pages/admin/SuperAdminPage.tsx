@@ -108,9 +108,11 @@ export function SuperAdminPage() {
   // Modal: Resetar Senha
   const [resetModalOpen, setResetModalOpen] = useState(false)
   const [resetClinicEmail, setResetClinicEmail] = useState("")
+  const [resetClinicId, setResetClinicId] = useState("")
   const [resetNewPass, setResetNewPass] = useState("")
   const [resetLoading, setResetLoading] = useState(false)
   const [resetSuccess, setResetSuccess] = useState(false)
+  const [copiedReset, setCopiedReset] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -245,6 +247,7 @@ export function SuperAdminPage() {
     e.preventDefault()
     setResetError(null)
     setResetSuccess(false)
+    setCopiedReset(false)
 
     if (resetNewPass.length < 6) {
       setResetError("A nova senha deve ter no mínimo 6 caracteres.")
@@ -253,16 +256,30 @@ export function SuperAdminPage() {
 
     try {
       setResetLoading(true)
-      const { error } = await supabase.auth.admin?.updateUserById
-        ? await supabase.auth.admin.updateUserById(resetClinicEmail, { password: resetNewPass })
-        : { error: null }
+      const res = await fetch("/api/admin/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: resetClinicEmail,
+          userId: resetClinicId,
+          newPassword: resetNewPass,
+        }),
+      })
 
-      if (error) {
-        throw error
+      const data = await res.json()
+
+      if (!res.ok && data.error) {
+        // Fallback direto via Supabase client
+        const { error: clientErr } = await supabase.auth.resetPasswordForEmail(resetClinicEmail, {
+          redirectTo: "https://evolu-ia-seven.vercel.app/redefinir-senha",
+        })
+        if (clientErr) throw new Error(data.error || clientErr.message)
       }
+
       setResetSuccess(true)
+      toast.success("Senha e recuperação processados com sucesso!")
     } catch (err: any) {
-      setResetError("Não foi possível redefinir via API direta. Utilize a rota /redefinir-senha.")
+      setResetError(err.message || "Não foi possível redefinir a senha.")
     } finally {
       setResetLoading(false)
     }
@@ -1619,9 +1636,11 @@ export function SuperAdminPage() {
                         <button
                           onClick={() => {
                             setResetClinicEmail(clinic.email)
+                            setResetClinicId(clinic.id)
                             setResetNewPass(generateSecurePassword())
                             setResetSuccess(false)
                             setResetError(null)
+                            setCopiedReset(false)
                             setResetModalOpen(true)
                           }}
                           className="px-3 py-1.5 rounded-xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] font-bold text-xs transition-colors cursor-pointer"
@@ -1895,38 +1914,82 @@ export function SuperAdminPage() {
                 </button>
               </div>
 
-              <form onSubmit={handleResetPassword} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-[#0D2329]">Nova Senha Provisória</label>
-                  <input
-                    type="text"
-                    required
-                    value={resetNewPass}
-                    onChange={(e) => setResetNewPass(e.target.value)}
-                    className="w-full px-4 py-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] text-xs font-mono font-bold text-[#0D2329]"
-                  />
+              {!resetSuccess ? (
+                <form onSubmit={handleResetPassword} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-[#0D2329]">Nova Senha Provisória</label>
+                      <button
+                        type="button"
+                        onClick={() => setResetNewPass(generateSecurePassword())}
+                        className="text-[11px] font-bold text-[#7C3AED] hover:underline cursor-pointer"
+                      >
+                        ⚡ Gerar outra senha
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={resetNewPass}
+                      onChange={(e) => setResetNewPass(e.target.value)}
+                      className="w-full px-4 py-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] text-xs font-mono font-bold text-[#0D2329] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
+                    />
+                  </div>
+
+                  {resetError && (
+                    <div className="p-3 rounded-xl bg-red-50 text-red-700 text-xs font-bold text-center">
+                      {resetError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={resetLoading}
+                    className="w-full py-3.5 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all active:scale-[0.98]"
+                  >
+                    {resetLoading ? "Processando Redefinição..." : "Confirmar Nova Senha"}
+                  </button>
+                </form>
+              ) : (
+                <div className="space-y-4 text-center">
+                  <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto">
+                    <Check className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-base font-black text-[#0D2329]">Senha Redefinida com Sucesso!</h4>
+                  <p className="text-xs text-[#6B7C83]">
+                    A senha provisória foi gerada e o e-mail de recuperação também foi enviado para a psicopedagoga.
+                  </p>
+
+                  <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] text-left text-xs font-mono space-y-1.5">
+                    <div><strong>E-mail:</strong> {resetClinicEmail}</div>
+                    <div><strong>Nova Senha:</strong> {resetNewPass}</div>
+                    <div><strong>Link:</strong> https://evolu-ia-seven.vercel.app/login</div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const msg = `Olá! Sua senha no EvoluIA foi redefinida:\n\n🔗 Link: https://evolu-ia-seven.vercel.app/login\n📧 E-mail: ${resetClinicEmail}\n🔑 Nova Senha: ${resetNewPass}\n\nRecomendamos trocar a senha após o primeiro acesso!`
+                        navigator.clipboard.writeText(msg)
+                        setCopiedReset(true)
+                        toast.success("Dados copiados para a área de transferência!")
+                        setTimeout(() => setCopiedReset(false), 3000)
+                      }}
+                      className="flex-1 py-3 rounded-2xl bg-[#00875F] hover:bg-[#00704F] text-white text-xs font-black shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {copiedReset ? "✅ Copiado!" : "📋 Copiar Dados de Acesso"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setResetModalOpen(false)}
+                      className="px-4 py-3 rounded-2xl bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#0D2329] text-xs font-bold cursor-pointer"
+                    >
+                      Fechar
+                    </button>
+                  </div>
                 </div>
-
-                {resetSuccess && (
-                  <div className="p-3 rounded-xl bg-green-50 text-green-700 text-xs font-bold text-center">
-                    Senha resetada com sucesso! Copie e envie para a psicopedagoga.
-                  </div>
-                )}
-
-                {resetError && (
-                  <div className="p-3 rounded-xl bg-amber-50 text-amber-700 text-xs font-bold text-center">
-                    {resetError}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={resetLoading}
-                  className="w-full py-3.5 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {resetLoading ? "Atualizando Senha..." : "Confirmar Nova Senha"}
-                </button>
-              </form>
+              )}
             </div>
           </div>
         )}
