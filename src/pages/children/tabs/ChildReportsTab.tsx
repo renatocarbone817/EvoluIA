@@ -350,6 +350,24 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
     )
   }
 
+  if (showClinicalModal) {
+    return (
+      <div className="space-y-6 animate-in fade-in">
+        <ClinicalReportBuilderModal
+          isOpen={true}
+          onClose={() => setShowClinicalModal(false)}
+          child={child}
+          reportId={activeReport?.id}
+          onSaved={() => {
+            loadReports()
+            loadExistingDocuments()
+            if (onReloadChild) onReloadChild()
+          }}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in">
       {/* CENÁRIO 1: A CRIANÇA AINDA NÃO POSSUI RELATÓRIO */}
@@ -894,19 +912,6 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
           </div>
         </div>
       )}
-
-      {/* MODAL DE CONSTRUÇÃO DO LAUDO COMPLETO (.DOCX) */}
-      <ClinicalReportBuilderModal
-        isOpen={showClinicalModal}
-        onClose={() => setShowClinicalModal(false)}
-        child={child}
-        reportId={activeReport?.id}
-        onSaved={() => {
-          loadReports()
-          loadExistingDocuments()
-          if (onReloadChild) onReloadChild()
-        }}
-      />
     </div>
   )
 }

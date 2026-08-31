@@ -556,37 +556,37 @@ export function ClinicalReportBuilderModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
-      <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-[1550px] w-full max-h-[94vh] flex flex-col shadow-2xl animate-in zoom-in-95">
-        {/* Header do Modal */}
-        <div className="p-5 sm:p-6 border-b border-[#EEF5F6] flex items-center justify-between bg-gradient-to-r from-[#F0FDF4] to-[#EDE9FE] rounded-t-3xl">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#6366F1] to-[#7C3AED] text-white flex items-center justify-center shadow-md font-bold">
-              <FileText className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-black text-[#0D2329]">
-                  Gerador de Laudo / Relatório Clínico (.docx)
-                </h2>
-                <span className="text-[10px] bg-white/80 border border-[#DDD6FE] text-[#7C3AED] font-black px-2.5 py-0.5 rounded-full">
-                  Padrão 20 Páginas · CBO 2394-25
-                </span>
-              </div>
-              <p className="text-xs font-semibold text-[#6B7C83]">
-                Paciente: <strong>{child.full_name}</strong> · Idade: <strong>{patientData.ageFormatted || "Calculando..."}</strong>
-              </p>
-            </div>
+    <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] w-full shadow-sm space-y-0 animate-in fade-in overflow-hidden">
+      {/* Header do Gerador */}
+      <div className="p-5 sm:p-6 border-b border-[#EEF5F6] flex items-center justify-between bg-gradient-to-r from-[#F0FDF4] to-[#EDE9FE] rounded-t-3xl gap-4 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#6366F1] to-[#7C3AED] text-white flex items-center justify-center shadow-md font-bold shrink-0">
+            <FileText className="w-6 h-6" />
           </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-9 h-9 rounded-full bg-white/80 hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-[#D8E5E7] flex items-center justify-center font-black transition-all shadow-2xs cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-base sm:text-lg font-black text-[#0D2329]">
+                Gerador de Laudo / Relatório Clínico (.docx)
+              </h2>
+              <span className="text-[10px] bg-white/80 border border-[#DDD6FE] text-[#7C3AED] font-black px-2.5 py-0.5 rounded-full">
+                Padrão 20 Páginas · CBO 2394-25
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-[#6B7C83]">
+              Paciente: <strong>{child.full_name}</strong> · Idade: <strong>{patientData.ageFormatted || "Calculando..."}</strong>
+            </p>
+          </div>
         </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2.5 rounded-2xl bg-white hover:bg-[#F8FAFB] text-[#0D2329] border-2 border-[#D8E5E7] hover:border-[#7C3AED] text-xs font-black flex items-center gap-2 transition-all shadow-2xs cursor-pointer shrink-0 ml-auto sm:ml-0"
+        >
+          <X className="w-4 h-4 text-[#6B7C83]" />
+          <span>Voltar aos Relatórios</span>
+        </button>
+      </div>
 
         {/* Barra de Etapas / Abas do Relatório (Grid 5 Colunas Sem Scroll) */}
         <div className="px-4 sm:px-6 py-2.5 bg-[#F8FAFB] border-b border-[#EEF5F6] grid grid-cols-2 md:grid-cols-5 gap-2">
@@ -1222,7 +1222,6 @@ export function ClinicalReportBuilderModal({
             </button>
           </div>
         </div>
-      </div>
     </div>
   )
 }
