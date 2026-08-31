@@ -777,6 +777,18 @@ export function AppointmentsPage() {
                         </button>
                       )}
 
+                      {!isBlock && appt.status !== "missed" && appt.status !== "done" && (
+                        <button
+                          type="button"
+                          onClick={() => setAbsenceModalAppt(appt)}
+                          className="h-9 px-3 rounded-2xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-black flex items-center justify-center gap-1 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                          title="Registrar Falta"
+                        >
+                          <AlertTriangle className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span>Falta</span>
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => handleStartAppointment(appt)}
@@ -1006,6 +1018,20 @@ export function AppointmentsPage() {
                                     <span className="text-xs font-black text-[#0D2329]">
                                       {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
                                     </span>
+                                    {!isBlock && appt.status !== "missed" && appt.status !== "done" && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          setAbsenceModalAppt(appt)
+                                        }}
+                                        className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-black flex items-center gap-1 active:scale-95 transition-all shadow-2xs"
+                                        title="Registrar Falta"
+                                      >
+                                        <AlertTriangle className="w-3 h-3 stroke-[2.5]" />
+                                        <span>Falta</span>
+                                      </button>
+                                    )}
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation()

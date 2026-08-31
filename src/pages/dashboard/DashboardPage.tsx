@@ -1759,6 +1759,19 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* =========================================================================
+          MODAL: REGISTRAR FALTA DO PACIENTE
+          ========================================================================= */}
+      <RecordAbsenceModal
+        open={Boolean(absenceModalAppt)}
+        appointment={absenceModalAppt}
+        onClose={() => setAbsenceModalAppt(null)}
+        onSuccess={() => {
+          setAbsenceModalAppt(null)
+          loadDashboardData()
+        }}
+      />
     </div>
   )
 }
