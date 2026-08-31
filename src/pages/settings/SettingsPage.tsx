@@ -51,6 +51,11 @@ import {
   EyeOff,
   UserPlus,
   ShieldAlert,
+  ArrowUp,
+  ArrowDown,
+  ListChecks,
+  RotateCcw,
+  School,
 } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -65,11 +70,20 @@ import {
   removeTeamMember,
 } from "@/lib/teamService"
 import { getSubscriptionDetails, type SubscriptionDetails } from "@/lib/subscriptionService"
+import {
+  getCustomFamilyQuestions,
+  saveCustomFamilyQuestions,
+  resetCustomFamilyQuestions,
+  getCustomSchoolQuestions,
+  saveCustomSchoolQuestions,
+  resetCustomSchoolQuestions,
+  type InterviewQuestionItem,
+} from "@/lib/customInterviewService"
 import type { AppointmentWithChild, Professional } from "@/types/database"
 import { ImageCropperModal } from "@/components/ui/ImageCropperModal"
 import toast from "react-hot-toast"
 
-type SettingsTab = "consultorio" | "equipe" | "agenda" | "notificacoes" | "integracoes"
+type SettingsTab = "consultorio" | "equipe" | "agenda" | "notificacoes" | "integracoes" | "entrevistas"
 
 interface DaySchedule {
   day: string
@@ -208,6 +222,137 @@ export function SettingsPage() {
   const [billingTemplate, setBillingTemplate] = useState<string>(() => {
     return localStorage.getItem("evoluia_billing_template") || DEFAULT_BILLING_TEMPLATE
   })
+
+  // Custom Interview Templates State
+  const [interviewSubTab, setInterviewSubTab] = useState<"family" | "school">("family")
+  const [familyQuestions, setFamilyQuestions] = useState<InterviewQuestionItem[]>(() =>
+    getCustomFamilyQuestions(profId)
+  )
+  const [schoolQuestions, setSchoolQuestions] = useState<InterviewQuestionItem[]>(() =>
+    getCustomSchoolQuestions(profId)
+  )
+  const [savingInterviews, setSavingInterviews] = useState(false)
+
+  // Re-sync when profId is available
+  useEffect(() => {
+    if (profId) {
+      setFamilyQuestions(getCustomFamilyQuestions(profId))
+      setSchoolQuestions(getCustomSchoolQuestions(profId))
+    }
+  }, [profId])
+
+  function handleAddFamilyQuestion() {
+    const nextNum = familyQuestions.length + 1
+    const newQ: InterviewQuestionItem = {
+      id: `custom_fam_${Date.now()}`,
+      num: nextNum,
+      title: "NOVA PERGUNTA PERSONALIZADA:",
+      placeholder: "Digite aqui a dica de preenchimento desta pergunta...",
+    }
+    setFamilyQuestions([...familyQuestions, newQ])
+  }
+
+  function handleUpdateFamilyQuestion(index: number, field: "title" | "placeholder", val: string) {
+    const next = [...familyQuestions]
+    next[index] = { ...next[index], [field]: val }
+    setFamilyQuestions(next)
+  }
+
+  function handleMoveFamilyQuestion(index: number, direction: "up" | "down") {
+    if (direction === "up" && index === 0) return
+    if (direction === "down" && index === familyQuestions.length - 1) return
+    const targetIdx = direction === "up" ? index - 1 : index + 1
+    const next = [...familyQuestions]
+    const temp = next[index]
+    next[index] = next[targetIdx]
+    next[targetIdx] = temp
+    setFamilyQuestions(next.map((q, idx) => ({ ...q, num: idx + 1 })))
+  }
+
+  function handleDeleteFamilyQuestion(index: number) {
+    if (familyQuestions.length <= 1) {
+      toast.error("Você deve manter pelo menos 1 pergunta no modelo.")
+      return
+    }
+    const next = familyQuestions.filter((_, i) => i !== index).map((q, idx) => ({ ...q, num: idx + 1 }))
+    setFamilyQuestions(next)
+    toast.success("Pergunta removida.")
+  }
+
+  function handleResetFamilyQuestions() {
+    if (!profId) return
+    const def = resetCustomFamilyQuestions(profId)
+    setFamilyQuestions(def)
+    toast.success("Anamnese Familiar restaurada para o modelo padrão oficial da Priscila!")
+  }
+
+  function handleSaveFamilyModel() {
+    if (!profId) return
+    setSavingInterviews(true)
+    try {
+      saveCustomFamilyQuestions(profId, familyQuestions)
+      toast.success("Modelo da Anamnese Familiar salvo com sucesso!", { icon: "💾" })
+    } finally {
+      setSavingInterviews(false)
+    }
+  }
+
+  // School Question Handlers
+  function handleAddSchoolQuestion() {
+    const nextNum = schoolQuestions.length + 1
+    const newQ: InterviewQuestionItem = {
+      id: `custom_school_${Date.now()}`,
+      num: nextNum,
+      title: "Nova pergunta para a escola:",
+      placeholder: "Digite aqui a dica de preenchimento para a professora...",
+    }
+    setSchoolQuestions([...schoolQuestions, newQ])
+  }
+
+  function handleUpdateSchoolQuestion(index: number, field: "title" | "placeholder", val: string) {
+    const next = [...schoolQuestions]
+    next[index] = { ...next[index], [field]: val }
+    setSchoolQuestions(next)
+  }
+
+  function handleMoveSchoolQuestion(index: number, direction: "up" | "down") {
+    if (direction === "up" && index === 0) return
+    if (direction === "down" && index === schoolQuestions.length - 1) return
+    const targetIdx = direction === "up" ? index - 1 : index + 1
+    const next = [...schoolQuestions]
+    const temp = next[index]
+    next[index] = next[targetIdx]
+    next[targetIdx] = temp
+    setSchoolQuestions(next.map((q, idx) => ({ ...q, num: idx + 1 })))
+  }
+
+  function handleDeleteSchoolQuestion(index: number) {
+    if (schoolQuestions.length <= 1) {
+      toast.error("Você deve manter pelo menos 1 pergunta no modelo.")
+      return
+    }
+    const next = schoolQuestions.filter((_, i) => i !== index).map((q, idx) => ({ ...q, num: idx + 1 }))
+    setSchoolQuestions(next)
+    toast.success("Pergunta removida.")
+  }
+
+  function handleResetSchoolQuestions() {
+    if (!profId) return
+    const def = resetCustomSchoolQuestions(profId)
+    setSchoolQuestions(def)
+    toast.success("Entrevista Escolar restaurada para o modelo padrão oficial da Priscila!")
+  }
+
+  function handleSaveSchoolModel() {
+    if (!profId) return
+    setSavingInterviews(true)
+    try {
+      saveCustomSchoolQuestions(profId, schoolQuestions)
+      toast.success("Modelo da Entrevista Escolar salvo com sucesso!", { icon: "🏫" })
+    } finally {
+      setSavingInterviews(false)
+    }
+  }
 
   // Cropper state
   const [cropperOpen, setCropperOpen] = useState(false)
@@ -656,6 +801,7 @@ export function SettingsPage() {
           {[
             { id: "consultorio", label: "Consultório, Perfil & PIX", shortLabel: "Perfil & PIX", icon: Building },
             ...(isMaster ? [{ id: "equipe", label: "Equipe & Acessos", shortLabel: "Equipe", icon: Users }] : []),
+            { id: "entrevistas", label: "Modelos de Entrevistas", shortLabel: "Entrevistas", icon: ListChecks },
             { id: "agenda", label: "Horários de Atendimento", shortLabel: "Horários", icon: Calendar },
             { id: "notificacoes", label: "Mensagens WhatsApp", shortLabel: "Mensagens", icon: MessageSquare },
             { id: "integracoes", label: "Google Agenda & Dados", shortLabel: "Google Agenda", icon: Globe },
@@ -2037,6 +2183,203 @@ export function SettingsPage() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 6: PERSONALIZAÇÃO DE MODELOS DE ENTREVISTAS & ANAMNESES
+          ========================================================================= */}
+      {activeTab === "entrevistas" && (
+        <div className="space-y-6 animate-in fade-in">
+          {/* Header Card */}
+          <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] border-2 border-[#DDD6FE] flex items-center justify-center shrink-0 shadow-2xs font-black">
+                <ListChecks className="w-6 h-6 stroke-[2.5]" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-black text-[#0D2329]">
+                  Personalização de Entrevistas & Anamneses
+                </h2>
+                <p className="text-xs font-semibold text-[#6B7C83]">
+                  Personalize o roteiro de perguntas do seu consultório. As alterações serão aplicadas em todas as crianças e na folha impressa.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <button
+                type="button"
+                onClick={interviewSubTab === "family" ? handleResetFamilyQuestions : handleResetSchoolQuestions}
+                className="px-4 py-2.5 rounded-xl bg-white hover:bg-[#FEF2F2] text-[#DC2626] border-2 border-[#FECACA] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs active:scale-95"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Restaurar Padrão Oficial</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={savingInterviews}
+                onClick={interviewSubTab === "family" ? handleSaveFamilyModel : handleSaveSchoolModel}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
+              >
+                <Save className="w-4 h-4 stroke-[2.5]" />
+                <span>{savingInterviews ? "Salvando..." : "Salvar Este Modelo"}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Sub-selector: Familiar vs Escolar */}
+          <div className="flex items-center gap-3 p-1.5 bg-[#F8FAFB] rounded-2xl border-2 border-[#D8E5E7] w-max">
+            <button
+              type="button"
+              onClick={() => setInterviewSubTab("family")}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+                interviewSubTab === "family"
+                  ? "bg-[#7C3AED] text-white shadow-xs"
+                  : "bg-white text-[#6B7C83] hover:text-[#0D2329] border border-[#D8E5E7]"
+              }`}
+            >
+              <User className="w-4 h-4" />
+              <span>👨‍👩‍👧 Anamnese Familiar ({familyQuestions.length} perguntas)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setInterviewSubTab("school")}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+                interviewSubTab === "school"
+                  ? "bg-[#0284C7] text-white shadow-xs"
+                  : "bg-white text-[#6B7C83] hover:text-[#0D2329] border border-[#D8E5E7]"
+              }`}
+            >
+              <School className="w-4 h-4" />
+              <span>🏫 Entrevista Escolar ({schoolQuestions.length} perguntas)</span>
+            </button>
+          </div>
+
+          {/* Questions List Editor */}
+          <div className="space-y-4">
+            {(interviewSubTab === "family" ? familyQuestions : schoolQuestions).map((q, idx) => (
+              <div
+                key={q.id}
+                className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-xs space-y-3 hover:border-[#7C3AED]/50 transition-all group"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-xl bg-[#EDE9FE] text-[#7C3AED] font-black text-xs flex items-center justify-center shadow-2xs">
+                      {idx + 1}
+                    </span>
+                    <span className="text-xs font-black uppercase tracking-wider text-[#6B7C83]">
+                      Pergunta #{idx + 1}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={idx === 0}
+                      onClick={() =>
+                        interviewSubTab === "family"
+                          ? handleMoveFamilyQuestion(idx, "up")
+                          : handleMoveSchoolQuestion(idx, "up")
+                      }
+                      title="Mover para cima"
+                      className="p-1.5 rounded-lg bg-[#F8FAFB] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] border border-[#D8E5E7] disabled:opacity-30 disabled:hover:bg-[#F8FAFB]"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={
+                        idx ===
+                        (interviewSubTab === "family" ? familyQuestions.length - 1 : schoolQuestions.length - 1)
+                      }
+                      onClick={() =>
+                        interviewSubTab === "family"
+                          ? handleMoveFamilyQuestion(idx, "down")
+                          : handleMoveSchoolQuestion(idx, "down")
+                      }
+                      title="Mover para baixo"
+                      className="p-1.5 rounded-lg bg-[#F8FAFB] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] border border-[#D8E5E7] disabled:opacity-30 disabled:hover:bg-[#F8FAFB]"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        interviewSubTab === "family"
+                          ? handleDeleteFamilyQuestion(idx)
+                          : handleDeleteSchoolQuestion(idx)
+                      }
+                      title="Remover pergunta"
+                      className="p-1.5 rounded-lg bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#DC2626] border border-[#FECACA] ml-1"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-[11px] font-black text-[#0D2329] uppercase tracking-wide">
+                      Título / Enunciado da Pergunta
+                    </label>
+                    <input
+                      type="text"
+                      value={q.title}
+                      onChange={(e) =>
+                        interviewSubTab === "family"
+                          ? handleUpdateFamilyQuestion(idx, "title", e.target.value)
+                          : handleUpdateSchoolQuestion(idx, "title", e.target.value)
+                      }
+                      className="w-full mt-1 px-3.5 py-2.5 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white focus:outline-none focus:border-[#7C3AED] text-[#0D2329] transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-black text-[#6B7C83]">
+                      Dica de Preenchimento / Placeholder (opcional)
+                    </label>
+                    <input
+                      type="text"
+                      value={q.placeholder}
+                      onChange={(e) =>
+                        interviewSubTab === "family"
+                          ? handleUpdateFamilyQuestion(idx, "placeholder", e.target.value)
+                          : handleUpdateSchoolQuestion(idx, "placeholder", e.target.value)
+                      }
+                      className="w-full mt-1 px-3.5 py-2 text-xs font-medium rounded-xl border border-[#D8E5E7] bg-white text-[#6B7C83] focus:text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom Action Bar */}
+          <div className="p-5 rounded-3xl bg-[#F8FAFB] border-2 border-dashed border-[#D8E5E7] flex flex-col sm:flex-row items-center justify-between gap-4">
+            <button
+              type="button"
+              onClick={interviewSubTab === "family" ? handleAddFamilyQuestion : handleAddSchoolQuestion}
+              className="px-5 py-3 rounded-2xl bg-white hover:bg-[#EDE9FE] border-2 border-[#D8E5E7] hover:border-[#7C3AED] text-[#0D2329] text-xs font-black flex items-center gap-2 shadow-2xs active:scale-95 transition-all w-full sm:w-auto justify-center"
+            >
+              <Plus className="w-4 h-4 text-[#7C3AED] stroke-[3]" />
+              <span>+ Adicionar Nova Pergunta ao Modelo</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={savingInterviews}
+              onClick={interviewSubTab === "family" ? handleSaveFamilyModel : handleSaveSchoolModel}
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-md active:scale-95 transition-all w-full sm:w-auto justify-center cursor-pointer"
+            >
+              <Save className="w-4 h-4 stroke-[2.5]" />
+              <span>{savingInterviews ? "Salvando..." : "Salvar Meu Modelo Personalizado"}</span>
+            </button>
           </div>
         </div>
       )}

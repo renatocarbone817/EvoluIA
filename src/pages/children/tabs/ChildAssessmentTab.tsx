@@ -30,161 +30,20 @@ import { Input, Textarea } from "@/components/ui/Input"
 import { formatDate } from "@/lib/utils"
 import toast from "react-hot-toast"
 import type { InitialAssessment } from "@/types/database"
+import {
+  getCustomFamilyQuestions,
+  getCustomSchoolQuestions,
+  DEFAULT_FAMILY_QUESTIONS as DEFAULT_ASSESSMENT_QUESTIONS,
+  DEFAULT_SCHOOL_QUESTIONS,
+  type InterviewQuestionItem,
+} from "@/lib/customInterviewService"
+
+export { DEFAULT_ASSESSMENT_QUESTIONS, DEFAULT_SCHOOL_QUESTIONS }
 
 interface ChildAssessmentTabProps {
   childId: string
   childName?: string
 }
-
-export const DEFAULT_ASSESSMENT_QUESTIONS = [
-  {
-    id: "q1",
-    num: 1,
-    title: "QUEIXA LIVRE: EM QUE POSSO AJUDÁ-LOS? OU O QUE OS TROUXE ATÉ AQUI?",
-    placeholder: "Relato livre dos pais sobre a queixa principal...",
-  },
-  {
-    id: "q2",
-    num: 2,
-    title: "QUANDO COMEÇOU O PROBLEMA?",
-    placeholder: "Quando os pais ou a escola começaram a notar as primeiras dificuldades...",
-  },
-  {
-    id: "q3",
-    num: 3,
-    title: "COMO VOCÊS SE SENTEM DIANTE DESSA DIFICULDADE?",
-    placeholder: "Sentimentos da família, angústias, expectativas...",
-  },
-  {
-    id: "q4",
-    num: 4,
-    title: "O QUE A ESCOLA RELATA SOBRE ESSA DIFICULDADE?",
-    placeholder: "Parecer da professora, coordenação ou relatórios escolares...",
-  },
-  {
-    id: "q5",
-    num: 5,
-    title: "EM CASA, COMO É ESSA DIFICULDADE RELATADA PELA ESCOLA?",
-    placeholder: "Percepção dos pais sobre as mesmas dificuldades no ambiente familiar...",
-  },
-  {
-    id: "q6",
-    num: 6,
-    title: "FALE-ME EM DETALHES COMO É A ROTINA DE SEU FILHO DESDE A HORA DE ACORDAR ATÉ A HORA DE DORMIR, DURANTE UMA SEMANA.",
-    placeholder: "Horários de acordar, escola, alimentação, telas, brincadeiras e sono...",
-  },
-  {
-    id: "q7",
-    num: 7,
-    title: "COMO ELE SE COMPORTA AO FAZER AS LIÇÕES DE CASA?",
-    placeholder: "Autonomia, frustração, tempo gasto, necessidade de auxílio...",
-  },
-  {
-    id: "q8",
-    num: 8,
-    title: "E COMO VOCÊS REAGEM A ESSE COMPORTAMENTO?",
-    placeholder: "Paciência, conflitos, estratégias que a família adota...",
-  },
-  {
-    id: "q9",
-    num: 9,
-    title: "EXISTE OUTRO PROBLEMA ALÉM DESSE?",
-    placeholder: "Questões de saúde, emocionais, relacionamento social, histórico familiar...",
-  },
-  {
-    id: "q10",
-    num: 10,
-    title: "QUAIS AS QUALIDADES DE SEU FILHO?",
-    placeholder: "Pontos fortes, habilidades, interesses, do que ele mais gosta...",
-  },
-  {
-    id: "q11",
-    num: 11,
-    title: "TEM OUTROS FILHOS? COMO ELES SÃO?",
-    placeholder: "Irmãos, idades, dinâmica entre eles, comparação de desenvolvimento...",
-  },
-  {
-    id: "q12",
-    num: 12,
-    title: "O QUE VOCÊS ESPERAM DE MIM E DO MEU TRABALHO?",
-    placeholder: "Expectativas da família com o acompanhamento psicopedagógico...",
-  },
-  {
-    id: "q13",
-    num: 13,
-    title: "GOSTARIAM DE ACRESCENTAR ALGO?",
-    placeholder: "Outras informações relevantes trazidas na entrevista inicial...",
-  },
-]
-
-export const DEFAULT_SCHOOL_QUESTIONS = [
-  {
-    id: "sq1",
-    num: 1,
-    title: "COMO É O DESENVOLVIMENTO DO ALUNO NA SALA DE AULA?",
-    placeholder: "Descreva o ritmo de aprendizagem, participação e realização das propostas...",
-  },
-  {
-    id: "sq2",
-    num: 2,
-    title: "COMO É O COMPORTAMENTO DO ALUNO NA SALA DE AULA?",
-    placeholder: "Relacionamento com a professora e colegas, respeito às regras da sala...",
-  },
-  {
-    id: "sq3",
-    num: 3,
-    title: "QUAIS AS PRINCIPAIS DIFICULDADES APRESENTADAS PELO ALUNO?",
-    placeholder: "Leitura, escrita, matemática, raciocínio lógico, foco ou atenção...",
-  },
-  {
-    id: "sq4",
-    num: 4,
-    title: "QUAIS AS SUAS CARACTERÍSTICAS QUANTO À APRENDIZAGEM E ASSIMILAÇÃO DE CONTEÚDOS?",
-    placeholder: "Dificuldade na memorização, fixação de sílabas, compreensão de instruções...",
-  },
-  {
-    id: "sq5",
-    num: 5,
-    title: "FAZ AS ATIVIDADES ESCOLARES EM SALA?",
-    placeholder: "Conclui no tempo esperado, necessita de cobrança constante, desiste fácil...",
-  },
-  {
-    id: "sq6",
-    num: 6,
-    title: "FAZ AS ATIVIDADES PARA CASA?",
-    placeholder: "Traz os deveres feitos com regularidade, esquece os cadernos...",
-  },
-  {
-    id: "sq7",
-    num: 7,
-    title: "COMO REAGE QUANDO É CONTRARIADO?",
-    placeholder: "Aceita correções, chora, fecha a cara, reage com agressividade ou passividade...",
-  },
-  {
-    id: "sq8",
-    num: 8,
-    title: "TEM DIFICULDADE DE TRABALHAR EM GRUPO? COMO SE MANIFESTA ESTA DIFICULDADE?",
-    placeholder: "Isola-se, quer impor suas ideias, colabora bem com os colegas...",
-  },
-  {
-    id: "sq9",
-    num: 9,
-    title: "TEM DIFICULDADE EM ORGANIZAR SUAS TAREFAS E ATIVIDADES PESSOAIS?",
-    placeholder: "Organização da mochila, estojo, caderno de recados, cuidar dos seus pertences...",
-  },
-  {
-    id: "sq10",
-    num: 10,
-    title: "OS COLEGAS DA TURMA O EVITAM?",
-    placeholder: "É aceito no recreio e nos jogos, sofre rejeição ou prefere ficar sozinho...",
-  },
-  {
-    id: "sq11",
-    num: 11,
-    title: "RELATE QUALQUER INFORMAÇÃO QUE NÃO TENHA SIDO ABORDADA OU QUE JULGUE IMPORTANTE:",
-    placeholder: "Outras observações pedagógicas ou comportamentais relevantes...",
-  },
-]
 
 function parseInlineMarkdown(text: string) {
   const clean = text.replace(/^`+|`+$/g, "")
@@ -333,6 +192,8 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
   })
 
   const profId = professional?.id || user?.id
+  const familyQuestionsList = useMemo(() => getCustomFamilyQuestions(profId), [profId])
+  const schoolQuestionsList = useMemo(() => getCustomSchoolQuestions(profId), [profId])
 
   useEffect(() => {
     loadAssessmentData()
@@ -608,6 +469,32 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
       )
       .join("")
 
+    const halfIndex = Math.min(6, Math.ceil(schoolQuestionsList.length / 2))
+    const page1Questions = schoolQuestionsList.slice(0, halfIndex)
+    const page2Questions = schoolQuestionsList.slice(halfIndex)
+
+    const page1QuestionsHtml = page1Questions
+      .map(
+        (q) => `
+        <div class="question-block">
+          <p class="question-title">${q.num}. ${q.title}</p>
+          ${schoolAnswers[q.id] ? `<div class="answer-text">${schoolAnswers[q.id]}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
+        </div>
+      `
+      )
+      .join("")
+
+    const page2QuestionsHtml = page2Questions
+      .map(
+        (q) => `
+        <div class="question-block">
+          <p class="question-title">${q.num}. ${q.title}</p>
+          ${schoolAnswers[q.id] ? `<div class="answer-text">${schoolAnswers[q.id]}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
+        </div>
+      `
+      )
+      .join("")
+
     const htmlContent = `
       <!DOCTYPE html>
       <html lang="pt-BR">
@@ -767,41 +654,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
               <strong>Prezado observador:</strong> Ao responder este guia, relate com riqueza de detalhes as informações observadas. Por gentileza, registre seu nome e cargo (professor, coordenador, diretor, etc).
             </div>
 
-            <!-- P1 -->
-            <div class="question-block">
-              <p class="question-title">1. Como é o desenvolvimento do aluno na sala de aula?</p>
-              ${schoolAnswers.sq1 ? `<div class="answer-text">${schoolAnswers.sq1}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
-            </div>
-
-            <!-- P2 -->
-            <div class="question-block">
-              <p class="question-title">2. Como é o comportamento do aluno na sala de aula?</p>
-              ${schoolAnswers.sq2 ? `<div class="answer-text">${schoolAnswers.sq2}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
-            </div>
-
-            <!-- P3 -->
-            <div class="question-block">
-              <p class="question-title">3. Quais as principais dificuldades apresentadas pelo aluno?</p>
-              ${schoolAnswers.sq3 ? `<div class="answer-text">${schoolAnswers.sq3}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
-            </div>
-
-            <!-- P4 -->
-            <div class="question-block">
-              <p class="question-title">4. Quais as suas características quanto à aprendizagem e assimilação de conteúdos?</p>
-              ${schoolAnswers.sq4 ? `<div class="answer-text">${schoolAnswers.sq4}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
-            </div>
-
-            <!-- P5 & P6 em Linhas Práticas -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px;">
-              <div class="question-block">
-                <p class="question-title">5. Faz as atividades escolares?</p>
-                ${schoolAnswers.sq5 ? `<div class="answer-text">${schoolAnswers.sq5}</div>` : `<div class="write-line"></div><div class="write-line"></div>`}
-              </div>
-              <div class="question-block">
-                <p class="question-title">6. Faz as atividades para casa?</p>
-                ${schoolAnswers.sq6 ? `<div class="answer-text">${schoolAnswers.sq6}</div>` : `<div class="write-line"></div><div class="write-line"></div>`}
-              </div>
-            </div>
+            ${page1QuestionsHtml}
           </div>
 
           <div class="footer-banner">
@@ -819,33 +672,11 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
               <h2>PSICOPEDAGOGA ${profName.toUpperCase()} ${crpOrCbo} — AVALIAÇÃO ESCOLAR (CONTINUAÇÃO)</h2>
             </div>
 
-            <!-- P7 -->
-            <div class="question-block">
-              <p class="question-title">7. Como reage quando é contrariado?</p>
-              ${schoolAnswers.sq7 ? `<div class="answer-text">${schoolAnswers.sq7}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
-            </div>
+            ${page2QuestionsHtml}
 
-            <!-- P8 -->
-            <div class="question-block">
-              <p class="question-title">8. Tem dificuldade de trabalhar em grupo? Como se manifesta esta dificuldade?</p>
-              ${schoolAnswers.sq8 ? `<div class="answer-text">${schoolAnswers.sq8}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
-            </div>
-
-            <!-- P9 -->
-            <div class="question-block">
-              <p class="question-title">9. Tem dificuldade em organizar suas tarefas e atividades pessoais?</p>
-              ${schoolAnswers.sq9 ? `<div class="answer-text">${schoolAnswers.sq9}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
-            </div>
-
-            <!-- P10 -->
-            <div class="question-block">
-              <p class="question-title">10. Os colegas da turma o evitam?</p>
-              ${schoolAnswers.sq10 ? `<div class="answer-text">${schoolAnswers.sq10}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
-            </div>
-
-            <!-- P11 Checklist -->
+            <!-- Checklist -->
             <div class="question-block" style="margin-top: 6px;">
-              <p class="question-title">11. Em qual ou quais dessas características o aluno se encaixa?</p>
+              <p class="question-title">Em qual ou quais dessas características o aluno se encaixa?</p>
               <div class="checklist-box">
                 ${traitsHtml}
               </div>
@@ -854,12 +685,6 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
                 <div class="write-line"></div>
                 <div class="write-line"></div>
               </div>
-            </div>
-
-            <!-- P12 Outras Informações -->
-            <div class="question-block" style="margin-top: 8px;">
-              <p class="question-title">12. Relate qualquer informação que não tenha sido abordada ou que julgue importante:</p>
-              ${schoolAnswers.sq11 ? `<div class="answer-text">${schoolAnswers.sq11}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
             </div>
 
             <!-- Assinatura & Data -->
@@ -989,9 +814,9 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
             </div>
           </div>
 
-          {/* As 13 Perguntas */}
+          {/* Perguntas da Anamnese Familiar */}
           <div className="space-y-4">
-            {DEFAULT_ASSESSMENT_QUESTIONS.map((q) => (
+            {familyQuestionsList.map((q) => (
               <div key={q.id} className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] space-y-2 shadow-xs">
                 <label className="text-xs font-black text-[#0D2329] flex items-start gap-2">
                   <span className="w-5 h-5 rounded-lg bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 text-[11px] font-black">
@@ -1131,9 +956,9 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
             </div>
           </div>
 
-          {/* As 11 Perguntas da Priscila */}
+          {/* Perguntas da Visita Escolar */}
           <div className="space-y-4">
-            {DEFAULT_SCHOOL_QUESTIONS.map((q) => (
+            {schoolQuestionsList.map((q) => (
               <div key={q.id} className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] space-y-2 shadow-xs">
                 <label className="text-xs font-black text-[#0D2329] flex items-start gap-2">
                   <span className="w-5 h-5 rounded-lg bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center shrink-0 text-[11px] font-black">
