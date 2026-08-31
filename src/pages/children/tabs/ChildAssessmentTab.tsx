@@ -769,36 +769,36 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
             <!-- P1 -->
             <div class="question-block">
               <p class="question-title">1. Como é o desenvolvimento do aluno na sala de aula?</p>
-              ${schoolAnswers.sq1 ? `<div class="answer-text">${schoolAnswers.sq1}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
+              ${schoolAnswers.sq1 ? `<div class="answer-text">${schoolAnswers.sq1}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
             </div>
 
             <!-- P2 -->
             <div class="question-block">
               <p class="question-title">2. Como é o comportamento do aluno na sala de aula?</p>
-              ${schoolAnswers.sq2 ? `<div class="answer-text">${schoolAnswers.sq2}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
+              ${schoolAnswers.sq2 ? `<div class="answer-text">${schoolAnswers.sq2}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
             </div>
 
             <!-- P3 -->
             <div class="question-block">
               <p class="question-title">3. Quais as principais dificuldades apresentadas pelo aluno?</p>
-              ${schoolAnswers.sq3 ? `<div class="answer-text">${schoolAnswers.sq3}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
+              ${schoolAnswers.sq3 ? `<div class="answer-text">${schoolAnswers.sq3}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
             </div>
 
             <!-- P4 -->
             <div class="question-block">
               <p class="question-title">4. Quais as suas características quanto à aprendizagem e assimilação de conteúdos?</p>
-              ${schoolAnswers.sq4 ? `<div class="answer-text">${schoolAnswers.sq4}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
+              ${schoolAnswers.sq4 ? `<div class="answer-text">${schoolAnswers.sq4}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
             </div>
 
             <!-- P5 & P6 em Linhas Práticas -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px;">
               <div class="question-block">
                 <p class="question-title">5. Faz as atividades escolares?</p>
-                ${schoolAnswers.sq5 ? `<div class="answer-text">${schoolAnswers.sq5}</div>` : `<div class="write-line"></div>`}
+                ${schoolAnswers.sq5 ? `<div class="answer-text">${schoolAnswers.sq5}</div>` : `<div class="write-line"></div><div class="write-line"></div>`}
               </div>
               <div class="question-block">
                 <p class="question-title">6. Faz as atividades para casa?</p>
-                ${schoolAnswers.sq6 ? `<div class="answer-text">${schoolAnswers.sq6}</div>` : `<div class="write-line"></div>`}
+                ${schoolAnswers.sq6 ? `<div class="answer-text">${schoolAnswers.sq6}</div>` : `<div class="write-line"></div><div class="write-line"></div>`}
               </div>
             </div>
           </div>
@@ -821,48 +821,53 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
             <!-- P7 -->
             <div class="question-block">
               <p class="question-title">7. Como reage quando é contrariado?</p>
-              ${schoolAnswers.sq7 ? `<div class="answer-text">${schoolAnswers.sq7}</div>` : `<div class="write-line"></div><div class="write-line"></div>`}
+              ${schoolAnswers.sq7 ? `<div class="answer-text">${schoolAnswers.sq7}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
             </div>
 
             <!-- P8 -->
             <div class="question-block">
               <p class="question-title">8. Tem dificuldade de trabalhar em grupo? Como se manifesta esta dificuldade?</p>
-              ${schoolAnswers.sq8 ? `<div class="answer-text">${schoolAnswers.sq8}</div>` : `<div class="write-line"></div><div class="write-line"></div>`}
+              ${schoolAnswers.sq8 ? `<div class="answer-text">${schoolAnswers.sq8}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
             </div>
 
             <!-- P9 -->
             <div class="question-block">
               <p class="question-title">9. Tem dificuldade em organizar suas tarefas e atividades pessoais?</p>
-              ${schoolAnswers.sq9 ? `<div class="answer-text">${schoolAnswers.sq9}</div>` : `<div class="write-line"></div><div class="write-line"></div>`}
+              ${schoolAnswers.sq9 ? `<div class="answer-text">${schoolAnswers.sq9}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
             </div>
 
             <!-- P10 -->
             <div class="question-block">
               <p class="question-title">10. Os colegas da turma o evitam?</p>
-              ${schoolAnswers.sq10 ? `<div class="answer-text">${schoolAnswers.sq10}</div>` : `<div class="write-line"></div><div class="write-line"></div>`}
+              ${schoolAnswers.sq10 ? `<div class="answer-text">${schoolAnswers.sq10}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
             </div>
 
             <!-- P11 Checklist -->
-            <div class="question-block" style="margin-top: 8px;">
+            <div class="question-block" style="margin-top: 6px;">
               <p class="question-title">11. Em qual ou quais dessas características o aluno se encaixa?</p>
               <div class="checklist-box">
                 ${traitsHtml}
               </div>
+              <div style="margin-top: 6px;">
+                <p style="font-size: 10.5px; font-weight: 700; color: #334155; margin: 0 0 2px 0;">Observações sobre o comportamento:</p>
+                <div class="write-line"></div>
+                <div class="write-line"></div>
+              </div>
             </div>
 
             <!-- P12 Outras Informações -->
-            <div class="question-block" style="margin-top: 10px;">
+            <div class="question-block" style="margin-top: 8px;">
               <p class="question-title">12. Relate qualquer informação que não tenha sido abordada ou que julgue importante:</p>
-              ${schoolAnswers.sq11 ? `<div class="answer-text">${schoolAnswers.sq11}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
+              ${schoolAnswers.sq11 ? `<div class="answer-text">${schoolAnswers.sq11}</div>` : `<div class="write-line"></div><div class="write-line"></div><div class="write-line"></div><div class="write-line"></div>`}
             </div>
 
             <!-- Assinatura & Data -->
-            <div class="footer-signature">
-              <p style="margin: 0; font-size: 10.5px; color: #475569;">
+            <div class="footer-signature" style="margin-top: 14px;">
+              <p style="margin: 0; font-size: 11px; color: #334155; font-weight: 600;">
                 ${cityState}, ______ de __________________________ de 2026.
               </p>
 
-              <div class="sig-row">
+              <div class="sig-row" style="margin-top: 22px;">
                 <div class="sig-box">
                   ${schoolObserver.name ? `${schoolObserver.name} (${schoolObserver.role})` : "Nome do Observador / Disciplina / Cargo"}
                 </div>
