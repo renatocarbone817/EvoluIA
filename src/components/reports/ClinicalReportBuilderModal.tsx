@@ -512,6 +512,7 @@ export function ClinicalReportBuilderModal({
             answer: schoolAnswers[q.id] || "",
           })),
           schoolObserver,
+          schoolTraits,
           tests: testsResults,
           clinicalObservation,
           sessionsCount,

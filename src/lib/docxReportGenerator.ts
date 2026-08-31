@@ -107,6 +107,7 @@ export interface ReportClinicalData {
     role?: string
     date?: string
   }
+  schoolTraits?: Record<string, boolean>
   anamnese?: ReportAnamneseData
   schoolInterview?: ReportSchoolInterviewData
   tests: ReportTestResult[]
@@ -548,63 +549,63 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
             spacing: { after: 140 },
             children: [
               new TextRun({
-                text: `${data.clinical.schoolInterview.traits?.aggressive ? "(X)" : "( )"} agressivo   `,
+                text: `${(data.clinical.schoolTraits?.agressivo || data.clinical.schoolInterview?.traits?.aggressive) ? "(X)" : "( )"} agressivo   `,
                 font: "Arial",
                 size: 22,
               }),
               new TextRun({
-                text: `${data.clinical.schoolInterview.traits?.passive ? "(X)" : "( )"} passivo   `,
+                text: `${(data.clinical.schoolTraits?.passivo || data.clinical.schoolInterview?.traits?.passive) ? "(X)" : "( )"} passivo   `,
                 font: "Arial",
                 size: 22,
               }),
               new TextRun({
-                text: `${data.clinical.schoolInterview.traits?.dependent ? "(X)" : "( )"} dependente   `,
+                text: `${(data.clinical.schoolTraits?.dependente || data.clinical.schoolInterview?.traits?.dependent) ? "(X)" : "( )"} dependente   `,
                 font: "Arial",
                 size: 22,
               }),
               new TextRun({
-                text: `${data.clinical.schoolInterview.traits?.fearful ? "(X)" : "( )"} medroso\n`,
+                text: `${(data.clinical.schoolTraits?.medroso || data.clinical.schoolInterview?.traits?.fearful) ? "(X)" : "( )"} medroso\n`,
                 font: "Arial",
                 size: 22,
               }),
               new TextRun({
-                text: `${data.clinical.schoolInterview.traits?.withdrawn ? "(X)" : "( )"} retraído   `,
+                text: `${(data.clinical.schoolTraits?.retraido || data.clinical.schoolInterview?.traits?.withdrawn) ? "(X)" : "( )"} retraído   `,
                 font: "Arial",
                 size: 22,
               }),
               new TextRun({
-                text: `${data.clinical.schoolInterview.traits?.melancholic ? "(X)" : "( )"} melancólico   `,
+                text: `${(data.clinical.schoolTraits?.melancolico || data.clinical.schoolInterview?.traits?.melancholic) ? "(X)" : "( )"} melancólico   `,
                 font: "Arial",
                 size: 22,
               }),
               new TextRun({
-                text: `${data.clinical.schoolInterview.traits?.calm ? "(X)" : "( )"} calmo   `,
+                text: `${(data.clinical.schoolTraits?.calmo || data.clinical.schoolInterview?.traits?.calm) ? "(X)" : "( )"} calmo   `,
                 font: "Arial",
                 size: 22,
               }),
               new TextRun({
-                text: `${data.clinical.schoolInterview.traits?.unfocused ? "(X)" : "( )"} desligado   `,
+                text: `${(data.clinical.schoolTraits?.desligado || data.clinical.schoolInterview?.traits?.unfocused) ? "(X)" : "( )"} desligado   `,
                 font: "Arial",
                 size: 22,
-                bold: Boolean(data.clinical.schoolInterview.traits?.unfocused),
+                bold: Boolean(data.clinical.schoolTraits?.desligado || data.clinical.schoolInterview?.traits?.unfocused),
               }),
               new TextRun({
-                text: `${data.clinical.schoolInterview.traits?.boundaryless ? "(X)" : "( )"} sem limites\n`,
-                font: "Arial",
-                size: 22,
-              }),
-              new TextRun({
-                text: `${data.clinical.schoolInterview.traits?.restless ? "(X)" : "( )"} agitado   `,
+                text: `${(data.clinical.schoolTraits?.sem_limites || data.clinical.schoolInterview?.traits?.boundaryless) ? "(X)" : "( )"} sem limites\n`,
                 font: "Arial",
                 size: 22,
               }),
               new TextRun({
-                text: `${data.clinical.schoolInterview.traits?.depressive ? "(X)" : "( )"} depressivo   `,
+                text: `${(data.clinical.schoolTraits?.agitado || data.clinical.schoolInterview?.traits?.restless) ? "(X)" : "( )"} agitado   `,
                 font: "Arial",
                 size: 22,
               }),
               new TextRun({
-                text: `${data.clinical.schoolInterview.traits?.resentful ? "(X)" : "( )"} ressentido`,
+                text: `${(data.clinical.schoolTraits?.depressivo || data.clinical.schoolInterview?.traits?.depressive) ? "(X)" : "( )"} depressivo   `,
+                font: "Arial",
+                size: 22,
+              }),
+              new TextRun({
+                text: `${(data.clinical.schoolTraits?.ressentido || data.clinical.schoolInterview?.traits?.resentful) ? "(X)" : "( )"} ressentido`,
                 font: "Arial",
                 size: 22,
               }),
