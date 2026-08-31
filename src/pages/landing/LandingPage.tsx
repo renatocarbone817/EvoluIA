@@ -736,7 +736,7 @@ export function LandingPage() {
           6. TABELA DE PLANOS & PREÇOS (HOTMART READY)
           ========================================================================= */}
       <section id="planos" className="py-20 lg:py-32 bg-white relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
           <div className="text-center space-y-4 max-w-3xl mx-auto">
             <span className="text-xs font-black tracking-widest text-[#7C3AED] uppercase">
               Investimento Transparente
