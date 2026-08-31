@@ -440,6 +440,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
     const phone = professional?.phone || "(17) 99191-0452"
     const email = professional?.email || "psicopedagogapriscilacarbone@gmail.com"
     const address = professional?.address || "RUA BAHIA 3600 CENTRO VOTUPORANGA"
+    const clinicLogo = (professional as any)?.clinic_logo_url || (professional?.id ? localStorage.getItem(`evoluia_clinic_logo_${professional.id}`) : "") || ""
 
     const traitsList = [
       { key: "agressivo", label: "agressivo" },
@@ -636,9 +637,12 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
              ========================================================================= -->
         <div class="page">
           <div>
-            <div class="header-banner">
-              <h1>${clinicTitle}</h1>
-              <h2>PSICOPEDAGOGA ${profName.toUpperCase()} ${crpOrCbo}</h2>
+            <div class="header-banner" style="display: flex; align-items: center; justify-content: center; gap: 14px;">
+              ${clinicLogo ? `<img src="${clinicLogo}" alt="Logo" style="max-height: 48px; max-width: 70px; object-fit: contain; background: #fff; padding: 2px 4px; border-radius: 4px;" />` : ""}
+              <div>
+                <h1 style="margin: 0;">${clinicTitle}</h1>
+                <h2 style="margin: 3px 0 0;">PSICOPEDAGOGA ${profName.toUpperCase()} ${crpOrCbo}</h2>
+              </div>
             </div>
 
             <div class="title-section">

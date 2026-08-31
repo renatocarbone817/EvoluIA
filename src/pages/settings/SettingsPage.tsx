@@ -9,6 +9,7 @@ import {
   Save,
   User,
   Building,
+  Building2,
   Phone,
   Calendar,
   Copy,
@@ -119,9 +120,15 @@ export function SettingsPage() {
   const [calendarGuideDevice, setCalendarGuideDevice] = useState<"android" | "iphone" | "computador">("android")
   const [faqOpen, setFaqOpen] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const clinicFileInputRef = useRef<HTMLInputElement>(null)
 
   const profId = professional?.id || user?.id
   const isMaster = isMasterUser(professional)
+
+  const [uploadingClinicLogo, setUploadingClinicLogo] = useState(false)
+  const [clinicLogoUrl, setClinicLogoUrl] = useState<string>(() => {
+    return (professional as any)?.clinic_logo_url || (profId ? localStorage.getItem(`evoluia_clinic_logo_${profId}`) : "") || ""
+  })
 
   // Sincroniza aba se a URL mudar
   useEffect(() => {
@@ -168,8 +175,13 @@ export function SettingsPage() {
         pix_type: (professional as any)?.pix_type || "Celular",
         pix_key: (professional as any)?.pix_key || "",
       }))
+
+      if (profId) {
+        const savedLogo = (professional as any)?.clinic_logo_url || localStorage.getItem(`evoluia_clinic_logo_${profId}`) || ""
+        if (savedLogo) setClinicLogoUrl(savedLogo)
+      }
     }
-  }, [professional, user])
+  }, [professional, user, profId])
 
   // Team Management State
   const [teamMembers, setTeamMembers] = useState<Professional[]>([])
@@ -448,12 +460,80 @@ export function SettingsPage() {
       if (updateError) throw updateError
 
       setProfessional({ ...(professional || {}), id: profId, logo_url: urlData.publicUrl } as any)
-      toast.success("Foto atualizada com sucesso!")
+      toast.success("Foto de perfil atualizada com sucesso!")
     } catch (err: any) {
       toast.error(err.message || "Erro no upload da foto")
     } finally {
       setUploadingLogo(false)
     }
+  }
+
+  // Clinic Logo Upload Handlers
+  async function handleClinicLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !profId) return
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Logomarca muito grande! Máximo de 10MB.")
+      return
+    }
+
+    setUploadingClinicLogo(true)
+    try {
+      const fileExt = file.name.split(".").pop() || "png"
+      const path = `${profId}/clinic_logo_${Date.now()}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from("professionals")
+        .upload(path, file, {
+          contentType: file.type || "image/png",
+          upsert: true,
+        })
+
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage
+        .from("professionals")
+        .getPublicUrl(path)
+
+      const newUrl = urlData.publicUrl
+      setClinicLogoUrl(newUrl)
+      localStorage.setItem(`evoluia_clinic_logo_${profId}`, newUrl)
+
+      try {
+        await supabase
+          .from("professionals")
+          .update({ clinic_logo_url: newUrl } as any)
+          .eq("id", profId)
+      } catch (dbErr) {
+        console.warn("DB clinic_logo_url update error:", dbErr)
+      }
+
+      setProfessional({ ...(professional || {}), id: profId, clinic_logo_url: newUrl } as any)
+      toast.success("Logomarca do espaço clínico salva com sucesso! 🏢✨")
+    } catch (err: any) {
+      console.error("Clinic logo upload error:", err)
+      toast.error(err.message || "Erro no upload da logomarca da clínica")
+    } finally {
+      setUploadingClinicLogo(false)
+      if (clinicFileInputRef.current) clinicFileInputRef.current.value = ""
+    }
+  }
+
+  async function handleRemoveClinicLogo() {
+    if (!profId) return
+    setClinicLogoUrl("")
+    localStorage.removeItem(`evoluia_clinic_logo_${profId}`)
+    try {
+      await supabase
+        .from("professionals")
+        .update({ clinic_logo_url: null } as any)
+        .eq("id", profId)
+    } catch (e) {
+      console.warn("Remove logo error:", e)
+    }
+    setProfessional({ ...(professional || {}), id: profId, clinic_logo_url: null } as any)
+    toast.success("Logomarca da clínica removida.")
   }
 
   async function handleSave() {
@@ -487,11 +567,15 @@ export function SettingsPage() {
       localStorage.setItem("evoluia_session_duration", String(sessionDuration))
       localStorage.setItem("evoluia_reminder_template", reminderTemplate)
       localStorage.setItem("evoluia_billing_template", billingTemplate)
+      if (clinicLogoUrl) {
+        localStorage.setItem(`evoluia_clinic_logo_${profId}`, clinicLogoUrl)
+      }
 
       setProfessional({
         ...(professional || {}),
         id: profId,
         email: user?.email || "",
+        clinic_logo_url: clinicLogoUrl || (professional as any)?.clinic_logo_url || null,
         ...form,
       } as any)
 
@@ -971,6 +1055,70 @@ export function SettingsPage() {
                     placeholder="Ex: Espaço Psicopedagógico"
                     className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
                   />
+                </div>
+
+                {/* Card de Upload da Logomarca da Clínica */}
+                <div className="p-5 rounded-3xl bg-[#F0F7FA] border-2 border-[#BAE6FD] space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-[#0284C7]" />
+                      <label className="text-xs font-black text-[#0D2329]">
+                        Logomarca Oficial da Clínica / Consultório
+                      </label>
+                    </div>
+                    {clinicLogoUrl && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveClinicLogo}
+                        className="text-[11px] font-bold text-[#DC2626] hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Remover Logomarca</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-2xl border border-[#D8E5E7]">
+                    {clinicLogoUrl ? (
+                      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-[#F8FAFB] border-2 border-[#D8E5E7] p-2 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
+                        <img
+                          src={clinicLogoUrl}
+                          alt="Logomarca da Clínica"
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-[#F0F7FA] border-2 border-dashed border-[#0284C7]/40 text-[#0284C7] flex flex-col items-center justify-center shrink-0 gap-1 shadow-2xs">
+                        <Building2 className="w-8 h-8 opacity-70" />
+                        <span className="text-[10px] font-black uppercase">Sem Logo</span>
+                      </div>
+                    )}
+
+                    <div className="flex-1 text-center sm:text-left space-y-2">
+                      <p className="text-xs font-bold text-[#0D2329]">
+                        {clinicLogoUrl ? "Logomarca anexada e pronta para seus relatórios!" : "Nenhuma logomarca anexada ainda"}
+                      </p>
+                      <p className="text-[11px] font-semibold text-[#6B7C83] leading-relaxed">
+                        Formatos PNG (com fundo transparente recomendado), JPG ou SVG. Esta logomarca será aplicada automaticamente no cabeçalho dos seus relatórios clínicos em Word e questionários escolares.
+                      </p>
+                      <button
+                        type="button"
+                        disabled={uploadingClinicLogo}
+                        onClick={() => clinicFileInputRef.current?.click()}
+                        className="px-4 py-2 text-xs font-black text-[#0284C7] bg-[#E0F2FE] hover:bg-[#BAE6FD] rounded-xl transition-all shadow-2xs active:scale-95 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{uploadingClinicLogo ? "Enviando Logomarca..." : clinicLogoUrl ? "Trocar Logomarca da Clínica" : "Anexar Logomarca da Clínica"}</span>
+                      </button>
+                      <input
+                        ref={clinicFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleClinicLogoSelect}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">
