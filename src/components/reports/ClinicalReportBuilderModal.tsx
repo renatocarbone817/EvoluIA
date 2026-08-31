@@ -556,7 +556,7 @@ export function ClinicalReportBuilderModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
+    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
       <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-[1550px] w-full max-h-[94vh] flex flex-col shadow-2xl animate-in zoom-in-95">
         {/* Header do Modal */}
         <div className="p-5 sm:p-6 border-b border-[#EEF5F6] flex items-center justify-between bg-gradient-to-r from-[#F0FDF4] to-[#EDE9FE] rounded-t-3xl">
