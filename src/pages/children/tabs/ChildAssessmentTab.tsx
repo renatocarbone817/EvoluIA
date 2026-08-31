@@ -1,5 +1,5 @@
 import { generateInitialAssessmentAI } from "@/lib/geminiAnalysis"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "react-router-dom"
 import { Plus, CheckCircle, Clock, Save, Edit3, BookOpen, Printer, Sparkles, RotateCcw, Loader2, AlertCircle, Calendar } from "lucide-react"
 import { NewAppointmentDialog } from "@/pages/appointments/NewAppointmentDialog"
@@ -206,6 +206,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null)
   const [aiAnalyzedAt, setAiAnalyzedAt] = useState<string | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
+  const aiSectionRef = useRef<HTMLDivElement>(null)
 
 
   // Base info
@@ -287,6 +288,12 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
   async function handleAnalyzeWithAI() {
     if (!assessment?.id) return
     setAiLoading(true)
+
+    // Rola a tela imediatamente e suavemente para o bloco da IA lá embaixo
+    setTimeout(() => {
+      aiSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+    }, 50)
+
     try {
       const { data: childData } = await supabase
         .from("children")
@@ -302,6 +309,11 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
       setAiAnalysis(result.analysis)
       setAiAnalyzedAt(new Date().toISOString())
       toast.success("Análise gerada com sucesso com as novas diretrizes clínicas! ✨")
+
+      // Mantém o foco no resultado gerado
+      setTimeout(() => {
+        aiSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }, 100)
     } catch (err: any) {
       console.error("AI Analysis error:", err)
       toast.error(err.message || "Erro ao conectar com a IA. Tente novamente.")
@@ -579,82 +591,90 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
         })}
       </div>
 
-      {/* ✨ AI ANALYSIS RESULT CARD (Design Moderno & Hierárquico) */}
-      {aiAnalysis && (
-        <div className="rounded-3xl border-2 border-[#D8E5E7] bg-white p-6 sm:p-8 space-y-6 shadow-sm print:hidden">
-          {/* Card Header */}
-          <div className="flex items-start justify-between gap-4 pb-4 border-b-2 border-[#EEF5F6]">
+      {/* ✨ ÁREA DA IA (COM AUTO-SCROLL AUTOMÁTICO E FEEDBACK VISUAL) */}
+      <div ref={aiSectionRef} className="scroll-mt-8 space-y-6">
+        {/* AI Loading Card (Exibido com destaque imediato ao clicar) */}
+        {aiLoading && (
+          <div className="rounded-3xl border-2 border-[#DDD6FE] bg-gradient-to-br from-[#F5F3FF] to-[#EDE9FE]/70 p-6 sm:p-8 space-y-5 shadow-lg animate-in fade-in zoom-in-95 print:hidden">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 shadow-2xs">
-                <Sparkles className="w-5 h-5" />
+              <div className="w-12 h-12 rounded-2xl bg-white border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center animate-pulse shadow-xs">
+                <Sparkles className="w-6 h-6" />
               </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-black text-[#0D2329] text-base sm:text-lg tracking-tight">
-                    Análise Clínica Preliminar — Apoio Psicopedagógico
-                  </h3>
-                  <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0]">
-                    Gemini 3.6 Flash
-                  </span>
+              <div className="space-y-1.5 flex-1">
+                <div className="h-5 w-64 bg-[#DDD6FE] rounded-lg animate-pulse" />
+                <div className="h-3.5 w-40 bg-[#DDD6FE]/60 rounded-lg animate-pulse" />
+              </div>
+            </div>
+
+            <div className="space-y-2.5 pt-1">
+              <div className="h-3 w-full bg-[#DDD6FE]/50 rounded-lg animate-pulse" />
+              <div className="h-3 w-5/6 bg-[#DDD6FE]/50 rounded-lg animate-pulse" />
+              <div className="h-3 w-4/6 bg-[#DDD6FE]/50 rounded-lg animate-pulse" />
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white/90 border-2 border-[#DDD6FE] flex items-center justify-center gap-2.5 shadow-2xs">
+              <Loader2 className="w-4 h-4 text-[#7C3AED] animate-spin" />
+              <p className="text-xs sm:text-sm text-[#7C3AED] font-black tracking-wide animate-pulse text-center">
+                ✨ A IA está gerando a análise psicopedagógica da entrevista...
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ✨ AI ANALYSIS RESULT CARD (Design Moderno & Hierárquico) */}
+        {!aiLoading && aiAnalysis && (
+          <div className="rounded-3xl border-2 border-[#D8E5E7] bg-white p-6 sm:p-8 space-y-6 shadow-sm print:hidden animate-in fade-in">
+            {/* Card Header */}
+            <div className="flex items-start justify-between gap-4 pb-4 border-b-2 border-[#EEF5F6]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 shadow-2xs">
+                  <Sparkles className="w-5 h-5" />
                 </div>
-                {aiAnalyzedAt && (
-                  <p className="text-[11px] text-[#6B7C83] font-semibold mt-0.5">
-                    Gerada em {new Date(aiAnalyzedAt).toLocaleDateString("pt-BR")} às{" "}
-                    {new Date(aiAnalyzedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                )}
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-black text-[#0D2329] text-base sm:text-lg tracking-tight">
+                      Análise Clínica Preliminar — Apoio Psicopedagógico
+                    </h3>
+                    <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0]">
+                      Gemini 3.6 Flash
+                    </span>
+                  </div>
+                  {aiAnalyzedAt && (
+                    <p className="text-[11px] text-[#6B7C83] font-semibold mt-0.5">
+                      Gerada em {new Date(aiAnalyzedAt).toLocaleDateString("pt-BR")} às{" "}
+                      {new Date(aiAnalyzedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  )}
+                </div>
               </div>
+
+              <button
+                type="button"
+                onClick={handleAnalyzeWithAI}
+                disabled={aiLoading}
+                className="flex items-center gap-1.5 text-xs font-black text-[#7C3AED] bg-[#F7FAFA] hover:bg-[#EDE9FE] border-2 border-[#D8E5E7] hover:border-[#7C3AED] px-3.5 py-2 rounded-2xl transition-all shadow-2xs shrink-0 active:scale-95 cursor-pointer"
+              >
+                {aiLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RotateCcw className="w-3.5 h-3.5" />
+                )}
+                <span>Reanalisar</span>
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={handleAnalyzeWithAI}
-              disabled={aiLoading}
-              className="flex items-center gap-1.5 text-xs font-black text-[#7C3AED] bg-[#F7FAFA] hover:bg-[#EDE9FE] border-2 border-[#D8E5E7] hover:border-[#7C3AED] px-3.5 py-2 rounded-2xl transition-all shadow-2xs shrink-0 active:scale-95"
-            >
-              {aiLoading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <RotateCcw className="w-3.5 h-3.5" />
-              )}
-              <span>Reanalisar</span>
-            </button>
-          </div>
-
-          {/* AI Content — Hierarchical Clean Container */}
-          <div className="bg-[#F8FAFB] rounded-3xl p-5 sm:p-7 border-2 border-[#D8E5E7] shadow-inner space-y-1">
-            {renderFormattedMarkdown(aiAnalysis)}
-          </div>
-
-          <p className="text-[11px] text-[#8CAAB1] font-bold border-t border-[#EEF5F6] pt-3 flex items-center gap-1.5">
-            <span>🔒</span>
-            <span>Documento preliminar gerado por IA para apoio ao planejamento da psicopedagoga. Não substitui a avaliação clínica presencial.</span>
-          </p>
-        </div>
-      )}
-
-      {/* AI Loading skeleton */}
-      {aiLoading && !aiAnalysis && (
-        <div className="rounded-3xl border-2 border-[#DDD6FE] bg-[#F5F3FF]/60 p-6 space-y-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center animate-pulse">
-              <Sparkles className="w-5 h-5" />
+            {/* AI Content — Hierarchical Clean Container */}
+            <div className="bg-[#F8FAFB] rounded-3xl p-5 sm:p-7 border-2 border-[#D8E5E7] shadow-inner space-y-1">
+              {renderFormattedMarkdown(aiAnalysis)}
             </div>
-            <div className="space-y-1.5 flex-1">
-              <div className="h-4 w-48 bg-[#DDD6FE] rounded-lg animate-pulse" />
-              <div className="h-3 w-32 bg-[#DDD6FE]/60 rounded-lg animate-pulse" />
-            </div>
+
+            <p className="text-[11px] text-[#8CAAB1] font-bold border-t border-[#EEF5F6] pt-3 flex items-center gap-1.5">
+              <span>🔒</span>
+              <span>Documento preliminar gerado por IA para apoio ao planejamento da psicopedagoga. Não substitui a avaliação clínica presencial.</span>
+            </p>
           </div>
-          <div className="space-y-2">
-            <div className="h-3 w-full bg-[#DDD6FE]/40 rounded-lg animate-pulse" />
-            <div className="h-3 w-4/5 bg-[#DDD6FE]/40 rounded-lg animate-pulse" />
-            <div className="h-3 w-3/4 bg-[#DDD6FE]/40 rounded-lg animate-pulse" />
-          </div>
-          <p className="text-xs text-[#7C3AED] font-black text-center animate-pulse">
-            ✨ A IA está gerando a análise psicopedagógica da entrevista...
-          </p>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Bottom save bar */}
       {isEditing && (
