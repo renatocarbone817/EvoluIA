@@ -126,8 +126,8 @@ export default async function handler(req, res) {
     } catch {}
 
     // 3. Criar / Atualizar perfil em 'professionals'
-    const nameToUse = fullName || "Psicopedagoga VIP"
-    const clinicToUse = clinicName || "Espaço Psicopedagógico"
+    const nameToUse = fullName ? fullName.trim() : cleanEmail.split("@")[0]
+    const clinicToUse = clinicName ? clinicName.trim() : null
 
     await supabase.from("professionals").upsert({
       id: userId,

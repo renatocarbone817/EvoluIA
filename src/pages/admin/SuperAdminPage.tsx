@@ -224,8 +224,8 @@ export function SuperAdminPage() {
         email: vipEmail,
         password: vipPassword,
         planId: vipPlanId,
-        fullName: vipFullName || "Psicopedagoga Convidada",
-        clinicName: vipClinicName || "Espaço Clínico",
+        fullName: vipFullName.trim() || vipEmail.split("@")[0],
+        clinicName: vipClinicName.trim() || undefined,
       })
 
       const planObj = PLANS_CONFIG.find((p) => p.id === vipPlanId)
@@ -1797,13 +1797,35 @@ export function SuperAdminPage() {
               {!vipSuccessData ? (
                 <form onSubmit={handleCreateVipAccount} className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#0D2329]">E-mail da Psicopedagoga</label>
+                    <label className="text-xs font-bold text-[#0D2329]">Nome Completo da Psicopedagoga</label>
+                    <input
+                      type="text"
+                      value={vipFullName}
+                      onChange={(e) => setVipFullName(e.target.value)}
+                      placeholder="Ex: Dra. Mariana Silva"
+                      className="w-full px-4 py-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] text-xs font-bold text-[#0D2329] focus:outline-none focus:ring-2 focus:ring-[#F59E0B]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#0D2329]">E-mail da Psicopedagoga *</label>
                     <input
                       type="email"
                       required
                       value={vipEmail}
                       onChange={(e) => setVipEmail(e.target.value)}
-                      placeholder="ex: irma@gmail.com"
+                      placeholder="ex: psicopedagoga@gmail.com"
+                      className="w-full px-4 py-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] text-xs font-bold text-[#0D2329] focus:outline-none focus:ring-2 focus:ring-[#F59E0B]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#0D2329]">Nome do Consultório (Opcional)</label>
+                    <input
+                      type="text"
+                      value={vipClinicName}
+                      onChange={(e) => setVipClinicName(e.target.value)}
+                      placeholder="Ex: Clínica Neuro Saber"
                       className="w-full px-4 py-3 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] text-xs font-bold text-[#0D2329] focus:outline-none focus:ring-2 focus:ring-[#F59E0B]"
                     />
                   </div>

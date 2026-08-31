@@ -132,8 +132,8 @@ export function SettingsPage() {
     city: professional?.city || "",
     state: professional?.state || "",
     bio: (professional?.bio || "").replace(/\[PLAN:[^\]]+\]/g, "").trim() || "",
-    pix_type: (professional as any)?.pix_type || localStorage.getItem("evoluia_pix_type") || "Celular",
-    pix_key: (professional as any)?.pix_key || localStorage.getItem("evoluia_pix_key") || "",
+    pix_type: (professional as any)?.pix_type || "Celular",
+    pix_key: (professional as any)?.pix_key || "",
   })
 
   // Sincroniza o form dinamicamente quando o perfil do usuário for carregado
@@ -151,8 +151,8 @@ export function SettingsPage() {
         city: professional?.city || prev.city || "",
         state: professional?.state || prev.state || "",
         bio: (professional?.bio || "").replace(/\[PLAN:[^\]]+\]/g, "").trim() || prev.bio || "",
-        pix_type: (professional as any)?.pix_type || prev.pix_type || "Celular",
-        pix_key: (professional as any)?.pix_key || prev.pix_key || "",
+        pix_type: (professional as any)?.pix_type || "Celular",
+        pix_key: (professional as any)?.pix_key || "",
       }))
     }
   }, [professional, user])
@@ -741,7 +741,7 @@ export function SettingsPage() {
                       type="text"
                       value={form.full_name}
                       onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                      placeholder="Ex: Priscila Carbone"
+                      placeholder="Digite seu nome completo"
                       className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
                     />
                   </div>
@@ -752,7 +752,7 @@ export function SettingsPage() {
                       type="email"
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      placeholder="priscila@evolui.com.br"
+                      placeholder="seuemail@exemplo.com"
                       className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
                     />
                   </div>
@@ -763,7 +763,7 @@ export function SettingsPage() {
                       type="text"
                       value={form.phone}
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      placeholder="17 99758-0663"
+                      placeholder="(00) 00000-0000"
                       className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
                     />
                   </div>
@@ -786,7 +786,7 @@ export function SettingsPage() {
                     type="text"
                     value={form.specialty}
                     onChange={(e) => setForm({ ...form, specialty: e.target.value })}
-                    placeholder="Psicopedagogia Clínica & Neuroaprendizagem"
+                    placeholder="Ex: Psicopedagogia Clínica"
                     className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#7C3AED] transition-all text-[#0D2329]"
                   />
                 </div>
@@ -805,7 +805,7 @@ export function SettingsPage() {
                     type="text"
                     value={form.clinic_name}
                     onChange={(e) => setForm({ ...form, clinic_name: e.target.value })}
-                    placeholder="Ex: Aprender Ensinando - Espaço Psicopedagógico"
+                    placeholder="Ex: Espaço Psicopedagógico"
                     className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
                   />
                 </div>
@@ -816,7 +816,7 @@ export function SettingsPage() {
                     type="text"
                     value={form.address}
                     onChange={(e) => setForm({ ...form, address: e.target.value })}
-                    placeholder="Ex: Av. Principal, 1000 - Sala 04"
+                    placeholder="Ex: Rua, Número, Sala/Andar"
                     className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
                   />
                 </div>
@@ -828,7 +828,7 @@ export function SettingsPage() {
                       type="text"
                       value={form.city}
                       onChange={(e) => setForm({ ...form, city: e.target.value })}
-                      placeholder="São José do Rio Preto"
+                      placeholder="Cidade"
                       className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
                     />
                   </div>
@@ -839,7 +839,7 @@ export function SettingsPage() {
                       type="text"
                       value={form.state}
                       onChange={(e) => setForm({ ...form, state: e.target.value })}
-                      placeholder="SP"
+                      placeholder="UF"
                       className="w-full px-4 py-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] focus:bg-white focus:outline-none focus:border-[#0284C7] transition-all text-[#0D2329]"
                     />
                   </div>
