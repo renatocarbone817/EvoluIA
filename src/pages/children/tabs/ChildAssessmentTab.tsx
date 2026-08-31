@@ -1,5 +1,5 @@
 import { generateInitialAssessmentAI } from "@/lib/geminiAnalysis"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useSearchParams } from "react-router-dom"
 import {
   Plus,
