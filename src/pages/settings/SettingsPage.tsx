@@ -1791,50 +1791,53 @@ export function SettingsPage() {
 
           {/* 2. Mensagem de Cobrança */}
           <div className="p-5 rounded-3xl bg-[#F7FAFA] border-2 border-[#D8E5E7] space-y-3.5">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-[#FFEDD5] text-[#EA580C] flex items-center justify-center font-bold">
-                <DollarSign className="w-4 h-4" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#FFEDD5] text-[#EA580C] flex items-center justify-center font-bold">
+                  <DollarSign className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-[#0D2329]">
+                    2. Mensagem de Mensalidade / Cobrança PIX
+                  </p>
+                  <p className="text-[11px] font-semibold text-[#6B7C83]">
+                    Usado no botão <strong>"Cobrar"</strong> da tela de <strong>Financeiro</strong>.
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-black text-[#0D2329]">
-                  2. Mensagem de Mensalidade / Cobrança PIX
-                </p>
-                <p className="text-[11px] font-semibold text-[#6B7C83]">
-                  Usado no botão <strong>"Cobrar"</strong> da tela de <strong>Financeiro</strong>.
-                </p>
-              </div>
+              <span className="text-[10px] bg-[#FFEDD5] text-[#EA580C] font-black px-2.5 py-1 rounded-xl border border-[#EA580C]/30">
+                Disponível no Financeiro
+              </span>
             </div>
-            <span className="text-[10px] bg-[#FFEDD5] text-[#EA580C] font-black px-2.5 py-1 rounded-xl border border-[#EA580C]/30">
-              Disponível no Financeiro
-            </span>
-          </div>
 
-          <textarea
-            rows={3}
-            value={billingTemplate}
-            onChange={(e) => setBillingTemplate(e.target.value)}
-            className="w-full p-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#EA580C] transition-all resize-none"
-          />
+            <textarea
+              rows={3}
+              value={billingTemplate}
+              onChange={(e) => setBillingTemplate(e.target.value)}
+              className="w-full p-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#EA580C] transition-all resize-none"
+            />
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[#EEF5F6]">
-            <p className="text-[11px] font-bold text-[#6B7C83]">
-              Tags: <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{nome_crianca}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{mes}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{chave_pix}"}</code>
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[#EEF5F6]">
+              <p className="text-[11px] font-bold text-[#6B7C83]">
+                Tags: <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{nome_crianca}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{mes}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{valor}"}</code>, <code className="bg-white px-1.5 py-0.5 rounded-lg border border-[#D8E5E7] text-[#EA580C] font-black">{"{chave_pix}"}</code>
+              </p>
 
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(
-                billingTemplate
-                  .replace("{nome_crianca}", "Maria Eduarda")
-                  .replace("{mes}", "Agosto")
-                  .replace("{chave_pix}", `(${form.pix_type}) ${form.pix_key}`)
-              )}`}
-              target="_blank"
-              rel="noreferrer"
-              className="px-3.5 py-1.5 bg-[#FFEDD5] hover:bg-[#EA580C] hover:text-white text-[#EA580C] rounded-xl text-xs font-black flex items-center gap-1.5 border border-[#EA580C]/30 transition-all shadow-2xs self-start sm:self-auto"
-            >
-              <DollarSign className="w-3.5 h-3.5" />
-              <span>Testar Cobrança</span>
-            </a>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(
+                  billingTemplate
+                    .replace("{nome_crianca}", "Maria Eduarda")
+                    .replace("{mes}", "Agosto")
+                    .replace("{valor}", "R$ 350,00")
+                    .replace("{chave_pix}", form.pix_key ? `(${form.pix_type}) ${form.pix_key}` : "17991910452")
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3.5 py-1.5 bg-[#FFEDD5] hover:bg-[#EA580C] hover:text-white text-[#EA580C] rounded-xl text-xs font-black flex items-center gap-1.5 border border-[#EA580C]/30 transition-all shadow-2xs self-start sm:self-auto cursor-pointer"
+              >
+                <DollarSign className="w-3.5 h-3.5" />
+                <span>Testar Cobrança</span>
+              </a>
+            </div>
           </div>
         </div>
       )}
