@@ -122,19 +122,40 @@ export function SettingsPage() {
 
   // Profile, Clinic & Address Form State
   const [form, setForm] = useState({
-    full_name: professional?.full_name || "Priscila Carbone",
-    email: professional?.email || user?.email || "priscila@evolui.com.br",
-    phone: professional?.phone || "17 99758-0663",
-    clinic_name: professional?.clinic_name || "Aprender Ensinando - Espaço Psicopedagógico",
-    crp: professional?.crp || "2394-25",
-    specialty: professional?.specialty || "Psicopedagogia Clínica & Neuroaprendizagem",
-    address: (professional as any)?.address || "Av. Principal, 1000 - Sala 04",
-    city: professional?.city || "São José do Rio Preto",
-    state: professional?.state || "SP",
-    bio: (professional?.bio || "").replace(/\[PLAN:[^\]]+\]/g, "").trim() || "Especialista no desenvolvimento cognitivo, dificuldades de aprendizagem, TDAH e orientação familiar.",
+    full_name: professional?.full_name || "",
+    email: professional?.email || user?.email || "",
+    phone: professional?.phone || "",
+    clinic_name: professional?.clinic_name || "",
+    crp: professional?.crp || "",
+    specialty: professional?.specialty || "Psicopedagogia Clínica",
+    address: (professional as any)?.address || "",
+    city: professional?.city || "",
+    state: professional?.state || "",
+    bio: (professional?.bio || "").replace(/\[PLAN:[^\]]+\]/g, "").trim() || "",
     pix_type: (professional as any)?.pix_type || localStorage.getItem("evoluia_pix_type") || "Celular",
-    pix_key: (professional as any)?.pix_key || localStorage.getItem("evoluia_pix_key") || "17 99758-0663",
+    pix_key: (professional as any)?.pix_key || localStorage.getItem("evoluia_pix_key") || "",
   })
+
+  // Sincroniza o form dinamicamente quando o perfil do usuário for carregado
+  useEffect(() => {
+    if (professional || user) {
+      setForm((prev) => ({
+        ...prev,
+        full_name: professional?.full_name || prev.full_name || "",
+        email: professional?.email || user?.email || prev.email || "",
+        phone: professional?.phone || prev.phone || "",
+        clinic_name: professional?.clinic_name || prev.clinic_name || "",
+        crp: professional?.crp || prev.crp || "",
+        specialty: professional?.specialty || prev.specialty || "Psicopedagogia Clínica",
+        address: (professional as any)?.address || prev.address || "",
+        city: professional?.city || prev.city || "",
+        state: professional?.state || prev.state || "",
+        bio: (professional?.bio || "").replace(/\[PLAN:[^\]]+\]/g, "").trim() || prev.bio || "",
+        pix_type: (professional as any)?.pix_type || prev.pix_type || "Celular",
+        pix_key: (professional as any)?.pix_key || prev.pix_key || "",
+      }))
+    }
+  }, [professional, user])
 
   // Team Management State
   const [teamMembers, setTeamMembers] = useState<Professional[]>([])

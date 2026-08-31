@@ -151,7 +151,7 @@ export function MobileHeader() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-black text-sm text-[#0D2329] truncate">
-                    {professional?.full_name || "Priscila Carbone"}
+                    {professional?.full_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Minha Conta"}
                   </p>
                   <p className="text-[11px] font-bold text-[#7C3AED] truncate">
                     {professional?.crp ? `CBO ${professional.crp}` : "Psicopedagoga Clínica"}

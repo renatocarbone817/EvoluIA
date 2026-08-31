@@ -56,7 +56,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         const role = userData.user?.user_metadata?.role || 'master'
         const master_id = userData.user?.user_metadata?.master_id || null
         const allow_master_data_access = userData.user?.user_metadata?.allow_master_data_access || false
-        const fullName = userData.user?.user_metadata?.full_name || 'Priscila Carbone'
+        const fullName = userData.user?.user_metadata?.full_name || email.split('@')[0] || 'Psicopedagoga'
         const newProf = {
           id: userId,
           full_name: fullName,

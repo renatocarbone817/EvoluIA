@@ -187,7 +187,7 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
         const { data: userData } = await supabase.auth.getUser()
         await supabase.from("professionals").upsert({
           id: profId,
-          full_name: userData.user?.user_metadata?.full_name || "Priscila Carbone",
+          full_name: userData.user?.user_metadata?.full_name || userData.user?.email?.split("@")[0] || "Psicopedagoga",
           email: userData.user?.email || "",
           specialty: "Psicopedagogia",
         })
