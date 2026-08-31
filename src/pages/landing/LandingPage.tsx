@@ -845,12 +845,11 @@ export function LandingPage() {
                   </div>
 
                   {/* Botão de Compra / Teste */}
-                  <div className="pt-6">
-                    <a
-                      href={plan.hotmartCheckoutUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`w-full py-3 rounded-2xl text-xs font-black shadow-md flex items-center justify-center gap-1 transition-all active:scale-95 text-center cursor-pointer ${
+                  <div className="pt-6 space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/cadastro?plano=${plan.id}`)}
+                      className={`w-full py-3 rounded-2xl text-xs font-black shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 text-center cursor-pointer ${
                         isPopular
                           ? "bg-[#7C3AED] hover:bg-[#6D28D9] text-white shadow-purple-500/25"
                           : "bg-slate-900 hover:bg-slate-800 text-white"
@@ -858,9 +857,19 @@ export function LandingPage() {
                     >
                       <span>Testar 14 Dias Grátis</span>
                       <ChevronRight className="w-3.5 h-3.5" />
-                    </a>
-                    <p className="text-[9px] text-slate-500 text-center mt-2 font-bold">
-                      Zero cobrança hoje • Cancele quando quiser
+                    </button>
+                    <div className="text-center">
+                      <a
+                        href={plan.hotmartCheckoutUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] font-bold text-slate-400 hover:text-[#7C3AED] transition-colors"
+                      >
+                        Ou assinar direto com cartão →
+                      </a>
+                    </div>
+                    <p className="text-[9px] text-slate-500 text-center font-semibold">
+                      Zero cobrança hoje • Sem cartão
                     </p>
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import {
   Brain,
   Eye,
@@ -11,15 +11,21 @@ import {
   AlertCircle,
   ExternalLink,
   ArrowLeft,
+  CheckCircle2,
+  Users,
+  Gift,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
-import { getPlanConfig } from "@/lib/plans"
+import { getPlanConfig, type PlanId } from "@/lib/plans"
 import toast from "react-hot-toast"
 
 export function RegisterPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const planParam = (searchParams.get("plano") || searchParams.get("plan") || "individual").toLowerCase() as PlanId
+  const targetPlan = getPlanConfig(planParam)
+
   const [loading, setLoading] = useState(false)
-  const [purchaseNotFound, setPurchaseNotFound] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
@@ -35,18 +41,16 @@ export function RegisterPage() {
   function handleChange(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }))
-    if (field === "email") setPurchaseNotFound(false)
   }
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
-    setPurchaseNotFound(false)
 
     const errs: Record<string, string> = {}
     const cleanEmail = form.email.trim().toLowerCase()
 
     if (!form.full_name.trim()) errs.full_name = "Informe seu nome completo"
-    if (!cleanEmail) errs.email = "Informe seu e-mail de compra"
+    if (!cleanEmail) errs.email = "Informe seu melhor e-mail"
     else if (!cleanEmail.includes("@") || !cleanEmail.includes(".")) errs.email = "E-mail inválido"
 
     if (!form.password) errs.password = "Crie uma senha"
@@ -62,24 +66,16 @@ export function RegisterPage() {
     setLoading(true)
 
     try {
-      // 1. 🔒 TRAVA ZERO-TRUST: Verificar se comprou na Hotmart
-      const { data: subData, error: subError } = await supabase
+      // 1. Verificar se já comprou na Hotmart previamente
+      const { data: subData } = await supabase
         .from("subscriptions")
         .select("*")
         .ilike("customer_email", cleanEmail)
         .order("created_at", { ascending: false })
         .limit(1)
 
-      if (subError) throw subError
-
-      const sub = subData && subData.length > 0 ? subData[0] : null
-
-      // Se não houver compra aprovada para este e-mail
-      if (!sub || (sub.status !== "active" && sub.status !== "trial")) {
-        setPurchaseNotFound(true)
-        setLoading(false)
-        return
-      }
+      const existingSub = subData && subData.length > 0 ? subData[0] : null
+      const isAlreadyPaid = existingSub && existingSub.status === "active"
 
       // 2. Criar usuário no Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -115,6 +111,14 @@ export function RegisterPage() {
         })
       }
 
+      // Definir plano e status
+      const assignedPlanId = isAlreadyPaid ? existingSub.plan_id : targetPlan.id
+      const assignedMaxProfs = isAlreadyPaid ? existingSub.max_professionals : targetPlan.maxProfessionals
+      const assignedStatus = isAlreadyPaid ? "active" : "trial"
+      const trialExpiresAt = isAlreadyPaid
+        ? null
+        : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+
       // 4. Criar perfil inicial de Master
       const { error: profileError } = await supabase.from("professionals").upsert({
         id: userId,
@@ -123,21 +127,41 @@ export function RegisterPage() {
         role: "master",
         is_active: true,
         specialty: "Psicopedagogia Clínica",
+        bio: `[PLAN:${assignedPlanId}:${assignedStatus}]`,
       })
 
       if (profileError) throw profileError
 
-      // 5. Vincular assinatura da Hotmart ao novo Master
-      await supabase
-        .from("subscriptions")
-        .update({
+      // 5. Vincular ou criar registro de assinatura
+      if (existingSub) {
+        await supabase
+          .from("subscriptions")
+          .update({
+            master_user_id: userId,
+            updated_at: new Date().toISOString(),
+          })
+          .ilike("customer_email", cleanEmail)
+      } else {
+        await supabase.from("subscriptions").insert({
           master_user_id: userId,
-          updated_at: new Date().toISOString(),
+          plan_id: assignedPlanId,
+          max_professionals: assignedMaxProfs,
+          status: "trial",
+          customer_email: cleanEmail,
+          subscription_started_at: new Date().toISOString(),
+          subscription_expires_at: trialExpiresAt,
         })
-        .ilike("customer_email", cleanEmail)
+      }
 
-      const planConfig = getPlanConfig(sub.plan_id)
-      toast.success(`Bem-vinda ao EvoluIA! Plano ${planConfig.name} ativado 🎉`, { duration: 5000 })
+      const planConfig = getPlanConfig(assignedPlanId)
+      if (isAlreadyPaid) {
+        toast.success(`Bem-vinda ao EvoluIA! Plano ${planConfig.name} ativado 🎉`, { duration: 5000 })
+      } else {
+        toast.success(
+          `Conta criada com sucesso! 14 dias de teste grátis no plano ${planConfig.name} liberados 🎉`,
+          { duration: 5000 }
+        )
+      }
       navigate("/dashboard")
     } catch (err: any) {
       console.error(err)
@@ -160,7 +184,7 @@ export function RegisterPage() {
               <h2 className="text-lg font-black text-[#0D2329] leading-none">
                 Evolu<span className="text-[#7C3AED]">IA</span>
               </h2>
-              <p className="text-[11px] font-semibold text-[#6B7C83] mt-0.5">Primeiro Acesso</p>
+              <p className="text-[11px] font-semibold text-[#6B7C83] mt-0.5">Criar Conta</p>
             </div>
           </div>
 
@@ -173,48 +197,39 @@ export function RegisterPage() {
           </Link>
         </div>
 
+        {/* Card Destacado: 14 Dias Grátis do Plano Selecionado */}
+        <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-[#EDE9FE] to-[#E0E7FF] border-2 border-[#DDD6FE] space-y-1 text-center shadow-2xs">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-[#7C3AED] text-[11px] font-black shadow-2xs">
+            <Gift className="w-3.5 h-3.5 text-[#7C3AED]" />
+            <span>14 Dias Grátis · Sem Cartão</span>
+          </div>
+          <h3 className="text-sm font-black text-[#4338CA] pt-1">
+            Plano {targetPlan.name}
+          </h3>
+          <p className="text-[11px] font-semibold text-[#6366F1] flex items-center justify-center gap-1.5">
+            <Users className="w-3 h-3" />
+            <span>
+              {targetPlan.maxProfessionals === 1
+                ? "1 Vaga Profissional"
+                : `Até ${targetPlan.maxProfessionals} Vagas para sua Equipe`}
+            </span>
+            <span>•</span>
+            <span>Acesso Completo</span>
+          </p>
+        </div>
+
         {/* Título & Subtítulo */}
-        <div className="pt-5 pb-4 text-center">
-          <h1 className="text-xl font-black text-[#0D2329] tracking-tight">Ativar sua Conta</h1>
-          <p className="text-xs font-semibold text-[#6B7C83] mt-1">
-            Preencha seus dados para liberar seu acesso ao sistema.
+        <div className="pt-4 pb-3 text-center">
+          <h1 className="text-lg sm:text-xl font-black text-[#0D2329] tracking-tight">Comece seu Teste Gratuito</h1>
+          <p className="text-xs font-semibold text-[#6B7C83] mt-0.5">
+            Cadastre-se e use 100% do sistema pelos próximos 14 dias.
           </p>
         </div>
 
         {/* FORMULÁRIO (NOME, EMAIL, SENHA E CONFIRMAÇÃO DE SENHA) */}
-        <form onSubmit={handleRegister} className="space-y-4">
-          {/* Alerta de Compra Não Encontrada na Hotmart */}
-          {purchaseNotFound && (
-            <div className="p-4 rounded-2xl bg-[#FEF2F2] border-2 border-[#FECACA] space-y-2.5 animate-in fade-in">
-              <div className="flex items-start gap-2.5">
-                <div className="w-7 h-7 rounded-xl bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center shrink-0">
-                  <AlertCircle className="w-4 h-4" />
-                </div>
-                <div className="space-y-0.5">
-                  <h3 className="text-xs font-black text-[#991B1B]">Compra Não Identificada</h3>
-                  <p className="text-[11px] font-semibold text-[#B91C1C] leading-relaxed">
-                    O e-mail <strong>{form.email}</strong> não possui uma assinatura na Hotmart. Use
-                    o mesmo e-mail do pagamento.
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-1 flex flex-col gap-2">
-                <a
-                  href="https://pay.hotmart.com/L107381113V?off=imn95wux"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="py-2 px-3 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black text-center flex items-center justify-center gap-1.5 shadow-sm transition-all"
-                >
-                  <span>Adquirir Plano na Hotmart</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              </div>
-            </div>
-          )}
-
+        <form onSubmit={handleRegister} className="space-y-3.5">
           {/* 1. Nome Completo */}
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <label className="text-xs font-black text-[#0D2329] flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-[#7C3AED]" />
               <span>Seu Nome Completo</span>
@@ -225,32 +240,32 @@ export function RegisterPage() {
               placeholder="Ex: Priscila Carbone"
               value={form.full_name}
               onChange={(e) => handleChange("full_name", e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl border border-[#D8E5E7] bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] shadow-2xs placeholder:text-[#8CAAB1]"
+              className="w-full px-4 py-2.5 rounded-2xl border border-[#D8E5E7] bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] shadow-2xs placeholder:text-[#8CAAB1]"
             />
             {errors.full_name && (
               <p className="text-[11px] font-bold text-[#DC2626]">{errors.full_name}</p>
             )}
           </div>
 
-          {/* 2. E-mail de Compra */}
-          <div className="space-y-1.5">
+          {/* 2. E-mail */}
+          <div className="space-y-1">
             <label className="text-xs font-black text-[#0D2329] flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5 text-[#7C3AED]" />
-              <span>E-mail da Compra (Hotmart)</span>
+              <span>Seu Melhor E-mail</span>
             </label>
             <input
               type="email"
               required
-              placeholder="mesmo.email@comprado.com"
+              placeholder="seu.email@exemplo.com"
               value={form.email}
               onChange={(e) => handleChange("email", e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl border border-[#D8E5E7] bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] shadow-2xs placeholder:text-[#8CAAB1]"
+              className="w-full px-4 py-2.5 rounded-2xl border border-[#D8E5E7] bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] shadow-2xs placeholder:text-[#8CAAB1]"
             />
             {errors.email && <p className="text-[11px] font-bold text-[#DC2626]">{errors.email}</p>}
           </div>
 
           {/* 3. Criar Senha */}
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <label className="text-xs font-black text-[#0D2329] flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-[#7C3AED]" />
               <span>Crie sua Senha</span>
@@ -262,7 +277,7 @@ export function RegisterPage() {
                 placeholder="Mínimo 6 dígitos"
                 value={form.password}
                 onChange={(e) => handleChange("password", e.target.value)}
-                className="w-full px-4 py-3 pr-10 rounded-2xl border border-[#D8E5E7] bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] shadow-2xs placeholder:text-[#8CAAB1]"
+                className="w-full px-4 py-2.5 pr-10 rounded-2xl border border-[#D8E5E7] bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] shadow-2xs placeholder:text-[#8CAAB1]"
               />
               <button
                 type="button"
@@ -279,7 +294,7 @@ export function RegisterPage() {
           </div>
 
           {/* 4. Confirmar Senha */}
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <label className="text-xs font-black text-[#0D2329] flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-[#7C3AED]" />
               <span>Confirmar Senha</span>
@@ -291,7 +306,7 @@ export function RegisterPage() {
                 placeholder="Repita sua senha"
                 value={form.confirm_password}
                 onChange={(e) => handleChange("confirm_password", e.target.value)}
-                className="w-full px-4 py-3 pr-10 rounded-2xl border border-[#D8E5E7] bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] shadow-2xs placeholder:text-[#8CAAB1]"
+                className="w-full px-4 py-2.5 pr-10 rounded-2xl border border-[#D8E5E7] bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] shadow-2xs placeholder:text-[#8CAAB1]"
               />
               <button
                 type="button"
@@ -311,23 +326,28 @@ export function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-2 py-3.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full mt-2 py-3.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             {loading ? (
-              <span>Validando e Ativando...</span>
+              <span>Criando seu Consultório...</span>
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                <span>Ativar Minha Conta & Entrar</span>
+                <span>Iniciar 14 Dias Grátis Agora</span>
               </>
             )}
           </button>
 
           {/* Rodapé Informativo */}
-          <div className="pt-2 text-center">
+          <div className="pt-2 text-center space-y-1">
             <p className="text-[11px] font-semibold text-[#8CAAB1]">
-              Os dados do seu consultório e logo podem ser personalizados a qualquer momento nas{" "}
-              <strong>Configurações</strong> do sistema.
+              🔒 Sem cartão de crédito · Sem pegadinhas · Cancele a qualquer momento.
+            </p>
+            <p className="text-[10px] text-[#8CAAB1]">
+              Deseja outro plano?{" "}
+              <Link to="/planos" className="text-[#7C3AED] font-bold hover:underline">
+                Ver todos os planos
+              </Link>
             </p>
           </div>
         </form>
@@ -335,3 +355,4 @@ export function RegisterPage() {
     </div>
   )
 }
+

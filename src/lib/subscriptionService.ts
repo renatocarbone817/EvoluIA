@@ -9,6 +9,44 @@ export interface SubscriptionDetails {
   maxProfessionals: number
   availableSeats: number
   isMaster: boolean
+  isTrial: boolean
+  trialDaysRemaining: number
+  isTrialExpired: boolean
+}
+
+/**
+ * Calcula os dias restantes de teste grátis (Trial)
+ */
+export function getTrialRemainingDays(subscription: Subscription): number {
+  if (subscription.status !== "trial" || !subscription.subscription_expires_at) {
+    return 0
+  }
+  const expiresAt = new Date(subscription.subscription_expires_at).getTime()
+  const now = Date.now()
+  const diffMs = expiresAt - now
+  if (diffMs <= 0) return 0
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+}
+
+/**
+ * Verifica se o período de teste está ativo
+ */
+export function isTrialActive(subscription: Subscription): boolean {
+  if (subscription.status !== "trial") return false
+  if (!subscription.subscription_expires_at) return true
+  return new Date(subscription.subscription_expires_at).getTime() > Date.now()
+}
+
+/**
+ * Verifica se o período de teste expirou e não houve pagamento
+ */
+export function isTrialExpired(subscription: Subscription): boolean {
+  if (subscription.status === "active") return false
+  if (subscription.status === "trial") {
+    if (!subscription.subscription_expires_at) return false
+    return new Date(subscription.subscription_expires_at).getTime() <= Date.now()
+  }
+  return subscription.status === "expired" || subscription.status === "cancelled"
 }
 
 const SUBSCRIPTION_STORAGE_KEY_PREFIX = "evoluia_subscription_"
@@ -175,6 +213,9 @@ export async function getSubscriptionDetails(masterId: string): Promise<Subscrip
   const planConfig = getPlanConfig(sub.plan_id)
   const maxProfs = sub.max_professionals || planConfig.maxProfessionals || 1
   const availableSeats = Math.max(0, maxProfs - usedCount)
+  const isTrial = sub.status === "trial"
+  const trialDaysRemaining = getTrialRemainingDays(sub)
+  const isTrialExp = isTrialExpired(sub)
 
   return {
     subscription: sub,
@@ -183,6 +224,9 @@ export async function getSubscriptionDetails(masterId: string): Promise<Subscrip
     maxProfessionals: maxProfs,
     availableSeats,
     isMaster: true,
+    isTrial,
+    trialDaysRemaining,
+    isTrialExpired: isTrialExp,
   }
 }
 

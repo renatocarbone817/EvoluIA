@@ -71,7 +71,16 @@ export function PlanPage() {
   const handlePlanClick = (targetPlan: PlanConfig) => {
     if (!details) return
 
-    // 1. Mesmo plano
+    const userEmailParam = user?.email ? `&email=${encodeURIComponent(user.email)}` : ""
+
+    // Se estiver em período de teste (trial), permite assinar qualquer um dos 5 planos diretamente
+    if (details.isTrial) {
+      window.open(`${targetPlan.hotmartCheckoutUrl}${userEmailParam}`, "_blank", "noopener,noreferrer")
+      toast.success(`Redirecionando para o checkout do ${targetPlan.name} na Hotmart...`)
+      return
+    }
+
+    // 1. Mesmo plano (se já estiver ativo)
     if (targetPlan.id === details.planConfig.id) {
       toast("Este já é o seu plano atual.", { icon: "ℹ️" })
       return
@@ -79,7 +88,7 @@ export function PlanPage() {
 
     // 2. Upgrade (plano maior)
     if (targetPlan.maxProfessionals > details.planConfig.maxProfessionals) {
-      window.open(targetPlan.hotmartCheckoutUrl, "_blank", "noopener,noreferrer")
+      window.open(`${targetPlan.hotmartCheckoutUrl}${userEmailParam}`, "_blank", "noopener,noreferrer")
       toast.success(`Redirecionando para o checkout do ${targetPlan.name} na Hotmart...`)
       return
     }
@@ -94,7 +103,7 @@ export function PlanPage() {
     }
 
     // Se cabe, redireciona para a troca/checkout na Hotmart
-    window.open(targetPlan.hotmartCheckoutUrl, "_blank", "noopener,noreferrer")
+    window.open(`${targetPlan.hotmartCheckoutUrl}${userEmailParam}`, "_blank", "noopener,noreferrer")
     toast.success(`Redirecionando para o ${targetPlan.name} na Hotmart...`)
   }
 
@@ -149,13 +158,19 @@ export function PlanPage() {
             <div className="lg:col-span-6 space-y-4">
               <div className="flex items-center gap-2.5">
                 <span className="text-[11px] font-black uppercase tracking-widest text-[#7DD3FC]">
-                  MEU PLANO ATUAL
+                  {details.isTrial ? "TESTE GRÁTIS EM ANDAMENTO" : "MEU PLANO ATUAL"}
                 </span>
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-black flex items-center gap-1.5 ${statusInfo.badgeBg} ${statusInfo.badgeText} border ${statusInfo.badgeBorder}`}
+                  className={`px-3 py-1 rounded-full text-xs font-black flex items-center gap-1.5 ${
+                    details.isTrial
+                      ? "bg-amber-400/20 text-amber-300 border-amber-400/30"
+                      : `${statusInfo.badgeBg} ${statusInfo.badgeText} border ${statusInfo.badgeBorder}`
+                  }`}
                 >
                   <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
-                  {statusInfo.label}
+                  {details.isTrial
+                    ? `${details.trialDaysRemaining === 0 ? "Último dia de teste!" : `Restam ${details.trialDaysRemaining} dias de teste`}`
+                    : statusInfo.label}
                 </span>
               </div>
 
@@ -168,12 +183,25 @@ export function PlanPage() {
                 </p>
               </div>
 
-              <div className="flex items-baseline gap-2 pt-2">
+              <div className="flex items-baseline gap-2 pt-1">
                 <span className="text-3xl sm:text-4xl font-black text-[#10B981]">
                   {details.planConfig.formattedPrice}
                 </span>
                 <span className="text-xs font-bold text-[#94A3B8]">/mês</span>
               </div>
+
+              {details.isTrial && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handlePlanClick(details.planConfig)}
+                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-900/40 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Ativar Este Plano na Hotmart ({details.planConfig.formattedPrice}/mês)</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Lado Direito: Barra de Ocupação da Equipe */}
@@ -343,7 +371,19 @@ export function PlanPage() {
 
                 {/* Botão de Ação */}
                 <div className="pt-5 mt-4 border-t border-[#EEF5F6]">
-                  {isCurrent ? (
+                  {details?.isTrial ? (
+                    <button
+                      onClick={() => handlePlanClick(plan)}
+                      className={`w-full h-11 rounded-2xl font-black text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer ${
+                        isCurrent
+                          ? "bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white shadow-emerald-500/25"
+                          : "bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white shadow-purple-500/25"
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{isCurrent ? "Efetivar Este Plano" : `Assinar ${plan.name}`}</span>
+                    </button>
+                  ) : isCurrent ? (
                     <button
                       disabled
                       className="w-full h-11 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] font-black text-xs flex items-center justify-center gap-1.5 cursor-default border border-[#DDD6FE]"
@@ -354,7 +394,7 @@ export function PlanPage() {
                   ) : isUpgrade ? (
                     <button
                       onClick={() => handlePlanClick(plan)}
-                      className="w-full h-11 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
+                      className="w-full h-11 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>Fazer Upgrade</span>
@@ -363,7 +403,7 @@ export function PlanPage() {
                     <button
                       onClick={() => handlePlanClick(plan)}
                       disabled={!downgradeCheck.allowed}
-                      className={`w-full h-11 rounded-2xl font-black text-xs flex items-center justify-center gap-1.5 transition-all ${
+                      className={`w-full h-11 rounded-2xl font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                         !downgradeCheck.allowed
                           ? "bg-[#FEF2F2] text-[#EF4444] border border-[#FECACA] cursor-not-allowed opacity-80"
                           : "bg-white hover:bg-[#F7FAFA] border-2 border-[#D8E5E7] hover:border-[#7C3AED] text-[#0D2329] active:scale-95"

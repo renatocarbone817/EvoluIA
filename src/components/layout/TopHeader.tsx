@@ -11,11 +11,13 @@ import {
   BookPlus,
   ChevronDown,
   X,
+  Gift,
 } from "lucide-react"
 import { Breadcrumb } from "./Breadcrumb"
 import { NotificationCenter } from "./NotificationCenter"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
+import { getSubscriptionDetails, type SubscriptionDetails } from "@/lib/subscriptionService"
 
 export function TopHeader() {
   const navigate = useNavigate()
@@ -26,7 +28,14 @@ export function TopHeader() {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [menuNovoOpen, setMenuNovoOpen] = useState(false)
+  const [subDetails, setSubDetails] = useState<SubscriptionDetails | null>(null)
   const menuNovoRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (profId) {
+      getSubscriptionDetails(profId).then(setSubDetails).catch(() => {})
+    }
+  }, [profId])
 
   // Close "+ Novo" dropdown on outside click
   useEffect(() => {
@@ -142,8 +151,34 @@ export function TopHeader() {
         )}
       </div>
 
-      {/* 2. Right: Calendar, Notification Center & "+ Novo" Button */}
-      <div className="flex items-center gap-3">
+      {/* 2. Right: Trial Badge, Calendar, Notification Center & "+ Novo" Button */}
+      <div className="flex items-center gap-2.5">
+        {/* Trial Countdown Badge */}
+        {subDetails?.isTrial && (
+          <button
+            onClick={() => navigate("/meu-plano")}
+            className={`h-9 px-3.5 rounded-xl border flex items-center gap-1.5 text-xs font-black transition-all active:scale-95 cursor-pointer shadow-2xs ${
+              subDetails.trialDaysRemaining <= 3
+                ? "bg-amber-50 border-amber-300 text-amber-900 hover:bg-amber-100 animate-pulse"
+                : "bg-[#EDE9FE] border-[#DDD6FE] text-[#6D28D9] hover:bg-[#DDD6FE]"
+            }`}
+            title="Clique para ver os planos e ativar sua assinatura definitiva"
+          >
+            <Gift className="w-3.5 h-3.5 text-[#7C3AED]" />
+            <span>
+              {subDetails.trialDaysRemaining === 0
+                ? "Último dia de teste!"
+                : `${subDetails.trialDaysRemaining} dias de teste`}
+            </span>
+            <span className="text-[10px] font-bold opacity-75 hidden lg:inline">
+              ({subDetails.planConfig.name})
+            </span>
+            <span className="text-[11px] font-black text-[#7C3AED] ml-1 underline">
+              Ativar →
+            </span>
+          </button>
+        )}
+
         {/* Quick Calendar Button */}
         <button
           onClick={() => navigate("/agenda")}
