@@ -135,9 +135,11 @@ export default async function handler(req, res) {
       full_name: nameToUse,
       clinic_name: clinicToUse,
       specialty: "Psicopedagogia Clínica",
+      bio: `[PLAN:${validPlan}:active]`,
       is_active: true,
-      role: "owner",
+      role: "master",
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
 
     // 4. Criar / Atualizar assinatura VIP em 'subscriptions'

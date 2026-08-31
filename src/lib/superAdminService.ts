@@ -914,8 +914,8 @@ export async function createVipClinicAccount(params: {
     password: cleanPassword,
     options: {
       data: {
-        full_name: params.fullName || "Psicopedagoga VIP",
-        clinic_name: params.clinicName || "Espaço Psicopedagógico",
+        full_name: params.fullName || cleanEmail.split("@")[0],
+        clinic_name: params.clinicName || null,
       },
     },
   })
@@ -929,21 +929,13 @@ export async function createVipClinicAccount(params: {
   await supabase.from("professionals").upsert({
     id: userId,
     email: cleanEmail,
-    full_name: params.fullName || "Psicopedagoga VIP",
-    clinic_name: params.clinicName || "Espaço Psicopedagógico",
+    full_name: params.fullName || cleanEmail.split("@")[0],
+    clinic_name: params.clinicName || null,
     specialty: "Psicopedagogia Clínica",
+    bio: `[PLAN:${planId}:active]`,
     is_active: true,
-    role: "owner",
+    role: "master",
     created_at: new Date().toISOString(),
-  })
-
-  await supabase.from("subscriptions").upsert({
-    master_user_id: userId,
-    plan_id: planId,
-    max_professionals: planConfig.maxProfessionals,
-    status: "active",
-    source: "admin_vip_cortesia",
-    hotmart_subscription_id: "VIP_CORTESIA",
     updated_at: new Date().toISOString(),
   })
 
