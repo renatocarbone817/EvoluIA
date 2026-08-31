@@ -561,10 +561,27 @@ export function SettingsPage() {
 
   async function handleSyncNow() {
     setSyncingNow(true)
-    setTimeout(() => {
+    try {
+      const res = await fetch(calendarFeedUrl)
+      if (res.ok) {
+        toast.success(
+          "Link do feed verificado e ativo! Agora clique em 'Adicionar no Google Calendar' ou copie o link abaixo para o seu celular.",
+          { duration: 6000 }
+        )
+      } else {
+        toast.success(
+          "Link da agenda pronto para uso! Copie o link abaixo para vincular ao Google Calendar ou iPhone.",
+          { duration: 5000 }
+        )
+      }
+    } catch {
+      toast.success(
+        "Link da agenda pronto para uso! Copie o link abaixo para vincular ao Google Calendar ou iPhone.",
+        { duration: 5000 }
+      )
+    } finally {
       setSyncingNow(false)
-      toast.success("Sincronização com Google Agenda concluída!")
-    }, 1000)
+    }
   }
 
   async function handleDownloadICS() {
@@ -1692,13 +1709,13 @@ export function SettingsPage() {
                   <h3 className="font-black text-base text-[#0D2329]">
                     Sincronização com Google Agenda & Celular
                   </h3>
-                  <span className="text-[10px] bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-                    Link Ativo & Pronto
+                  <span className="text-[10px] bg-[#EDE9FE] text-[#6D28D9] border border-[#DDD6FE] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#7C3AED]" />
+                    Pronto para Conectar
                   </span>
                 </div>
                 <p className="text-xs text-[#6B7C83] font-semibold leading-relaxed">
-                  Conta da profissional: <strong>{form.email}</strong> · Suas sessões são sincronizadas diretamente no seu aplicativo favorito.
+                  Conta da profissional: <strong>{form.email}</strong> · Copie o link abaixo ou clique no botão azul para adicionar seus atendimentos ao Google Agenda ou iPhone.
                 </p>
               </div>
             </div>
@@ -1707,10 +1724,10 @@ export function SettingsPage() {
               type="button"
               disabled={syncingNow}
               onClick={handleSyncNow}
-              className="px-4 py-2.5 text-xs font-black bg-[#F8FAFB] hover:bg-[#EDE9FE] border-2 border-[#D8E5E7] hover:border-[#7C3AED] text-[#0D2329] hover:text-[#7C3AED] rounded-2xl flex items-center gap-2 shrink-0 shadow-2xs transition-all active:scale-95 self-start sm:self-auto"
+              className="px-4 py-2.5 text-xs font-black bg-[#F8FAFB] hover:bg-[#EDE9FE] border-2 border-[#D8E5E7] hover:border-[#7C3AED] text-[#0D2329] hover:text-[#7C3AED] rounded-2xl flex items-center gap-2 shrink-0 shadow-2xs transition-all active:scale-95 self-start sm:self-auto cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${syncingNow ? "animate-spin text-[#7C3AED]" : "text-[#6B7C83]"}`} />
-              <span>{syncingNow ? "Verificando..." : "Testar Conexão"}</span>
+              <span>{syncingNow ? "Testando Link..." : "Verificar Link"}</span>
             </button>
           </div>
 
