@@ -805,27 +805,29 @@ export function LandingPage() {
                       <p className="text-[11px] text-slate-600 mt-1 leading-snug font-medium">{plan.description}</p>
                     </div>
 
-                    {/* Preço Bem Distribuído */}
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border-2 border-slate-200 flex items-center justify-between gap-2 shadow-2xs">
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    {/* Preço Bem Distribuído & Centralizado */}
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border-2 border-slate-200 space-y-2 shadow-2xs">
+                      {/* Top Row: Investimento + Vagas */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
                           Investimento
                         </span>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-black text-[#0F172A]">
-                            R$ {price.toFixed(2).replace(".", ",")}
+                        <div className="px-2.5 py-1 rounded-xl bg-purple-100 border border-purple-200 text-[#7C3AED] text-[10px] font-black flex items-center gap-1 shrink-0">
+                          <Users className="w-3.5 h-3.5 shrink-0" />
+                          <span>
+                            {plan.maxProfessionals === 1
+                              ? "1 Vaga"
+                              : `Até ${plan.maxProfessionals} Vagas`}
                           </span>
-                          <span className="text-[10px] font-bold text-slate-500">/mês</span>
                         </div>
                       </div>
 
-                      <div className="px-2.5 py-1.5 rounded-xl bg-purple-100 border border-purple-200 text-[#7C3AED] text-[10px] font-black flex items-center gap-1 shrink-0">
-                        <Users className="w-3.5 h-3.5" />
-                        <span>
-                          {plan.maxProfessionals === 1
-                            ? "1 Vaga"
-                            : `Até ${plan.maxProfessionals} Vagas`}
+                      {/* Bottom Row: Preço Grande e Centralizado */}
+                      <div className="flex items-baseline justify-center gap-1 py-1">
+                        <span className="text-3xl sm:text-4xl font-black text-[#0F172A] tracking-tight">
+                          R$ {price.toFixed(2).replace(".", ",")}
                         </span>
+                        <span className="text-xs font-bold text-slate-500">/mês</span>
                       </div>
                     </div>
 
