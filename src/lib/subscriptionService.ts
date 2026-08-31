@@ -18,12 +18,22 @@ export interface SubscriptionDetails {
  * Calcula os dias restantes de teste grátis (Trial)
  */
 export function getTrialRemainingDays(subscription: Subscription): number {
-  if (subscription.status !== "trial" || !subscription.subscription_expires_at) {
+  if (subscription.status !== "trial") {
     return 0
   }
-  const expiresAt = new Date(subscription.subscription_expires_at).getTime()
+  let expiresAtMs = 0
+  if (subscription.subscription_expires_at) {
+    expiresAtMs = new Date(subscription.subscription_expires_at).getTime()
+  } else if (subscription.created_at) {
+    expiresAtMs = new Date(subscription.created_at).getTime() + 14 * 24 * 60 * 60 * 1000
+  } else if (subscription.subscription_started_at) {
+    expiresAtMs = new Date(subscription.subscription_started_at).getTime() + 14 * 24 * 60 * 60 * 1000
+  } else {
+    expiresAtMs = Date.now() + 14 * 24 * 60 * 60 * 1000
+  }
+
   const now = Date.now()
-  const diffMs = expiresAt - now
+  const diffMs = expiresAtMs - now
   if (diffMs <= 0) return 0
   return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 }
@@ -33,8 +43,7 @@ export function getTrialRemainingDays(subscription: Subscription): number {
  */
 export function isTrialActive(subscription: Subscription): boolean {
   if (subscription.status !== "trial") return false
-  if (!subscription.subscription_expires_at) return true
-  return new Date(subscription.subscription_expires_at).getTime() > Date.now()
+  return getTrialRemainingDays(subscription) > 0
 }
 
 /**
@@ -43,8 +52,7 @@ export function isTrialActive(subscription: Subscription): boolean {
 export function isTrialExpired(subscription: Subscription): boolean {
   if (subscription.status === "active") return false
   if (subscription.status === "trial") {
-    if (!subscription.subscription_expires_at) return false
-    return new Date(subscription.subscription_expires_at).getTime() <= Date.now()
+    return getTrialRemainingDays(subscription) <= 0
   }
   return subscription.status === "expired" || subscription.status === "cancelled"
 }
@@ -87,21 +95,48 @@ export async function getActiveTeamCount(masterId: string): Promise<number> {
  */
 export async function getMasterSubscription(masterId: string): Promise<Subscription> {
   try {
-    // 1. PRIMEIRO checa se há plano gravado no registro do profissional (tag [PLAN:planId:status])
-    // Isso é soberano e garante sincronização em tempo real quando o Dono altera no Super Admin!
+    // 1. PRIMEIRO checa se há assinatura na tabela 'subscriptions' do Supabase
+    try {
+      const { data: subDb, error: subDbErr } = await supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("master_user_id", masterId)
+        .maybeSingle()
+
+      if (!subDbErr && subDb && subDb.plan_id) {
+        // Se for trial mas não tem data de expiração, calcula 14 dias a partir de created_at
+        if (subDb.status === "trial" && !subDb.subscription_expires_at) {
+          const createdAt = subDb.created_at ? new Date(subDb.created_at).getTime() : Date.now()
+          subDb.subscription_expires_at = new Date(createdAt + 14 * 24 * 60 * 60 * 1000).toISOString()
+        }
+        localStorage.setItem(`${SUBSCRIPTION_STORAGE_KEY_PREFIX}${masterId}`, JSON.stringify(subDb))
+        return subDb as Subscription
+      }
+    } catch (subErr) {
+      console.warn("Could not check subscriptions table:", subErr)
+    }
+
+    // 2. SEGUNDO checa se há plano gravado no registro do profissional (tag [PLAN:planId:status:expiresAt])
     try {
       const { data: profData } = await supabase
         .from("professionals")
-        .select("bio, email")
+        .select("bio, email, created_at")
         .eq("id", masterId)
         .maybeSingle()
 
       if (profData?.bio && profData.bio.includes("[PLAN:")) {
-        const match = profData.bio.match(/\[PLAN:([a-zA-Z0-9_]+)(?::([a-zA-Z0-9_]+))?\]/)
+        const match = profData.bio.match(/\[PLAN:([a-zA-Z0-9_]+)(?::([a-zA-Z0-9_]+))?(?::([^\]]+))?\]/)
         if (match) {
           const parsedPlanId = match[1] as PlanId
           const parsedStatus = (match[2] || "active") as SubscriptionStatus
+          const parsedExpiresAt = match[3] || null
           const planConfig = getPlanConfig(parsedPlanId)
+
+          let expiresAt = parsedExpiresAt
+          if (parsedStatus === "trial" && !expiresAt) {
+            const createdAt = profData.created_at ? new Date(profData.created_at).getTime() : Date.now()
+            expiresAt = new Date(createdAt + 14 * 24 * 60 * 60 * 1000).toISOString()
+          }
 
           const subFromProf: Subscription = {
             id: `sub_${masterId}`,
@@ -115,10 +150,10 @@ export async function getMasterSubscription(masterId: string): Promise<Subscript
             hotmart_transaction_id: null,
             customer_email: profData.email || null,
             subscription_started_at: new Date().toISOString(),
-            subscription_expires_at: null,
+            subscription_expires_at: expiresAt,
             last_payment_at: new Date().toISOString(),
             cancelled_at: null,
-            created_at: new Date().toISOString(),
+            created_at: profData.created_at || new Date().toISOString(),
             updated_at: new Date().toISOString(),
           }
 

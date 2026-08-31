@@ -127,7 +127,7 @@ export function RegisterPage() {
         role: "master",
         is_active: true,
         specialty: "Psicopedagogia Clínica",
-        bio: `[PLAN:${assignedPlanId}:${assignedStatus}]`,
+        bio: `[PLAN:${assignedPlanId}:${assignedStatus}:${trialExpiresAt || ""}]`,
       })
 
       if (profileError) throw profileError
@@ -152,6 +152,11 @@ export function RegisterPage() {
           subscription_expires_at: trialExpiresAt,
         })
       }
+
+      // Limpar cache de assinatura para carregar dados frescos
+      try {
+        localStorage.removeItem(`evoluia_subscription_${userId}`)
+      } catch {}
 
       const planConfig = getPlanConfig(assignedPlanId)
       if (isAlreadyPaid) {
