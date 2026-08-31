@@ -276,11 +276,11 @@ export function PlanPage() {
               >
                 {/* Badge Destaque */}
                 {isCurrent ? (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-[#7C3AED] text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-[#7C3AED] text-white text-[10px] font-black uppercase tracking-wider shadow-sm text-center whitespace-nowrap flex items-center justify-center">
                     Plano Atual
                   </span>
                 ) : plan.isPopular ? (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-[#10B981] text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-[#10B981] text-white text-[10px] font-black uppercase tracking-wider shadow-sm text-center whitespace-nowrap flex items-center justify-center">
                     Mais Escolhido
                   </span>
                 ) : null}
