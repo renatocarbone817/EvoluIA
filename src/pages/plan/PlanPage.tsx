@@ -66,7 +66,7 @@ export function PlanPage() {
       return
     }
     loadData()
-  }, [masterId, isMaster])
+  }, [masterId, isMaster, professional])
 
   const handlePlanClick = (targetPlan: PlanConfig) => {
     if (!details) return

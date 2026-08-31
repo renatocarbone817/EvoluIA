@@ -49,22 +49,8 @@ export async function getActiveTeamCount(masterId: string): Promise<number> {
  */
 export async function getMasterSubscription(masterId: string): Promise<Subscription> {
   try {
-    const { data, error } = await supabase
-      .from("subscriptions")
-      .select("*")
-      .eq("master_user_id", masterId)
-      .maybeSingle()
-
-    if (error && error.code !== "PGRST116") {
-      console.warn("Error fetching subscription from Supabase:", error)
-    }
-
-    if (data && data.plan_id) {
-      localStorage.setItem(`${SUBSCRIPTION_STORAGE_KEY_PREFIX}${masterId}`, JSON.stringify(data))
-      return data as Subscription
-    }
-
-    // 2. Checa se há plano gravado no registro do profissional (tag [PLAN:planId:status])
+    // 1. PRIMEIRO checa se há plano gravado no registro do profissional (tag [PLAN:planId:status])
+    // Isso é soberano e garante sincronização em tempo real quando o Dono altera no Super Admin!
     try {
       const { data: profData } = await supabase
         .from("professionals")
@@ -87,7 +73,7 @@ export async function getMasterSubscription(masterId: string): Promise<Subscript
             status: parsedStatus,
             hotmart_product_id: null,
             hotmart_offer_id: null,
-            hotmart_subscription_id: "ADMIN_MANUAL",
+            hotmart_subscription_id: "ADMIN_VIP_CORTESIA",
             hotmart_transaction_id: null,
             customer_email: profData.email || null,
             subscription_started_at: new Date().toISOString(),
@@ -102,7 +88,25 @@ export async function getMasterSubscription(masterId: string): Promise<Subscript
           return subFromProf
         }
       }
-    } catch {}
+    } catch (profErr) {
+      console.warn("Could not check prof bio for plan:", profErr)
+    }
+
+    // 2. Busca na tabela subscriptions
+    const { data, error } = await supabase
+      .from("subscriptions")
+      .select("*")
+      .eq("master_user_id", masterId)
+      .maybeSingle()
+
+    if (error && error.code !== "PGRST116") {
+      console.warn("Error fetching subscription from Supabase:", error)
+    }
+
+    if (data && data.plan_id) {
+      localStorage.setItem(`${SUBSCRIPTION_STORAGE_KEY_PREFIX}${masterId}`, JSON.stringify(data))
+      return data as Subscription
+    }
 
     // Default soberano: Plano Individual (R$ 39,90 / 1 profissional)
     const planConfig = getPlanConfig("individual")
