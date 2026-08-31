@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import {
   FileText,
   Download,
@@ -31,6 +31,11 @@ import {
   type CompleteReportData,
   type ReportTestResult,
 } from "@/lib/docxReportGenerator"
+import {
+  getCustomFamilyQuestions,
+  getCustomSchoolQuestions,
+  type InterviewQuestionItem,
+} from "@/lib/customInterviewService"
 
 interface ClinicalReportBuilderModalProps {
   isOpen: boolean
@@ -111,6 +116,10 @@ export function ClinicalReportBuilderModal({
   const [generatingAI, setGeneratingAI] = useState(false)
   const [savingToDatabase, setSavingToDatabase] = useState(false)
 
+  const profId = professional?.id || child.professional_id
+  const familyQuestions = useMemo(() => getCustomFamilyQuestions(profId), [profId])
+  const schoolQuestions = useMemo(() => getCustomSchoolQuestions(profId), [profId])
+
   // Form State
   const [patientData, setPatientData] = useState({
     fullName: child.full_name,
@@ -124,40 +133,27 @@ export function ClinicalReportBuilderModal({
     previousDiagnosis: "Nenhum",
   })
 
-  const [anamnese, setAnamnese] = useState({
-    family: "Família constituída pelos responsáveis e irmãos, com bom suporte e acompanhamento da rotina.",
-    conceptionAndPregnancy: "Gestação a termo, parto cesárea sem intercorrências graves, peso e estatura adequados ao nascer, vacinação em dia.",
-    breastfeedingAndDiet: "Aleitamento materno nos primeiros meses, boa aceitação alimentar e rotina nutricional atual preservada.",
-    psychomotorAndLanguage: "Marcos motores (marcha aos 12 meses) e linguagem oral desenvolvidos dentro dos padrões esperados.",
-    sleep: "Padrão de sono tranquilo, rotina de descanso regular sem queixas de terror noturno ou insônia.",
-    familyHealthHistory: "Histórico familiar investigado; sem histórico de doenças neurodegenerativas graves na família imediata.",
-    schooling: "Início da trajetória escolar na educação infantil; aumento das demandas percebido no ciclo de alfabetização.",
-    relationshipsAndSociability: "Criança afetuosa, sociável com pares, demonstra empatia e bom vínculo com os adultos de referência.",
+  // Dynamic answers state
+  const [familyAnswers, setFamilyAnswers] = useState<Record<string, string>>({})
+  const [schoolAnswers, setSchoolAnswers] = useState<Record<string, string>>({})
+  const [schoolObserver, setSchoolObserver] = useState({
+    name: "",
+    role: "Professora Regente",
+    date: new Date().toISOString().split("T")[0],
   })
-
-  const [schoolInterview, setSchoolInterview] = useState({
-    development: "Participa das atividades propostas com necessidade de mediação e incentivo constante.",
-    behavior: "Bom relacionamento com professores e colegas de turma; sem episódios de agressividade.",
-    mainDifficulties: "Dificuldade na fixação de conteúdos abstratos, leitura de sílabas complexas e manutenção do foco.",
-    learningAndAssimilation: "Necessita de instruções repetidas passo a passo para execução de tarefas acadêmicas.",
-    homework: "Realiza os deveres de casa quando supervisionado diretamente pelos pais.",
-    organization: "Apresenta esquecimento de materiais e desorganização com cadernos e estojo.",
-    limitsAndFrustration: "Demonstra resistência passageira diante de correções ou tarefas de esforço mental prolongado.",
-    traits: {
-      aggressive: false,
-      passive: false,
-      dependent: false,
-      fearful: false,
-      withdrawn: false,
-      melancholic: false,
-      calm: false,
-      unfocused: true,
-      boundaryless: false,
-      restless: false,
-      depressive: false,
-      resentful: false,
-    },
-    additionalNotes: "Escola relata potencial de aprendizagem quando estimulado com recursos concretos.",
+  const [schoolTraits, setSchoolTraits] = useState<Record<string, boolean>>({
+    agressivo: false,
+    passivo: false,
+    dependente: false,
+    medroso: false,
+    retraido: false,
+    melancolico: false,
+    calmo: false,
+    desligado: true,
+    sem_limites: false,
+    agitado: false,
+    depressivo: false,
+    ressentido: false,
   })
 
   const [selectedInstruments, setSelectedInstruments] = useState<string[]>([
@@ -221,11 +217,12 @@ export function ClinicalReportBuilderModal({
         let months = now.getMonth() - bdate.getMonth()
         if (months < 0 || (months === 0 && now.getDate() < bdate.getDate())) {
           years--
+          months += 12
         }
-        ageStr = `${years} anos`
+        ageStr = years + " ano" + (years !== 1 ? "s" : "") + (months > 0 ? " e " + months + " m" + (months !== 1 ? "eses" : "ês") : "")
       }
 
-      // 2. Fetch Guardians (Parents)
+      // 2. Fetch Guardians
       const { data: links } = await supabase
         .from("guardian_children")
         .select("guardian:guardians(*)")
@@ -270,84 +267,40 @@ export function ClinicalReportBuilderModal({
         const latest = assessments[0]
 
         // Parse answers from reason JSON (saved from ChildAssessmentTab)
-        let parsedReasonAnswers: Record<string, string> = {}
+        let loadedFamilyAnswers: Record<string, string> = {}
         if (latest.reason) {
           try {
-            parsedReasonAnswers = JSON.parse(latest.reason)
-          } catch (e) {
-            // not JSON
-          }
+            if (latest.reason.startsWith("{")) {
+              loadedFamilyAnswers = JSON.parse(latest.reason)
+            }
+          } catch (e) {}
         }
 
         const answersList = latest.answers || []
-        const ansMap: Record<string, string> = {}
-        answersList.forEach((a: any) => {
-          const qTitle = a.question?.title || ""
-          const qId = a.question_id || ""
-          if (a.answer_text) {
-            if (qTitle) ansMap[qTitle.toLowerCase()] = a.answer_text
-            if (qId) ansMap[qId.toLowerCase()] = a.answer_text
-          }
-        })
-
-        const getAnswer = (qKey: string, ...titleKeywords: string[]) => {
-          if (parsedReasonAnswers[qKey] && parsedReasonAnswers[qKey].trim()) {
-            return parsedReasonAnswers[qKey]
-          }
-          if (ansMap[qKey.toLowerCase()]) {
-            return ansMap[qKey.toLowerCase()]
-          }
-          for (const kw of titleKeywords) {
-            for (const [k, v] of Object.entries(ansMap)) {
-              if (k.includes(kw.toLowerCase()) && v) return v
+        if (answersList.length > 0) {
+          answersList.forEach((a: any) => {
+            const qId = a.question_id || a.question?.id || ""
+            if (qId && a.answer_text && !loadedFamilyAnswers[qId]) {
+              loadedFamilyAnswers[qId] = a.answer_text
             }
-          }
-          return null
+          })
         }
 
-        const ansQ1 = getAnswer("q1", "queixa")
-        const ansQ4 = getAnswer("q4", "escola")
-        const ansQ6 = getAnswer("q6", "rotina", "sono")
-        const ansQ7 = getAnswer("q7", "lições", "comportamento")
-        const ansQ9 = getAnswer("q9", "outro problema", "saúde")
-        const ansQ10 = getAnswer("q10", "qualidades", "sociabilidade")
-        const ansQ11 = getAnswer("q11", "outros filhos", "família")
+        setFamilyAnswers(loadedFamilyAnswers)
 
-        if (ansQ1) {
-          setPatientData((prev) => ({ ...prev, mainComplaint: ansQ1 }))
+        // If q1 exists, set mainComplaint
+        if (loadedFamilyAnswers["q1"] && loadedFamilyAnswers["q1"].trim()) {
+          setPatientData((prev) => ({ ...prev, mainComplaint: loadedFamilyAnswers["q1"] }))
         }
-
-        setAnamnese((prev) => ({
-          ...prev,
-          family: ansQ11 || getAnswer("família", "estrutura familiar") || prev.family,
-          conceptionAndPregnancy: getAnswer("gestação", "parto") || prev.conceptionAndPregnancy,
-          breastfeedingAndDiet: getAnswer("alimentação", "amamentação") || prev.breastfeedingAndDiet,
-          psychomotorAndLanguage: getAnswer("desenvolvimento", "fala") || prev.psychomotorAndLanguage,
-          sleep: ansQ6 || getAnswer("sono") || prev.sleep,
-          familyHealthHistory: ansQ9 || getAnswer("saúde", "histórico") || prev.familyHealthHistory,
-          schooling: ansQ4 || ansQ7 || getAnswer("escola", "escolaridade") || prev.schooling,
-          relationshipsAndSociability: ansQ10 || getAnswer("sociabilidade", "amigos") || prev.relationshipsAndSociability,
-        }))
 
         // Parse School Interview if saved in notes
         if (latest.notes && latest.notes.includes("__SCHOOL_INTERVIEW__:")) {
           try {
             const raw = latest.notes.split("__SCHOOL_INTERVIEW__:")[1]
             const parsedSchool = JSON.parse(raw)
-            if (parsedSchool.answers) {
-              setSchoolInterview((prev) => ({
-                ...prev,
-                development: parsedSchool.answers.sq1 || prev.development,
-                behavior: parsedSchool.answers.sq2 || prev.behavior,
-                mainDifficulties: parsedSchool.answers.sq3 || prev.mainDifficulties,
-                learningAndAssimilation: parsedSchool.answers.sq4 || prev.learningAndAssimilation,
-                homework: parsedSchool.answers.sq6 || prev.homework,
-                organization: parsedSchool.answers.sq9 || prev.organization,
-                limitsAndFrustration: parsedSchool.answers.sq7 || prev.limitsAndFrustration,
-                additionalNotes: parsedSchool.answers.sq11 || prev.additionalNotes,
-                traits: parsedSchool.traits || prev.traits,
-              }))
-            }
+            if (parsedSchool.answers) setSchoolAnswers(parsedSchool.answers)
+            if (parsedSchool.observer) setSchoolObserver(parsedSchool.observer)
+            if (parsedSchool.traits) setSchoolTraits(parsedSchool.traits)
           } catch (e) {
             console.error("Error parsing school interview in modal:", e)
           }
@@ -448,57 +401,92 @@ export function ClinicalReportBuilderModal({
           tableHeaders: ["Modalidade", "Pontuação Padrão", "Classificação"],
           tableRows: [
             ["Ordem Direta (Memória de Curto Prazo)", "93", "Dentro da Média"],
-            ["Ordem Indireta (Planejamento e Inversão)", "70", "Muito Baixa / Defasagem"],
+            ["Ordem Indireta (Memória Operacional/Trabalho)", "78", "Limítrofe / Abaixo da Média"],
           ],
           interpretationText:
-            "Capacidade de resgate imediato dentro do esperado, porém com defasagem na flexibilidade para alternar e recalcular sequências espaciais.",
+            "O paciente apresenta boa retenção passiva visuoespacial, porém demonstra lentificação e perda da sequência em tarefas de manipulação mental e ordem inversa.",
         })
       }
 
-      if (selectedInstruments.includes("TAREFA SPAN DE DIGITOS")) {
+      if (selectedInstruments.includes("TESTE TRILHAS PRÉ ESCOLARES A-B")) {
         testsResults.push({
-          id: "span",
-          title: "Tarefa Span de Dígitos",
-          objective: "Avalia a memória auditiva de curto prazo (ordem direta) e memória de trabalho auditiva (ordem inversa).",
-          tableHeaders: ["Sequência", "Percentil", "Classificação"],
-          tableRows: [
-            ["Ordem Direta", "88", "Baixa"],
-            ["Ordem Inversa", "70", "Muito Baixa"],
-          ],
-          interpretationText: "Limitação na alça fonológica da memória de trabalho quando exigido esforço mental prolongado.",
+          id: "trilhas",
+          title: "Teste de Trilhas Pré-Escolares (Partes A e B)",
+          objective: "Mede flexibilidade cognitiva, velocidade de processamento visual e atenção alternada.",
+          scoreCutoffText: "Trilha A: 48 segundos (Média) | Trilha B: 112 segundos (Percentil 25 - Abaixo da Média)",
+          interpretationText:
+            "Observa-se bom rastreio visual simples, mas presença de hesitação e alternância custosa ao intercalar duas categorias distintas (letras e números).",
         })
       }
 
       if (selectedInstruments.includes("TESTE DE ATENÇÃO POR CANCELAMENTO TAC")) {
         testsResults.push({
           id: "tac",
-          title: "TAC - Teste de Atenção por Cancelamento",
-          objective: "Mapeia a atenção seletiva, atenção sustentada e alternância atencional sob tempo controlado.",
-          tableHeaders: ["Tipo de Atenção", "Pontuação", "Classificação"],
+          title: "Teste de Atenção por Cancelamento (TAC)",
+          objective: "Avalia atenção seletiva sustentada e velocidade psicomotora.",
+          tableHeaders: ["Parte do Teste", "Acertos", "Erros/Omissões", "Classificação"],
           tableRows: [
-            ["Atenção Seletiva", "108", "Média"],
-            ["Atenção Sustentada", "131", "Muito Alta em Ambiente Silencioso"],
-            ["Atenção com Alternância", "111", "Média"],
-            ["PONTUAÇÃO TOTAL", "117", "Dentro da Média"],
+            ["Parte 1 (Alvo Único)", "94%", "2 omissões", "Médio"],
+            ["Parte 2 (Alvo Duplo / Distratores)", "76%", "8 omissões", "Médio Inferior"],
           ],
           interpretationText:
-            "O paciente obtém melhor rendimento em ambientes estruturados e silenciosos, com queda de rendimento quando exposto a múltiplos estímulos competitivos.",
+            "Declínio do rendimento ao longo do teste por fadiga atencional e aumento de omissões perante estímulos concorrentes.",
+        })
+      }
+
+      if (selectedInstruments.includes("INSTRUMENTO DE AVALIAÇÃO DE REPERTÓRIO BÁSICO PARA A ALFABETIZAÇÃO IAR")) {
+        testsResults.push({
+          id: "iar",
+          title: "Instrumento de Avaliação de Repertório Básico para Alfabetização (IAR)",
+          objective: "Avalia conceitos básicos, esquema corporal, discriminação visual/auditiva e coordenação visomotora.",
+          tableHeaders: ["Área", "Desempenho", "Status"],
+          tableRows: [
+            ["Conceitos Espaciais e Temporais", "Adequado", "Preservado"],
+            ["Discriminação Auditiva de Sons", "Defasado", "Atenção Necessária"],
+            ["Coordenação Visomotora Fina", "Adequado", "Preservado"],
+          ],
+          interpretationText: "Repertório geral satisfatório com necessidade de reforço em consciência fonológica.",
         })
       }
 
       const completeData: CompleteReportData = {
-        patient: patientData,
+        patient: {
+          fullName: patientData.fullName || child.full_name,
+          birthDate: patientData.birthDate,
+          ageFormatted: patientData.ageFormatted,
+          fatherName: patientData.fatherName,
+          motherName: patientData.motherName,
+          schoolName: patientData.schoolName,
+          grade: patientData.grade,
+          mainComplaint: patientData.mainComplaint,
+          previousDiagnosis: patientData.previousDiagnosis,
+        },
         professional: {
-          clinicName: professional?.clinic_name || "ESPAÇO MULTIDISCIPLINAR",
-          professionalName: professional?.full_name || "Priscila Carbone",
-          cboOrCrp: professional?.crp || "2394-25",
-          city: professional?.city || "Votuporanga",
-          phone: professional?.phone,
+          fullName: professional?.full_name || "Psicopedagoga Responsável",
+          crp: professional?.crp || "",
+          clinicName: professional?.clinic_name || "",
+          clinicLogoUrl: professional?.clinic_logo_url || "",
+          logoUrl: professional?.logo_url || "",
+          address: professional?.address || "",
+          phone: professional?.phone || "",
+          city: professional?.city || "",
+          state: professional?.state || "",
         },
         clinical: {
           selectedInstruments,
-          anamnese,
-          schoolInterview,
+          familyQuestions: familyQuestions.map((q) => ({
+            id: q.id,
+            num: q.num,
+            title: q.title,
+            answer: familyAnswers[q.id] || "",
+          })),
+          schoolQuestions: schoolQuestions.map((q) => ({
+            id: q.id,
+            num: q.num,
+            title: q.title,
+            answer: schoolAnswers[q.id] || "",
+          })),
+          schoolObserver,
           tests: testsResults,
           clinicalObservation,
           sessionsCount,
@@ -509,11 +497,12 @@ export function ClinicalReportBuilderModal({
           referrals,
           recommendationsFamily,
           recommendationsSchool,
+          dateCityFormatted: (professional?.city || "São Paulo") + " - " + (professional?.state || "SP") + ", " + new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }),
         },
       }
 
       const doc = buildClinicalDocxReport(completeData)
-      await downloadDocxReport(doc, `Laudo_Psicopedagogico_${child.full_name.replace(/\s+/g, "_")}`)
+      await downloadDocxReport(doc, "Laudo_Psicopedagogico_" + child.full_name.replace(/\s+/g, "_"))
       toast.success("Documento Word (.docx) gerado com sucesso!", { icon: "📥", duration: 5000 })
     } catch (err: any) {
       console.error("Erro ao gerar DOCX:", err)
@@ -530,8 +519,10 @@ export function ClinicalReportBuilderModal({
     try {
       const contentPayload = {
         patientData,
-        anamnese,
-        schoolInterview,
+        familyAnswers,
+        schoolAnswers,
+        schoolObserver,
+        schoolTraits,
         selectedInstruments,
         clinicalObservation,
         sessionsCount,
@@ -548,7 +539,7 @@ export function ClinicalReportBuilderModal({
         await supabase
           .from("reports")
           .update({
-            title: `Laudo de Avaliação Psicopedagógica - ${child.full_name}`,
+            title: "Laudo de Avaliação Psicopedagógica - " + child.full_name,
             content: contentPayload,
             status: "draft",
             updated_at: new Date().toISOString(),
@@ -558,10 +549,36 @@ export function ClinicalReportBuilderModal({
         await supabase.from("reports").insert({
           professional_id: professional.id,
           child_id: child.id,
-          title: `Laudo de Avaliação Psicopedagógica - ${child.full_name}`,
+          title: "Laudo de Avaliação Psicopedagógica - " + child.full_name,
           content: contentPayload,
           status: "draft",
         })
+      }
+
+      // Also persist back to initial_assessments
+      const schoolInterviewPayload = {
+        answers: schoolAnswers,
+        observer: schoolObserver,
+        traits: schoolTraits,
+      }
+
+      const { data: existingAssessment } = await supabase
+        .from("initial_assessments")
+        .select("id, notes")
+        .eq("child_id", child.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      let updatedNotes = "__SCHOOL_INTERVIEW__:" + JSON.stringify(schoolInterviewPayload)
+      if (existingAssessment) {
+        await supabase
+          .from("initial_assessments")
+          .update({
+            reason: JSON.stringify(familyAnswers),
+            notes: updatedNotes,
+          })
+          .eq("id", existingAssessment.id)
       }
 
       toast.success("Relatório clínico salvo no prontuário da criança!", { icon: "💾" })
@@ -579,10 +596,10 @@ export function ClinicalReportBuilderModal({
     try {
       await new Promise((r) => setTimeout(r, 1500))
       setSynthesis(
-        `A presente avaliação psicopedagógica de ${child.full_name} foi realizada ao longo de ${sessionsCount} sessões clínicas. A integração dos instrumentos aplicados, associada às observações comportamentais e aos relatos da família e da escola, revelou um perfil cognitivo com potencial preservado nas tarefas visuais e lúdicas, apresentando defasagem na memória de trabalho auditiva, discriminação fonológica e sustentação atencional em tarefas que demandam esforço cognitivo contínuo.`
+        "A presente avaliação psicopedagógica de " + child.full_name + " foi realizada ao longo de " + sessionsCount + " sessões clínicas. A integração dos instrumentos aplicados, associada às observações comportamentais e aos relatos da família e da escola, revelou um perfil cognitivo com potencial preservado nas tarefas visuais e lúdicas, apresentando defasagem na memória de trabalho auditiva, discriminação fonológica e sustentação atencional em tarefas que demandam esforço cognitivo contínuo."
       )
       setDiagnosticHypothesis(
-        `Os dados convergentes obtidos na avaliação apontam para hipótese diagnóstica de Transtorno do Déficit de Atenção/Hiperatividade (TDAH) com predomínio desatento (CID-11 6A05.0 / DSM-5), associado a impacto secundário no processo de aquisição da leitura e escrita.`
+        "Os dados convergentes obtidos na avaliação apontam para hipótese diagnóstica de Transtorno do Déficit de Atenção/Hiperatividade (TDAH) com predomínio desatento (CID-11 6A05.0 / DSM-5), associado a impacto secundário no processo de aquisição da leitura e escrita."
       )
       toast.success("Sugestão clínica refinada com sucesso pela IA!", { icon: "✨" })
     } finally {
@@ -606,7 +623,7 @@ export function ClinicalReportBuilderModal({
                 Gerador de Laudo / Relatório Clínico (.docx)
               </h2>
               <span className="text-[10px] bg-white/80 border border-[#DDD6FE] text-[#7C3AED] font-black px-2.5 py-0.5 rounded-full">
-                Padrão 20 Páginas · CBO 2394-25
+                Padrão Oficial · CBO 2394-25
               </span>
             </div>
             <p className="text-xs font-semibold text-[#6B7C83]">
@@ -625,459 +642,394 @@ export function ClinicalReportBuilderModal({
         </button>
       </div>
 
-        {/* Barra de Etapas / Abas do Relatório (Grid 5 Colunas Sem Scroll) */}
-        <div className="px-4 sm:px-6 py-2.5 bg-[#F8FAFB] border-b border-[#EEF5F6] grid grid-cols-2 md:grid-cols-5 gap-2">
-          {[
-            { step: 1, label: "1. Identificação & Anamnese", icon: User },
-            { step: 2, label: "2. Entrevista Escolar", icon: School },
-            { step: 3, label: "3. Instrumentos & Testes", icon: Brain },
-            { step: 4, label: "4. Observação & Síntese", icon: Stethoscope },
-            { step: 5, label: "5. Hipótese & Encaminhamentos", icon: Lightbulb },
-          ].map((item) => {
-            const Icon = item.icon
-            const isCurrent = activeStep === item.step
-            const isDone = activeStep > item.step
-            return (
-              <button
-                key={item.step}
-                type="button"
-                onClick={() => setActiveStep(item.step as any)}
-                className={`px-3 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer text-center ${
-                  isCurrent
-                    ? "bg-[#7C3AED] text-white shadow-xs"
-                    : isDone
-                    ? "bg-[#EDE9FE] text-[#6D28D9]"
-                    : "bg-white text-[#6B7C83] border border-[#D8E5E7] hover:border-[#7C3AED]"
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{item.label}</span>
-                {isDone && <Check className="w-3.5 h-3.5 text-[#10B981] shrink-0" />}
-              </button>
-            )
-          })}
-        </div>
+      {/* Barra de Etapas / Abas do Relatório (Grid 5 Colunas Sem Scroll) */}
+      <div className="px-4 sm:px-6 py-2.5 bg-[#F8FAFB] border-b border-[#EEF5F6] grid grid-cols-2 md:grid-cols-5 gap-2">
+        {[
+          { step: 1, label: "1. Anamnese (" + familyQuestions.length + " Perguntas)", icon: User },
+          { step: 2, label: "2. Entrevista Escolar (" + schoolQuestions.length + " Perguntas)", icon: School },
+          { step: 3, label: "3. Instrumentos & Testes", icon: Brain },
+          { step: 4, label: "4. Observação & Síntese", icon: Stethoscope },
+          { step: 5, label: "5. Hipótese & Encaminhamentos", icon: Lightbulb },
+        ].map((item) => {
+          const Icon = item.icon
+          const isCurrent = activeStep === item.step
+          const isDone = activeStep > item.step
+          return (
+            <button
+              key={item.step}
+              type="button"
+              onClick={() => setActiveStep(item.step as any)}
+              className={"px-3 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer text-center " + (
+                isCurrent
+                  ? "bg-[#7C3AED] text-white shadow-xs"
+                  : isDone
+                  ? "bg-[#EDE9FE] text-[#6D28D9]"
+                  : "bg-white text-[#6B7C83] border border-[#D8E5E7] hover:border-[#7C3AED]"
+              )}
+            >
+              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{item.label}</span>
+              {isDone && <Check className="w-3.5 h-3.5 text-[#10B981] shrink-0" />}
+            </button>
+          )
+        })}
+      </div>
 
-        {/* Conteúdo da Etapa Ativa */}
-        <div className="p-6 overflow-y-auto space-y-6 text-xs flex-1">
-          {loading ? (
-            <div className="py-20 text-center text-xs font-bold text-[#6B7C83] animate-pulse">
-              Carregando dados do paciente e anamnese...
-            </div>
-          ) : (
-            <>
-              {/* =========================================================================
-                  ETAPA 1: IDENTIFICAÇÃO & ANAMNESE (Páginas 1 a 3)
-                  ========================================================================= */}
-              {activeStep === 1 && (
-                <div className="space-y-6 animate-in fade-in">
-                  <div className="p-4 rounded-2xl bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-black text-[#166534]">
-                        ✓ Dados Puxados Automaticamente do Prontuário
-                      </p>
-                      <p className="text-[11px] font-medium text-[#15803D]">
-                        As informações de cadastro e as 13 perguntas da Anamnese foram integradas abaixo.
-                      </p>
-                    </div>
+      {/* Conteúdo da Etapa Ativa */}
+      <div className="p-6 space-y-6 text-xs">
+        {loading ? (
+          <div className="py-20 text-center text-xs font-bold text-[#6B7C83] animate-pulse">
+            Carregando dados do paciente e perguntas da anamnese...
+          </div>
+        ) : (
+          <>
+            {/* =========================================================================
+                ETAPA 1: IDENTIFICAÇÃO & ANAMNESE FAMILIAR REAL
+                ========================================================================= */}
+            {activeStep === 1 && (
+              <div className="space-y-6 animate-in fade-in">
+                <div className="p-4 rounded-2xl bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-black text-[#166534]">
+                      ✓ Respostas Puxadas Automaticamente da Entrevista Inicial
+                    </p>
+                    <p className="text-[11px] font-medium text-[#15803D]">
+                      Todas as {familyQuestions.length} perguntas ativas do seu modelo de Anamnese Familiar foram carregadas abaixo. Você pode editar ou complementar qualquer resposta antes de gerar o laudo.
+                    </p>
                   </div>
+                </div>
 
-                  {/* Identificação */}
-                  <div className="p-5 rounded-2xl border-2 border-[#D8E5E7] space-y-4 bg-[#F8FAFB]">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
-                      <User className="w-4 h-4 text-[#005B94]" />
-                      <span>Identificação do Paciente</span>
-                    </h3>
+                {/* Identificação */}
+                <div className="p-5 rounded-2xl border-2 border-[#D8E5E7] space-y-4 bg-[#F8FAFB]">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
+                    <User className="w-4 h-4 text-[#005B94]" />
+                    <span>Identificação do Paciente</span>
+                  </h3>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">Nome do Paciente</label>
-                        <input
-                          type="text"
-                          value={patientData.fullName}
-                          onChange={(e) => setPatientData({ ...patientData, fullName: e.target.value })}
-                          className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">Data de Nascimento</label>
-                        <input
-                          type="text"
-                          value={patientData.birthDate}
-                          onChange={(e) => setPatientData({ ...patientData, birthDate: e.target.value })}
-                          className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">Idade Calculada</label>
-                        <input
-                          type="text"
-                          value={patientData.ageFormatted}
-                          onChange={(e) => setPatientData({ ...patientData, ageFormatted: e.target.value })}
-                          className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">Nome do Pai</label>
-                        <input
-                          type="text"
-                          value={patientData.fatherName}
-                          onChange={(e) => setPatientData({ ...patientData, fatherName: e.target.value })}
-                          placeholder="Nome completo do pai"
-                          className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">Nome da Mãe</label>
-                        <input
-                          type="text"
-                          value={patientData.motherName}
-                          onChange={(e) => setPatientData({ ...patientData, motherName: e.target.value })}
-                          placeholder="Nome completo da mãe"
-                          className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">Escola & Série</label>
-                        <input
-                          type="text"
-                          value={`${patientData.schoolName} - ${patientData.grade}`}
-                          onChange={(e) => {
-                            const [s, g] = e.target.value.split(" - ")
-                            setPatientData({ ...patientData, schoolName: s || "", grade: g || "" })
-                          }}
-                          className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
-                        />
-                      </div>
-                    </div>
-
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     <div>
-                      <label className="text-[11px] font-black text-[#0D2329]">Queixa Principal</label>
+                      <label className="text-[11px] font-black text-[#0D2329]">Nome do Paciente</label>
                       <input
                         type="text"
-                        value={patientData.mainComplaint}
-                        onChange={(e) => setPatientData({ ...patientData, mainComplaint: e.target.value })}
+                        value={patientData.fullName}
+                        onChange={(e) => setPatientData({ ...patientData, fullName: e.target.value })}
+                        className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-black text-[#0D2329]">Data de Nascimento</label>
+                      <input
+                        type="text"
+                        value={patientData.birthDate}
+                        onChange={(e) => setPatientData({ ...patientData, birthDate: e.target.value })}
+                        className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-black text-[#0D2329]">Idade Calculada</label>
+                      <input
+                        type="text"
+                        value={patientData.ageFormatted}
+                        onChange={(e) => setPatientData({ ...patientData, ageFormatted: e.target.value })}
+                        className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-black text-[#0D2329]">Nome do Pai</label>
+                      <input
+                        type="text"
+                        value={patientData.fatherName}
+                        onChange={(e) => setPatientData({ ...patientData, fatherName: e.target.value })}
+                        placeholder="Nome completo do pai"
+                        className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-black text-[#0D2329]">Nome da Mãe</label>
+                      <input
+                        type="text"
+                        value={patientData.motherName}
+                        onChange={(e) => setPatientData({ ...patientData, motherName: e.target.value })}
+                        placeholder="Nome completo da mãe"
+                        className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-black text-[#0D2329]">Escola & Série</label>
+                      <input
+                        type="text"
+                        value={patientData.schoolName + " - " + patientData.grade}
+                        onChange={(e) => {
+                          const [s, g] = e.target.value.split(" - ")
+                          setPatientData({ ...patientData, schoolName: s || "", grade: g || "" })
+                        }}
                         className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
                       />
                     </div>
                   </div>
 
-                  {/* Anamnese Estruturada */}
-                  <div className="p-5 rounded-2xl border-2 border-[#D8E5E7] space-y-4 bg-white">
+                  <div>
+                    <label className="text-[11px] font-black text-[#0D2329]">Queixa Principal</label>
+                    <input
+                      type="text"
+                      value={patientData.mainComplaint}
+                      onChange={(e) => setPatientData({ ...patientData, mainComplaint: e.target.value })}
+                      className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Perguntas Reais da Anamnese Familiar */}
+                <div className="p-5 rounded-2xl border-2 border-[#D8E5E7] space-y-4 bg-white">
+                  <div className="flex items-center justify-between">
                     <h3 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
                       <GraduationCap className="w-4 h-4 text-[#005B94]" />
-                      <span>Anamnese (Histórico do Desenvolvimento)</span>
+                      <span>Anamnese Inicial com a Família ({familyQuestions.length} Perguntas)</span>
                     </h3>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">1. Família</label>
-                        <textarea
-                          rows={2}
-                          value={anamnese.family}
-                          onChange={(e) => setAnamnese({ ...anamnese, family: e.target.value })}
-                          className="w-full mt-1 p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white resize-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">2. Concepção e Gestação</label>
-                        <textarea
-                          rows={2}
-                          value={anamnese.conceptionAndPregnancy}
-                          onChange={(e) => setAnamnese({ ...anamnese, conceptionAndPregnancy: e.target.value })}
-                          className="w-full mt-1 p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white resize-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">3. Amamentação e Alimentação</label>
-                        <textarea
-                          rows={2}
-                          value={anamnese.breastfeedingAndDiet}
-                          onChange={(e) => setAnamnese({ ...anamnese, breastfeedingAndDiet: e.target.value })}
-                          className="w-full mt-1 p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white resize-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">4. Desenvolvimento Psicomotor e Linguagem</label>
-                        <textarea
-                          rows={2}
-                          value={anamnese.psychomotorAndLanguage}
-                          onChange={(e) => setAnamnese({ ...anamnese, psychomotorAndLanguage: e.target.value })}
-                          className="w-full mt-1 p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white resize-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">5. Sono</label>
-                        <textarea
-                          rows={2}
-                          value={anamnese.sleep}
-                          onChange={(e) => setAnamnese({ ...anamnese, sleep: e.target.value })}
-                          className="w-full mt-1 p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white resize-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">6. Histórico de Saúde / Transtornos na Família</label>
-                        <textarea
-                          rows={2}
-                          value={anamnese.familyHealthHistory}
-                          onChange={(e) => setAnamnese({ ...anamnese, familyHealthHistory: e.target.value })}
-                          className="w-full mt-1 p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white resize-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">7. Escolaridade</label>
-                        <textarea
-                          rows={2}
-                          value={anamnese.schooling}
-                          onChange={(e) => setAnamnese({ ...anamnese, schooling: e.target.value })}
-                          className="w-full mt-1 p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white resize-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">8. Relacionamentos e Sociabilidade</label>
-                        <textarea
-                          rows={2}
-                          value={anamnese.relationshipsAndSociability}
-                          onChange={(e) => setAnamnese({ ...anamnese, relationshipsAndSociability: e.target.value })}
-                          className="w-full mt-1 p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white resize-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* =========================================================================
-                  ETAPA 2: ENTREVISTA ESCOLAR (Páginas 3 a 5)
-                  ========================================================================= */}
-              {activeStep === 2 && (
-                <div className="space-y-5 animate-in fade-in">
-                  <div className="p-5 rounded-2xl border-2 border-[#D8E5E7] space-y-4 bg-white">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
-                      <School className="w-4 h-4 text-[#005B94]" />
-                      <span>Questionário da Entrevista Escolar</span>
-                    </h3>
-
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">Desenvolvimento e Comportamento na Carteira</label>
-                        <textarea
-                          rows={2}
-                          value={schoolInterview.development}
-                          onChange={(e) => setSchoolInterview({ ...schoolInterview, development: e.target.value })}
-                          className="w-full mt-1 p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white resize-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-black text-[#0D2329]">Principais Dificuldades na Leitura / Escrita</label>
-                        <textarea
-                          rows={2}
-                          value={schoolInterview.mainDifficulties}
-                          onChange={(e) => setSchoolInterview({ ...schoolInterview, mainDifficulties: e.target.value })}
-                          className="w-full mt-1 p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white resize-none"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[11px] font-black text-[#0D2329]">Organização de Materiais e Tarefas</label>
-                          <textarea
-                            rows={2}
-                            value={schoolInterview.organization}
-                            onChange={(e) => setSchoolInterview({ ...schoolInterview, organization: e.target.value })}
-                            className="w-full mt-1 p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white resize-none"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-[11px] font-black text-[#0D2329]">Reação Quando Contrariado / Limites</label>
-                          <textarea
-                            rows={2}
-                            value={schoolInterview.limitsAndFrustration}
-                            onChange={(e) => setSchoolInterview({ ...schoolInterview, limitsAndFrustration: e.target.value })}
-                            className="w-full mt-1 p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white resize-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Características Comportamentais (Checklist) */}
-                    <div className="pt-3 border-t border-[#EEF5F6]">
-                      <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-2">
-                        Características Observadas pela Professora (Marque as que se aplicam):
-                      </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                        {[
-                          { key: "unfocused", label: "Desligado" },
-                          { key: "restless", label: "Agitado" },
-                          { key: "withdrawn", label: "Retraído" },
-                          { key: "dependent", label: "Dependente" },
-                          { key: "calm", label: "Calmo" },
-                          { key: "passive", label: "Passivo" },
-                          { key: "aggressive", label: "Agressivo" },
-                          { key: "boundaryless", label: "Sem limites" },
-                          { key: "fearful", label: "Medroso" },
-                          { key: "melancholic", label: "Melancólico" },
-                          { key: "depressive", label: "Depressivo" },
-                          { key: "resentful", label: "Ressentido" },
-                        ].map((item) => (
-                          <label
-                            key={item.key}
-                            className={`p-2.5 rounded-xl border cursor-pointer flex items-center gap-2 transition-all select-none ${
-                              (schoolInterview.traits as any)[item.key]
-                                ? "bg-[#EDE9FE] text-[#7C3AED] border-[#DDD6FE] font-black"
-                                : "bg-[#F8FAFB] text-[#6B7C83] border-[#D8E5E7] font-semibold hover:bg-white"
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={Boolean((schoolInterview.traits as any)[item.key])}
-                              onChange={(e) =>
-                                setSchoolInterview({
-                                  ...schoolInterview,
-                                  traits: { ...schoolInterview.traits, [item.key]: e.target.checked },
-                                })
-                              }
-                              className="accent-[#7C3AED]"
-                            />
-                            <span>{item.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* =========================================================================
-                  ETAPA 3: INSTRUMENTOS & TESTES (Páginas 5 a 15)
-                  ========================================================================= */}
-              {activeStep === 3 && (
-                <div className="space-y-5 animate-in fade-in">
-                  <div className="p-4 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-black text-[#6D28D9]">
-                        Catálogo Oficial de 21 Testes e Instrumentos da Psicopedagogia
-                      </p>
-                      <p className="text-[11px] font-medium text-[#7C3AED]">
-                        Selecione quais instrumentos foram aplicados para constar no relatório Word com suas tabelas e notas de corte.
-                      </p>
-                    </div>
-                    <span className="text-xs font-black px-3 py-1 bg-white text-[#7C3AED] rounded-xl border border-[#DDD6FE]">
-                      {selectedInstruments.length} selecionados
+                    <span className="text-[11px] font-bold text-[#7C3AED] bg-[#EDE9FE] px-3 py-1 rounded-xl">
+                      Perguntas Oficiais da Psicopedagoga
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
-                    {DEFAULT_INSTRUMENT_CATALOG.map((inst, idx) => {
-                      const isChecked = selectedInstruments.includes(inst)
-                      return (
-                        <div
-                          key={idx}
-                          onClick={() => toggleInstrument(inst)}
-                          className={`p-3 rounded-2xl border-2 cursor-pointer flex items-start gap-3 transition-all select-none ${
-                            isChecked
-                              ? "bg-white border-[#7C3AED] shadow-xs"
-                              : "bg-[#F8FAFB] border-[#D8E5E7] opacity-75 hover:opacity-100 hover:border-[#8DA3A8]"
-                          }`}
+                  <div className="space-y-4">
+                    {familyQuestions.map((q) => (
+                      <div key={q.id} className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] space-y-2">
+                        <div className="flex items-start gap-2.5">
+                          <span className="w-6 h-6 rounded-lg bg-[#EDE9FE] text-[#7C3AED] font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                            {q.num}
+                          </span>
+                          <label className="text-xs font-black text-[#0D2329] uppercase leading-tight pt-1">
+                            {q.title}
+                          </label>
+                        </div>
+                        <textarea
+                          rows={3}
+                          value={familyAnswers[q.id] || ""}
+                          onChange={(e) => setFamilyAnswers({ ...familyAnswers, [q.id]: e.target.value })}
+                          placeholder={q.placeholder || "Digite o relato da família para esta pergunta..."}
+                          className="w-full p-3 text-xs rounded-xl border border-[#D8E5E7] bg-white focus:outline-none focus:border-[#7C3AED] resize-y leading-relaxed text-[#0D2329]"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* =========================================================================
+                ETAPA 2: ENTREVISTA / VISITA ESCOLAR REAL
+                ========================================================================= */}
+            {activeStep === 2 && (
+              <div className="space-y-5 animate-in fade-in">
+                {/* Identificação do Relato Escolar */}
+                <div className="p-5 rounded-2xl border-2 border-[#D8E5E7] space-y-4 bg-[#F8FAFB]">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
+                    <School className="w-4 h-4 text-[#005B94]" />
+                    <span>Identificação da Equipe Escolar / Observador</span>
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-[11px] font-black text-[#0D2329]">Nome do Profissional / Professor</label>
+                      <input
+                        type="text"
+                        value={schoolObserver.name}
+                        onChange={(e) => setSchoolObserver({ ...schoolObserver, name: e.target.value })}
+                        placeholder="Ex: Professora Maria Silva"
+                        className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-black text-[#0D2329]">Cargo / Função</label>
+                      <input
+                        type="text"
+                        value={schoolObserver.role}
+                        onChange={(e) => setSchoolObserver({ ...schoolObserver, role: e.target.value })}
+                        placeholder="Ex: Professora Regente / Coordenação"
+                        className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-black text-[#0D2329]">Data do Relato Escolar</label>
+                      <input
+                        type="date"
+                        value={schoolObserver.date}
+                        onChange={(e) => setSchoolObserver({ ...schoolObserver, date: e.target.value })}
+                        className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Perguntas Reais da Entrevista Escolar */}
+                <div className="p-5 rounded-2xl border-2 border-[#D8E5E7] space-y-4 bg-white">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
+                      <School className="w-4 h-4 text-[#005B94]" />
+                      <span>Questionário da Entrevista Escolar ({schoolQuestions.length} Perguntas)</span>
+                    </h3>
+                    <span className="text-[11px] font-bold text-[#0284C7] bg-[#E0F2FE] px-3 py-1 rounded-xl">
+                      Relato do Ambiente Escolar
+                    </span>
+                  </div>
+
+                  <div className="space-y-4">
+                    {schoolQuestions.map((q) => (
+                      <div key={q.id} className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] space-y-2">
+                        <div className="flex items-start gap-2.5">
+                          <span className="w-6 h-6 rounded-lg bg-[#E0F2FE] text-[#0284C7] font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                            {q.num}
+                          </span>
+                          <label className="text-xs font-black text-[#0D2329] uppercase leading-tight pt-1">
+                            {q.title}
+                          </label>
+                        </div>
+                        <textarea
+                          rows={3}
+                          value={schoolAnswers[q.id] || ""}
+                          onChange={(e) => setSchoolAnswers({ ...schoolAnswers, [q.id]: e.target.value })}
+                          placeholder={q.placeholder || "Digite o relato da escola para esta pergunta..."}
+                          className="w-full p-3 text-xs rounded-xl border border-[#D8E5E7] bg-white focus:outline-none focus:border-[#7C3AED] resize-y leading-relaxed text-[#0D2329]"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Características Comportamentais (Checklist) */}
+                  <div className="pt-4 border-t border-[#EEF5F6]">
+                    <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-2">
+                      Características Observadas pela Professora (Marque as que se aplicam):
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                      {[
+                        { key: "desligado", label: "Desligado" },
+                        { key: "agitado", label: "Agitado" },
+                        { key: "retraido", label: "Retraído" },
+                        { key: "dependente", label: "Dependente" },
+                        { key: "calmo", label: "Calmo" },
+                        { key: "passivo", label: "Passivo" },
+                        { key: "agressivo", label: "Agressivo" },
+                        { key: "sem_limites", label: "Sem limites" },
+                        { key: "medroso", label: "Medroso" },
+                        { key: "melancolico", label: "Melancólico" },
+                        { key: "depressivo", label: "Depressivo" },
+                        { key: "ressentido", label: "Ressentido" },
+                      ].map((item) => (
+                        <label
+                          key={item.key}
+                          className={"p-2.5 rounded-xl border cursor-pointer flex items-center gap-2 transition-all select-none " + (
+                            schoolTraits[item.key]
+                              ? "bg-[#EDE9FE] text-[#7C3AED] border-[#DDD6FE] font-black"
+                              : "bg-[#F8FAFB] text-[#6B7C83] border-[#D8E5E7] font-semibold hover:bg-white"
+                          )}
                         >
                           <input
                             type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {}} // handled by div
-                            className="mt-0.5 w-4 h-4 accent-[#7C3AED]"
+                            checked={Boolean(schoolTraits[item.key])}
+                            onChange={(e) =>
+                              setSchoolTraits({
+                                ...schoolTraits,
+                                [item.key]: e.target.checked,
+                              })
+                            }
+                            className="accent-[#7C3AED]"
                           />
-                          <div className="min-w-0">
-                            <p className={`text-xs font-black ${isChecked ? "text-[#0D2329]" : "text-[#6B7C83]"}`}>
-                              {idx + 1}. {inst}
-                            </p>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* =========================================================================
-                  ETAPA 4: OBSERVAÇÃO CLÍNICA & SÍNTESE (Páginas 15 a 17)
-                  ========================================================================= */}
-              {activeStep === 4 && (
-                <div className="space-y-5 animate-in fade-in">
-                  <div className="p-5 rounded-2xl border-2 border-[#D8E5E7] space-y-4 bg-white">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
-                        <Stethoscope className="w-4 h-4 text-[#005B94]" />
-                        <span>Observação Clínica nas Sessões</span>
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <label className="text-xs font-bold text-[#6B7C83]">Total de Sessões Realizadas:</label>
-                        <input
-                          type="number"
-                          value={sessionsCount}
-                          onChange={(e) => setSessionsCount(Number(e.target.value) || 1)}
-                          className="w-16 px-2 py-1 text-xs font-black rounded-lg border border-[#D8E5E7] text-center"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-black text-[#0D2329]">
-                        Postura, Engajamento, Lúdico e Tolerância à Frustração
-                      </label>
-                      <textarea
-                        rows={5}
-                        value={clinicalObservation}
-                        onChange={(e) => setClinicalObservation(e.target.value)}
-                        className="w-full mt-1 p-3 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed"
-                      />
-                    </div>
-
-                    <div className="pt-3 border-t border-[#EEF5F6]">
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider">
-                          Síntese da Avaliação Psicopedagógica
+                          <span>{item.label}</span>
                         </label>
-                        <button
-                          type="button"
-                          disabled={generatingAI}
-                          onClick={handleGenerateAISuggestions}
-                          className="px-3 py-1 rounded-lg bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs"
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>{generatingAI ? "Aprimorando..." : "Sugerir com IA"}</span>
-                        </button>
-                      </div>
-                      <textarea
-                        rows={5}
-                        value={synthesis}
-                        onChange={(e) => setSynthesis(e.target.value)}
-                        className="w-full p-3 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed"
-                      />
+                      ))}
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* =========================================================================
-                  ETAPA 5: HIPÓTESE DIAGNÓSTICA & RECOMENDAÇÕES (Páginas 17 a 20)
-                  ========================================================================= */}
-              {activeStep === 5 && (
-                <div className="space-y-5 animate-in fade-in">
-                  <div className="p-5 rounded-2xl border-2 border-[#D8E5E7] space-y-4 bg-white">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
-                        <Lightbulb className="w-4 h-4 text-[#005B94]" />
-                        <span>Hipótese Diagnóstica (DSM-5)</span>
-                      </h3>
+            {/* =========================================================================
+                ETAPA 3: INSTRUMENTOS & TESTES (Páginas 5 a 15)
+                ========================================================================= */}
+            {activeStep === 3 && (
+              <div className="space-y-5 animate-in fade-in">
+                <div className="p-4 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-black text-[#6D28D9]">
+                      Catálogo Oficial de 21 Testes e Instrumentos da Psicopedagogia
+                    </p>
+                    <p className="text-[11px] font-medium text-[#7C3AED]">
+                      Selecione quais instrumentos foram aplicados para constar no relatório Word com suas tabelas e notas de corte.
+                    </p>
+                  </div>
+                  <span className="text-xs font-black px-3 py-1 bg-white text-[#7C3AED] rounded-xl border border-[#DDD6FE]">
+                    {selectedInstruments.length} selecionados
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
+                  {DEFAULT_INSTRUMENT_CATALOG.map((inst, idx) => {
+                    const isChecked = selectedInstruments.includes(inst)
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => toggleInstrument(inst)}
+                        className={"p-3 rounded-2xl border-2 cursor-pointer flex items-start gap-3 transition-all select-none " + (
+                          isChecked
+                            ? "bg-white border-[#7C3AED] shadow-xs"
+                            : "bg-[#F8FAFB] border-[#D8E5E7] opacity-75 hover:opacity-100 hover:border-[#8DA3A8]"
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}} // handled by div
+                          className="mt-0.5 w-4 h-4 accent-[#7C3AED]"
+                        />
+                        <span className={"text-xs font-bold " + (isChecked ? "text-[#0D2329]" : "text-[#6B7C83]")}>
+                          {inst}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* =========================================================================
+                ETAPA 4: OBSERVAÇÃO CLÍNICA & SÍNTESE (Páginas 15 a 17)
+                ========================================================================= */}
+            {activeStep === 4 && (
+              <div className="space-y-5 animate-in fade-in">
+                <div className="p-5 rounded-2xl border-2 border-[#D8E5E7] space-y-4 bg-white">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
+                      <Stethoscope className="w-4 h-4 text-[#005B94]" />
+                      <span>Observação Clínica nas Sessões</span>
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-bold text-[#6B7C83]">Total de Sessões Realizadas:</label>
+                      <input
+                        type="number"
+                        value={sessionsCount}
+                        onChange={(e) => setSessionsCount(Number(e.target.value) || 1)}
+                        className="w-16 px-2 py-1 text-xs font-black rounded-lg border border-[#D8E5E7] text-center"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-black text-[#0D2329]">
+                      Postura, Engajamento, Lúdico e Tolerância à Frustração
+                    </label>
+                    <textarea
+                      rows={5}
+                      value={clinicalObservation}
+                      onChange={(e) => setClinicalObservation(e.target.value)}
+                      className="w-full mt-1 p-3 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed"
+                    />
+                  </div>
+
+                  <div className="pt-3 border-t border-[#EEF5F6]">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider">
+                        Síntese da Avaliação Psicopedagógica
+                      </label>
                       <button
                         type="button"
                         disabled={generatingAI}
@@ -1085,180 +1037,212 @@ export function ClinicalReportBuilderModal({
                         className="px-3 py-1 rounded-lg bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
-                        <span>{generatingAI ? "Aprimorando..." : "Aprimorar com IA"}</span>
+                        <span>{generatingAI ? "Aprimorando..." : "Sugerir com IA"}</span>
                       </button>
                     </div>
-
                     <textarea
-                      rows={3}
-                      value={diagnosticHypothesis}
-                      onChange={(e) => setDiagnosticHypothesis(e.target.value)}
-                      className="w-full p-3 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed font-semibold text-[#0D2329]"
+                      rows={5}
+                      value={synthesis}
+                      onChange={(e) => setSynthesis(e.target.value)}
+                      className="w-full p-3 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed"
                     />
+                  </div>
+                </div>
+              </div>
+            )}
 
-                    {/* Critérios DSM-5 */}
+            {/* =========================================================================
+                ETAPA 5: HIPÓTESE DIAGNÓSTICA & RECOMENDAÇÕES (Páginas 17 a 20)
+                ========================================================================= */}
+            {activeStep === 5 && (
+              <div className="space-y-5 animate-in fade-in">
+                <div className="p-5 rounded-2xl border-2 border-[#D8E5E7] space-y-4 bg-white">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
+                      <Lightbulb className="w-4 h-4 text-[#005B94]" />
+                      <span>Hipótese Diagnóstica (DSM-5)</span>
+                    </h3>
+                    <button
+                      type="button"
+                      disabled={generatingAI}
+                      onClick={handleGenerateAISuggestions}
+                      className="px-3 py-1 rounded-lg bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{generatingAI ? "Aprimorando..." : "Sugerir com IA"}</span>
+                    </button>
+                  </div>
+                  <textarea
+                    rows={4}
+                    value={diagnosticHypothesis}
+                    onChange={(e) => setDiagnosticHypothesis(e.target.value)}
+                    className="w-full p-3 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed"
+                  />
+
+                  {/* Critérios DSM-5 */}
+                  <div>
+                    <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-2">
+                      Manifestações e Critérios DSM-5 Observados:
+                    </label>
+                    <div className="space-y-2">
+                      {dsm5Criteria.map((crit, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-[#EDE9FE] text-[#7C3AED] text-[10px] font-black flex items-center justify-center shrink-0">
+                            ✓
+                          </span>
+                          <input
+                            type="text"
+                            value={crit}
+                            onChange={(e) => {
+                              const updated = [...dsm5Criteria]
+                              updated[idx] = e.target.value
+                              setDsm5Criteria(updated)
+                            }}
+                            className="flex-1 p-2 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB]"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Encaminhamentos */}
+                  <div className="pt-3 border-t border-[#EEF5F6]">
+                    <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-2">
+                      Encaminhamentos Profissionais Recomendados:
+                    </label>
+                    <div className="space-y-2">
+                      {referrals.map((refItem, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-[#E0F2FE] text-[#0284C7] text-[10px] font-black flex items-center justify-center shrink-0">
+                            →
+                          </span>
+                          <input
+                            type="text"
+                            value={refItem}
+                            onChange={(e) => {
+                              const updated = [...referrals]
+                              updated[idx] = e.target.value
+                              setReferrals(updated)
+                            }}
+                            className="flex-1 p-2 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB]"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Recomendações Família & Escola */}
+                  <div className="pt-3 border-t border-[#EEF5F6] grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-1.5">
-                        Critérios Identificados (DSM-5):
+                      <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-2">
+                        Orientações para a Família:
                       </label>
-                      <div className="space-y-1.5">
-                        {dsm5Criteria.map((crit, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-[#005B94] w-5">
-                              {String.fromCharCode(97 + idx)})
-                            </span>
-                            <input
-                              type="text"
-                              value={crit}
-                              onChange={(e) => {
-                                const next = [...dsm5Criteria]
-                                next[idx] = e.target.value
-                                setDsm5Criteria(next)
-                              }}
-                              className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-[#D8E5E7] bg-white font-medium"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setDsm5Criteria(dsm5Criteria.filter((_, i) => i !== idx))}
-                              className="text-[#DC2626] hover:bg-[#FEF2F2] p-1 rounded-md"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                      <div className="space-y-2">
+                        {recommendationsFamily.map((rec, idx) => (
+                          <input
+                            key={idx}
+                            type="text"
+                            value={rec}
+                            onChange={(e) => {
+                              const updated = [...recommendationsFamily]
+                              updated[idx] = e.target.value
+                              setRecommendationsFamily(updated)
+                            }}
+                            className="w-full p-2 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB]"
+                          />
                         ))}
                       </div>
                     </div>
 
-                    {/* Encaminhamentos */}
-                    <div className="pt-3 border-t border-[#EEF5F6]">
-                      <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-1.5">
-                        Encaminhamentos Clínicos:
+                    <div>
+                      <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-2">
+                        Orientações para a Escola:
                       </label>
-                      <div className="space-y-1.5">
-                        {referrals.map((refItem, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-[#005B94]">✓</span>
-                            <input
-                              type="text"
-                              value={refItem}
-                              onChange={(e) => {
-                                const next = [...referrals]
-                                next[idx] = e.target.value
-                                setReferrals(next)
-                              }}
-                              className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-[#D8E5E7] bg-white font-medium"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setReferrals(referrals.filter((_, i) => i !== idx))}
-                              className="text-[#DC2626] hover:bg-[#FEF2F2] p-1 rounded-md"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                      <div className="space-y-2">
+                        {recommendationsSchool.map((rec, idx) => (
+                          <input
+                            key={idx}
+                            type="text"
+                            value={rec}
+                            onChange={(e) => {
+                              const updated = [...recommendationsSchool]
+                              updated[idx] = e.target.value
+                              setRecommendationsSchool(updated)
+                            }}
+                            className="w-full p-2 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB]"
+                          />
                         ))}
-                      </div>
-                    </div>
-
-                    {/* Recomendações Família e Escola */}
-                    <div className="pt-3 border-t border-[#EEF5F6] grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-1.5">
-                          Para os Pais:
-                        </label>
-                        <div className="space-y-1.5">
-                          {recommendationsFamily.map((r, idx) => (
-                            <input
-                              key={idx}
-                              type="text"
-                              value={r}
-                              onChange={(e) => {
-                                const next = [...recommendationsFamily]
-                                next[idx] = e.target.value
-                                setRecommendationsFamily(next)
-                              }}
-                              className="w-full px-3 py-1.5 text-xs rounded-lg border border-[#D8E5E7] bg-white"
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-1.5">
-                          Para a Escola:
-                        </label>
-                        <div className="space-y-1.5">
-                          {recommendationsSchool.map((r, idx) => (
-                            <input
-                              key={idx}
-                              type="text"
-                              value={r}
-                              onChange={(e) => {
-                                const next = [...recommendationsSchool]
-                                next[idx] = e.target.value
-                                setRecommendationsSchool(next)
-                              }}
-                              className="w-full px-3 py-1.5 text-xs rounded-lg border border-[#D8E5E7] bg-white"
-                            />
-                          ))}
-                        </div>
                       </div>
                     </div>
                   </div>
+
+                  {/* Considerações Finais */}
+                  <div className="pt-3 border-t border-[#EEF5F6]">
+                    <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-2">
+                      Considerações Finais
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={finalConsiderations}
+                      onChange={(e) => setFinalConsiderations(e.target.value)}
+                      className="w-full p-3 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed"
+                    />
+                  </div>
                 </div>
-              )}
-            </>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Footer do Gerador: Navegação & Ações Principais */}
+      <div className="p-4 sm:p-6 border-t border-[#EEF5F6] bg-[#F8FAFB] rounded-b-3xl flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {activeStep > 1 && (
+            <button
+              type="button"
+              onClick={() => setActiveStep((activeStep - 1) as any)}
+              className="px-4 py-2.5 rounded-2xl bg-white hover:bg-[#EDE9FE] border-2 border-[#D8E5E7] hover:border-[#7C3AED] text-[#0D2329] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Voltar</span>
+            </button>
+          )}
+
+          {activeStep < 5 && (
+            <button
+              type="button"
+              onClick={() => setActiveStep((activeStep + 1) as any)}
+              className="px-5 py-2.5 rounded-2xl bg-[#0D2329] hover:bg-[#1E3A40] text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-xs ml-auto sm:ml-0 cursor-pointer"
+            >
+              <span>Avançar Etapa</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
           )}
         </div>
 
-        {/* Footer do Modal: Navegação & Ações Principais */}
-        <div className="p-4 sm:p-6 border-t border-[#EEF5F6] bg-[#F8FAFB] rounded-b-3xl flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            {activeStep > 1 && (
-              <button
-                type="button"
-                onClick={() => setActiveStep((activeStep - 1) as any)}
-                className="px-4 py-2.5 rounded-2xl bg-white hover:bg-[#EDE9FE] border-2 border-[#D8E5E7] hover:border-[#7C3AED] text-[#0D2329] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Voltar</span>
-              </button>
-            )}
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+          <button
+            type="button"
+            disabled={savingToDatabase}
+            onClick={handleSaveToSupabase}
+            className="px-4 py-2.5 rounded-2xl bg-white hover:bg-[#F0FDF4] border-2 border-[#D8E5E7] hover:border-[#10B981] text-[#0D2329] text-xs font-black transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+          >
+            <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
+            <span>{savingToDatabase ? "Salvando..." : "Salvar Prontuário"}</span>
+          </button>
 
-            {activeStep < 5 && (
-              <button
-                type="button"
-                onClick={() => setActiveStep((activeStep + 1) as any)}
-                className="px-5 py-2.5 rounded-2xl bg-[#0D2329] hover:bg-[#1E3A40] text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-xs ml-auto sm:ml-0"
-              >
-                <span>Avançar Etapa</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-            <button
-              type="button"
-              disabled={savingToDatabase}
-              onClick={handleSaveToSupabase}
-              className="px-4 py-2.5 rounded-2xl bg-white hover:bg-[#F0FDF4] border-2 border-[#D8E5E7] hover:border-[#10B981] text-[#0D2329] text-xs font-black transition-all shadow-2xs flex items-center gap-1.5"
-            >
-              <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
-              <span>{savingToDatabase ? "Salvando..." : "Salvar Prontuário"}</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={generatingDocx}
-              onClick={handleDownloadWord}
-              className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span>{generatingDocx ? "Gerando Word..." : "Baixar Relatório Word (.docx)"}</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            disabled={generatingDocx}
+            onClick={handleDownloadWord}
+            className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            <span>{generatingDocx ? "Gerando Word..." : "Baixar Relatório Word (.docx)"}</span>
+          </button>
         </div>
+      </div>
     </div>
   )
 }

@@ -88,10 +88,24 @@ export interface ReportTestResult {
   interpretationText?: string
 }
 
+export interface ReportQuestionAnswer {
+  id: string
+  num: number
+  title: string
+  answer: string
+}
+
 export interface ReportClinicalData {
   selectedInstruments: string[]
-  anamnese: ReportAnamneseData
-  schoolInterview: ReportSchoolInterviewData
+  familyQuestions?: ReportQuestionAnswer[]
+  schoolQuestions?: ReportQuestionAnswer[]
+  schoolObserver?: {
+    name?: string
+    role?: string
+    date?: string
+  }
+  anamnese?: ReportAnamneseData
+  schoolInterview?: ReportSchoolInterviewData
   tests: ReportTestResult[]
   clinicalObservation: string
   sessionsCount?: number
@@ -389,120 +403,142 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
           }),
 
           // 4. ANAMNESE
-          createSectionHeader("Anamnese"),
+          createSectionHeader("Anamnese / Entrevista Inicial com a Família"),
 
-          createSubHeader("Família"),
-          createP(
-            data.clinical.anamnese.family ||
-              "Constituição familiar e dinâmica relacional investigadas durante a entrevista inicial com os responsáveis."
-          ),
-
-          createSubHeader("Concepção e Gestação"),
-          createP(
-            data.clinical.anamnese.conceptionAndPregnancy ||
-              "Gestação, histórico pré-natal, condições de parto e primeiras semanas de vida sem intercorrências graves registradas."
-          ),
-
-          createSubHeader("Amamentação e Alimentação"),
-          createP(
-            data.clinical.anamnese.breastfeedingAndDiet ||
-              "Histórico alimentar, aleitamento materno e transição para sólidos desenvolvidos conforme esperado."
-          ),
-
-          createSubHeader("Desenvolvimento Psicomotor e Linguagem"),
-          createP(
-            data.clinical.anamnese.psychomotorAndLanguage ||
-              "Marcos motores (marcha, sustentação) e aquisição da linguagem oral relatados pela família."
-          ),
-
-          createSubHeader("Sono"),
-          createP(
-            data.clinical.anamnese.sleep ||
-              "Padrão de sono, rotina de descanso e qualidade do repouso noturno satisfatórios."
-          ),
-
-          createSubHeader("Histórico de Saúde ou Transtornos na Família"),
-          createP(
-            data.clinical.anamnese.familyHealthHistory ||
-              "Histórico de saúde geral do paciente e antecedentes familiares de transtornos do neurodesenvolvimento ou dificuldades escolares."
-          ),
-
-          createSubHeader("Escolaridade"),
-          createP(
-            data.clinical.anamnese.schooling ||
-              "Início da trajetória escolar, adaptação na educação infantil e momento em que as principais dificuldades foram percebidas."
-          ),
-
-          createSubHeader("Relacionamentos e Sociabilidade"),
-          createP(
-            data.clinical.anamnese.relationshipsAndSociability ||
-              "Comportamento social, interação com pares, afetividade e relacionamento familiar."
-          ),
+          ...(data.clinical.familyQuestions && data.clinical.familyQuestions.length > 0
+            ? data.clinical.familyQuestions.flatMap((q) => [
+                createSubHeader(`${q.num}. ${q.title}`),
+                createP(
+                  q.answer && q.answer.trim()
+                    ? `"${q.answer.trim()}"`
+                    : "Informação não relatada ou não aplicável durante a entrevista.",
+                  { italic: Boolean(q.answer && q.answer.trim()) }
+                ),
+              ])
+            : [
+                createSubHeader("Família"),
+                createP(
+                  data.clinical.anamnese?.family ||
+                    "Constituição familiar e dinâmica relacional investigadas durante a entrevista inicial com os responsáveis."
+                ),
+                createSubHeader("Concepção e Gestação"),
+                createP(
+                  data.clinical.anamnese?.conceptionAndPregnancy ||
+                    "Gestação, histórico pré-natal, condições de parto e primeiras semanas de vida sem intercorrências graves registradas."
+                ),
+                createSubHeader("Amamentação e Alimentação"),
+                createP(
+                  data.clinical.anamnese?.breastfeedingAndDiet ||
+                    "Histórico alimentar, aleitamento materno e transição para sólidos desenvolvidos conforme esperado."
+                ),
+                createSubHeader("Desenvolvimento Psicomotor e Linguagem"),
+                createP(
+                  data.clinical.anamnese?.psychomotorAndLanguage ||
+                    "Marcos motores (marcha, sustentação) e aquisição da linguagem oral relatados pela família."
+                ),
+                createSubHeader("Sono"),
+                createP(
+                  data.clinical.anamnese?.sleep ||
+                    "Padrão de sono, rotina de descanso e qualidade do repouso noturno satisfatórios."
+                ),
+                createSubHeader("Histórico de Saúde ou Transtornos na Família"),
+                createP(
+                  data.clinical.anamnese?.familyHealthHistory ||
+                    "Histórico de saúde geral do paciente e antecedentes familiares de transtornos do neurodesenvolvimento ou dificuldades escolares."
+                ),
+                createSubHeader("Escolaridade"),
+                createP(
+                  data.clinical.anamnese?.schooling ||
+                    "Início da trajetória escolar, adaptação na educação infantil e momento em que as principais dificuldades foram percebidas."
+                ),
+                createSubHeader("Relacionamentos e Sociabilidade"),
+                createP(
+                  data.clinical.anamnese?.relationshipsAndSociability ||
+                    "Comportamento social, interação com pares, afetividade e relacionamento familiar."
+                ),
+              ]),
 
           // 5. ENTREVISTA ESCOLAR
-          createSectionHeader("Entrevista Escolar"),
+          createSectionHeader("Entrevista / Visita Escolar"),
 
-          createSubHeader("Seu Desenvolvimento?"),
-          createP(
-            `"${
-              data.clinical.schoolInterview.development ||
-              "O aluno participa das atividades propostas com apoio e mediação pedagógica."
-            }"`,
-            { italic: true }
-          ),
+          ...(data.clinical.schoolObserver?.name
+            ? [
+                createLabeledP(
+                  "PROFISSIONAL / OBSERVADOR:",
+                  `${data.clinical.schoolObserver.name} (${data.clinical.schoolObserver.role || "Professora"})`
+                ),
+                createLabeledP("DATA DO RELATO ESCOLAR:", data.clinical.schoolObserver.date || "Conforme registro"),
+                new Paragraph({ spacing: { after: 120 } }),
+              ]
+            : []),
 
-          createSubHeader("Quanto ao Comportamento?"),
-          createP(
-            `"${
-              data.clinical.schoolInterview.behavior ||
-              "Bom relacionamento com professores e colegas em sala de aula."
-            }"`,
-            { italic: true }
-          ),
-
-          createSubHeader("Suas Principais Dificuldades?"),
-          createP(
-            `"${
-              data.clinical.schoolInterview.mainDifficulties ||
-              "Dificuldades observadas na fixação de conteúdos, leitura e sustentação da atenção."
-            }"`,
-            { italic: true }
-          ),
-
-          createSubHeader("Quanto à Aprendizagem e Assimilação de Conteúdo?"),
-          createP(
-            `"${
-              data.clinical.schoolInterview.learningAndAssimilation ||
-              "Apresenta necessidade de repetição das instruções e mediação para conclusão de tarefas."
-            }"`,
-            { italic: true }
-          ),
-
-          createSubHeader("Realiza as Tarefas de Casa?"),
-          createP(
-            `"${
-              data.clinical.schoolInterview.homework || "Realiza com auxílio e cobrança dos responsáveis."
-            }"`,
-            { italic: true }
-          ),
-
-          createSubHeader("Apresenta Dificuldades em Organizar suas Atividades e Tarefas Pessoais?"),
-          createP(
-            `"${
-              data.clinical.schoolInterview.organization ||
-              "Necessita de lembretes e suporte para organização dos materiais escolares."
-            }"`,
-            { italic: true }
-          ),
-
-          createSubHeader("Como Reage Quando Contrariado?"),
-          createP(
-            `"${
-              data.clinical.schoolInterview.limitsAndFrustration ||
-              "Demonstra insatisfação passageira, necessitando de acolhimento e redirecionamento."
-            }"`,
-            { italic: true }
-          ),
+          ...(data.clinical.schoolQuestions && data.clinical.schoolQuestions.length > 0
+            ? data.clinical.schoolQuestions.flatMap((q) => [
+                createSubHeader(`${q.num}. ${q.title}`),
+                createP(
+                  q.answer && q.answer.trim()
+                    ? `"${q.answer.trim()}"`
+                    : "Informação não observada ou não registrada pela equipe pedagógica.",
+                  { italic: true }
+                ),
+              ])
+            : [
+                createSubHeader("Seu Desenvolvimento?"),
+                createP(
+                  `"${
+                    data.clinical.schoolInterview?.development ||
+                    "O aluno participa das atividades propostas com apoio e mediação pedagógica."
+                  }"`,
+                  { italic: true }
+                ),
+                createSubHeader("Quanto ao Comportamento?"),
+                createP(
+                  `"${
+                    data.clinical.schoolInterview?.behavior ||
+                    "Bom relacionamento com professores e colegas em sala de aula."
+                  }"`,
+                  { italic: true }
+                ),
+                createSubHeader("Suas Principais Dificuldades?"),
+                createP(
+                  `"${
+                    data.clinical.schoolInterview?.mainDifficulties ||
+                    "Dificuldades observadas na fixação de conteúdos, leitura e sustentação da atenção."
+                  }"`,
+                  { italic: true }
+                ),
+                createSubHeader("Quanto à Aprendizagem e Assimilação de Conteúdo?"),
+                createP(
+                  `"${
+                    data.clinical.schoolInterview?.learningAndAssimilation ||
+                    "Apresenta necessidade de repetição das instruções e mediação para conclusão de tarefas."
+                  }"`,
+                  { italic: true }
+                ),
+                createSubHeader("Realiza as Tarefas de Casa?"),
+                createP(
+                  `"${
+                    data.clinical.schoolInterview?.homework || "Realiza com auxílio e cobrança dos responsáveis."
+                  }"`,
+                  { italic: true }
+                ),
+                createSubHeader("Apresenta Dificuldades em Organizar suas Atividades e Tarefas Pessoais?"),
+                createP(
+                  `"${
+                    data.clinical.schoolInterview?.organization ||
+                    "Necessita de lembretes e suporte para organização dos materiais escolares."
+                  }"`,
+                  { italic: true }
+                ),
+                createSubHeader("Como Reage Quando Contrariado?"),
+                createP(
+                  `"${
+                    data.clinical.schoolInterview?.limitsAndFrustration ||
+                    "Demonstra insatisfação passageira, necessitando de acolhimento e redirecionamento."
+                  }"`,
+                  { italic: true }
+                ),
+              ]),
 
           createSubHeader("Características Comportamentais Observadas pela Escola:"),
           new Paragraph({
