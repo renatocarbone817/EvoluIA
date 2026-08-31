@@ -296,13 +296,13 @@ export function PlanPage() {
 
                   {/* Preço Bem Distribuído & Centralizado */}
                   <div className="p-3.5 rounded-2xl bg-[#F7FAFA] border-2 border-[#EEF5F6] space-y-2 shadow-2xs">
-                    {/* Top Row: Investimento + Vagas */}
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                    {/* Top Row: Investimento + Vagas Centralizados Juntos */}
+                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider whitespace-nowrap">
                         Investimento
                       </span>
-                      <div className="px-2.5 py-1 rounded-xl bg-purple-100 border border-purple-200 text-[#7C3AED] text-[10px] font-black flex items-center gap-1 shrink-0">
-                        <Users className="w-3.5 h-3.5 shrink-0" />
+                      <div className="px-2 py-0.5 rounded-lg bg-purple-100 border border-purple-200 text-[#7C3AED] text-[10px] font-black flex items-center gap-1 shrink-0 whitespace-nowrap">
+                        <Users className="w-3 h-3 shrink-0" />
                         <span>
                           {plan.maxProfessionals === 1
                             ? "1 Vaga"
@@ -311,12 +311,14 @@ export function PlanPage() {
                       </div>
                     </div>
 
-                    {/* Bottom Row: Preço Grande e Centralizado */}
-                    <div className="flex items-baseline justify-center gap-1 py-1">
-                      <span className="text-3xl sm:text-4xl font-black text-[#0D2329] tracking-tight">
+                    {/* Bottom Row: Preço Grande e /mês Junto na Mesma Linha */}
+                    <div className="flex items-baseline justify-center gap-1 pt-1">
+                      <span className="text-3xl sm:text-4xl font-black text-[#0D2329] tracking-tight whitespace-nowrap">
                         {plan.formattedPrice}
                       </span>
-                      <span className="text-xs font-bold text-[#6B7C83]">/mês</span>
+                      <span className="text-xs font-bold text-[#6B7C83] whitespace-nowrap">
+                        /mês
+                      </span>
                     </div>
                   </div>
 
