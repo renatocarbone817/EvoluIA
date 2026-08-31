@@ -46,7 +46,7 @@ interface ClinicalReportBuilderModalProps {
 }
 
 const DEFAULT_INSTRUMENT_CATALOG = [
-  "DSM-5 MANUAL DE DIAGNÓSTICOS E ESTATÍSTICOS DE TRANSTORNOS MENTAIS",
+  "DSM-5-TR MANUAL DE DIAGNÓSTICOS E ESTATÍSTICOS DE TRANSTORNOS MENTAIS",
   "ANAMNESE",
   "ENTREVISTA ESCOLAR",
   "SNAP-IV (PAIS E PROFESSORES)",
@@ -157,7 +157,7 @@ export function ClinicalReportBuilderModal({
   })
 
   const [selectedInstruments, setSelectedInstruments] = useState<string[]>([
-    "DSM-5 MANUAL DE DIAGNÓSTICOS E ESTATÍSTICOS DE TRANSTORNOS MENTAIS",
+    "DSM-5-TR MANUAL DE DIAGNÓSTICOS E ESTATÍSTICOS DE TRANSTORNOS MENTAIS",
     "ANAMNESE",
     "ENTREVISTA ESCOLAR",
     "SNAP-IV (PAIS E PROFESSORES)",
@@ -358,7 +358,7 @@ export function ClinicalReportBuilderModal({
           id: "snap4",
           title: "Questionário SNAP-IV (Pais e Professores)",
           objective:
-            "O Questionário SNAP-IV é um instrumento construído a partir dos critérios do DSM-IV/5 para rastreio de sintomas de Desatenção, Hiperatividade/Impulsividade e Transtorno Opositor Desafiador.",
+            "O Questionário SNAP-IV é um instrumento construído a partir dos critérios do DSM-5-TR para rastreio de sintomas de Desatenção, Hiperatividade/Impulsividade e Transtorno Opositor Desafiador.",
           tableHeaders: ["Dimensão Avaliada", "Pontuação Família", "Pontuação Escola", "Interpretação"],
           tableRows: [
             ["Desatenção (Itens 1 a 9)", "07 pontos", "07 pontos", "Indicativo Significativo"],
@@ -376,7 +376,7 @@ export function ClinicalReportBuilderModal({
           id: "conners",
           title: "Escala Conners (Pais e Professores)",
           objective:
-            "Avalia os fatores traçados no DSM-5 para sintomas de déficit de atenção e hiperatividade em crianças e adolescentes em múltiplos contextos.",
+            "Avalia os fatores traçados no DSM-5-TR para sintomas de déficit de atenção e hiperatividade em crianças e adolescentes em múltiplos contextos.",
           scoreCutoffText: "Versão Pais: 23 pontos (Corte: 58) | Versão Professores: 30 pontos (Corte: 64)",
           interpretationText: "O paciente não ultrapassou os pontos de corte globais de hiperatividade motora na Escala Conners.",
         })
@@ -624,7 +624,7 @@ export function ClinicalReportBuilderModal({
         "A presente avaliação psicopedagógica de " + child.full_name + " foi realizada ao longo de " + sessionsCount + " sessões clínicas. A integração dos instrumentos aplicados, associada às observações comportamentais e aos relatos da família e da escola, revelou um perfil cognitivo com potencial preservado nas tarefas visuais e lúdicas, apresentando defasagem na memória de trabalho auditiva, discriminação fonológica e sustentação atencional em tarefas que demandam esforço cognitivo contínuo."
       )
       setDiagnosticHypothesis(
-        "Os dados convergentes obtidos na avaliação apontam para hipótese diagnóstica de Transtorno do Déficit de Atenção/Hiperatividade (TDAH) com predomínio desatento (CID-11 6A05.0 / DSM-5), associado a impacto secundário no processo de aquisição da leitura e escrita."
+        "Os dados convergentes obtidos na avaliação apontam para hipótese diagnóstica de Transtorno do Déficit de Atenção/Hiperatividade (TDAH) com predomínio desatento (CID-11 6A05.0 / DSM-5-TR), associado a impacto secundário no processo de aquisição da leitura e escrita."
       )
       toast.success("Sugestão clínica refinada com sucesso pela IA!", { icon: "✨" })
     } finally {
@@ -1085,7 +1085,7 @@ export function ClinicalReportBuilderModal({
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
                       <Lightbulb className="w-4 h-4 text-[#005B94]" />
-                      <span>Hipótese Diagnóstica (DSM-5)</span>
+                      <span>Hipótese Diagnóstica (DSM-5-TR)</span>
                     </h3>
                     <button
                       type="button"
@@ -1104,10 +1104,10 @@ export function ClinicalReportBuilderModal({
                     className="w-full p-3 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed"
                   />
 
-                  {/* Critérios DSM-5 */}
+                  {/* Critérios DSM-5-TR */}
                   <div>
                     <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-2">
-                      Manifestações e Critérios DSM-5 Observados:
+                      Manifestações e Critérios DSM-5-TR Observados:
                     </label>
                     <div className="space-y-2">
                       {dsm5Criteria.map((crit, idx) => (

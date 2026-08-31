@@ -396,7 +396,7 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
             spacing: { before: 200, after: 300 },
             children: [
               new TextRun({
-                text: "Toda a avaliação teve como base: ciência, estatísticas, informações da família e escola, testes, escalas e questionários quantitativos e qualitativos e DSM-5 como instrumento norteador para a hipótese diagnóstica.",
+                text: "Toda a avaliação teve como base: ciência, estatísticas, informações da família e escola, testes, escalas e questionários quantitativos e qualitativos e DSM-5-TR como instrumento norteador para a hipótese diagnóstica.",
                 font: "Arial",
                 size: 20,
                 italics: true,
@@ -690,7 +690,7 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
           ),
 
           // 9. HIPÓTESE DIAGNÓSTICA
-          createSectionHeader("Hipótese Diagnóstica"),
+          createSectionHeader("Hipótese Diagnóstica (DSM-5-TR)"),
           createP(
             data.clinical.diagnosticHypothesis ||
               "Os dados obtidos ao longo da avaliação psicopedagógica apontam para um perfil cognitivo compatível com dificuldades nas funções executivas e sustentação atencional, necessitando de acompanhamento contínuo e intervenção estruturada."
@@ -698,7 +698,7 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
 
           ...(data.clinical.dsm5Criteria && data.clinical.dsm5Criteria.length > 0
             ? [
-                createSubHeader("Critérios Identificados (DSM-5):"),
+                createSubHeader("Critérios Identificados (DSM-5-TR):"),
                 ...data.clinical.dsm5Criteria.map((crit, idx) =>
                   new Paragraph({
                     spacing: { after: 80 },
