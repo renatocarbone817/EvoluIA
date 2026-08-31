@@ -1340,9 +1340,19 @@ const completeData: CompleteReportData = {
 
                   {/* Critérios DSM-5-TR */}
                   <div>
-                    <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-2">
-                      Manifestações e Critérios DSM-5-TR Observados:
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider">
+                        Manifestações e Critérios DSM-5-TR Observados:
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setDsm5Criteria([...dsm5Criteria, ""])}
+                        className="px-2.5 py-1 rounded-lg bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE] text-xs font-black flex items-center gap-1 transition-all"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Adicionar Critério</span>
+                      </button>
+                    </div>
                     <div className="space-y-2">
                       {dsm5Criteria.map((crit, idx) => (
                         <div key={idx} className="flex items-center gap-2">
@@ -1351,24 +1361,46 @@ const completeData: CompleteReportData = {
                           </span>
                           <input
                             type="text"
+                            placeholder="Descreva o critério ou manifestação observada..."
                             value={crit}
                             onChange={(e) => {
                               const updated = [...dsm5Criteria]
                               updated[idx] = e.target.value
                               setDsm5Criteria(updated)
                             }}
-                            className="flex-1 p-2 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB]"
+                            className="flex-1 p-2 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white"
                           />
+                          <button
+                            type="button"
+                            onClick={() => setDsm5Criteria(dsm5Criteria.filter((_, i) => i !== idx))}
+                            className="p-2 rounded-xl text-[#EF4444] hover:bg-[#FEF2F2] transition-all"
+                            title="Remover critério"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       ))}
+                      {dsm5Criteria.length === 0 && (
+                        <p className="text-xs text-[#6B7C83] italic py-2">Nenhum critério adicionado. Clique em "+ Adicionar Critério" acima.</p>
+                      )}
                     </div>
                   </div>
 
                   {/* Encaminhamentos */}
                   <div className="pt-3 border-t border-[#EEF5F6]">
-                    <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-2">
-                      Encaminhamentos Profissionais Recomendados:
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider">
+                        Encaminhamentos Profissionais Recomendados:
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setReferrals([...referrals, ""])}
+                        className="px-2.5 py-1 rounded-lg bg-[#E0F2FE] text-[#0284C7] hover:bg-[#BAE6FD] text-xs font-black flex items-center gap-1 transition-all"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Adicionar Encaminhamento</span>
+                      </button>
+                    </div>
                     <div className="space-y-2">
                       {referrals.map((refItem, idx) => (
                         <div key={idx} className="flex items-center gap-2">
@@ -1377,60 +1409,118 @@ const completeData: CompleteReportData = {
                           </span>
                           <input
                             type="text"
+                            placeholder="Ex: Avaliação com Neuropediatra..."
                             value={refItem}
                             onChange={(e) => {
                               const updated = [...referrals]
                               updated[idx] = e.target.value
                               setReferrals(updated)
                             }}
-                            className="flex-1 p-2 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB]"
+                            className="flex-1 p-2 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white"
                           />
+                          <button
+                            type="button"
+                            onClick={() => setReferrals(referrals.filter((_, i) => i !== idx))}
+                            className="p-2 rounded-xl text-[#EF4444] hover:bg-[#FEF2F2] transition-all"
+                            title="Remover encaminhamento"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       ))}
+                      {referrals.length === 0 && (
+                        <p className="text-xs text-[#6B7C83] italic py-2">Nenhum encaminhamento adicionado. Clique em "+ Adicionar Encaminhamento" acima.</p>
+                      )}
                     </div>
                   </div>
 
                   {/* Recomendações Família & Escola */}
                   <div className="pt-3 border-t border-[#EEF5F6] grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-2">
-                        Orientações para a Família:
-                      </label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider">
+                          Orientações para a Família:
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setRecommendationsFamily([...recommendationsFamily, ""])}
+                          className="px-2 py-0.5 rounded-lg bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE] text-[11px] font-black flex items-center gap-1 transition-all"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Adicionar</span>
+                        </button>
+                      </div>
                       <div className="space-y-2">
                         {recommendationsFamily.map((rec, idx) => (
-                          <input
-                            key={idx}
-                            type="text"
-                            value={rec}
-                            onChange={(e) => {
-                              const updated = [...recommendationsFamily]
-                              updated[idx] = e.target.value
-                              setRecommendationsFamily(updated)
-                            }}
-                            className="w-full p-2 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB]"
-                          />
+                          <div key={idx} className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              placeholder="Ex: Estabelecer rotina diária de estudos..."
+                              value={rec}
+                              onChange={(e) => {
+                                const updated = [...recommendationsFamily]
+                                updated[idx] = e.target.value
+                                setRecommendationsFamily(updated)
+                              }}
+                              className="flex-1 p-2 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setRecommendationsFamily(recommendationsFamily.filter((_, i) => i !== idx))}
+                              className="p-1.5 rounded-xl text-[#EF4444] hover:bg-[#FEF2F2] transition-all"
+                              title="Remover orientação"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         ))}
+                        {recommendationsFamily.length === 0 && (
+                          <p className="text-xs text-[#6B7C83] italic py-1">Nenhuma orientação adicionada.</p>
+                        )}
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider block mb-2">
-                        Orientações para a Escola:
-                      </label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[11px] font-black uppercase text-[#005B94] tracking-wider">
+                          Orientações para a Escola:
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setRecommendationsSchool([...recommendationsSchool, ""])}
+                          className="px-2 py-0.5 rounded-lg bg-[#E0F2FE] text-[#0284C7] hover:bg-[#BAE6FD] text-[11px] font-black flex items-center gap-1 transition-all"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Adicionar</span>
+                        </button>
+                      </div>
                       <div className="space-y-2">
                         {recommendationsSchool.map((rec, idx) => (
-                          <input
-                            key={idx}
-                            type="text"
-                            value={rec}
-                            onChange={(e) => {
-                              const updated = [...recommendationsSchool]
-                              updated[idx] = e.target.value
-                              setRecommendationsSchool(updated)
-                            }}
-                            className="w-full p-2 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB]"
-                          />
+                          <div key={idx} className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              placeholder="Ex: Posicionar próximo à professora..."
+                              value={rec}
+                              onChange={(e) => {
+                                const updated = [...recommendationsSchool]
+                                updated[idx] = e.target.value
+                                setRecommendationsSchool(updated)
+                              }}
+                              className="flex-1 p-2 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setRecommendationsSchool(recommendationsSchool.filter((_, i) => i !== idx))}
+                              className="p-1.5 rounded-xl text-[#EF4444] hover:bg-[#FEF2F2] transition-all"
+                              title="Remover orientação"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         ))}
+                        {recommendationsSchool.length === 0 && (
+                          <p className="text-xs text-[#6B7C83] italic py-1">Nenhuma orientação adicionada.</p>
+                        )}
                       </div>
                     </div>
                   </div>
