@@ -118,6 +118,7 @@ export function ClinicalReportBuilderModal({
   const [generatingAI, setGeneratingAI] = useState(false)
   const [savingToDatabase, setSavingToDatabase] = useState(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [currentReportId, setCurrentReportId] = useState<string | undefined>(reportId)
 
   const profId = professional?.id || child.professional_id
   const familyQuestions = useMemo(() => getCustomFamilyQuestions(profId), [profId])
@@ -164,19 +165,6 @@ export function ClinicalReportBuilderModal({
     "ANAMNESE",
     "ENTREVISTA ESCOLAR",
     "SNAP-IV (PAIS E PROFESSORES)",
-    "ESCALA CONNERS (PAIS E PROFESSORES)",
-    "ESCALA AVALIAÇÃO TDAH- ETDAH – PAIS",
-    "TESTE AUDIBILIZAÇÃO",
-    "TAREFA BLOCO CUBO DE CORSI",
-    "TAREFA SPAN DE DIGITOS",
-    "TESTE TRILHAS PRÉ ESCOLARES A-B",
-    "TESTE DISCRIMINAÇÃO FONOLÓGICA",
-    "TESTE DE ATENÇÃO POR CANCELAMENTO TAC",
-    "INSTRUMENTO DE AVALIAÇÃO DE REPERTÓRIO BÁSICO PARA A ALFABETIZAÇÃO IAR",
-    "TIN TESTE DE NOMEAÇÃO (VERSÃO REDUZIDA)",
-    "PROTOCOLO DE OBSERVAÇÃO PSICOMOTORA (POP-TT)",
-    "QUESTIONÁRIO PARA TRIAGEM DE DISTÚRBIO DO PROCESSAMENTO AUDITIVO CENTRAL (DPAC)",
-    "ESCALA DE AUTISMO VERSÃO INFANTIL 04 A 11 ANOS (AQ-10)",
   ])
 
   const [clinicalObservation, setClinicalObservation] = useState(
@@ -334,6 +322,76 @@ export function ClinicalReportBuilderModal({
       setSynthesis(
         `A presente avaliação psicopedagógica foi realizada ao longo de ${finalCount} sessão${finalCount !== 1 ? "ões" : ""}, contemplando a aplicação de testes e instrumentos avaliativos, bem como entrevistas com o paciente, familiares e escola. A integração dessas informações possibilitou uma compreensão abrangente do funcionamento cognitivo, comportamental, emocional e acadêmico do paciente, permitindo a elaboração das conclusões e o levantamento da hipótese diagnóstica.`
       )
+
+      // 5. Carrega Relatório e Instrumentos Salvos da tabela 'reports'
+      let reportQuery = supabase
+        .from("reports")
+        .select("*")
+        .eq("child_id", child.id)
+        .order("created_at", { ascending: false })
+
+      if (reportId || currentReportId) {
+        reportQuery = supabase
+          .from("reports")
+          .select("*")
+          .eq("id", reportId || currentReportId)
+      }
+
+      const { data: savedReports } = await reportQuery
+
+      if (savedReports && savedReports.length > 0) {
+        const rep = savedReports[0]
+        setCurrentReportId(rep.id)
+        const content = rep.content as any
+
+        if (content) {
+          if (content.selectedInstruments && Array.isArray(content.selectedInstruments)) {
+            setSelectedInstruments(content.selectedInstruments)
+          }
+          if (content.patientData) {
+            setPatientData((prev) => ({ ...prev, ...content.patientData }))
+          }
+          if (content.familyAnswers && Object.keys(content.familyAnswers).length > 0) {
+            setFamilyAnswers((prev) => ({ ...prev, ...content.familyAnswers }))
+          }
+          if (content.schoolAnswers && Object.keys(content.schoolAnswers).length > 0) {
+            setSchoolAnswers((prev) => ({ ...prev, ...content.schoolAnswers }))
+          }
+          if (content.schoolObserver) {
+            setSchoolObserver((prev) => ({ ...prev, ...content.schoolObserver }))
+          }
+          if (content.schoolTraits) {
+            setSchoolTraits(content.schoolTraits)
+          }
+          if (content.clinicalObservation) {
+            setClinicalObservation(content.clinicalObservation)
+          }
+          if (content.sessionsCount) {
+            setSessionsCount(content.sessionsCount)
+          }
+          if (content.synthesis) {
+            setSynthesis(content.synthesis)
+          }
+          if (content.diagnosticHypothesis) {
+            setDiagnosticHypothesis(content.diagnosticHypothesis)
+          }
+          if (content.dsm5Criteria && Array.isArray(content.dsm5Criteria)) {
+            setDsm5Criteria(content.dsm5Criteria)
+          }
+          if (content.finalConsiderations) {
+            setFinalConsiderations(content.finalConsiderations)
+          }
+          if (content.referrals && Array.isArray(content.referrals)) {
+            setReferrals(content.referrals)
+          }
+          if (content.recommendationsFamily && Array.isArray(content.recommendationsFamily)) {
+            setRecommendationsFamily(content.recommendationsFamily)
+          }
+          if (content.recommendationsSchool && Array.isArray(content.recommendationsSchool)) {
+            setRecommendationsSchool(content.recommendationsSchool)
+          }
+        }
+      }
     } catch (err) {
       console.error("Erro ao carregar contexto da criança:", err)
     } finally {
@@ -715,7 +773,9 @@ const completeData: CompleteReportData = {
         recommendationsSchool,
       }
 
-      if (reportId) {
+      const activeRepId = currentReportId || reportId
+
+      if (activeRepId) {
         await supabase
           .from("reports")
           .update({
@@ -724,15 +784,23 @@ const completeData: CompleteReportData = {
             status: "draft",
             updated_at: new Date().toISOString(),
           })
-          .eq("id", reportId)
+          .eq("id", activeRepId)
       } else {
-        await supabase.from("reports").insert({
-          professional_id: professional.id,
-          child_id: child.id,
-          title: "Laudo de Avaliação Psicopedagógica - " + child.full_name,
-          content: contentPayload,
-          status: "draft",
-        })
+        const { data: insertedReport } = await supabase
+          .from("reports")
+          .insert({
+            professional_id: professional.id,
+            child_id: child.id,
+            title: "Laudo de Avaliação Psicopedagógica - " + child.full_name,
+            content: contentPayload,
+            status: "draft",
+          })
+          .select("id")
+          .single()
+
+        if (insertedReport?.id) {
+          setCurrentReportId(insertedReport.id)
+        }
       }
 
       // Also persist back to initial_assessments
