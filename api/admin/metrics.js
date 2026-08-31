@@ -74,6 +74,17 @@ export default async function handler(req, res) {
 
     // 3. Montar lista enriquecida de clínicas
     const clinicsList = masterProfs.map((master) => {
+      // Prioridade 1: Tag soberana [PLAN:planId:status] no bio do profissional
+      let parsedPlanId = null
+      let parsedStatus = null
+      if (master.bio && master.bio.includes("[PLAN:")) {
+        const match = master.bio.match(/\[PLAN:([a-zA-Z0-9_]+)(?::([a-zA-Z0-9_]+))?\]/)
+        if (match) {
+          parsedPlanId = match[1]
+          parsedStatus = match[2] || "active"
+        }
+      }
+
       const sub = subscriptions.find(
         (s) => s.master_user_id === master.id || s.customer_email?.toLowerCase() === master.email?.toLowerCase()
       )
@@ -82,19 +93,19 @@ export default async function handler(req, res) {
         (c) => c.professional_id === master.id || myTeam.some((tm) => tm.id === c.professional_id)
       )
 
-      // Respeita estritamente o plano contratado (ou Individual por padrão)
-      const planKey = (sub?.plan_id || "individual").toLowerCase()
+      // Respeita estritamente o plano soberano do bio ou da assinatura
+      const planKey = (parsedPlanId || sub?.plan_id || "individual").toLowerCase()
       const planConfig = PLANS_DATA[planKey] || PLANS_DATA.individual
-      const status = sub?.status || "active"
+      const status = parsedStatus || sub?.status || "active"
 
       return {
         id: master.id,
         fullName: master.full_name || "Psicopedagoga",
         clinicName: master.clinic_name || "Espaço Clínico",
         email: master.email || "—",
-        phone: master.phone || "17 99758-0663",
-        city: master.city || "Votuporanga",
-        state: master.state || "SP",
+        phone: master.phone || "—",
+        city: master.city || "—",
+        state: master.state || "—",
         createdAt: master.created_at || new Date().toISOString(),
         role: master.role || "master",
         planId: planConfig.id,

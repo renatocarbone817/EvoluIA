@@ -373,30 +373,37 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
     let inactiveOver30dCount = 0
 
     const clientsList: ClientActivityItem[] = masterProfs.map((master) => {
-      // Assinatura associada
+      // Prioridade Soberana 1: Tag [PLAN:planId:status] no bio do profissional
+      let overridePlanId: PlanId | null = null
+      let overrideStatus: string | null = null
+
+      if (master.bio && master.bio.includes("[PLAN:")) {
+        const match = master.bio.match(/\[PLAN:([a-zA-Z0-9_]+)(?::([a-zA-Z0-9_]+))?\]/)
+        if (match) {
+          overridePlanId = match[1] as PlanId
+          overrideStatus = match[2] || "active"
+        }
+      }
+
+      // Assinatura da tabela subscriptions
       let sub = subscriptions.find(
         (s) =>
           s.master_user_id === master.id ||
           s.customer_email?.toLowerCase() === master.email?.toLowerCase()
       )
 
-      if (!sub && master.bio && master.bio.includes("[PLAN:")) {
-        const match = master.bio.match(/\[PLAN:([a-zA-Z0-9_]+)(?::([a-zA-Z0-9_]+))?\]/)
-        if (match) {
-          const parsedPlanId = match[1] as PlanId
-          const parsedStatus = match[2] || "active"
-          const pConf = getPlanConfig(parsedPlanId)
-          sub = {
-            id: `sub_${master.id}`,
-            master_user_id: master.id,
-            plan_id: parsedPlanId,
-            max_professionals: pConf.maxProfessionals,
-            status: parsedStatus,
-            source: "admin_manual",
-            created_at: master.created_at,
-            updated_at: master.updated_at,
-          } as any
-        }
+      if (overridePlanId) {
+        const pConf = getPlanConfig(overridePlanId)
+        sub = {
+          id: `sub_${master.id}`,
+          master_user_id: master.id,
+          plan_id: overridePlanId,
+          max_professionals: pConf.maxProfessionals,
+          status: overrideStatus || "active",
+          source: "admin_vip_cortesia",
+          created_at: master.created_at,
+          updated_at: master.updated_at,
+        } as any
       }
 
       const myTeam = activeTeamMembers.filter((m) => m.master_id === master.id)
@@ -792,41 +799,7 @@ export async function updateClinicSubscriptionManually(
 ) {
   const planConfig = getPlanConfig(planId)
 
-  // 1. Tentar via endpoint serverless administrativo
-  try {
-    const resp = await fetch("/api/admin/update-plan", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        masterUserId,
-        planId,
-        status,
-      }),
-    })
-
-    if (resp.ok) {
-      const data = await resp.json()
-      // Atualizar cache local
-      if (typeof window !== "undefined") {
-        localStorage.setItem(
-          `evoluia_subscription_${masterUserId}`,
-          JSON.stringify({
-            id: `sub_${masterUserId}`,
-            master_user_id: masterUserId,
-            plan_id: planId,
-            max_professionals: planConfig.maxProfessionals,
-            status: status,
-            updated_at: new Date().toISOString(),
-          })
-        )
-      }
-      return { success: true, plan: data.plan || planConfig.name }
-    }
-  } catch (apiErr: any) {
-    console.warn("Serverless /api/admin/update-plan fallback:", apiErr)
-  }
-
-  // 2. Gravação direta no Supabase (Atualização de bio com tag de plano — 100% livre de RLS)
+  // 1. Gravação direta no Supabase (Atualização de bio com tag de plano — soberano e instantâneo)
   try {
     const { data: prof } = await supabase
       .from("professionals")
@@ -846,6 +819,21 @@ export async function updateClinicSubscriptionManually(
       .eq("id", masterUserId)
   } catch (profErr) {
     console.warn("Erro ao atualizar bio com plano:", profErr)
+  }
+
+  // 2. Tentar via endpoint serverless administrativo (atualiza subscriptions table)
+  try {
+    await fetch("/api/admin/update-plan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        masterUserId,
+        planId,
+        status,
+      }),
+    })
+  } catch (apiErr: any) {
+    console.warn("Serverless /api/admin/update-plan warning:", apiErr)
   }
 
   // 3. Atualizar cache local
