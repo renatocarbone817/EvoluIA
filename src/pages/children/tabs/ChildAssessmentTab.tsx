@@ -740,7 +740,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
             }`}
           >
             <User className="w-4 h-4" />
-            <span>👨‍👩‍👧 Anamnese Familiar (13 Perguntas)</span>
+            <span>👨‍👩‍👧 Anamnese Familiar ({familyQuestionsList.length} Perguntas)</span>
           </button>
 
           <button
@@ -753,7 +753,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
             }`}
           >
             <School className="w-4 h-4" />
-            <span>🏫 Entrevista / Visita Escolar (Modelo Priscila Carbone)</span>
+            <span>🏫 Entrevista / Visita Escolar ({schoolQuestionsList.length} Perguntas)</span>
           </button>
         </div>
 
@@ -770,7 +770,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
       </div>
 
       {/* =========================================================================
-          ABA 1: ANAMNESE FAMILIAR (13 PERGUNTAS)
+          ABA 1: ANAMNESE FAMILIAR (DINÂMICA)
           ========================================================================= */}
       {activeSubTab === "familiar" && (
         <div className="space-y-6 animate-in fade-in">
@@ -785,7 +785,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
                   Anamnese Inicial com a Família
                 </h3>
                 <p className="text-xs font-semibold text-[#6B7C83]">
-                  As 13 perguntas essenciais para investigação do histórico de desenvolvimento.
+                  Roteiro de {familyQuestionsList.length} perguntas para investigação do histórico de desenvolvimento.
                 </p>
               </div>
             </div>
@@ -891,7 +891,7 @@ export function ChildAssessmentTab({ childId, childName }: ChildAssessmentTabPro
                   Questionário de Visita Psicopedagógica no Âmbito Escolar
                 </h3>
                 <p className="text-xs font-semibold text-[#6B7C83]">
-                  Modelo Oficial do Espaço Multidisciplinar Aprender Ensinando (Priscila Carbone CBO 2394-25).
+                  Roteiro de {schoolQuestionsList.length} perguntas para acompanhamento no âmbito escolar.
                 </p>
               </div>
             </div>
