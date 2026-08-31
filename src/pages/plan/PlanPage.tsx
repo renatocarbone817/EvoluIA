@@ -294,20 +294,26 @@ export function PlanPage() {
                     </p>
                   </div>
 
-                  {/* Preço */}
-                  <div className="p-3 rounded-2xl bg-[#F7FAFA] border border-[#EEF5F6]">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-black text-[#0D2329]">
-                        {plan.formattedPrice}
+                  {/* Preço Bem Distribuído */}
+                  <div className="p-3.5 rounded-2xl bg-[#F7FAFA] border border-[#EEF5F6] flex items-center justify-between gap-2 shadow-2xs">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                        Investimento
                       </span>
-                      <span className="text-[11px] font-bold text-[#6B7C83]">/mês</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-[#0D2329]">
+                          {plan.formattedPrice}
+                        </span>
+                        <span className="text-[11px] font-bold text-[#6B7C83]">/mês</span>
+                      </div>
                     </div>
-                    <div className="mt-1 flex items-center gap-1.5 text-[11px] font-black text-[#7C3AED]">
+
+                    <div className="px-2.5 py-1.5 rounded-xl bg-purple-100 border border-purple-200 text-[#7C3AED] text-[10px] font-black flex items-center gap-1 shrink-0">
                       <Users className="w-3.5 h-3.5 shrink-0" />
                       <span>
                         {plan.maxProfessionals === 1
-                          ? "1 Profissional (Master)"
-                          : `Até ${plan.maxProfessionals} Profissionais`}
+                          ? "1 Vaga"
+                          : `Até ${plan.maxProfessionals} Vagas`}
                       </span>
                     </div>
                   </div>
