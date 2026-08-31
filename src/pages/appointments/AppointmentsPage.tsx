@@ -438,6 +438,30 @@ export function AppointmentsPage() {
 
   // Helper for appointment category styling
   function getAppointmentStyle(appt: AppointmentWithChild) {
+    if (appt.status === "done") {
+      return {
+        bg: "bg-[#E8F8F5] hover:bg-[#D1FAE5]",
+        border: "border-[#A7F3D0]",
+        text: "text-[#065F46]",
+        subtext: "text-[#059669]",
+        badgeBg: "bg-[#10B981] text-white",
+        dot: "bg-[#10B981]",
+        categoryName: "Concluído",
+      }
+    }
+
+    if (appt.status === "missed") {
+      return {
+        bg: "bg-[#FEF2F2] hover:bg-[#FEE2E2]",
+        border: "border-[#FECACA]",
+        text: "text-[#991B1B]",
+        subtext: "text-[#DC2626]",
+        badgeBg: "bg-[#EF4444] text-white",
+        dot: "bg-[#EF4444]",
+        categoryName: "Falta",
+      }
+    }
+
     const typeLower = (appt.type || "").toLowerCase()
     const notesLower = (appt.notes || "").toLowerCase()
 
@@ -766,37 +790,79 @@ export function AppointmentsPage() {
                     </div>
 
                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      {!isBlock && appt.child && (
-                        <button
-                          type="button"
-                          onClick={() => handleSendWhatsApp(appt)}
-                          className="w-9 h-9 rounded-2xl bg-[#E8F8F5] text-[#10B981] border border-[#A7F3D0] flex items-center justify-center active:scale-95 shadow-2xs"
-                          title="Enviar WhatsApp"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                        </button>
-                      )}
+                      {appt.status === "done" ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-[#065F46] px-3 py-1.5 rounded-xl bg-[#D1FAE5] border border-[#A7F3D0] flex items-center gap-1.5 shadow-2xs">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981]" />
+                            <span>Sessão Concluída</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (appt.child_id) {
+                                navigate(`/criancas/${appt.child_id}`)
+                              } else {
+                                navigate(`/atendimento/${appt.id}`)
+                              }
+                            }}
+                            className="text-xs font-bold text-[#7C3AED] hover:underline cursor-pointer"
+                          >
+                            Ver Prontuário →
+                          </button>
+                        </div>
+                      ) : appt.status === "missed" ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-red-600 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 flex items-center gap-1.5 shadow-2xs">
+                            <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                            <span>Falta Registrada</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (appt.child_id) {
+                                navigate(`/criancas/${appt.child_id}`)
+                              }
+                            }}
+                            className="text-xs font-bold text-[#7C3AED] hover:underline cursor-pointer"
+                          >
+                            Ver Detalhes →
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          {!isBlock && appt.child && (
+                            <button
+                              type="button"
+                              onClick={() => handleSendWhatsApp(appt)}
+                              className="w-9 h-9 rounded-2xl bg-[#E8F8F5] text-[#10B981] border border-[#A7F3D0] flex items-center justify-center active:scale-95 shadow-2xs"
+                              title="Enviar WhatsApp"
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                            </button>
+                          )}
 
-                      {!isBlock && appt.status !== "missed" && appt.status !== "done" && (
-                        <button
-                          type="button"
-                          onClick={() => setAbsenceModalAppt(appt)}
-                          className="h-9 px-3 rounded-2xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-black flex items-center justify-center gap-1 active:scale-95 transition-all shadow-2xs cursor-pointer"
-                          title="Registrar Falta"
-                        >
-                          <AlertTriangle className="w-3.5 h-3.5 stroke-[2.5]" />
-                          <span>Falta</span>
-                        </button>
-                      )}
+                          {!isBlock && (
+                            <button
+                              type="button"
+                              onClick={() => setAbsenceModalAppt(appt)}
+                              className="h-9 px-3 rounded-2xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-black flex items-center justify-center gap-1 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                              title="Registrar Falta"
+                            >
+                              <AlertTriangle className="w-3.5 h-3.5 stroke-[2.5]" />
+                              <span>Falta</span>
+                            </button>
+                          )}
 
-                      <button
-                        type="button"
-                        onClick={() => handleStartAppointment(appt)}
-                        className="h-9 px-4 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black flex items-center gap-1.5 shadow-xs active:scale-95"
-                      >
-                        <Play className="w-3 h-3 fill-current" />
-                        <span>Abrir</span>
-                      </button>
+                          <button
+                            type="button"
+                            onClick={() => handleStartAppointment(appt)}
+                            className="h-9 px-4 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black flex items-center gap-1.5 shadow-xs active:scale-95 cursor-pointer"
+                          >
+                            <Play className="w-3 h-3 fill-current" />
+                            <span>Iniciar</span>
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -908,8 +974,15 @@ export function AppointmentsPage() {
                                         {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
                                       </span>
 
-                                      {/* WhatsApp Button on hover */}
-                                      {!isBlock && appt.child && (
+                                      {appt.status === "done" ? (
+                                        <span className="text-[9px] font-black text-[#10B981] flex items-center gap-0.5" title="Sessão Concluída">
+                                          <CheckCircle2 className="w-3 h-3 text-[#10B981]" />
+                                        </span>
+                                      ) : appt.status === "missed" ? (
+                                        <span className="text-[9px] font-black text-red-500 flex items-center gap-0.5" title="Falta Registrada">
+                                          <AlertTriangle className="w-3 h-3 text-red-500" />
+                                        </span>
+                                      ) : !isBlock && appt.child ? (
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation()
@@ -920,7 +993,7 @@ export function AppointmentsPage() {
                                         >
                                           <MessageCircle className="w-3 h-3" />
                                         </button>
-                                      )}
+                                      ) : null}
                                     </div>
 
                                     <div className="flex items-center gap-1.5">
@@ -1014,33 +1087,71 @@ export function AppointmentsPage() {
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center gap-2 shrink-0">
+                                  <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                                     <span className="text-xs font-black text-[#0D2329]">
                                       {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
                                     </span>
-                                    {!isBlock && appt.status !== "missed" && appt.status !== "done" && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          setAbsenceModalAppt(appt)
-                                        }}
-                                        className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-black flex items-center gap-1 active:scale-95 transition-all shadow-2xs"
-                                        title="Registrar Falta"
-                                      >
-                                        <AlertTriangle className="w-3 h-3 stroke-[2.5]" />
-                                        <span>Falta</span>
-                                      </button>
+
+                                    {appt.status === "done" ? (
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-black text-[#065F46] px-3 py-1.5 rounded-xl bg-[#D1FAE5] border border-[#A7F3D0] flex items-center gap-1.5 shadow-2xs">
+                                          <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981]" />
+                                          <span>Sessão Concluída</span>
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            if (appt.child_id) {
+                                              navigate(`/criancas/${appt.child_id}`)
+                                            } else {
+                                              navigate(`/atendimento/${appt.id}`)
+                                            }
+                                          }}
+                                          className="text-xs font-bold text-[#7C3AED] hover:underline cursor-pointer"
+                                        >
+                                          Ver Prontuário →
+                                        </button>
+                                      </div>
+                                    ) : appt.status === "missed" ? (
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-black text-red-600 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 flex items-center gap-1.5 shadow-2xs">
+                                          <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                                          <span>Falta Registrada</span>
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            if (appt.child_id) {
+                                              navigate(`/criancas/${appt.child_id}`)
+                                            }
+                                          }}
+                                          className="text-xs font-bold text-[#7C3AED] hover:underline cursor-pointer"
+                                        >
+                                          Ver Detalhes →
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2">
+                                        {!isBlock && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setAbsenceModalAppt(appt)}
+                                            className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-black flex items-center gap-1 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                                            title="Registrar Falta"
+                                          >
+                                            <AlertTriangle className="w-3 h-3 stroke-[2.5]" />
+                                            <span>Falta</span>
+                                          </button>
+                                        )}
+                                        <button
+                                          onClick={() => handleStartAppointment(appt)}
+                                          className="px-4 py-1.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+                                        >
+                                          <Play className="w-3 h-3 fill-current" />
+                                          <span>Iniciar</span>
+                                        </button>
+                                      </div>
                                     )}
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleStartAppointment(appt)
-                                      }}
-                                      className="px-3 py-1.5 rounded-xl bg-[#7C3AED] text-white text-xs font-black"
-                                    >
-                                      Iniciar
-                                    </button>
                                   </div>
                                 </div>
                               )
