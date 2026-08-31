@@ -1762,10 +1762,10 @@ export function SettingsPage() {
             </div>
 
             <textarea
-              rows={3}
+              rows={5}
               value={reminderTemplate}
               onChange={(e) => setReminderTemplate(e.target.value)}
-              className="w-full p-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#10B981] transition-all resize-none"
+              className="w-full p-3.5 text-xs sm:text-sm font-semibold rounded-2xl border-2 border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#10B981] transition-all resize-y min-h-[120px] leading-relaxed"
             />
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[#EEF5F6]">
@@ -1811,10 +1811,10 @@ export function SettingsPage() {
             </div>
 
             <textarea
-              rows={3}
+              rows={5}
               value={billingTemplate}
               onChange={(e) => setBillingTemplate(e.target.value)}
-              className="w-full p-3 text-xs font-bold rounded-2xl border-2 border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#EA580C] transition-all resize-none"
+              className="w-full p-3.5 text-xs sm:text-sm font-semibold rounded-2xl border-2 border-[#D8E5E7] bg-white text-[#0D2329] focus:outline-none focus:border-[#EA580C] transition-all resize-y min-h-[120px] leading-relaxed"
             />
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[#EEF5F6]">
