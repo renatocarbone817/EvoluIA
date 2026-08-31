@@ -35,8 +35,11 @@ export interface ReportPatientData {
 
 export interface ReportProfessionalData {
   clinicName?: string
+  clinicLogoUrl?: string
+  logoUrl?: string
   professionalName: string
   cboOrCrp?: string
+  address?: string
   phone?: string
   city?: string
   state?: string

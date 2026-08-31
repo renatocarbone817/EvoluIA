@@ -462,10 +462,10 @@ export function ClinicalReportBuilderModal({
           previousDiagnosis: patientData.previousDiagnosis,
         },
         professional: {
-          fullName: professional?.full_name || "Psicopedagoga Responsável",
-          crp: professional?.crp || "",
+          professionalName: professional?.full_name || "Psicopedagoga Responsável",
+          cboOrCrp: professional?.crp || "",
           clinicName: professional?.clinic_name || "",
-          clinicLogoUrl: professional?.clinic_logo_url || "",
+          clinicLogoUrl: (professional as any)?.clinic_logo_url || "",
           logoUrl: professional?.logo_url || "",
           address: professional?.address || "",
           phone: professional?.phone || "",
