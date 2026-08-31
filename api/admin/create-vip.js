@@ -84,6 +84,7 @@ export default async function handler(req, res) {
         email: cleanEmail,
         password: cleanPassword,
         options: {
+          emailRedirectTo: "https://evolu-ia-seven.vercel.app/dashboard",
           data: {
             full_name: fullName || "Psicopedagoga VIP",
             clinic_name: clinicName || "Espaço Psicopedagógico",
