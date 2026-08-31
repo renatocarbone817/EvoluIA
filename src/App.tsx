@@ -27,6 +27,7 @@ import { PlanPage } from "@/pages/plan/PlanPage"
 import { PublicReceiptPage } from "@/pages/financial/PublicReceiptPage"
 import { BibliotecaPage } from "@/pages/biblioteca/BibliotecaPage"
 import { SuperAdminPage } from "@/pages/admin/SuperAdminPage"
+import { LandingPage } from "@/pages/landing/LandingPage"
 
 const queryClient = new QueryClient()
 
@@ -100,7 +101,12 @@ export function App() {
           }}
         />
         <Routes>
-          {/* Public Routes */}
+          {/* Public Landing & Marketing */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/apresentacao" element={<LandingPage />} />
+          <Route path="/planos" element={<LandingPage />} />
+
+          {/* Public Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/cadastro" element={<RegisterPage />} />
           <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
@@ -131,9 +137,8 @@ export function App() {
           <Route path="/admin" element={<SuperAdminPage />} />
           <Route path="/painel-dono" element={<SuperAdminPage />} />
 
-          {/* Root Redirect */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
