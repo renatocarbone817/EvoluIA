@@ -525,12 +525,19 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
                     shading: { type: ShadingType.CLEAR, fill: "FFFFFF" },
                     children: [
                       new Paragraph({
-                        spacing: { before: 60, after: 60 },
+                        spacing: { before: 60, after: 40 },
                         children: [
-                          new TextRun({ text: "ESCOLA / SÉRIE: ", font: "Arial", size: 20, bold: true, color: "005B94" }),
-                          new TextRun({ text: `${data.patient.schoolName || "Não informada"} (${data.patient.grade || "Não informada"})     `, font: "Arial", size: 20 }),
+                          new TextRun({ text: "ESCOLA: ", font: "Arial", size: 20, bold: true, color: "005B94" }),
+                          new TextRun({ text: `${data.patient.schoolName || "Não informada"}`, font: "Arial", size: 20, bold: true }),
+                        ],
+                      }),
+                      new Paragraph({
+                        spacing: { before: 20, after: 60 },
+                        children: [
+                          new TextRun({ text: "SÉRIE: ", font: "Arial", size: 20, bold: true, color: "005B94" }),
+                          new TextRun({ text: `${data.patient.grade || "Não informada"}          `, font: "Arial", size: 20 }),
                           new TextRun({ text: "SESSÕES REALIZADAS: ", font: "Arial", size: 20, bold: true, color: "005B94" }),
-                          new TextRun({ text: `${data.clinical.sessionsCount || 10} sessões clínicas`, font: "Arial", size: 20, bold: true, color: "7C3AED" }),
+                          new TextRun({ text: `${data.clinical.sessionsCount || 1} sessões clínicas`, font: "Arial", size: 20, bold: true, color: "7C3AED" }),
                         ],
                       }),
                     ],
@@ -563,7 +570,7 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
 
           new Paragraph({ spacing: { after: 160 } }),
 
-          // 3. INSTRUMENTOS DIAGNÓSTICOS UTILIZADOS
+          // 2. INSTRUMENTOS DIAGNÓSTICOS UTILIZADOS
           createSectionHeader("2. Instrumentos Avaliativos Utilizados"),
           ...data.clinical.selectedInstruments.map((inst) =>
             new Paragraph({
@@ -600,61 +607,56 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
             ],
           }),
 
-          // 4. ANAMNESE
-          createSectionHeader("3. Anamnese / Entrevista Inicial com a Família"),
+          // 3. ANAMNESE (8 EIXOS CLÍNICOS NOBRES)
+          createSectionHeader("3. Anamnese"),
 
-          ...(data.clinical.familyQuestions && data.clinical.familyQuestions.length > 0
-            ? data.clinical.familyQuestions.flatMap((q) => [
-                createSubHeader(`${q.num}. ${q.title}`),
-                createP(
-                  q.answer && q.answer.trim()
-                    ? `"${q.answer.trim()}"`
-                    : "Informação não relatada ou não aplicável durante a entrevista.",
-                  { italic: Boolean(q.answer && q.answer.trim()) }
-                ),
-              ])
-            : [
-                createSubHeader("Família"),
-                createP(
-                  data.clinical.anamnese?.family ||
-                    "Constituição familiar e dinâmica relacional investigadas durante a entrevista inicial com os responsáveis."
-                ),
-                createSubHeader("Concepção e Gestação"),
-                createP(
-                  data.clinical.anamnese?.conceptionAndPregnancy ||
-                    "Gestação, histórico pré-natal, condições de parto e primeiras semanas de vida sem intercorrências graves registradas."
-                ),
-                createSubHeader("Amamentação e Alimentação"),
-                createP(
-                  data.clinical.anamnese?.breastfeedingAndDiet ||
-                    "Histórico alimentar, aleitamento materno e transição para sólidos desenvolvidos conforme esperado."
-                ),
-                createSubHeader("Desenvolvimento Psicomotor e Linguagem"),
-                createP(
-                  data.clinical.anamnese?.psychomotorAndLanguage ||
-                    "Marcos motores (marcha, sustentação) e aquisição da linguagem oral relatados pela família."
-                ),
-                createSubHeader("Sono"),
-                createP(
-                  data.clinical.anamnese?.sleep ||
-                    "Padrão de sono, rotina de descanso e qualidade do repouso noturno satisfatórios."
-                ),
-                createSubHeader("Histórico de Saúde ou Transtornos na Família"),
-                createP(
-                  data.clinical.anamnese?.familyHealthHistory ||
-                    "Histórico de saúde geral do paciente e antecedentes familiares de transtornos do neurodesenvolvimento ou dificuldades escolares."
-                ),
-                createSubHeader("Escolaridade"),
-                createP(
-                  data.clinical.anamnese?.schooling ||
-                    "Início da trajetória escolar, adaptação na educação infantil e momento em que as principais dificuldades foram percebidas."
-                ),
-                createSubHeader("Relacionamentos e Sociabilidade"),
-                createP(
-                  data.clinical.anamnese?.relationshipsAndSociability ||
-                    "Comportamento social, interação com pares, afetividade e relacionamento familiar."
-                ),
-              ]),
+          createSubHeader("Família & Dinâmica Familiar"),
+          createP(
+            data.clinical.anamnese?.family ||
+              "Constituição familiar, histórico relacional e rotina do paciente no ambiente domiciliar investigados durante o processo avaliativo."
+          ),
+
+          createSubHeader("Concepção, Gestação e Parto"),
+          createP(
+            data.clinical.anamnese?.conceptionAndPregnancy ||
+              "Histórico pré-natal, condições de parto e primeiras semanas de vida do paciente sem intercorrências registradas."
+          ),
+
+          createSubHeader("Amamentação e Alimentação"),
+          createP(
+            data.clinical.anamnese?.breastfeedingAndDiet ||
+              "Histórico de aleitamento materno, introdução alimentar e padrão atual de nutrição e seletividade."
+          ),
+
+          createSubHeader("Desenvolvimento Psicomotor e Linguagem"),
+          createP(
+            data.clinical.anamnese?.psychomotorAndLanguage ||
+              "Marcos do desenvolvimento neuropsicomotor (sustentação, marcha, controle esfincteriano) e aquisição da linguagem oral."
+          ),
+
+          createSubHeader("Padrão de Sono"),
+          createP(
+            data.clinical.anamnese?.sleep ||
+              "Qualidade do repouso noturno, rotina de sono e ausência de distúrbios significativos informados."
+          ),
+
+          createSubHeader("Histórico de Saúde ou Transtornos na Família"),
+          createP(
+            data.clinical.anamnese?.familyHealthHistory ||
+              "Histórico de saúde geral da criança e investigação de antecedentes familiares de dificuldades de aprendizagem ou transtornos do neurodesenvolvimento."
+          ),
+
+          createSubHeader("Escolaridade & Histórico Escolar"),
+          createP(
+            data.clinical.anamnese?.schooling ||
+              "Início da trajetória acadêmica, processo de adaptação na educação infantil e momento em que as principais queixas foram identificadas."
+          ),
+
+          createSubHeader("Sociabilidade & Relações Interpessoais"),
+          createP(
+            data.clinical.anamnese?.relationshipsAndSociability ||
+              "Interação com pares, dinâmica em grupos de convivência e respostas a situações sociais e lúdicas."
+          ),
 
           // 5. ENTREVISTA ESCOLAR
           createSectionHeader("4. Entrevista / Visita Escolar"),

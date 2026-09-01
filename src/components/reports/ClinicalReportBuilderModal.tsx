@@ -26,6 +26,7 @@ import {
   Clock,
   Target,
   Activity,
+  Heart,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
@@ -37,6 +38,7 @@ import {
   downloadDocxReport,
   type CompleteReportData,
   type ReportTestResult,
+  type ReportAnamneseData,
 } from "@/lib/docxReportGenerator"
 import {
   getCustomFamilyQuestions,
@@ -188,6 +190,18 @@ export function ClinicalReportBuilderModal({
   })
 
   const [selectedInstruments, setSelectedInstruments] = useState<string[]>([])
+
+  const [schoolType, setSchoolType] = useState<string>("Municipal")
+  const [anamneseAxes, setAnamneseAxes] = useState<ReportAnamneseData>({
+    family: "",
+    conceptionAndPregnancy: "",
+    breastfeedingAndDiet: "",
+    psychomotorAndLanguage: "",
+    sleep: "",
+    familyHealthHistory: "",
+    schooling: "",
+    relationshipsAndSociability: "",
+  })
 
   const [clinicalObservation, setClinicalObservation] = useState("")
 
@@ -449,6 +463,12 @@ export function ClinicalReportBuilderModal({
           }
           if (content.finalConsiderations) {
             setFinalConsiderations(content.finalConsiderations)
+          }
+          if (content.schoolType) {
+            setSchoolType(content.schoolType)
+          }
+          if (content.anamneseAxes) {
+            setAnamneseAxes((prev) => ({ ...prev, ...content.anamneseAxes }))
           }
           if (content.referrals && Array.isArray(content.referrals)) {
             setReferrals(content.referrals)
@@ -749,14 +769,14 @@ export function ClinicalReportBuilderModal({
     setGeneratingDocx(true)
     try {
       const testsResults = getGeneratedTestsResults()
-const completeData: CompleteReportData = {
+      const completeData: CompleteReportData = {
         patient: {
           fullName: patientData.fullName || child.full_name,
           birthDate: patientData.birthDate,
           ageFormatted: patientData.ageFormatted,
           fatherName: patientData.fatherName,
           motherName: patientData.motherName,
-          schoolName: patientData.schoolName,
+          schoolName: patientData.schoolName ? `${patientData.schoolName} — Escola ${schoolType.toUpperCase()}` : "",
           grade: patientData.grade,
           mainComplaint: patientData.mainComplaint,
           previousDiagnosis: patientData.previousDiagnosis,
@@ -798,6 +818,7 @@ const completeData: CompleteReportData = {
           referrals,
           recommendationsFamily,
           recommendationsSchool,
+          anamnese: anamneseAxes,
           dateCityFormatted: (professional?.city || "São Paulo") + " - " + (professional?.state || "SP") + ", " + new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }),
         },
       }
@@ -820,6 +841,8 @@ const completeData: CompleteReportData = {
     try {
       const contentPayload = {
         patientData,
+        schoolType,
+        anamneseAxes,
         familyAnswers,
         schoolAnswers,
         schoolObserver,
@@ -849,7 +872,7 @@ const completeData: CompleteReportData = {
           })
           .eq("id", activeRepId)
       } else {
-        const { data: insertedReport } = await supabase
+        const { data: newRep } = await supabase
           .from("reports")
           .insert({
             professional_id: professional.id,
@@ -857,45 +880,20 @@ const completeData: CompleteReportData = {
             title: "Laudo de Avaliação Psicopedagógica - " + child.full_name,
             content: contentPayload,
             status: "draft",
+            type: "clinical_report",
           })
-          .select("id")
+          .select()
           .single()
 
-        if (insertedReport?.id) {
-          setCurrentReportId(insertedReport.id)
+        if (newRep) {
+          setCurrentReportId(newRep.id)
         }
       }
 
-      // Also persist back to initial_assessments
-      const schoolInterviewPayload = {
-        answers: schoolAnswers,
-        observer: schoolObserver,
-        traits: schoolTraits,
-      }
-
-      const { data: existingAssessment } = await supabase
-        .from("initial_assessments")
-        .select("id, notes")
-        .eq("child_id", child.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      let updatedNotes = "__SCHOOL_INTERVIEW__:" + JSON.stringify(schoolInterviewPayload)
-      if (existingAssessment) {
-        await supabase
-          .from("initial_assessments")
-          .update({
-            reason: JSON.stringify(familyAnswers),
-            notes: updatedNotes,
-          })
-          .eq("id", existingAssessment.id)
-      }
-
-      toast.success("Relatório clínico salvo no prontuário da criança!", { icon: "💾" })
-      if (onSaved) onSaved()
-    } catch (err) {
-      toast.error("Erro ao salvar relatório.")
+      toast.success("Prontuário e laudo salvos com sucesso!", { icon: "💾" })
+    } catch (err: any) {
+      console.error(err)
+      toast.error("Erro ao salvar no banco de dados.")
     } finally {
       setSavingToDatabase(false)
     }
@@ -904,7 +902,7 @@ const completeData: CompleteReportData = {
   // Gera rascunho com IA Gemini Real baseada nos dados do paciente
   async function handleGenerateAISuggestions() {
     setGeneratingAI(true)
-    const toastId = toast.loading("Analisando relatos e gerando hipótese clínica com IA...", { icon: "🧠" })
+    const toastId = toast.loading("Analisando dados clínicos com IA...")
     try {
       const familyPayload = familyQuestions.map((q) => ({
         num: q.num,
@@ -927,10 +925,11 @@ const completeData: CompleteReportData = {
         schoolTraits,
         sessionsCount,
         selectedInstruments,
-        testsResults: getGeneratedTestsResults(),
+        testsResults: [],
         clinicalObservation,
       })
 
+      if (aiResult.anamneseAxes) setAnamneseAxes(aiResult.anamneseAxes)
       if (aiResult.synthesis) setSynthesis(aiResult.synthesis)
       if (aiResult.diagnosticHypothesis) setDiagnosticHypothesis(aiResult.diagnosticHypothesis)
       if (aiResult.dsm5Criteria && aiResult.dsm5Criteria.length > 0) setDsm5Criteria(aiResult.dsm5Criteria)
@@ -940,7 +939,7 @@ const completeData: CompleteReportData = {
       if (aiResult.finalConsiderations) setFinalConsiderations(aiResult.finalConsiderations)
       if (aiResult.clinicalObservation) setClinicalObservation(aiResult.clinicalObservation)
 
-      toast.success("Hipótese clínica e critérios gerados com sucesso pela IA!", { id: toastId, icon: "✨" })
+      toast.success("Anamnese e hipótese geradas com sucesso pela IA!", { id: toastId, icon: "✨" })
     } catch (err: any) {
       console.error("Erro ao gerar sugestão com IA:", err)
       toast.error(err?.message || "Não foi possível gerar com IA no momento. Digite manualmente.", { id: toastId })
@@ -1109,27 +1108,178 @@ const completeData: CompleteReportData = {
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-black text-[#0D2329]">Escola & Série</label>
+                      <label className="text-[11px] font-black text-[#0D2329]">Nome da Escola</label>
                       <input
                         type="text"
-                        value={patientData.schoolName + " - " + patientData.grade}
-                        onChange={(e) => {
-                          const [s, g] = e.target.value.split(" - ")
-                          setPatientData({ ...patientData, schoolName: s || "", grade: g || "" })
-                        }}
+                        value={patientData.schoolName}
+                        onChange={(e) => setPatientData({ ...patientData, schoolName: e.target.value })}
+                        placeholder="Ex: CEM Profº Faustino Pedroso"
+                        className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-black text-[#0D2329]">Rede de Ensino / Tipo</label>
+                      <select
+                        value={schoolType}
+                        onChange={(e) => setSchoolType(e.target.value)}
+                        className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white text-[#0D2329]"
+                      >
+                        <option value="Municipal">Municipal (Escola Municipal)</option>
+                        <option value="Estadual">Estadual (Escola Estadual)</option>
+                        <option value="Particular">Particular / Privada</option>
+                        <option value="Federal">Federal</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-black text-[#0D2329]">Ano / Série</label>
+                      <input
+                        type="text"
+                        value={patientData.grade}
+                        onChange={(e) => setPatientData({ ...patientData, grade: e.target.value })}
+                        placeholder="Ex: 1º Ano do Ensino Fundamental"
+                        className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
+                      />
+                    </div>
+                    <div className="sm:col-span-2 md:col-span-2">
+                      <label className="text-[11px] font-black text-[#0D2329]">Queixa Principal</label>
+                      <input
+                        type="text"
+                        value={patientData.mainComplaint}
+                        onChange={(e) => setPatientData({ ...patientData, mainComplaint: e.target.value })}
+                        placeholder="Queixa ou motivo do encaminhamento"
                         className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
                       />
                     </div>
                   </div>
+                </div>
 
-                  <div>
-                    <label className="text-[11px] font-black text-[#0D2329]">Queixa Principal</label>
-                    <input
-                      type="text"
-                      value={patientData.mainComplaint}
-                      onChange={(e) => setPatientData({ ...patientData, mainComplaint: e.target.value })}
-                      className="w-full mt-1 px-3 py-2 text-xs font-bold rounded-xl border border-[#D8E5E7] bg-white"
-                    />
+                {/* ANAMNESE CLÍNICA OFICIAL (8 EIXOS NOBRES) */}
+                <div className="p-5 rounded-2xl border-2 border-[#D8E5E7] space-y-4 bg-white">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
+                        <Heart className="w-4 h-4 text-[#005B94]" />
+                        <span>Anamnese Clínica Oficial (8 Eixos Temáticos)</span>
+                      </h3>
+                      <p className="text-[11px] text-[#6B7C83] mt-0.5">
+                        Síntese temática oficial que constará no laudo Word (.docx), redigida automaticamente a partir das respostas da família.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={generatingAI}
+                      onClick={handleGenerateAISuggestions}
+                      className="px-3 py-1.5 rounded-lg bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer shrink-0 w-fit"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{generatingAI ? "Aprimorando..." : "Sugerir Eixos com IA"}</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-[#0D2329] flex items-center gap-1">
+                        <span>👨‍👩‍👧 1. Família & Dinâmica Familiar</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={anamneseAxes.family || ""}
+                        onChange={(e) => setAnamneseAxes({ ...anamneseAxes, family: e.target.value })}
+                        placeholder="Constituição familiar, rotina e dinâmica relacional..."
+                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-[#0D2329] flex items-center gap-1">
+                        <span>🤰 2. Concepção, Gestação e Parto</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={anamneseAxes.conceptionAndPregnancy || ""}
+                        onChange={(e) => setAnamneseAxes({ ...anamneseAxes, conceptionAndPregnancy: e.target.value })}
+                        placeholder="Histórico gestacional, condições de parto e primeiras semanas..."
+                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-[#0D2329] flex items-center gap-1">
+                        <span>🍼 3. Amamentação e Alimentação</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={anamneseAxes.breastfeedingAndDiet || ""}
+                        onChange={(e) => setAnamneseAxes({ ...anamneseAxes, breastfeedingAndDiet: e.target.value })}
+                        placeholder="Aleitamento, introdução de sólidos e seletividade alimentar..."
+                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-[#0D2329] flex items-center gap-1">
+                        <span>🏃 4. Desenvolvimento Psicomotor e Linguagem</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={anamneseAxes.psychomotorAndLanguage || ""}
+                        onChange={(e) => setAnamneseAxes({ ...anamneseAxes, psychomotorAndLanguage: e.target.value })}
+                        placeholder="Marcos motores (marcha, sustentação) e aquisição da fala..."
+                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-[#0D2329] flex items-center gap-1">
+                        <span>🌙 5. Padrão de Sono</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={anamneseAxes.sleep || ""}
+                        onChange={(e) => setAnamneseAxes({ ...anamneseAxes, sleep: e.target.value })}
+                        placeholder="Qualidade do sono noturno e rotina de descanso..."
+                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-[#0D2329] flex items-center gap-1">
+                        <span>🩺 6. Histórico de Saúde & Antecedentes Familiares</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={anamneseAxes.familyHealthHistory || ""}
+                        onChange={(e) => setAnamneseAxes({ ...anamneseAxes, familyHealthHistory: e.target.value })}
+                        placeholder="Histórico clínico e antecedentes de dificuldades na família..."
+                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-[#0D2329] flex items-center gap-1">
+                        <span>📚 7. Escolaridade & Histórico Escolar</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={anamneseAxes.schooling || ""}
+                        onChange={(e) => setAnamneseAxes({ ...anamneseAxes, schooling: e.target.value })}
+                        placeholder="Início escolar, adaptação e surgimento das dificuldades..."
+                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-black text-[#0D2329] flex items-center gap-1">
+                        <span>🤝 8. Sociabilidade & Relações Interpessoais</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={anamneseAxes.relationshipsAndSociability || ""}
+                        onChange={(e) => setAnamneseAxes({ ...anamneseAxes, relationshipsAndSociability: e.target.value })}
+                        placeholder="Interação com amigos, convivência e brincadeiras..."
+                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -1138,10 +1288,10 @@ const completeData: CompleteReportData = {
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
                       <GraduationCap className="w-4 h-4 text-[#005B94]" />
-                      <span>Anamnese Inicial com a Família ({familyQuestions.length} Perguntas)</span>
+                      <span>Respostas da Entrevista Familiar Original ({familyQuestions.length} Perguntas)</span>
                     </h3>
                     <span className="text-[11px] font-bold text-[#7C3AED] bg-[#EDE9FE] px-3 py-1 rounded-xl">
-                      Perguntas Oficiais da Psicopedagoga
+                      Fonte de Dados Primária
                     </span>
                   </div>
 
@@ -1157,7 +1307,7 @@ const completeData: CompleteReportData = {
                           </label>
                         </div>
                         <textarea
-                          rows={3}
+                          rows={2}
                           value={familyAnswers[q.id] || ""}
                           onChange={(e) => setFamilyAnswers({ ...familyAnswers, [q.id]: e.target.value })}
                           placeholder={q.placeholder || "Digite o relato da família para esta pergunta..."}

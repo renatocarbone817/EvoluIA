@@ -261,6 +261,27 @@ export interface ClinicalAITestInput {
   interpretationText?: string
 }
 
+export interface ClinicalAIReportOutput {
+  synthesis: string
+  diagnosticHypothesis: string
+  dsm5Criteria: string[]
+  referrals: string[]
+  recommendationsFamily: string[]
+  recommendationsSchool: string[]
+  finalConsiderations: string
+  clinicalObservation: string
+  anamneseAxes?: {
+    family: string
+    conceptionAndPregnancy: string
+    breastfeedingAndDiet: string
+    psychomotorAndLanguage: string
+    sleep: string
+    familyHealthHistory: string
+    schooling: string
+    relationshipsAndSociability: string
+  }
+}
+
 export async function generateClinicalReportAI(params: {
   childName: string
   ageFormatted: string
@@ -272,16 +293,7 @@ export async function generateClinicalReportAI(params: {
   selectedInstruments: string[]
   testsResults?: ClinicalAITestInput[]
   clinicalObservation?: string
-}): Promise<{
-  synthesis: string
-  diagnosticHypothesis: string
-  dsm5Criteria: string[]
-  referrals: string[]
-  recommendationsFamily: string[]
-  recommendationsSchool: string[]
-  finalConsiderations: string
-  clinicalObservation: string
-}> {
+}): Promise<ClinicalAIReportOutput> {
   const familyText = params.familyAnswers && params.familyAnswers.length > 0
     ? params.familyAnswers
         .map((q) => `${q.num}. ${q.title}: ${q.answer || "(não respondido)"}`)
@@ -453,7 +465,17 @@ ESTRUTURA DO RETORNO (EXCLUSIVAMENTE JSON VÁLIDO):
     "Orientação pedagógica prática e individualizada para a escola 2"
   ],
   "finalConsiderations": "Considerações finais técnicas, cautelosas e sóbrias...",
-  "clinicalObservation": "Refinamento das observações clínicas sobre a postura, engajamento e manejo observados nas sessões..."
+  "clinicalObservation": "Refinamento das observações clínicas sobre a postura, engajamento e manejo observados nas sessões...",
+  "anamneseAxes": {
+    "family": "Síntese descritiva sobre a constituição familiar e dinâmica relacional a partir dos relatos (ou declaração de dados não informados se vazio)...",
+    "conceptionAndPregnancy": "Síntese sobre o histórico gestacional, parto e primeiros meses relatado pelos pais...",
+    "breastfeedingAndDiet": "Síntese sobre amamentação e histórico alimentar...",
+    "psychomotorAndLanguage": "Síntese sobre marcos motores e aquisição da linguagem...",
+    "sleep": "Síntese sobre padrão de sono e rotina de repouso...",
+    "familyHealthHistory": "Síntese sobre saúde geral e antecedentes na família...",
+    "schooling": "Síntese sobre histórico escolar e momento em que as dificuldades surgiram...",
+    "relationshipsAndSociability": "Síntese sobre relações interpessoais e sociabilidade..."
+  }
 }`
 
   const MAX_RETRIES = 5

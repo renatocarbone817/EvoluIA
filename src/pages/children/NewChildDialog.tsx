@@ -60,6 +60,7 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
     full_name: "",
     birth_date: "",
     school: "",
+    school_type: "Municipal",
     grade: "",
     main_complaint: "",
     status: "initial_assessment",
@@ -238,7 +239,7 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
 
       toast.success("Paciente cadastrado com sucesso!", { icon: "👶" })
       setForm({
-        full_name: "", birth_date: "", school: "", grade: "",
+        full_name: "", birth_date: "", school: "", school_type: "Municipal", grade: "",
         main_complaint: "", status: "initial_assessment", notes: "",
         guardian_name: "", guardian_relationship: "Mãe", guardian_phone: "",
       })
@@ -367,12 +368,11 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-black text-[#0D2329] flex items-center justify-between">
                     <span className="flex items-center gap-1">
                       <School className="w-3.5 h-3.5 text-[#7C3AED]" />
-                      <span>Escola</span>
+                      <span>Nome da Escola</span>
                     </span>
                     {schoolSuggestions.length > 0 && (
                       <span className="text-[10px] font-bold text-[#7C3AED]">
@@ -383,7 +383,7 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
                   <input
                     type="text"
                     list="new-schools-list"
-                    placeholder="Ex: Colégio Objetivo"
+                    placeholder="Ex: CEM Profº Faustino Pedroso"
                     value={form.school}
                     onChange={(e) => handleChange("school", e.target.value)}
                     className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
@@ -395,27 +395,45 @@ export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps
                   </datalist>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-black text-[#0D2329] flex items-center gap-1">
-                    <GraduationCap className="w-3.5 h-3.5 text-[#7C3AED]" />
-                    <span>Ano / Série</span>
-                  </label>
-                  <select
-                    value={form.grade}
-                    onChange={(e) => handleChange("grade", e.target.value)}
-                    className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
-                  >
-                    {form.grade && !GRADE_OPTIONS.some((g) => g.value === form.grade) && (
-                      <option value={form.grade}>{form.grade}</option>
-                    )}
-                    {GRADE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-black text-[#0D2329] flex items-center gap-1">
+                      <School className="w-3.5 h-3.5 text-[#7C3AED]" />
+                      <span>Rede / Tipo</span>
+                    </label>
+                    <select
+                      value={form.school_type || "Municipal"}
+                      onChange={(e) => handleChange("school_type", e.target.value)}
+                      className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                    >
+                      <option value="Municipal">Municipal (Escola Municipal)</option>
+                      <option value="Estadual">Estadual (Escola Estadual)</option>
+                      <option value="Particular">Particular / Privada</option>
+                      <option value="Federal">Federal</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-black text-[#0D2329] flex items-center gap-1">
+                      <GraduationCap className="w-3.5 h-3.5 text-[#7C3AED]" />
+                      <span>Ano / Série</span>
+                    </label>
+                    <select
+                      value={form.grade}
+                      onChange={(e) => handleChange("grade", e.target.value)}
+                      className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                    >
+                      {form.grade && !GRADE_OPTIONS.some((g) => g.value === form.grade) && (
+                        <option value={form.grade}>{form.grade}</option>
+                      )}
+                      {GRADE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-black text-[#0D2329]">

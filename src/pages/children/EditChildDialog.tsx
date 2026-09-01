@@ -520,13 +520,13 @@ export function EditChildDialog({ open, child, onClose, onSuccess, onDelete }: E
               </div>
             </div>
 
-            {/* Escola + Série */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {/* Escola + Rede + Série */}
+            <div className="space-y-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-black text-[#0D2329] flex items-center justify-between">
                   <span className="flex items-center gap-1">
                     <School className="w-3.5 h-3.5 text-[#7C3AED]" />
-                    <span>Escola</span>
+                    <span>Nome da Escola</span>
                   </span>
                   {schoolSuggestions.length > 0 && (
                     <span className="text-[10px] font-bold text-[#7C3AED]">
@@ -537,7 +537,7 @@ export function EditChildDialog({ open, child, onClose, onSuccess, onDelete }: E
                 <input
                   type="text"
                   list="edit-schools-list"
-                  placeholder="Ex: Colégio Percio Puccini"
+                  placeholder="Ex: CEM Profº Faustino Pedroso"
                   value={form.school}
                   onChange={(e) => setForm({ ...form, school: e.target.value })}
                   className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all shadow-2xs"
@@ -549,26 +549,45 @@ export function EditChildDialog({ open, child, onClose, onSuccess, onDelete }: E
                 </datalist>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-black text-[#0D2329] flex items-center gap-1">
-                  <GraduationCap className="w-3.5 h-3.5 text-[#7C3AED]" />
-                  <span>Ano / Série</span>
-                </label>
-                <select
-                  value={form.grade}
-                  onChange={(e) => setForm({ ...form, grade: e.target.value })}
-                  className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all shadow-2xs"
-                >
-                  {/* Se o valor atual for personalizado e nao estiver na lista, renderiza no topo */}
-                  {form.grade && !GRADE_OPTIONS.some((g) => g.value === form.grade) && (
-                    <option value={form.grade}>{form.grade}</option>
-                  )}
-                  {GRADE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-[#0D2329] flex items-center gap-1">
+                    <School className="w-3.5 h-3.5 text-[#7C3AED]" />
+                    <span>Rede de Ensino / Tipo</span>
+                  </label>
+                  <select
+                    value={(form as any).school_type || "Municipal"}
+                    onChange={(e) => setForm({ ...form, school_type: e.target.value } as any)}
+                    className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all shadow-2xs"
+                  >
+                    <option value="Municipal">Municipal (Escola Municipal)</option>
+                    <option value="Estadual">Estadual (Escola Estadual)</option>
+                    <option value="Particular">Particular / Privada</option>
+                    <option value="Federal">Federal</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black text-[#0D2329] flex items-center gap-1">
+                    <GraduationCap className="w-3.5 h-3.5 text-[#7C3AED]" />
+                    <span>Ano / Série</span>
+                  </label>
+                  <select
+                    value={form.grade}
+                    onChange={(e) => setForm({ ...form, grade: e.target.value })}
+                    className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all shadow-2xs"
+                  >
+                    {/* Se o valor atual for personalizado e nao estiver na lista, renderiza no topo */}
+                    {form.grade && !GRADE_OPTIONS.some((g) => g.value === form.grade) && (
+                      <option value={form.grade}>{form.grade}</option>
+                    )}
+                    {GRADE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
