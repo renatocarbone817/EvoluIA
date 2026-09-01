@@ -19,6 +19,7 @@ import {
   Footer,
   PageNumber,
   ShadingType,
+  BorderStyle,
 } from "docx"
 
 export interface ReportPatientData {
