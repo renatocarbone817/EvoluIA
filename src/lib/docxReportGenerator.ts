@@ -849,7 +849,7 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
           ),
 
           new Paragraph({
-            spacing: { before: 200, after: 160 },
+            spacing: { before: 360, after: 260 },
             alignment: AlignmentType.CENTER,
             children: [
               new TextRun({
@@ -863,9 +863,9 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
             ],
           }),
 
-          // 13. DATA, LOCAL E ASSINATURA
+          // 13. DATA, LOCAL E ASSINATURA (ESPAÇAMENTO AMPLO DE ENCERRAMENTO)
           new Paragraph({
-            spacing: { before: 100, after: 160 },
+            spacing: { before: 540, after: 160 },
             alignment: AlignmentType.LEFT,
             children: [
               new TextRun({
@@ -884,7 +884,7 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
 
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { before: 240, after: 20 },
+            spacing: { before: 900, after: 30 },
             children: [
               new TextRun({
                 text: "____________________________________________________",
