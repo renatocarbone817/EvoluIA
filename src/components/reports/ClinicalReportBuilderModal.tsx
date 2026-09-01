@@ -119,7 +119,7 @@ export function ClinicalReportBuilderModal({
   reportId,
   onSaved,
 }: ClinicalReportBuilderModalProps) {
-  const { professional } = useAuthStore()
+  const { professional, user } = useAuthStore()
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4 | 5>(1)
   const [loading, setLoading] = useState(true)
   const [generatingDocx, setGeneratingDocx] = useState(false)
@@ -834,7 +834,12 @@ export function ClinicalReportBuilderModal({
 
   // Salva no banco de dados Supabase
   async function handleSaveToSupabase() {
-    if (!professional) return
+    const targetProfId = professional?.id || user?.id || child.professional_id
+    if (!targetProfId) {
+      toast.error("Identificação do profissional não encontrada.")
+      return
+    }
+
     setSavingToDatabase(true)
     try {
       const contentPayload = {
@@ -860,7 +865,7 @@ export function ClinicalReportBuilderModal({
       const activeRepId = currentReportId || reportId
 
       if (activeRepId) {
-        await supabase
+        const { error: updateErr } = await supabase
           .from("reports")
           .update({
             title: "Laudo de Avaliação Psicopedagógica - " + child.full_name,
@@ -869,29 +874,40 @@ export function ClinicalReportBuilderModal({
             updated_at: new Date().toISOString(),
           })
           .eq("id", activeRepId)
+
+        if (updateErr) throw updateErr
       } else {
-        const { data: newRep } = await supabase
+        const { data: newRep, error: insertErr } = await supabase
           .from("reports")
           .insert({
-            professional_id: professional.id,
+            professional_id: targetProfId,
             child_id: child.id,
             title: "Laudo de Avaliação Psicopedagógica - " + child.full_name,
             content: contentPayload,
             status: "draft",
-            type: "clinical_report",
           })
           .select()
           .single()
 
+        if (insertErr) throw insertErr
         if (newRep) {
           setCurrentReportId(newRep.id)
         }
       }
 
+      // Atualiza também o status da criança para 'report_in_progress' se estiver em entrevista inicial
+      if (child.status === "initial_assessment") {
+        await supabase
+          .from("children")
+          .update({ status: "report_in_progress" })
+          .eq("id", child.id)
+      }
+
       toast.success("Prontuário e laudo salvos com sucesso!", { icon: "💾" })
+      if (onSaved) onSaved()
     } catch (err: any) {
-      console.error(err)
-      toast.error("Erro ao salvar no banco de dados.")
+      console.error("Erro ao salvar relatório:", err)
+      toast.error(err?.message || "Erro ao salvar no banco de dados.")
     } finally {
       setSavingToDatabase(false)
     }
