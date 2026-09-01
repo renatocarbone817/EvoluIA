@@ -109,9 +109,9 @@ export function ClinicalReportPreviewModal({
   const clinicLogoInputRef = useRef<HTMLInputElement>(null)
   const [selectedImgEl, setSelectedImgEl] = useState<HTMLImageElement | null>(null)
 
-  // Carrega logo da clínica de múltiplas fontes confiáveis
+  // Carrega logo da clínica de múltiplas fontes confiáveis (apenas logomarca, nunca a foto de rosto)
   const [headerLogo, setHeaderLogo] = useState<string>(() => {
-    const fromProps = professionalData.clinicLogoUrl || professionalData.logoUrl || ""
+    const fromProps = professionalData.clinicLogoUrl || ""
     if (fromProps) return fromProps
     if (typeof window !== "undefined") {
       return (
@@ -125,7 +125,7 @@ export function ClinicalReportPreviewModal({
   })
 
   useEffect(() => {
-    const fromProps = professionalData.clinicLogoUrl || professionalData.logoUrl || ""
+    const fromProps = professionalData.clinicLogoUrl || ""
     if (fromProps) {
       setHeaderLogo(fromProps)
     } else if (typeof window !== "undefined") {
@@ -136,7 +136,7 @@ export function ClinicalReportPreviewModal({
         ""
       if (local) setHeaderLogo(local)
     }
-  }, [professionalData.clinicLogoUrl, professionalData.logoUrl])
+  }, [professionalData.clinicLogoUrl])
 
   const todayStr = new Date().toLocaleDateString("pt-BR", {
     day: "2-digit",

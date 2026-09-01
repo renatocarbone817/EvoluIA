@@ -136,7 +136,7 @@ export function ClinicalReportBuilderModal({
     cboOrCrp: professional?.crp || "2394-25",
     clinicName: professional?.clinic_name || "Aprender Ensinando",
     clinicLogoUrl:
-      (professional as any)?.clinic_logo_url || professional?.logo_url || initialLocalLogo || "",
+      (professional as any)?.clinic_logo_url || initialLocalLogo || "",
     logoUrl: professional?.logo_url || "",
     address: (professional as any)?.address || "",
     phone: professional?.phone || "",
@@ -288,9 +288,7 @@ export function ClinicalReportBuilderModal({
             clinicName: pData.clinic_name || professional?.clinic_name || "Aprender Ensinando",
             clinicLogoUrl:
               (pData as any).clinic_logo_url ||
-              pData.logo_url ||
               (professional as any)?.clinic_logo_url ||
-              professional?.logo_url ||
               localLogo ||
               "",
             logoUrl: pData.logo_url || professional?.logo_url || "",
