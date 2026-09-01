@@ -348,7 +348,7 @@ Traços observados pela escola: ${traitsText}
 RESULTADOS DOS INSTRUMENTOS EFETIVAMENTE APLICADOS:
 ${testsSection}
 
-REGRAS OBRIGATÓRIAS E ESTRITAS:
+REGRAS OBRIGATÓRIAS E ESTRITAS (ANTI-EXTRAPOLAÇÃO E RIGOR CLÍNICO):
 
 1. Utilize EXCLUSIVAMENTE informações presentes nos dados fornecidos acima.
 
@@ -361,30 +361,42 @@ REGRAS OBRIGATÓRIAS E ESTRITAS:
    A simples seleção de um instrumento na lista NÃO significa que ele foi aplicado ou que apresentou determinado resultado.
    SÓ interprete e cite resultados de um teste quando seus escores, tabelas ou notas estiverem explicitamente presentes em "RESULTADOS DOS INSTRUMENTOS EFETIVAMENTE APLICADOS". Se um teste estiver apenas selecionado na lista mas sem resultados detalhados nos dados acima, considere que o resultado não está disponível e NÃO faça interpretação daquele teste.
 
-4. Na parte clínica, não apresente diagnóstico nosológico como conclusão da avaliação psicopedagógica. Quando houver indicadores relevantes e convergência consistente entre as fontes (família, escola, observação e testes reais), descreva-os tecnicamente como hipóteses, possibilidades a serem investigadas ou necessidades de encaminhamento multidisciplinar.
+4. NENHUMA CONCLUSÃO PODE EXCEDER O DOMÍNIO DO INSTRUMENTO:
+   Nenhuma conclusão pode exceder o que o instrumento utilizado efetivamente avalia. Por exemplo, resultados de desempenho acadêmico (como TDE-II em escrita e aritmética) avaliam estritamente habilidades pedagógicas e NÃO devem ser utilizados para concluir sobre inteligência geral, capacidade intelectual, personalidade ou outros domínios não avaliados. Se o dado diz apenas "Percentil 55 - Médio", relate objetivamente: "O desempenho em aritmética situou-se na faixa média".
 
-5. O DSM-5-TR pode ser utilizado apenas como referência técnica descritiva para contextualizar características compatíveis com determinada condição. A presença de alguns sinais isolados NÃO deve ser apresentada como diagnóstico.
+5. SEM DIAGNÓSTICO NOSOLÓGICO OU PRESUNÇÃO DE CONFIRMAÇÃO:
+   Não apresente diagnóstico nosológico como conclusão da avaliação psicopedagógica. Quando houver indicadores relevantes, utilize estritamente linguagem de hipótese, possibilidade a ser investigada ou necessidade de encaminhamento. Ao sugerir avaliação médica/neurológica, utilize linguagem de "investigação / avaliação médica complementar", NUNCA presuma que exista um diagnóstico prévio a ser "confirmado".
 
-6. Uma hipótese somente deve ser mencionada quando houver convergência relevante entre diferentes fontes de informação (família, escola, observações clínicas e/ou resultados efetivamente disponíveis dos instrumentos).
+6. CONVERGÊNCIA DE FONTES NÃO É DIAGNÓSTICO:
+   Convergência entre diferentes fontes (família, escola, observações) aumenta a consistência de um padrão ou achado, mas NÃO autoriza, isoladamente, uma conclusão diagnóstica.
 
-7. Quando as informações forem insuficientes, contraditórias, curtas ou inconclusivas, declare explicitamente essa limitação. NÃO tente preencher a lacuna com inferências ou suposições.
-   Exemplo: "Não foram identificados elementos suficientes nos dados disponíveis para sustentar essa hipótese neste momento."
+7. PROIBIDO INFERIR CARACTERÍSTICAS AFETIVAS OU FLOREIOS:
+   Não infira características afetivas ou comportamentais (ex: "boa disponibilidade afetiva para o aprender", "vínculo amoroso", etc.) a menos que estejam explicitamente descritas nas anotações da profissional. Não utilize elogios vazios ou adjetivos desnecessários.
 
-8. Não utilize frases genéricas ou elogios vazios. A síntese deve ser específica para este paciente e fundamentada estritamente nos dados fornecidos.
+8. DECLARAÇÃO EXPLÍCITA DE INSUFICIÊNCIA DE DADOS:
+   Quando as informações forem insuficientes, curtas, contraditórias ou inconclusivas, declare expressamente:
+   "Não foram identificados elementos suficientes nos dados disponíveis para sustentar essa hipótese neste momento."
 
-9. Não faça afirmações causais que não possam ser sustentadas pelos dados. Mantenha linguagem profissional, técnica, clara e adequada para um laudo psicopedagógico.
+9. CHECKLIST INTERNO DE AUDITORIA ANTES DE RESPONDER:
+   - Toda afirmação da síntese pode ser rastreada diretamente aos dados fornecidos?
+   - Todo resultado citado existe nos dados dos instrumentos?
+   - Alguma conclusão ultrapassa o domínio avaliado pelo instrumento?
+   - Alguma hipótese está sendo apresentada como diagnóstico fechado?
+   - Alguma característica afetiva foi inventada a partir de contexto implícito?
+   - Algum encaminhamento foi sugerido sem justificativa nos dados?
+   SE QUALQUER INFORMAÇÃO NÃO PUDER SER DIRETAMENTE RASTREADA AOS DADOS FORNECIDOS, REMOVA-A DA RESPOSTA.
 
 10. RETORNO OBRIGATÓRIO: Retorne EXCLUSIVAMENTE um objeto JSON válido, sem crases de markdown e sem nenhum texto antes ou depois do JSON, com a seguinte estrutura:
 
 {
-  "synthesis": "Síntese técnica e integrativa da avaliação psicopedagógica, relacionando queixa principal, relatos familiares, contexto escolar, observações clínicas e resultados dos instrumentos efetivamente aplicados...",
-  "diagnosticHypothesis": "Hipótese psicopedagógica descritiva e fundamentada tecnicamente nas evidências observadas (ou declaração clara de insuficiência de dados)...",
+  "synthesis": "Síntese técnica, sóbria e integrativa da avaliação psicopedagógica, relacionando queixa principal, relatos familiares, contexto escolar, observações clínicas e resultados dos instrumentos efetivamente aplicados...",
+  "diagnosticHypothesis": "Hipótese psicopedagógica descritiva e fundamentada estritamente nas evidências observadas (ou declaração de insuficiência de dados)...",
   "dsm5Criteria": [
-    "Indicador/critério observado compatível 1 (somente se fundamentado)",
-    "Indicador/critério observado compatível 2"
+    "Indicador observado compatível 1 (somente se fundamentado diretamente nos dados)",
+    "Indicador observado compatível 2"
   ],
   "referrals": [
-    "Encaminhamento multidisciplinar 1 (com justificativa fundamentada)",
+    "Encaminhamento multidisciplinar para investigação médica/terapêutica complementar 1 (com justificativa rastreável)",
     "Encaminhamento multidisciplinar 2"
   ],
   "recommendationsFamily": [
@@ -395,8 +407,8 @@ REGRAS OBRIGATÓRIAS E ESTRITAS:
     "Orientação pedagógica prática e individualizada para a escola 1",
     "Orientação pedagógica prática e individualizada para a escola 2"
   ],
-  "finalConsiderations": "Considerações finais técnicas e fechamento da avaliação...",
-  "clinicalObservation": "Refinamento das observações clínicas sobre a postura, engajamento e vínculo observados nas sessões..."
+  "finalConsiderations": "Considerações finais técnicas e fechamento sóbrio da avaliação...",
+  "clinicalObservation": "Refinamento das observações clínicas sobre a postura, engajamento e manejo observados nas sessões..."
 }`
 
   const MAX_RETRIES = 5
