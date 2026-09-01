@@ -452,8 +452,8 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
             ],
           }),
 
-          // 2. QUADRO DE IDENTIFICAÇÃO DO PACIENTE (TABELA FORMATADA)
-          createSectionHeader("1. Identificação do Paciente"),
+          // QUADRO DE IDENTIFICAÇÃO DO PACIENTE (TABELA FORMATADA)
+          createSectionHeader("Identificação do Paciente"),
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             borders: {
@@ -491,7 +491,7 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
                         children: [
                           new TextRun({ text: "DATA DE NASCIMENTO: ", font: "Arial", size: 20, bold: true, color: "005B94" }),
                           new TextRun({ text: `${data.patient.birthDate || "Não informada"}     `, font: "Arial", size: 20 }),
-                          new TextRun({ text: "IDADE CRONOLÓGICA: ", font: "Arial", size: 20, bold: true, color: "005B94" }),
+                          new TextRun({ text: "IDADE: ", font: "Arial", size: 20, bold: true, color: "005B94" }),
                           new TextRun({ text: data.patient.ageFormatted || "Não informada", font: "Arial", size: 20, bold: true, color: "111827" }),
                         ],
                       }),
@@ -570,8 +570,8 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
 
           new Paragraph({ spacing: { after: 160 } }),
 
-          // 2. INSTRUMENTOS DIAGNÓSTICOS UTILIZADOS
-          createSectionHeader("2. Instrumentos Avaliativos Utilizados"),
+          // INSTRUMENTOS DIAGNÓSTICOS UTILIZADOS
+          createSectionHeader("Instrumentos Avaliativos Utilizados"),
           ...data.clinical.selectedInstruments.map((inst) =>
             new Paragraph({
               spacing: { after: 60 },
@@ -607,8 +607,8 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
             ],
           }),
 
-          // 3. ANAMNESE (8 EIXOS CLÍNICOS NOBRES)
-          createSectionHeader("3. Anamnese"),
+          // ANAMNESE (8 EIXOS CLÍNICOS NOBRES)
+          createSectionHeader("Anamnese"),
 
           ...(() => {
             const axes = [
@@ -643,8 +643,8 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
             ]
           })(),
 
-          // 4. ENTREVISTA ESCOLAR
-          createSectionHeader("4. Entrevista / Visita Escolar"),
+          // ENTREVISTA ESCOLAR
+          createSectionHeader("Entrevista / Visita Escolar"),
 
           ...(data.clinical.schoolObserver?.name
             ? [
@@ -702,8 +702,8 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
             }),
           }),
 
-          // 6. RESULTADOS DETALHADOS DE CADA INSTRUMENTO/TESTE
-          createSectionHeader("5. Resultados dos Testes e Instrumentos Avaliativos"),
+          // RESULTADOS DETALHADOS DE CADA INSTRUMENTO/TESTE
+          createSectionHeader("Resultados dos Testes e Instrumentos Avaliativos"),
 
           ...data.clinical.tests.flatMap((test) => {
             const elements: (Paragraph | Table)[] = [
@@ -765,15 +765,15 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
             return elements
           }),
 
-          // 7. OBSERVAÇÃO CLÍNICA
-          createSectionHeader("6. Observação Clínica nas Sessões"),
+          // OBSERVAÇÃO CLÍNICA
+          createSectionHeader("Observação Clínica nas Sessões"),
           createP(
             data.clinical.clinicalObservation ||
               "Durante as sessões avaliativas, o paciente demonstrou receptividade às propostas lúdicas e vínculo positivo com a profissional. Observou-se variação no tempo de sustentação atencional conforme o nível de exigência da tarefa."
           ),
 
-          // 8. SÍNTESE DA AVALIAÇÃO PSICOPEDAGÓGICA
-          createSectionHeader("7. Síntese da Avaliação Psicopedagógica"),
+          // SÍNTESE DA AVALIAÇÃO PSICOPEDAGÓGICA
+          createSectionHeader("Síntese da Avaliação Psicopedagógica"),
           createP(
             data.clinical.synthesis ||
               `A presente avaliação psicopedagógica foi realizada ao longo de ${
@@ -781,8 +781,8 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
               } sessões, contemplando a aplicação de testes e instrumentos avaliativos, bem como entrevistas com o paciente, familiares e escola. A integração dessas informações possibilitou uma compreensão abrangente do funcionamento cognitivo, comportamental, emocional e acadêmico do paciente.`
           ),
 
-          // 9. HIPÓTESE DIAGNÓSTICA
-          createSectionHeader("8. Hipótese Diagnóstica (DSM-5-TR)"),
+          // HIPÓTESE DIAGNÓSTICA
+          createSectionHeader("Hipótese Diagnóstica (DSM-5-TR)"),
           createP(
             data.clinical.diagnosticHypothesis ||
               "Os dados obtidos ao longo da avaliação psicopedagógica apontam para um perfil cognitivo compatível com dificuldades nas funções executivas e sustentação atencional, necessitando de acompanhamento contínuo e intervenção estruturada."
@@ -809,8 +809,8 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
               ]
             : []),
 
-          // 10. ENCAMINHAMENTOS E ORIENTAÇÕES
-          createSectionHeader("9. Encaminhamentos & Orientações Pedagógicas"),
+          // ENCAMINHAMENTOS E ORIENTAÇÕES
+          createSectionHeader("Encaminhamentos & Orientações Pedagógicas"),
 
           createSubHeader("Encaminhamentos Profissionais Recomendados:"),
           ...data.clinical.referrals.map((ref) =>
