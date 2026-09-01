@@ -251,6 +251,16 @@ export async function generateInitialAssessmentAI(
   return { analysis, projectUsed: usedProject || "evoluia-ai" }
 }
 
+export interface ClinicalAITestInput {
+  id?: string
+  title: string
+  objective?: string
+  tableHeaders?: string[]
+  tableRows?: string[][]
+  scoreCutoffText?: string
+  interpretationText?: string
+}
+
 export async function generateClinicalReportAI(params: {
   childName: string
   ageFormatted: string
@@ -260,6 +270,8 @@ export async function generateClinicalReportAI(params: {
   schoolTraits?: Record<string, boolean>
   sessionsCount: number
   selectedInstruments: string[]
+  testsResults?: ClinicalAITestInput[]
+  clinicalObservation?: string
 }): Promise<{
   synthesis: string
   diagnosticHypothesis: string
@@ -270,31 +282,61 @@ export async function generateClinicalReportAI(params: {
   finalConsiderations: string
   clinicalObservation: string
 }> {
-  const familyText = params.familyAnswers
-    .map((q) => `${q.num}. ${q.title}: ${q.answer || "(não respondido)"}`)
-    .join("\n")
+  const familyText = params.familyAnswers && params.familyAnswers.length > 0
+    ? params.familyAnswers
+        .map((q) => `${q.num}. ${q.title}: ${q.answer || "(não respondido)"}`)
+        .join("\n")
+    : "Nenhum relato familiar registrado no momento."
 
-  const schoolText = params.schoolAnswers
-    .map((q) => `${q.num}. ${q.title}: ${q.answer || "(não respondido)"}`)
-    .join("\n")
+  const schoolText = params.schoolAnswers && params.schoolAnswers.length > 0
+    ? params.schoolAnswers
+        .map((q) => `${q.num}. ${q.title}: ${q.answer || "(não respondido)"}`)
+        .join("\n")
+    : "Nenhum relato escolar registrado no momento."
 
   const traitsText = params.schoolTraits
     ? Object.entries(params.schoolTraits)
         .filter(([_, v]) => Boolean(v))
         .map(([k]) => k)
-        .join(", ") || "Nenhum traço específico assinalado"
+        .join(", ") || "Nenhum traço comportamental específico assinalado"
     : "Não informado"
 
-  const prompt = `Você é uma Inteligência Artificial especialista em Psicopedagogia Clínica e Neurodesenvolvimento Infantil (Padrão CBO 2394-25 e DSM-5-TR).
+  let testsSection = "Nenhum resultado quantitativo ou qualitativo de instrumento registrado no momento."
+  if (params.testsResults && params.testsResults.length > 0) {
+    testsSection = params.testsResults
+      .map((t) => {
+        let text = `• INSTRUMENTO: ${t.title}`
+        if (t.objective) text += `\n  Objetivo: ${t.objective}`
+        if (t.tableHeaders && t.tableRows && t.tableRows.length > 0) {
+          text += `\n  Tabela de Resultados Reais:\n    [${t.tableHeaders.join(" | ")}]`
+          t.tableRows.forEach((row) => {
+            text += `\n    [${row.join(" | ")}]`
+          })
+        }
+        if (t.scoreCutoffText) {
+          text += `\n  Escore / Ponto de Corte Real: ${t.scoreCutoffText}`
+        }
+        if (t.interpretationText) {
+          text += `\n  Interpretação Qualitativa Registrada: ${t.interpretationText}`
+        }
+        return text
+      })
+      .join("\n\n")
+  }
 
-Analise ESTREITAMENTE as informações reais fornecidas abaixo para a elaboração do Laudo Psicopedagógico do paciente "${params.childName}" (${params.ageFormatted}).
+  const prompt = `Você é um assistente de apoio à análise e redação de documentos de Psicopedagogia Clínica, com linguagem técnica, objetiva, ética e estritamente baseada nos dados fornecidos.
+
+Sua função é ORGANIZAR E INTEGRAR as informações da avaliação psicopedagógica. Você NÃO deve inventar informações, preencher lacunas com suposições ou transformar automaticamente sinais isolados em diagnóstico médico nosológico.
 
 DADOS DO PACIENTE:
-Nome: ${params.childName}
-Idade: ${params.ageFormatted}
-Queixa Principal: ${params.mainComplaint || "Não informada"}
-Total de Sessões: ${params.sessionsCount} sessões clínicas
-Instrumentos Selecionados: ${params.selectedInstruments.join(", ") || "Avaliação Clínica"}
+- Nome: "${params.childName}"
+- Idade: ${params.ageFormatted}
+- Queixa Principal: ${params.mainComplaint || "Não informada"}
+- Total de Sessões: ${params.sessionsCount} sessões clínicas
+- Instrumentos Selecionados na Lista: ${params.selectedInstruments && params.selectedInstruments.length > 0 ? params.selectedInstruments.join(", ") : "Nenhum"}
+
+OBSERVAÇÃO CLÍNICA DA PROFISSIONAL NAS SESSÕES:
+${params.clinicalObservation || "Não registrada"}
 
 RELATOS DA FAMÍLIA (ANAMNESE):
 ${familyText}
@@ -303,33 +345,58 @@ RELATOS DA ESCOLA (ENTREVISTA ESCOLAR):
 ${schoolText}
 Traços observados pela escola: ${traitsText}
 
-INSTRUÇÕES CRÍTICAS:
-1. Analise APENAS os fatos relatados. NÃO invente transtornos se as respostas forem curtas, aleatórias ou sem sentido.
-2. Se as respostas fornecidas forem de teste, vazias ou desconexas (ex: "asdasd", "aaaaaa"), indique explicitamente na hipótese diagnóstica que os dados são preliminares/insuficientes para conclusão diagnóstica.
-3. Se os relatos indicarem padrões clínicos reais (ex: dificuldades atencionais, dislexia, ansiedade, etc.), formule uma hipótese diagnóstica técnica e fundamentada no DSM-5-TR.
-4. Retorne EXCLUSIVAMENTE um objeto JSON válido, sem crases de markdown e sem texto adicional fora do JSON, no seguinte formato:
+RESULTADOS DOS INSTRUMENTOS EFETIVAMENTE APLICADOS:
+${testsSection}
+
+REGRAS OBRIGATÓRIAS E ESTRITAS:
+
+1. Utilize EXCLUSIVAMENTE informações presentes nos dados fornecidos acima.
+
+2. NÃO invente, complete, deduza ou presuma:
+   - resultados de testes, escores, pontuações, tabelas ou percentis que não estejam explicitamente informados acima;
+   - comportamentos, sintomas ou histórico clínico não relatados;
+   - diagnósticos, critérios diagnósticos ou informações ausentes.
+
+3. DISTINÇÃO FUNDAMENTAL DE INSTRUMENTOS:
+   A simples seleção de um instrumento na lista NÃO significa que ele foi aplicado ou que apresentou determinado resultado.
+   SÓ interprete e cite resultados de um teste quando seus escores, tabelas ou notas estiverem explicitamente presentes em "RESULTADOS DOS INSTRUMENTOS EFETIVAMENTE APLICADOS". Se um teste estiver apenas selecionado na lista mas sem resultados detalhados nos dados acima, considere que o resultado não está disponível e NÃO faça interpretação daquele teste.
+
+4. Na parte clínica, não apresente diagnóstico nosológico como conclusão da avaliação psicopedagógica. Quando houver indicadores relevantes e convergência consistente entre as fontes (família, escola, observação e testes reais), descreva-os tecnicamente como hipóteses, possibilidades a serem investigadas ou necessidades de encaminhamento multidisciplinar.
+
+5. O DSM-5-TR pode ser utilizado apenas como referência técnica descritiva para contextualizar características compatíveis com determinada condição. A presença de alguns sinais isolados NÃO deve ser apresentada como diagnóstico.
+
+6. Uma hipótese somente deve ser mencionada quando houver convergência relevante entre diferentes fontes de informação (família, escola, observações clínicas e/ou resultados efetivamente disponíveis dos instrumentos).
+
+7. Quando as informações forem insuficientes, contraditórias, curtas ou inconclusivas, declare explicitamente essa limitação. NÃO tente preencher a lacuna com inferências ou suposições.
+   Exemplo: "Não foram identificados elementos suficientes nos dados disponíveis para sustentar essa hipótese neste momento."
+
+8. Não utilize frases genéricas ou elogios vazios. A síntese deve ser específica para este paciente e fundamentada estritamente nos dados fornecidos.
+
+9. Não faça afirmações causais que não possam ser sustentadas pelos dados. Mantenha linguagem profissional, técnica, clara e adequada para um laudo psicopedagógico.
+
+10. RETORNO OBRIGATÓRIO: Retorne EXCLUSIVAMENTE um objeto JSON válido, sem crases de markdown e sem nenhum texto antes ou depois do JSON, com a seguinte estrutura:
 
 {
-  "synthesis": "Síntese técnica da avaliação ao longo das sessões...",
-  "diagnosticHypothesis": "Hipótese diagnóstica fundamentada no DSM-5-TR...",
+  "synthesis": "Síntese técnica e integrativa da avaliação psicopedagógica, relacionando queixa principal, relatos familiares, contexto escolar, observações clínicas e resultados dos instrumentos efetivamente aplicados...",
+  "diagnosticHypothesis": "Hipótese psicopedagógica descritiva e fundamentada tecnicamente nas evidências observadas (ou declaração clara de insuficiência de dados)...",
   "dsm5Criteria": [
-    "Critério 1 observado",
-    "Critério 2 observado"
+    "Indicador/critério observado compatível 1 (somente se fundamentado)",
+    "Indicador/critério observado compatível 2"
   ],
   "referrals": [
-    "Encaminhamento 1",
-    "Encaminhamento 2"
+    "Encaminhamento multidisciplinar 1 (com justificativa fundamentada)",
+    "Encaminhamento multidisciplinar 2"
   ],
   "recommendationsFamily": [
-    "Orientação familiar 1",
-    "Orientação familiar 2"
+    "Orientação prática e individualizada para a família 1",
+    "Orientação prática e individualizada para a família 2"
   ],
   "recommendationsSchool": [
-    "Orientação escolar 1",
-    "Orientação escolar 2"
+    "Orientação pedagógica prática e individualizada para a escola 1",
+    "Orientação pedagógica prática e individualizada para a escola 2"
   ],
-  "finalConsiderations": "Considerações finais técnicas e fechamento...",
-  "clinicalObservation": "Observações sobre a postura clínica, engajamento e vínculo..."
+  "finalConsiderations": "Considerações finais técnicas e fechamento da avaliação...",
+  "clinicalObservation": "Refinamento das observações clínicas sobre a postura, engajamento e vínculo observados nas sessões..."
 }`
 
   const MAX_RETRIES = 5
@@ -357,7 +424,7 @@ INSTRUÇÕES CRÍTICAS:
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
-              temperature: 0.3,
+              temperature: 0.2, // Temperatura baixa para máxima precisão factual e zero alucinações
               maxOutputTokens: 4096,
               responseMimeType: "application/json",
             },

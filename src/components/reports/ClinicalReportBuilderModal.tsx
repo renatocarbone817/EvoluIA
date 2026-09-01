@@ -930,6 +930,8 @@ const completeData: CompleteReportData = {
         schoolTraits,
         sessionsCount,
         selectedInstruments,
+        testsResults: getGeneratedTestsResults(),
+        clinicalObservation,
       })
 
       if (aiResult.synthesis) setSynthesis(aiResult.synthesis)
