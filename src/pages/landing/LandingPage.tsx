@@ -680,25 +680,36 @@ export function LandingPage() {
             {/* Slider */}
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <span className="text-xs font-black text-slate-800">Quantos pacientes você atende na semana?</span>
-                <span className="text-2xl font-black text-[#7C3AED] bg-purple-100 px-4 py-1 rounded-2xl border-2 border-purple-300 self-start sm:self-auto">
+                <span className="text-xs sm:text-sm font-black text-slate-800">Quantos pacientes você atende na semana?</span>
+                <span className="text-2xl font-black text-[#7C3AED] bg-purple-100 px-4 py-1.5 rounded-2xl border-2 border-[#7C3AED] self-start sm:self-auto shadow-sm">
                   {patientsCount} pacientes
                 </span>
               </div>
 
-              <input
-                type="range"
-                min="3"
-                max="40"
-                value={patientsCount}
-                onChange={(e) => setPatientsCount(Number(e.target.value))}
-                className="w-full h-4 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#7C3AED]"
-              />
+              {/* Slider Track Container with highly visible outline and guidance */}
+              <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-purple-50 via-white to-purple-50 border-2 border-purple-300 shadow-sm space-y-2">
+                <div className="relative py-1 flex items-center">
+                  <input
+                    type="range"
+                    min="3"
+                    max="40"
+                    value={patientsCount}
+                    onChange={(e) => setPatientsCount(Number(e.target.value))}
+                    className="custom-slider w-full h-4 sm:h-5 cursor-grab active:cursor-grabbing"
+                  />
+                </div>
 
-              <div className="flex justify-between text-[11px] text-slate-600 font-black">
-                <span>3 pacientes (Início)</span>
-                <span>20 pacientes</span>
-                <span>40 pacientes (Clínica Cheia)</span>
+                <div className="flex justify-between items-center text-[11px] text-slate-700 font-black px-1">
+                  <span className="flex items-center gap-1 text-slate-600">
+                    <span>◀</span> 3 pacientes (Início)
+                  </span>
+                  <span className="text-[#7C3AED] bg-purple-100/80 px-2.5 py-0.5 rounded-full border border-purple-200 hidden sm:inline">
+                    20 pacientes
+                  </span>
+                  <span className="flex items-center gap-1 text-slate-600">
+                    40 pacientes (Clínica Cheia) <span>▶</span>
+                  </span>
+                </div>
               </div>
             </div>
 

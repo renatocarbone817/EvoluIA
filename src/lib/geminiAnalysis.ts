@@ -348,56 +348,99 @@ Traços observados pela escola: ${traitsText}
 RESULTADOS DOS INSTRUMENTOS EFETIVAMENTE APLICADOS:
 ${testsSection}
 
-REGRAS OBRIGATÓRIAS E ESTRITAS (ANTI-EXTRAPOLAÇÃO E RIGOR CLÍNICO):
+================================================================================
+REGRAS OBRIGATÓRIAS E DIRETRIZES CLÍNICAS DEFINITIVAS:
+================================================================================
 
-1. Utilize EXCLUSIVAMENTE informações presentes nos dados fornecidos acima.
+1. FORÇA DA EVIDÊNCIA E PROPORCIONALIDADE:
+   A força da linguagem utilizada DEVE ser estritamente proporcional à força dos dados disponíveis.
+   - Resultado de instrumento deve ser descrito objetivamente.
+   - Resultado acima ou abaixo de ponto de corte deve ser descrito objetivamente como "acima" ou "abaixo" do ponto de corte.
+   - Relatos de família devem ser explicitamente atribuídos à família ("foi relatado pelos familiares que...").
+   - Relatos escolares devem ser explicitamente atribuídos à escola ("segundo relato da equipe escolar...").
+   - Observações clínicas devem ser atribuídas às anotações da profissional.
+   - Convergência entre diferentes fontes pode ser descrita como convergência de indicadores ou relatos.
+   - Nenhuma dessas informações deve ser automaticamente transformada em diagnóstico.
 
-2. NÃO invente, complete, deduza ou presuma:
-   - resultados de testes, escores, pontuações, tabelas ou percentis que não estejam explicitamente informados acima;
-   - comportamentos, sintomas ou histórico clínico não relatados;
-   - diagnósticos, critérios diagnósticos ou informações ausentes.
+2. PROIBIÇÃO DE EXAGERO CLÍNICO E TERMOS SUPERLATIVOS:
+   NÃO utilize automaticamente termos como: "prejuízo", "déficit", "comprometimento", "pervasivo", "grave", "significativo", "preservado", "alterado", "disfuncional", "transtorno", "compatível com transtorno" ou equivalentes, a menos que existam dados específicos, objetivos e suficientes que sustentem exatamente essa conclusão.
+   - Exemplo com SNAP-IV (Desatenção: 7 pontos, Ponto de corte: 6):
+     * ACEITÁVEL: "A pontuação de desatenção foi de 7 pontos, situando-se acima do ponto de corte de 6 pontos do instrumento."
+     * PROIBIDO: "O resultado demonstra prejuízo atencional pervasivo."
 
-3. DISTINÇÃO FUNDAMENTAL DE INSTRUMENTOS:
-   A simples seleção de um instrumento na lista NÃO significa que ele foi aplicado ou que apresentou determinado resultado.
-   SÓ interprete e cite resultados de um teste quando seus escores, tabelas ou notas estiverem explicitamente presentes em "RESULTADOS DOS INSTRUMENTOS EFETIVAMENTE APLICADOS". Se um teste estiver apenas selecionado na lista mas sem resultados detalhados nos dados acima, considere que o resultado não está disponível e NÃO faça interpretação daquele teste.
+3. NÃO ULTRAPASSAR O DOMÍNIO DO INSTRUMENTO:
+   Nenhum instrumento pode ser utilizado para concluir sobre uma capacidade ou domínio que ele não avalia diretamente:
+   - TDE-II (Teste de Desempenho Escolar) avalia apenas escrita, leitura e aritmética. NUNCA deve ser utilizado para concluir sobre QI, inteligência ou capacidade intelectual geral.
+   - Um teste de leitura não deve ser utilizado para concluir sobre inteligência geral.
+   - Um instrumento de atenção (como SNAP-IV) não deve ser utilizado isoladamente para concluir sobre TDAH.
+   - Um instrumento acadêmico não deve ser utilizado para concluir sobre personalidade ou funcionamento emocional.
 
-4. NENHUMA CONCLUSÃO PODE EXCEDER O DOMÍNIO DO INSTRUMENTO:
-   Nenhuma conclusão pode exceder o que o instrumento utilizado efetivamente avalia. Por exemplo, resultados de desempenho acadêmico (como TDE-II em escrita e aritmética) avaliam estritamente habilidades pedagógicas e NÃO devem ser utilizados para concluir sobre inteligência geral, capacidade intelectual, personalidade ou outros domínios não avaliados. Se o dado diz apenas "Percentil 55 - Médio", relate objetivamente: "O desempenho em aritmética situou-se na faixa média".
+4. RESULTADO NÃO É DIAGNÓSTICO:
+   Mesmo quando família, escola, observação clínica e instrumentos apresentam informações convergentes, descreva isso como CONVERGÊNCIA DE INDICADORES OU EVIDÊNCIAS. Convergência de fontes NÃO autoriza automaticamente diagnóstico nosológico.
 
-5. SEM DIAGNÓSTICO NOSOLÓGICO OU PRESUNÇÃO DE CONFIRMAÇÃO:
-   Não apresente diagnóstico nosológico como conclusão da avaliação psicopedagógica. Quando houver indicadores relevantes, utilize estritamente linguagem de hipótese, possibilidade a ser investigada ou necessidade de encaminhamento. Ao sugerir avaliação médica/neurológica, utilize linguagem de "investigação / avaliação médica complementar", NUNCA presuma que exista um diagnóstico prévio a ser "confirmado".
+5. ENCAMINHAMENTOS SÓBRIOS E NÃO PRESUNTIVOS:
+   Nunca utilize linguagem que pressuponha um diagnóstico que ainda não foi estabelecido.
+   - EVITAR: "encaminhamento para confirmação diagnóstica."
+   - PREFERIR: "encaminhamento para avaliação clínica complementar" ou "investigação médica complementar".
+   O encaminhamento deve ter relação explícita e justificável com os dados apresentados.
 
-6. CONVERGÊNCIA DE FONTES NÃO É DIAGNÓSTICO:
-   Convergência entre diferentes fontes (família, escola, observações) aumenta a consistência de um padrão ou achado, mas NÃO autoriza, isoladamente, uma conclusão diagnóstica.
+6. PROIBIÇÃO DE CARACTERÍSTICAS NÃO REGISTRADAS (SEM FLOREIOS):
+   Não atribua à criança características afetivas, emocionais, cognitivas, sociais ou comportamentais que não estejam explicitamente presentes nos dados.
+   NÃO escrever, por exemplo: "boa disponibilidade afetiva", "boa capacidade intelectual", "motivação preservada", "boa relação com o aprendizado", a menos que isso esteja efetivamente registrado nos dados fornecidos pela profissional.
 
-7. PROIBIDO INFERIR CARACTERÍSTICAS AFETIVAS OU FLOREIOS:
-   Não infira características afetivas ou comportamentais (ex: "boa disponibilidade afetiva para o aprender", "vínculo amoroso", etc.) a menos que estejam explicitamente descritas nas anotações da profissional. Não utilize elogios vazios ou adjetivos desnecessários.
+7. RASTREABILIDADE TOTAL:
+   Toda e qualquer afirmação produzida deve poder ser rastreada a uma fonte explícita nos dados fornecidos. Se uma informação não puder ser rastreada, ela DEVE ser removida.
 
-8. DECLARAÇÃO EXPLÍCITA DE INSUFICIÊNCIA DE DADOS:
-   Quando as informações forem insuficientes, curtas, contraditórias ou inconclusivas, declare expressamente:
+8. LINGUAGEM CONSERVADORA E DESCRITIVA:
+   Quando houver dúvida entre duas formulações, sempre escolha a formulação mais conservadora e descritiva:
+   Prefira: "foi observado", "foi relatado", "foi identificado", "apresentou pontuação de", "situou-se acima do ponto de corte", "há indicadores de", "há convergência entre os relatos", "os dados sugerem a necessidade de investigação".
+
+9. INSUFICIÊNCIA DE DADOS:
+   Quando os dados forem curtos, desconexos, de teste ou insuficientes para qualquer conclusão, NÃO tente preencher a lacuna. Utilize expressamente:
    "Não foram identificados elementos suficientes nos dados disponíveis para sustentar essa hipótese neste momento."
 
-9. CHECKLIST INTERNO DE AUDITORIA ANTES DE RESPONDER:
-   - Toda afirmação da síntese pode ser rastreada diretamente aos dados fornecidos?
-   - Todo resultado citado existe nos dados dos instrumentos?
-   - Alguma conclusão ultrapassa o domínio avaliado pelo instrumento?
-   - Alguma hipótese está sendo apresentada como diagnóstico fechado?
-   - Alguma característica afetiva foi inventada a partir de contexto implícito?
-   - Algum encaminhamento foi sugerido sem justificativa nos dados?
-   SE QUALQUER INFORMAÇÃO NÃO PUDER SER DIRETAMENTE RASTREADA AOS DADOS FORNECIDOS, REMOVA-A DA RESPOSTA.
+10. INSTRUMENTOS SELECIONADOS VS RESULTADOS DISPONÍVEIS:
+    A simples seleção de um instrumento na lista NÃO significa que ele foi aplicado ou que possui resultado. SÓ interprete instrumentos cujos resultados reais estejam descritos em "RESULTADOS DOS INSTRUMENTOS EFETIVAMENTE APLICADOS". Se não houver dados, considere que o resultado não está disponível. A IA NÃO deve calcular ou inventar resultados, escores ou percentis que não estejam presentes.
 
-10. RETORNO OBRIGATÓRIO: Retorne EXCLUSIVAMENTE um objeto JSON válido, sem crases de markdown e sem nenhum texto antes ou depois do JSON, com a seguinte estrutura:
+11. DISTINÇÃO FUNDAMENTAL:
+    DADO -> "SNAP-IV: 7 pontos, acima do ponto de corte de 6."
+    INTERPRETAÇÃO -> "Há indicador de desatenção acima do ponto de corte do instrumento."
+    HIPÓTESE -> "Os achados sugerem a necessidade de investigação complementar."
+    DIAGNÓSTICO -> NÃO produzir como conclusão automática da avaliação psicopedagógica.
+
+12. CHECKLIST FINAL OBRIGATÓRIO (Executar antes de emitir a resposta):
+    [ ] Todas as afirmações estão sustentadas pelos dados?
+    [ ] Todos os resultados citados existem em testsResults?
+    [ ] Nenhum resultado foi inventado?
+    [ ] Nenhum teste foi utilizado fora do seu domínio?
+    [ ] Nenhuma informação afetiva ou comportamental foi inventada?
+    [ ] Nenhum indicador foi transformado automaticamente em diagnóstico?
+    [ ] Nenhuma linguagem clínica está mais forte do que as evidências permitem?
+    [ ] Os encaminhamentos são justificáveis pelos dados?
+    [ ] As orientações são relacionadas às dificuldades efetivamente observadas?
+    [ ] Não existe nenhuma afirmação sobre QI/inteligência geral sem avaliação específica?
+    [ ] Não existe linguagem de "confirmação diagnóstica"?
+    [ ] Se os dados forem insuficientes, isso está explicitamente indicado?
+    Se qualquer item falhar, reformule o texto antes de gerar o JSON.
+
+13. PRINCÍPIO SUPREMO:
+    FIDELIDADE AOS DADOS > PRECISÃO TÉCNICA > CAUTELA CLÍNICA > COMPLETUDE > SOFISTICAÇÃO DA LINGUAGEM.
+    É preferível produzir uma síntese mais curta, cautelosa e incompleta do que produzir uma síntese aparentemente sofisticada contendo uma conclusão que não pode ser sustentada pelos dados.
+
+================================================================================
+ESTRUTURA DO RETORNO (EXCLUSIVAMENTE JSON VÁLIDO):
+================================================================================
 
 {
-  "synthesis": "Síntese técnica, sóbria e integrativa da avaliação psicopedagógica, relacionando queixa principal, relatos familiares, contexto escolar, observações clínicas e resultados dos instrumentos efetivamente aplicados...",
-  "diagnosticHypothesis": "Hipótese psicopedagógica descritiva e fundamentada estritamente nas evidências observadas (ou declaração de insuficiência de dados)...",
+  "synthesis": "Síntese técnica, sóbria, descritiva e integrativa da avaliação psicopedagógica...",
+  "diagnosticHypothesis": "Hipótese psicopedagógica descritiva baseada estritamente nas evidências observadas (ou declaração clara de insuficiência de dados)...",
   "dsm5Criteria": [
     "Indicador observado compatível 1 (somente se fundamentado diretamente nos dados)",
     "Indicador observado compatível 2"
   ],
   "referrals": [
-    "Encaminhamento multidisciplinar para investigação médica/terapêutica complementar 1 (com justificativa rastreável)",
-    "Encaminhamento multidisciplinar 2"
+    "Encaminhamento para avaliação clínica/médica complementar 1 (com justificativa rastreável)",
+    "Encaminhamento 2"
   ],
   "recommendationsFamily": [
     "Orientação prática e individualizada para a família 1",
@@ -407,7 +450,7 @@ REGRAS OBRIGATÓRIAS E ESTRITAS (ANTI-EXTRAPOLAÇÃO E RIGOR CLÍNICO):
     "Orientação pedagógica prática e individualizada para a escola 1",
     "Orientação pedagógica prática e individualizada para a escola 2"
   ],
-  "finalConsiderations": "Considerações finais técnicas e fechamento sóbrio da avaliação...",
+  "finalConsiderations": "Considerações finais técnicas, cautelosas e sóbrias...",
   "clinicalObservation": "Refinamento das observações clínicas sobre a postura, engajamento e manejo observados nas sessões..."
 }`
 
