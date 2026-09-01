@@ -5,8 +5,8 @@
 
 @layer base {
   :root {
-    /* Fundo da tela: Deep Sky Blue (#00BFFF) */
-    --background: 195 100% 50%;     /* #00BFFF */
+    /* Fundo da tela: Azul Suave Moderno (#D5EBF5) */
+    --background: 199 55% 90%;       /* #D5EBF5 */
     --foreground: 193 40% 16%;       /* #19323A */
 
     /* Cards e Superfícies em Branco Puro */
@@ -36,8 +36,8 @@
     --destructive: 0 57% 64%;        /* #D96C6C */
     --destructive-foreground: 0 0% 100%;
 
-    /* Bordas e Inputs */
-    --border: 0 0% 100%;             /* #FFFFFF */
+    /* Bordas e Inputs com contorno nítido e bem definido */
+    --border: 193 25% 65%;           /* #91B3BD */
     --input: 193 25% 65%;
     --ring: 192 49% 28%;             /* #245C6B */
 
@@ -53,17 +53,17 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Opção 3: Cards Brancos com Borda Branca Pura e Sombra Macia Flutuante */
+  /* Contorno forte e bem definido para destacar os cards brancos e caixas de busca */
   .bg-white.rounded-3xl,
   .bg-white.rounded-2xl,
   .bg-white.rounded-xl {
-    border: 2px solid #FFFFFF !important;
-    box-shadow: 0 12px 30px -4px rgba(0, 50, 80, 0.22), 0 4px 12px -2px rgba(0, 50, 80, 0.10) !important;
+    border: 2px solid #99B9C3 !important;
+    box-shadow: 0 4px 18px -2px rgba(13, 35, 41, 0.08), 0 2px 6px -1px rgba(13, 35, 41, 0.04) !important;
   }
 
   .border-\[\#D8E5E7\],
   .border-\[\#E2E8F0\] {
-    border-color: rgba(255, 255, 255, 0.85) !important;
+    border-color: #A0BDC6 !important;
   }
 
   /* Subtítulos de páginas escuros, nítidos e de alta legibilidade */
