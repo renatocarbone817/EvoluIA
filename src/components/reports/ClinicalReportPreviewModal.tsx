@@ -111,6 +111,10 @@ export function ClinicalReportPreviewModal({
       return
     }
 
+    const headStyles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map((s) => s.outerHTML)
+      .join("\n")
+
     doc.open()
     doc.write(`
       <!DOCTYPE html>
@@ -118,28 +122,39 @@ export function ClinicalReportPreviewModal({
       <head>
         <meta charset="UTF-8">
         <title>Laudo Psicopedagógico - ${patientData.fullName || "Paciente"}</title>
-        <script src="https://cdn.tailwindcss.com"></script>
+        ${headStyles}
         <style>
           @page {
             size: A4 portrait;
             margin: 12mm 10mm 12mm 10mm;
           }
-          body {
+          html, body {
+            height: auto !important;
+            min-height: 100% !important;
+            overflow: visible !important;
             background: #ffffff !important;
             color: #0D2329 !important;
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            margin: 0;
-            padding: 0;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .printable-report {
+            overflow: visible !important;
+            max-height: none !important;
+            height: auto !important;
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
           }
           .print-avoid-break {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
           table {
-            width: 100%;
-            border-collapse: collapse;
+            width: 100% !important;
+            border-collapse: collapse !important;
           }
           * {
             -webkit-print-color-adjust: exact !important;
@@ -149,7 +164,7 @@ export function ClinicalReportPreviewModal({
           }
         </style>
       </head>
-      <body class="p-2 space-y-6">
+      <body class="p-4 space-y-6 bg-white">
         ${reportElement.innerHTML}
       </body>
       </html>
@@ -164,7 +179,7 @@ export function ClinicalReportPreviewModal({
           document.body.removeChild(iframe)
         }
       }, 2000)
-    }, 400)
+    }, 500)
   }
 
   return (
