@@ -66,11 +66,10 @@
     border-color: #A0BDC6 !important;
   }
 
-  /* Subtítulos de páginas escuros, nítidos e de alta legibilidade */
-  h1 + p,
-  h1 ~ p,
-  h2 + p,
-  .space-y-1 > p,
+  /* Subtítulos de páginas escuros, nítidos e de alta legibilidade exclusivamente no conteúdo */
+  main h1 + p,
+  main h1 ~ p,
+  main h2 + p,
   .page-subtitle {
     color: #081B20 !important;
     font-weight: 700 !important;

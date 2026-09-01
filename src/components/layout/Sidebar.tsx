@@ -84,7 +84,7 @@ export function Sidebar() {
               <span className="text-white">Evolu</span>
               <span className="text-[#A855F7]">IA</span>
             </h1>
-            <p className="text-[10px] font-semibold text-[#7EA2AA] tracking-wide mt-1 truncate">
+            <p className="text-[10px] font-bold text-[#A6C5CC] tracking-wide mt-1 truncate">
               {professional?.clinic_name || "Gestão Psicopedagógica"}
             </p>
           </div>
@@ -213,7 +213,7 @@ export function Sidebar() {
             </div>
             <p
               className={cn(
-                "text-[11px] text-[#DDD6FE] leading-snug font-medium pt-0.5 transition-all duration-300",
+                "text-[11px] text-[#E9D5FF] leading-snug font-semibold pt-0.5 transition-all duration-300",
                 isRotating ? "opacity-0 translate-y-1" : "opacity-100 translate-y-0"
               )}
             >
