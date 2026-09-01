@@ -36,7 +36,9 @@ import {
   ArrowRight as ArrowRightIcon,
   Upload,
   PlusCircle,
-  Table,
+  GripVertical,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react"
 import type { ReportTestResult } from "@/lib/docxReportGenerator"
 
@@ -110,6 +112,7 @@ export function ClinicalReportPreviewModal({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const clinicLogoInputRef = useRef<HTMLInputElement>(null)
   const [selectedImgEl, setSelectedImgEl] = useState<HTMLImageElement | null>(null)
+  const [lastClickedCardEl, setLastClickedCardEl] = useState<HTMLElement | null>(null)
 
   // Carrega logo da clínica de múltiplas fontes confiáveis (apenas logomarca da clínica, nunca a foto de perfil/rosto)
   const [headerLogo, setHeaderLogo] = useState<string>(() => {
@@ -334,6 +337,61 @@ export function ClinicalReportPreviewModal({
     setSelectedImgEl(null)
   }
 
+  // Reordenação de Cards (Mover para Cima / Baixo)
+  function moveCard(cardButton: HTMLElement, direction: "up" | "down") {
+    const card = cardButton.closest(".group\\/card, .test-card-item") as HTMLElement
+    if (!card || !card.parentElement) return
+
+    if (direction === "up") {
+      const prev = card.previousElementSibling as HTMLElement
+      if (prev && (prev.classList.contains("group/card") || prev.classList.contains("test-card-item"))) {
+        card.parentElement.insertBefore(card, prev)
+      }
+    } else {
+      const next = card.nextElementSibling as HTMLElement
+      if (next && (next.classList.contains("group/card") || next.classList.contains("test-card-item"))) {
+        card.parentElement.insertBefore(next, card)
+      }
+    }
+  }
+
+  // Drag and Drop de Cards
+  let draggedCardElement: HTMLElement | null = null
+
+  function handleDragStartCard(e: React.DragEvent<HTMLElement>) {
+    const card = (e.currentTarget as HTMLElement).closest(".group\\/card, .test-card-item") as HTMLElement
+    if (card) {
+      draggedCardElement = card
+      e.dataTransfer.effectAllowed = "move"
+      card.classList.add("opacity-50", "border-dashed", "border-[#7C3AED]")
+    }
+  }
+
+  function handleDragEndCard(e: React.DragEvent<HTMLElement>) {
+    const card = (e.currentTarget as HTMLElement).closest(".group\\/card, .test-card-item") as HTMLElement
+    if (card) {
+      card.classList.remove("opacity-50", "border-dashed", "border-[#7C3AED]")
+    }
+    draggedCardElement = null
+  }
+
+  function handleDragOverCard(e: React.DragEvent<HTMLElement>) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "move"
+  }
+
+  function handleDropCard(e: React.DragEvent<HTMLElement>) {
+    e.preventDefault()
+    const targetCard = (e.currentTarget as HTMLElement).closest(".group\\/card, .test-card-item") as HTMLElement
+    if (draggedCardElement && targetCard && draggedCardElement !== targetCard && targetCard.parentElement) {
+      targetCard.parentElement.insertBefore(draggedCardElement, targetCard)
+    }
+    if (draggedCardElement) {
+      draggedCardElement.classList.remove("opacity-50", "border-dashed", "border-[#7C3AED]")
+    }
+    draggedCardElement = null
+  }
+
   // Adiciona Linha em Tabela Ativa
   function addTableRowToCard(targetButton: HTMLElement) {
     const card = targetButton.closest(".test-card-item, .group\\/card, .p-4")
@@ -365,25 +423,38 @@ export function ClinicalReportPreviewModal({
     }
   }
 
-  // Adiciona Novo Card de Teste no Bloco de Resultados
-  function handleAddCustomTestCard(targetSiblingCard?: HTMLElement) {
-    const container = document.querySelector(".tests-container-list")
-    if (!container) return
-
+  // Cria e Insere Novo Card Formatado no Local Específico Clicado
+  function insertCustomCardAt(targetSiblingCard?: HTMLElement | null) {
     const cardDiv = document.createElement("div")
-    cardDiv.className = "relative group/card p-4 rounded-2xl bg-[#F8FAFB] border-2 border-[#D8E5E7] space-y-3 test-card-item"
-    cardDiv.innerHTML = `
-      <button
-        type="button"
-        contenteditable="false"
-        onclick="this.closest('.test-card-item').remove()"
-        class="absolute top-3 right-3 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
-        title="Excluir este bloco de teste"
-      >
-        🗑️ <span>Excluir Card</span>
-      </button>
+    cardDiv.className = "relative group/card p-5 rounded-2xl bg-[#F8FAFB] border-2 border-[#D8E5E7] shadow-2xs space-y-3 test-card-item animate-in fade-in-50"
+    cardDiv.draggable = true
+    cardDiv.ondragover = (e) => e.preventDefault()
+    cardDiv.ondrop = (e) => {
+      e.preventDefault()
+      const target = (e.currentTarget as HTMLElement)
+      if (draggedCardElement && target && draggedCardElement !== target && target.parentElement) {
+        target.parentElement.insertBefore(draggedCardElement, target)
+      }
+    }
 
-      <div class="flex items-center justify-between flex-wrap gap-2 pr-24">
+    cardDiv.innerHTML = `
+      <!-- Ações do Card: Arrastar, Subir, Descer, Excluir -->
+      <div contenteditable="false" class="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden z-10">
+        <span class="cursor-grab p-1 rounded-lg bg-white border border-[#D8E5E7] text-[#6B7C83] hover:text-[#0D2329]" title="Segure e arraste para mudar de posição">
+          ⠿
+        </span>
+        <button type="button" class="btn-card-up p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs" title="Mover para cima">
+          ⬆️
+        </button>
+        <button type="button" class="btn-card-down p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs" title="Mover para baixo">
+          ⬇️
+        </button>
+        <button type="button" onclick="this.closest('.group\\\\/card, .test-card-item').remove()" class="bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer shadow-2xs" title="Excluir este card">
+          🗑️ <span>Excluir</span>
+        </button>
+      </div>
+
+      <div class="flex items-center justify-between flex-wrap gap-2 pr-32">
         <h3 class="text-xs font-black uppercase text-[#0D2329] tracking-wide">
           NOVO INSTRUMENTO / TESTE AVALIATIVO
         </h3>
@@ -437,32 +508,40 @@ export function ClinicalReportPreviewModal({
       </p>
     `
 
-    // Conecta botões de adicionar linha
+    // Conecta botões internos do card criado
     const addBtn = cardDiv.querySelector(".add-row-btn") as HTMLElement
-    if (addBtn) {
-      addBtn.onclick = (e) => {
-        e.stopPropagation()
-        addTableRowToCard(addBtn)
-      }
-    }
+    if (addBtn) addBtn.onclick = (e) => { e.stopPropagation(); addTableRowToCard(addBtn); }
     const remBtn = cardDiv.querySelector(".remove-row-btn") as HTMLElement
-    if (remBtn) {
-      remBtn.onclick = (e) => {
-        e.stopPropagation()
-        removeTableRowFromCard(remBtn)
-      }
+    if (remBtn) remBtn.onclick = (e) => { e.stopPropagation(); removeTableRowFromCard(remBtn); }
+    const upBtn = cardDiv.querySelector(".btn-card-up") as HTMLElement
+    if (upBtn) upBtn.onclick = (e) => { e.stopPropagation(); moveCard(upBtn, "up"); }
+    const downBtn = cardDiv.querySelector(".btn-card-down") as HTMLElement
+    if (downBtn) downBtn.onclick = (e) => { e.stopPropagation(); moveCard(downBtn, "down"); }
+
+    const reportRoot = document.querySelector(".printable-report")
+    const testsContainer = document.querySelector(".tests-container-list")
+
+    if (targetSiblingCard && targetSiblingCard.parentElement) {
+      targetSiblingCard.parentElement.insertBefore(cardDiv, targetSiblingCard.nextElementSibling)
+    } else if (lastClickedCardEl && lastClickedCardEl.parentElement) {
+      lastClickedCardEl.parentElement.insertBefore(cardDiv, lastClickedCardEl.nextElementSibling)
+    } else if (testsContainer) {
+      testsContainer.appendChild(cardDiv)
+    } else if (reportRoot) {
+      reportRoot.appendChild(cardDiv)
     }
 
-    if (targetSiblingCard && targetSiblingCard.parentNode === container) {
-      container.insertBefore(cardDiv, targetSiblingCard.nextSibling)
-    } else {
-      container.appendChild(cardDiv)
-    }
+    cardDiv.scrollIntoView({ behavior: "smooth", block: "center" })
   }
 
-  // Detecta clique em imagens no relatório para exibir os controles
+  // Detecta clique em cards e imagens no relatório
   function handleReportClick(e: React.MouseEvent<HTMLDivElement>) {
     const target = e.target as HTMLElement
+    const card = target.closest(".group\\/card, .test-card-item") as HTMLElement
+    if (card) {
+      setLastClickedCardEl(card)
+    }
+
     if (target && target.tagName === "IMG" && !target.closest(".modal-header-logo-box")) {
       if (selectedImgEl && selectedImgEl !== target) {
         selectedImgEl.style.outline = "none"
@@ -628,7 +707,7 @@ export function ClinicalReportPreviewModal({
                 </span>
               </div>
               <p className="text-xs font-semibold text-[#6B7C83]">
-                Edite textos, títulos, tabelas, números e fotos direto na folha antes de imprimir.
+                Edite textos, títulos, tabelas, reordene cards com as setas ⬆️ ⬇️ ou arrastando, e insira cards onde quiser.
               </p>
             </div>
           </div>
@@ -890,15 +969,15 @@ export function ClinicalReportPreviewModal({
             className="hidden"
           />
 
-          {/* Botão Rápido de Inserir Novo Card de Teste */}
+          {/* Botão Rápido de Inserir Novo Card onde clicou */}
           <button
             type="button"
-            onClick={() => handleAddCustomTestCard()}
+            onClick={() => insertCustomCardAt(lastClickedCardEl)}
             className="px-2.5 py-1 rounded-lg bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#005B94] font-black border border-[#BAE6FD] cursor-pointer flex items-center gap-1.5 shadow-2xs transition-all ml-1"
-            title="Adicionar um novo card de teste avaliativo"
+            title="Inserir um novo card na posição clicada"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>+ Card</span>
+            <span>+ Card Aqui</span>
           </button>
 
           {/* Limpar Formatação */}
@@ -1042,21 +1121,49 @@ export function ClinicalReportPreviewModal({
         >
           
           {/* 1. Timbre e Cabeçalho da Clínica */}
-          <div className="relative group/card p-6 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3 print:border-none print:shadow-none print-avoid-break">
-            <button
-              type="button"
-              contentEditable={false}
-              onClick={(e) => {
-                e.stopPropagation()
-                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
-                if (card) card.remove()
-              }}
-              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
-              title="Excluir este bloco do laudo"
-            >
-              <Trash2 className="w-3 h-3" />
-              <span>Excluir Card</span>
-            </button>
+          <div
+            draggable={true}
+            onDragStart={handleDragStartCard}
+            onDragEnd={handleDragEndCard}
+            onDragOver={handleDragOverCard}
+            onDrop={handleDropCard}
+            className="relative group/card p-6 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3 print:border-none print:shadow-none print-avoid-break transition-all"
+          >
+            {/* Controles do Card (Arrastar, Mover, Excluir) */}
+            <div contentEditable={false} className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden z-10">
+              <span className="cursor-grab p-1 rounded-lg bg-white border border-[#D8E5E7] text-[#6B7C83] hover:text-[#0D2329]" title="Segure e arraste para mudar de posição">
+                <GripVertical className="w-3.5 h-3.5" />
+              </span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "up"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para cima"
+              >
+                <ArrowUp className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "down"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para baixo"
+              >
+                <ArrowDown className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                  if (card) card.remove()
+                }}
+                className="bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer shadow-2xs"
+                title="Excluir este bloco do laudo"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Excluir</span>
+              </button>
+            </div>
 
             <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-4 flex-wrap gap-4">
               <div className="flex items-center gap-4">
@@ -1119,22 +1226,65 @@ export function ClinicalReportPreviewModal({
             </div>
           </div>
 
-          {/* 2. Identificação do Paciente */}
-          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3 print:border print:shadow-none print-avoid-break">
+          {/* Divisor Interativo para Inserir Card Aqui */}
+          <div contentEditable={false} className="group/divbar relative flex items-center justify-center py-1 opacity-0 hover:opacity-100 transition-opacity print:hidden">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-dashed border-[#BAE6FD]" /></div>
             <button
               type="button"
-              contentEditable={false}
               onClick={(e) => {
-                e.stopPropagation()
-                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
-                if (card) card.remove()
+                const prevCard = (e.currentTarget as HTMLElement).closest(".group\\/divbar")?.previousElementSibling as HTMLElement
+                insertCustomCardAt(prevCard)
               }}
-              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
-              title="Excluir este bloco do laudo"
+              className="relative px-3 py-1 rounded-full bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#005B94] text-[10px] font-black flex items-center gap-1 border border-[#BAE6FD] shadow-2xs cursor-pointer"
             >
-              <Trash2 className="w-3 h-3" />
-              <span>Excluir Card</span>
+              <span>➕ Inserir Card Aqui</span>
             </button>
+          </div>
+
+          {/* 2. Identificação do Paciente */}
+          <div
+            draggable={true}
+            onDragStart={handleDragStartCard}
+            onDragEnd={handleDragEndCard}
+            onDragOver={handleDragOverCard}
+            onDrop={handleDropCard}
+            className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3 print:border print:shadow-none print-avoid-break transition-all"
+          >
+            {/* Controles do Card (Arrastar, Mover, Excluir) */}
+            <div contentEditable={false} className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden z-10">
+              <span className="cursor-grab p-1 rounded-lg bg-white border border-[#D8E5E7] text-[#6B7C83] hover:text-[#0D2329]" title="Segure e arraste para mudar de posição">
+                <GripVertical className="w-3.5 h-3.5" />
+              </span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "up"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para cima"
+              >
+                <ArrowUp className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "down"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para baixo"
+              >
+                <ArrowDown className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                  if (card) card.remove()
+                }}
+                className="bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer shadow-2xs"
+                title="Excluir este bloco do laudo"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Excluir</span>
+              </button>
+            </div>
 
             <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2 border-b border-[#EEF5F6] pb-2">
               <User className="w-4 h-4 text-[#005B94]" />
@@ -1183,22 +1333,65 @@ export function ClinicalReportPreviewModal({
             </div>
           </div>
 
-          {/* 3. Instrumentos Avaliativos Utilizados */}
-          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3 print:border print:shadow-none print-avoid-break">
+          {/* Divisor Interativo para Inserir Card Aqui */}
+          <div contentEditable={false} className="group/divbar relative flex items-center justify-center py-1 opacity-0 hover:opacity-100 transition-opacity print:hidden">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-dashed border-[#BAE6FD]" /></div>
             <button
               type="button"
-              contentEditable={false}
               onClick={(e) => {
-                e.stopPropagation()
-                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
-                if (card) card.remove()
+                const prevCard = (e.currentTarget as HTMLElement).closest(".group\\/divbar")?.previousElementSibling as HTMLElement
+                insertCustomCardAt(prevCard)
               }}
-              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
-              title="Excluir este bloco do laudo"
+              className="relative px-3 py-1 rounded-full bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#005B94] text-[10px] font-black flex items-center gap-1 border border-[#BAE6FD] shadow-2xs cursor-pointer"
             >
-              <Trash2 className="w-3 h-3" />
-              <span>Excluir Card</span>
+              <span>➕ Inserir Card Aqui</span>
             </button>
+          </div>
+
+          {/* 3. Instrumentos Avaliativos Utilizados */}
+          <div
+            draggable={true}
+            onDragStart={handleDragStartCard}
+            onDragEnd={handleDragEndCard}
+            onDragOver={handleDragOverCard}
+            onDrop={handleDropCard}
+            className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3 print:border print:shadow-none print-avoid-break transition-all"
+          >
+            {/* Controles do Card (Arrastar, Mover, Excluir) */}
+            <div contentEditable={false} className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden z-10">
+              <span className="cursor-grab p-1 rounded-lg bg-white border border-[#D8E5E7] text-[#6B7C83] hover:text-[#0D2329]" title="Segure e arraste para mudar de posição">
+                <GripVertical className="w-3.5 h-3.5" />
+              </span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "up"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para cima"
+              >
+                <ArrowUp className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "down"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para baixo"
+              >
+                <ArrowDown className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                  if (card) card.remove()
+                }}
+                className="bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer shadow-2xs"
+                title="Excluir este bloco do laudo"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Excluir</span>
+              </button>
+            </div>
 
             <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2 border-b border-[#EEF5F6] pb-2">
               <Brain className="w-4 h-4 text-[#005B94]" />
@@ -1224,22 +1417,65 @@ export function ClinicalReportPreviewModal({
             </p>
           </div>
 
-          {/* 4. Anamnese / Entrevista Inicial com a Família */}
-          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-4 print:border print:shadow-none print-avoid-break">
+          {/* Divisor Interativo para Inserir Card Aqui */}
+          <div contentEditable={false} className="group/divbar relative flex items-center justify-center py-1 opacity-0 hover:opacity-100 transition-opacity print:hidden">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-dashed border-[#BAE6FD]" /></div>
             <button
               type="button"
-              contentEditable={false}
               onClick={(e) => {
-                e.stopPropagation()
-                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
-                if (card) card.remove()
+                const prevCard = (e.currentTarget as HTMLElement).closest(".group\\/divbar")?.previousElementSibling as HTMLElement
+                insertCustomCardAt(prevCard)
               }}
-              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
-              title="Excluir este bloco do laudo"
+              className="relative px-3 py-1 rounded-full bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#005B94] text-[10px] font-black flex items-center gap-1 border border-[#BAE6FD] shadow-2xs cursor-pointer"
             >
-              <Trash2 className="w-3 h-3" />
-              <span>Excluir Card</span>
+              <span>➕ Inserir Card Aqui</span>
             </button>
+          </div>
+
+          {/* 4. Anamnese / Entrevista Inicial com a Família */}
+          <div
+            draggable={true}
+            onDragStart={handleDragStartCard}
+            onDragEnd={handleDragEndCard}
+            onDragOver={handleDragOverCard}
+            onDrop={handleDropCard}
+            className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-4 print:border print:shadow-none print-avoid-break transition-all"
+          >
+            {/* Controles do Card (Arrastar, Mover, Excluir) */}
+            <div contentEditable={false} className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden z-10">
+              <span className="cursor-grab p-1 rounded-lg bg-white border border-[#D8E5E7] text-[#6B7C83] hover:text-[#0D2329]" title="Segure e arraste para mudar de posição">
+                <GripVertical className="w-3.5 h-3.5" />
+              </span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "up"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para cima"
+              >
+                <ArrowUp className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "down"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para baixo"
+              >
+                <ArrowDown className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                  if (card) card.remove()
+                }}
+                className="bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer shadow-2xs"
+                title="Excluir este bloco do laudo"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Excluir</span>
+              </button>
+            </div>
 
             <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-2">
               <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
@@ -1267,22 +1503,65 @@ export function ClinicalReportPreviewModal({
             </div>
           </div>
 
-          {/* 5. Entrevista / Visita Escolar */}
-          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-4 print:border print:shadow-none print-avoid-break">
+          {/* Divisor Interativo para Inserir Card Aqui */}
+          <div contentEditable={false} className="group/divbar relative flex items-center justify-center py-1 opacity-0 hover:opacity-100 transition-opacity print:hidden">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-dashed border-[#BAE6FD]" /></div>
             <button
               type="button"
-              contentEditable={false}
               onClick={(e) => {
-                e.stopPropagation()
-                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
-                if (card) card.remove()
+                const prevCard = (e.currentTarget as HTMLElement).closest(".group\\/divbar")?.previousElementSibling as HTMLElement
+                insertCustomCardAt(prevCard)
               }}
-              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
-              title="Excluir este bloco do laudo"
+              className="relative px-3 py-1 rounded-full bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#005B94] text-[10px] font-black flex items-center gap-1 border border-[#BAE6FD] shadow-2xs cursor-pointer"
             >
-              <Trash2 className="w-3 h-3" />
-              <span>Excluir Card</span>
+              <span>➕ Inserir Card Aqui</span>
             </button>
+          </div>
+
+          {/* 5. Entrevista / Visita Escolar */}
+          <div
+            draggable={true}
+            onDragStart={handleDragStartCard}
+            onDragEnd={handleDragEndCard}
+            onDragOver={handleDragOverCard}
+            onDrop={handleDropCard}
+            className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-4 print:border print:shadow-none print-avoid-break transition-all"
+          >
+            {/* Controles do Card (Arrastar, Mover, Excluir) */}
+            <div contentEditable={false} className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden z-10">
+              <span className="cursor-grab p-1 rounded-lg bg-white border border-[#D8E5E7] text-[#6B7C83] hover:text-[#0D2329]" title="Segure e arraste para mudar de posição">
+                <GripVertical className="w-3.5 h-3.5" />
+              </span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "up"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para cima"
+              >
+                <ArrowUp className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "down"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para baixo"
+              >
+                <ArrowDown className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                  if (card) card.remove()
+                }}
+                className="bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer shadow-2xs"
+                title="Excluir este bloco do laudo"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Excluir</span>
+              </button>
+            </div>
 
             <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-2">
               <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
@@ -1355,22 +1634,65 @@ export function ClinicalReportPreviewModal({
             </div>
           </div>
 
-          {/* 6. Resultados dos Testes e Instrumentos Avaliativos */}
-          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-5 print:border print:shadow-none print-avoid-break">
+          {/* Divisor Interativo para Inserir Card Aqui */}
+          <div contentEditable={false} className="group/divbar relative flex items-center justify-center py-1 opacity-0 hover:opacity-100 transition-opacity print:hidden">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-dashed border-[#BAE6FD]" /></div>
             <button
               type="button"
-              contentEditable={false}
               onClick={(e) => {
-                e.stopPropagation()
-                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
-                if (card) card.remove()
+                const prevCard = (e.currentTarget as HTMLElement).closest(".group\\/divbar")?.previousElementSibling as HTMLElement
+                insertCustomCardAt(prevCard)
               }}
-              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
-              title="Excluir este bloco do laudo"
+              className="relative px-3 py-1 rounded-full bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#005B94] text-[10px] font-black flex items-center gap-1 border border-[#BAE6FD] shadow-2xs cursor-pointer"
             >
-              <Trash2 className="w-3 h-3" />
-              <span>Excluir Card</span>
+              <span>➕ Inserir Card Aqui</span>
             </button>
+          </div>
+
+          {/* 6. Resultados dos Testes e Instrumentos Avaliativos */}
+          <div
+            draggable={true}
+            onDragStart={handleDragStartCard}
+            onDragEnd={handleDragEndCard}
+            onDragOver={handleDragOverCard}
+            onDrop={handleDropCard}
+            className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-5 print:border print:shadow-none print-avoid-break transition-all"
+          >
+            {/* Controles do Card (Arrastar, Mover, Excluir) */}
+            <div contentEditable={false} className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden z-10">
+              <span className="cursor-grab p-1 rounded-lg bg-white border border-[#D8E5E7] text-[#6B7C83] hover:text-[#0D2329]" title="Segure e arraste para mudar de posição">
+                <GripVertical className="w-3.5 h-3.5" />
+              </span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "up"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para cima"
+              >
+                <ArrowUp className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "down"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para baixo"
+              >
+                <ArrowDown className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                  if (card) card.remove()
+                }}
+                className="bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer shadow-2xs"
+                title="Excluir este bloco do laudo"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Excluir</span>
+              </button>
+            </div>
 
             <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-2 flex-wrap gap-2">
               <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
@@ -1382,7 +1704,7 @@ export function ClinicalReportPreviewModal({
               <button
                 type="button"
                 contentEditable={false}
-                onClick={() => handleAddCustomTestCard()}
+                onClick={() => insertCustomCardAt()}
                 className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-[11px] font-black flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all print:hidden"
                 title="Adicionar um novo card de teste ou instrumento avaliativo"
               >
@@ -1393,23 +1715,52 @@ export function ClinicalReportPreviewModal({
 
             <div className="space-y-6 tests-container-list">
               {initialTestsResults.map((test, tIdx) => (
-                <div key={tIdx} className="relative group/card p-4 rounded-2xl bg-[#F8FAFB] border-2 border-[#D8E5E7] space-y-3 test-card-item">
-                  <button
-                    type="button"
-                    contentEditable={false}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      const card = (e.currentTarget as HTMLElement).closest(".test-card-item")
-                      if (card) card.remove()
-                    }}
-                    className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
-                    title="Excluir este bloco de teste"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    <span>Excluir Card</span>
-                  </button>
+                <div
+                  key={tIdx}
+                  draggable={true}
+                  onDragStart={handleDragStartCard}
+                  onDragEnd={handleDragEndCard}
+                  onDragOver={handleDragOverCard}
+                  onDrop={handleDropCard}
+                  className="relative group/card p-4 rounded-2xl bg-[#F8FAFB] border-2 border-[#D8E5E7] space-y-3 test-card-item transition-all"
+                >
+                  {/* Ações do Card de Teste: Arrastar, Subir, Descer, Excluir */}
+                  <div contentEditable={false} className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden z-10">
+                    <span className="cursor-grab p-1 rounded-lg bg-white border border-[#D8E5E7] text-[#6B7C83] hover:text-[#0D2329]" title="Segure e arraste para mudar de posição">
+                      <GripVertical className="w-3.5 h-3.5" />
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "up"); }}
+                      className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                      title="Mover teste para cima"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5 text-[#005B94]" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "down"); }}
+                      className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                      title="Mover teste para baixo"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5 text-[#005B94]" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        const card = (e.currentTarget as HTMLElement).closest(".test-card-item")
+                        if (card) card.remove()
+                      }}
+                      className="bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer shadow-2xs"
+                      title="Excluir este bloco de teste"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Excluir</span>
+                    </button>
+                  </div>
 
-                  <div className="flex items-center justify-between flex-wrap gap-2 pr-24">
+                  <div className="flex items-center justify-between flex-wrap gap-2 pr-32">
                     <h3 className="text-xs font-black uppercase text-[#0D2329] tracking-wide">
                       {test.title}
                     </h3>
@@ -1493,22 +1844,65 @@ export function ClinicalReportPreviewModal({
             </div>
           </div>
 
-          {/* 7. Observação Clínica nas Sessões */}
-          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-2 print:border print:shadow-none print-avoid-break">
+          {/* Divisor Interativo para Inserir Card Aqui */}
+          <div contentEditable={false} className="group/divbar relative flex items-center justify-center py-1 opacity-0 hover:opacity-100 transition-opacity print:hidden">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-dashed border-[#BAE6FD]" /></div>
             <button
               type="button"
-              contentEditable={false}
               onClick={(e) => {
-                e.stopPropagation()
-                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
-                if (card) card.remove()
+                const prevCard = (e.currentTarget as HTMLElement).closest(".group\\/divbar")?.previousElementSibling as HTMLElement
+                insertCustomCardAt(prevCard)
               }}
-              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
-              title="Excluir este bloco do laudo"
+              className="relative px-3 py-1 rounded-full bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#005B94] text-[10px] font-black flex items-center gap-1 border border-[#BAE6FD] shadow-2xs cursor-pointer"
             >
-              <Trash2 className="w-3 h-3" />
-              <span>Excluir Card</span>
+              <span>➕ Inserir Card Aqui</span>
             </button>
+          </div>
+
+          {/* 7. Observação Clínica nas Sessões */}
+          <div
+            draggable={true}
+            onDragStart={handleDragStartCard}
+            onDragEnd={handleDragEndCard}
+            onDragOver={handleDragOverCard}
+            onDrop={handleDropCard}
+            className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-2 print:border print:shadow-none print-avoid-break transition-all"
+          >
+            {/* Controles do Card (Arrastar, Mover, Excluir) */}
+            <div contentEditable={false} className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden z-10">
+              <span className="cursor-grab p-1 rounded-lg bg-white border border-[#D8E5E7] text-[#6B7C83] hover:text-[#0D2329]" title="Segure e arraste para mudar de posição">
+                <GripVertical className="w-3.5 h-3.5" />
+              </span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "up"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para cima"
+              >
+                <ArrowUp className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "down"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para baixo"
+              >
+                <ArrowDown className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                  if (card) card.remove()
+                }}
+                className="bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer shadow-2xs"
+                title="Excluir este bloco do laudo"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Excluir</span>
+              </button>
+            </div>
 
             <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2 border-b border-[#EEF5F6] pb-2">
               <Stethoscope className="w-4 h-4 text-[#005B94]" />
@@ -1519,22 +1913,65 @@ export function ClinicalReportPreviewModal({
             </p>
           </div>
 
-          {/* 8. Síntese da Avaliação Psicopedagógica */}
-          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-2 print:border print:shadow-none print-avoid-break">
+          {/* Divisor Interativo para Inserir Card Aqui */}
+          <div contentEditable={false} className="group/divbar relative flex items-center justify-center py-1 opacity-0 hover:opacity-100 transition-opacity print:hidden">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-dashed border-[#BAE6FD]" /></div>
             <button
               type="button"
-              contentEditable={false}
               onClick={(e) => {
-                e.stopPropagation()
-                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
-                if (card) card.remove()
+                const prevCard = (e.currentTarget as HTMLElement).closest(".group\\/divbar")?.previousElementSibling as HTMLElement
+                insertCustomCardAt(prevCard)
               }}
-              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
-              title="Excluir este bloco do laudo"
+              className="relative px-3 py-1 rounded-full bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#005B94] text-[10px] font-black flex items-center gap-1 border border-[#BAE6FD] shadow-2xs cursor-pointer"
             >
-              <Trash2 className="w-3 h-3" />
-              <span>Excluir Card</span>
+              <span>➕ Inserir Card Aqui</span>
             </button>
+          </div>
+
+          {/* 8. Síntese da Avaliação Psicopedagógica */}
+          <div
+            draggable={true}
+            onDragStart={handleDragStartCard}
+            onDragEnd={handleDragEndCard}
+            onDragOver={handleDragOverCard}
+            onDrop={handleDropCard}
+            className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-2 print:border print:shadow-none print-avoid-break transition-all"
+          >
+            {/* Controles do Card (Arrastar, Mover, Excluir) */}
+            <div contentEditable={false} className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden z-10">
+              <span className="cursor-grab p-1 rounded-lg bg-white border border-[#D8E5E7] text-[#6B7C83] hover:text-[#0D2329]" title="Segure e arraste para mudar de posição">
+                <GripVertical className="w-3.5 h-3.5" />
+              </span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "up"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para cima"
+              >
+                <ArrowUp className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "down"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para baixo"
+              >
+                <ArrowDown className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                  if (card) card.remove()
+                }}
+                className="bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer shadow-2xs"
+                title="Excluir este bloco do laudo"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Excluir</span>
+              </button>
+            </div>
 
             <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2 border-b border-[#EEF5F6] pb-2">
               <FileText className="w-4 h-4 text-[#005B94]" />
@@ -1545,22 +1982,65 @@ export function ClinicalReportPreviewModal({
             </p>
           </div>
 
-          {/* 9. Hipótese Diagnóstica (DSM-5-TR) */}
-          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3 print:border print:shadow-none print-avoid-break">
+          {/* Divisor Interativo para Inserir Card Aqui */}
+          <div contentEditable={false} className="group/divbar relative flex items-center justify-center py-1 opacity-0 hover:opacity-100 transition-opacity print:hidden">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-dashed border-[#BAE6FD]" /></div>
             <button
               type="button"
-              contentEditable={false}
               onClick={(e) => {
-                e.stopPropagation()
-                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
-                if (card) card.remove()
+                const prevCard = (e.currentTarget as HTMLElement).closest(".group\\/divbar")?.previousElementSibling as HTMLElement
+                insertCustomCardAt(prevCard)
               }}
-              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
-              title="Excluir este bloco do laudo"
+              className="relative px-3 py-1 rounded-full bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#005B94] text-[10px] font-black flex items-center gap-1 border border-[#BAE6FD] shadow-2xs cursor-pointer"
             >
-              <Trash2 className="w-3 h-3" />
-              <span>Excluir Card</span>
+              <span>➕ Inserir Card Aqui</span>
             </button>
+          </div>
+
+          {/* 9. Hipótese Diagnóstica (DSM-5-TR) */}
+          <div
+            draggable={true}
+            onDragStart={handleDragStartCard}
+            onDragEnd={handleDragEndCard}
+            onDragOver={handleDragOverCard}
+            onDrop={handleDropCard}
+            className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3 print:border print:shadow-none print-avoid-break transition-all"
+          >
+            {/* Controles do Card (Arrastar, Mover, Excluir) */}
+            <div contentEditable={false} className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden z-10">
+              <span className="cursor-grab p-1 rounded-lg bg-white border border-[#D8E5E7] text-[#6B7C83] hover:text-[#0D2329]" title="Segure e arraste para mudar de posição">
+                <GripVertical className="w-3.5 h-3.5" />
+              </span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "up"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para cima"
+              >
+                <ArrowUp className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "down"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para baixo"
+              >
+                <ArrowDown className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                  if (card) card.remove()
+                }}
+                className="bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer shadow-2xs"
+                title="Excluir este bloco do laudo"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Excluir</span>
+              </button>
+            </div>
 
             <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2 border-b border-[#EEF5F6] pb-2">
               <Lightbulb className="w-4 h-4 text-[#005B94]" />
@@ -1587,22 +2067,65 @@ export function ClinicalReportPreviewModal({
             )}
           </div>
 
-          {/* 10. Encaminhamentos & Orientações */}
-          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-4 print:border print:shadow-none print-avoid-break">
+          {/* Divisor Interativo para Inserir Card Aqui */}
+          <div contentEditable={false} className="group/divbar relative flex items-center justify-center py-1 opacity-0 hover:opacity-100 transition-opacity print:hidden">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-dashed border-[#BAE6FD]" /></div>
             <button
               type="button"
-              contentEditable={false}
               onClick={(e) => {
-                e.stopPropagation()
-                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
-                if (card) card.remove()
+                const prevCard = (e.currentTarget as HTMLElement).closest(".group\\/divbar")?.previousElementSibling as HTMLElement
+                insertCustomCardAt(prevCard)
               }}
-              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
-              title="Excluir este bloco do laudo"
+              className="relative px-3 py-1 rounded-full bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#005B94] text-[10px] font-black flex items-center gap-1 border border-[#BAE6FD] shadow-2xs cursor-pointer"
             >
-              <Trash2 className="w-3 h-3" />
-              <span>Excluir Card</span>
+              <span>➕ Inserir Card Aqui</span>
             </button>
+          </div>
+
+          {/* 10. Encaminhamentos & Orientações */}
+          <div
+            draggable={true}
+            onDragStart={handleDragStartCard}
+            onDragEnd={handleDragEndCard}
+            onDragOver={handleDragOverCard}
+            onDrop={handleDropCard}
+            className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-4 print:border print:shadow-none print-avoid-break transition-all"
+          >
+            {/* Controles do Card (Arrastar, Mover, Excluir) */}
+            <div contentEditable={false} className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity print:hidden z-10">
+              <span className="cursor-grab p-1 rounded-lg bg-white border border-[#D8E5E7] text-[#6B7C83] hover:text-[#0D2329]" title="Segure e arraste para mudar de posição">
+                <GripVertical className="w-3.5 h-3.5" />
+              </span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "up"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para cima"
+              >
+                <ArrowUp className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); moveCard(e.currentTarget, "down"); }}
+                className="p-1 rounded-lg bg-white hover:bg-[#F8FAFB] text-[#0D2329] border border-[#D8E5E7] cursor-pointer shadow-2xs"
+                title="Mover card para baixo"
+              >
+                <ArrowDown className="w-3.5 h-3.5 text-[#005B94]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                  if (card) card.remove()
+                }}
+                className="bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer shadow-2xs"
+                title="Excluir este bloco do laudo"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Excluir</span>
+              </button>
+            </div>
 
             <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2 border-b border-[#EEF5F6] pb-2">
               <CheckCircle2 className="w-4 h-4 text-[#005B94]" />
