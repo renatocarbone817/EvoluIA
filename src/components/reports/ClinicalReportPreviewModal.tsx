@@ -1,3 +1,4 @@
+import { useRef } from "react"
 import {
   FileText,
   Printer,
@@ -28,6 +29,7 @@ import {
   Heading1,
   Heading2,
   RemoveFormatting,
+  ImagePlus,
 } from "lucide-react"
 import type { ReportTestResult } from "@/lib/docxReportGenerator"
 
@@ -98,6 +100,8 @@ export function ClinicalReportPreviewModal({
 }: ClinicalReportPreviewModalProps) {
   if (!isOpen) return null
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const todayStr = new Date().toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "long",
@@ -106,6 +110,22 @@ export function ClinicalReportPreviewModal({
 
   function execCmd(command: string, value: string | null = null) {
     document.execCommand(command, false, value)
+  }
+
+  function handleInsertImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string
+      if (base64) {
+        // Insere a imagem no ponto atual do cursor
+        execCmd("insertImage", base64)
+      }
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ""
   }
 
   function handlePrint() {
@@ -185,6 +205,13 @@ export function ClinicalReportPreviewModal({
             width: 100% !important;
             border-collapse: collapse !important;
           }
+          img {
+            max-width: 100% !important;
+            height: auto !important;
+            border-radius: 8px !important;
+            display: inline-block !important;
+            margin: 6px 0 !important;
+          }
         </style>
       </head>
       <body class="p-4 space-y-6 bg-white">
@@ -227,7 +254,7 @@ export function ClinicalReportPreviewModal({
                 </span>
               </div>
               <p className="text-xs font-semibold text-[#6B7C83]">
-                Edite qualquer texto, tabela ou número direto na folha antes de imprimir ou salvar.
+                Edite qualquer texto, tabela, número ou insira fotos de testes direto na folha antes de imprimir.
               </p>
             </div>
           </div>
@@ -431,11 +458,29 @@ export function ClinicalReportPreviewModal({
             </button>
           </div>
 
+          {/* Inserir Imagem / Foto do Teste */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="px-2.5 py-1 rounded-lg bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] font-black border border-[#C4B5FD] cursor-pointer flex items-center gap-1.5 shadow-2xs transition-all"
+            title="Inserir Foto ou Desenho do Teste"
+          >
+            <ImagePlus className="w-4 h-4" />
+            <span>+ Inserir Foto / Desenho</span>
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleInsertImage}
+            accept="image/*"
+            className="hidden"
+          />
+
           {/* Limpar Formatação */}
           <button
             type="button"
             onMouseDown={(e) => { e.preventDefault(); execCmd("removeFormat"); }}
-            className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
+            className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer ml-auto"
             title="Limpar Formatação do Texto Selecionado"
           >
             <RemoveFormatting className="w-4 h-4" />
