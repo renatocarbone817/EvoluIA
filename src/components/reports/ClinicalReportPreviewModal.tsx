@@ -30,6 +30,8 @@ import {
   Heading2,
   RemoveFormatting,
   ImagePlus,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react"
 import type { ReportTestResult } from "@/lib/docxReportGenerator"
 
@@ -120,7 +122,6 @@ export function ClinicalReportPreviewModal({
     reader.onload = (event) => {
       const base64 = event.target?.result as string
       if (base64) {
-        // Insere a imagem no ponto atual do cursor
         execCmd("insertImage", base64)
       }
     }
@@ -212,6 +213,13 @@ export function ClinicalReportPreviewModal({
             display: inline-block !important;
             margin: 6px 0 !important;
           }
+          font[size="1"] { font-size: 10px !important; line-height: 1.4 !important; }
+          font[size="2"] { font-size: 11px !important; line-height: 1.45 !important; }
+          font[size="3"] { font-size: 12px !important; line-height: 1.5 !important; }
+          font[size="4"] { font-size: 14px !important; line-height: 1.55 !important; font-weight: 600 !important; }
+          font[size="5"] { font-size: 16px !important; line-height: 1.6 !important; font-weight: 700 !important; }
+          font[size="6"] { font-size: 18px !important; line-height: 1.6 !important; font-weight: 800 !important; }
+          font[size="7"] { font-size: 22px !important; line-height: 1.6 !important; font-weight: 900 !important; }
         </style>
       </head>
       <body class="p-4 space-y-6 bg-white">
@@ -254,7 +262,7 @@ export function ClinicalReportPreviewModal({
                 </span>
               </div>
               <p className="text-xs font-semibold text-[#6B7C83]">
-                Edite qualquer texto, tabela, número ou insira fotos de testes direto na folha antes de imprimir.
+                Edite qualquer texto, tamanho de letra, tabela, número ou insira fotos direto na folha.
               </p>
             </div>
           </div>
@@ -348,6 +356,46 @@ export function ClinicalReportPreviewModal({
               title="Tachado"
             >
               <Strikethrough className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Tamanho da Letra (Seletor + Aumentar / Diminuir) */}
+          <div className="flex items-center gap-1 border-r border-[#D8E5E7] pr-2">
+            <span className="text-[10px] font-bold text-[#6B7C83]">Tamanho:</span>
+            <select
+              onChange={(e) => {
+                if (e.target.value) {
+                  execCmd("fontSize", e.target.value)
+                }
+              }}
+              defaultValue="3"
+              className="bg-white border border-[#D8E5E7] rounded-lg px-2 py-1 text-[11px] font-bold text-[#0D2329] cursor-pointer focus:outline-none focus:border-[#7C3AED]"
+              title="Escolher Tamanho da Letra"
+            >
+              <option value="1">10px (Micro)</option>
+              <option value="2">11px (Pequeno)</option>
+              <option value="3">12px (Normal)</option>
+              <option value="4">14px (Médio)</option>
+              <option value="5">16px (Grande)</option>
+              <option value="6">18px (Extra)</option>
+              <option value="7">22px (Gigante)</option>
+            </select>
+
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("fontSize", "4"); }}
+              className="px-1.5 py-0.5 rounded-lg hover:bg-white text-[#0D2329] font-black border border-transparent hover:border-[#D8E5E7] cursor-pointer text-xs"
+              title="Aumentar Fonte (A+)"
+            >
+              A+
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("fontSize", "2"); }}
+              className="px-1.5 py-0.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] font-bold border border-transparent hover:border-[#D8E5E7] cursor-pointer text-[10px]"
+              title="Diminuir Fonte (A-)"
+            >
+              A-
             </button>
           </div>
 
@@ -466,7 +514,7 @@ export function ClinicalReportPreviewModal({
             title="Inserir Foto ou Desenho do Teste"
           >
             <ImagePlus className="w-4 h-4" />
-            <span>+ Inserir Foto / Desenho</span>
+            <span>+ Imagem</span>
           </button>
           <input
             type="file"
