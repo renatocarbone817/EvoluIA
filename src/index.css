@@ -26,7 +26,7 @@
 
     /* Elementos Suaves / Muted */
     --muted: 195 22% 88%;            /* #D6E4E8 */
-    --muted-foreground: 197 12% 40%; /* #556A72 */
+    --muted-foreground: 193 50% 12%; /* #0D2329 */
 
     /* Destaque / Accent */
     --accent: 168 45% 92%;           /* #E0F4F0 */
@@ -36,8 +36,8 @@
     --destructive: 0 57% 64%;        /* #D96C6C */
     --destructive-foreground: 0 0% 100%;
 
-    /* Bordas e Inputs com contorno forte, nítido e bem visível */
-    --border: 193 25% 65%;           /* #91B3BD */
+    /* Bordas e Inputs */
+    --border: 0 0% 100%;             /* #FFFFFF */
     --input: 193 25% 65%;
     --ring: 192 49% 28%;             /* #245C6B */
 
@@ -53,17 +53,26 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Contorno forte e bem definido para destacar os cards brancos contra o fundo #E5EEF1 */
+  /* Opção 3: Cards Brancos com Borda Branca Pura e Sombra Macia Flutuante */
   .bg-white.rounded-3xl,
   .bg-white.rounded-2xl,
   .bg-white.rounded-xl {
-    border: 2px solid #A0BDC6 !important;
-    box-shadow: 0 4px 18px -2px rgba(13, 35, 41, 0.09), 0 2px 6px -1px rgba(13, 35, 41, 0.04);
+    border: 2px solid #FFFFFF !important;
+    box-shadow: 0 12px 30px -4px rgba(0, 50, 80, 0.22), 0 4px 12px -2px rgba(0, 50, 80, 0.10) !important;
   }
 
   .border-\[\#D8E5E7\],
   .border-\[\#E2E8F0\] {
-    border-color: #A0BDC6 !important;
+    border-color: rgba(255, 255, 255, 0.85) !important;
+  }
+
+  /* Subtítulos de páginas escuros, nítidos e de alta legibilidade */
+  h1 + p,
+  h1 ~ p,
+  h2 + p,
+  .page-subtitle {
+    color: #081B20 !important;
+    font-weight: 700 !important;
   }
 }
 
