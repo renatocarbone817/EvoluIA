@@ -156,7 +156,6 @@ export function ClinicalReportPreviewModal({
       try {
         range.surroundContents(span)
       } catch {
-        // Fallback de formatação inline direta
         if (type === "title") {
           document.execCommand("fontSize", false, "5")
           document.execCommand("foreColor", false, "#005B94")
@@ -177,6 +176,56 @@ export function ClinicalReportPreviewModal({
         document.execCommand("formatBlock", false, tag)
       } catch {
         // Fallback silencioso
+      }
+    }
+  }
+
+  // Alinhamento Robusto
+  function applyAlignment(align: "left" | "center" | "right" | "justify") {
+    if (align === "left") {
+      document.execCommand("justifyLeft", false, null)
+    } else if (align === "center") {
+      document.execCommand("justifyCenter", false, null)
+    } else if (align === "right") {
+      document.execCommand("justifyRight", false, null)
+    } else if (align === "justify") {
+      document.execCommand("justifyFull", false, null)
+      const selection = window.getSelection()
+      if (selection && selection.anchorNode) {
+        let node: Node | null = selection.anchorNode
+        while (node && node !== document.body) {
+          if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).classList.contains("printable-report")) {
+            break
+          }
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const el = node as HTMLElement
+            if (["P", "DIV", "H1", "H2", "H3", "H4", "LI", "TD", "SPAN"].includes(el.tagName)) {
+              el.style.textAlign = "justify"
+              break
+            }
+          }
+          node = node.parentNode
+        }
+      }
+    }
+  }
+
+  // Listas Robustas (Marcadores e Numeração)
+  function applyList(type: "unordered" | "ordered") {
+    const cmd = type === "unordered" ? "insertUnorderedList" : "insertOrderedList"
+    const success = document.execCommand(cmd, false, null)
+    if (!success) {
+      const selection = window.getSelection()
+      if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+        const range = selection.getRangeAt(0)
+        const list = document.createElement(type === "unordered" ? "ul" : "ol")
+        list.style.listStyleType = type === "unordered" ? "disc" : "decimal"
+        list.style.paddingLeft = "24px"
+        list.style.margin = "6px 0"
+        const li = document.createElement("li")
+        li.appendChild(range.extractContents())
+        list.appendChild(li)
+        range.insertNode(list)
       }
     }
   }
@@ -252,7 +301,6 @@ export function ClinicalReportPreviewModal({
   }
 
   function handlePrint() {
-    // Remove outline de seleção de imagens antes de imprimir
     document.querySelectorAll(".printable-report img").forEach((img) => {
       ;(img as HTMLElement).style.outline = "none"
     })
@@ -337,6 +385,20 @@ export function ClinicalReportPreviewModal({
             height: auto !important;
             border-radius: 8px !important;
             outline: none !important;
+          }
+          ul {
+            list-style-type: disc !important;
+            padding-left: 24px !important;
+            margin: 6px 0 !important;
+          }
+          ol {
+            list-style-type: decimal !important;
+            padding-left: 24px !important;
+            margin: 6px 0 !important;
+          }
+          li {
+            display: list-item !important;
+            margin-bottom: 3px !important;
           }
           font[size="1"] { font-size: 10px !important; line-height: 1.4 !important; }
           font[size="2"] { font-size: 11px !important; line-height: 1.45 !important; }
@@ -575,11 +637,11 @@ export function ClinicalReportPreviewModal({
             ))}
           </div>
 
-          {/* Alinhamento */}
+          {/* Alinhamento (Esquerda, Centro, Direita, Justificar) */}
           <div className="flex items-center gap-0.5 border-r border-[#D8E5E7] pr-2">
             <button
               type="button"
-              onMouseDown={(e) => { e.preventDefault(); execCmd("justifyLeft"); }}
+              onMouseDown={(e) => { e.preventDefault(); applyAlignment("left"); }}
               className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
               title="Alinhar à Esquerda"
             >
@@ -587,7 +649,7 @@ export function ClinicalReportPreviewModal({
             </button>
             <button
               type="button"
-              onMouseDown={(e) => { e.preventDefault(); execCmd("justifyCenter"); }}
+              onMouseDown={(e) => { e.preventDefault(); applyAlignment("center"); }}
               className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
               title="Centralizar"
             >
@@ -595,7 +657,7 @@ export function ClinicalReportPreviewModal({
             </button>
             <button
               type="button"
-              onMouseDown={(e) => { e.preventDefault(); execCmd("justifyRight"); }}
+              onMouseDown={(e) => { e.preventDefault(); applyAlignment("right"); }}
               className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
               title="Alinhar à Direita"
             >
@@ -603,7 +665,7 @@ export function ClinicalReportPreviewModal({
             </button>
             <button
               type="button"
-              onMouseDown={(e) => { e.preventDefault(); execCmd("justifyFull"); }}
+              onMouseDown={(e) => { e.preventDefault(); applyAlignment("justify"); }}
               className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
               title="Justificar Texto"
             >
@@ -611,21 +673,21 @@ export function ClinicalReportPreviewModal({
             </button>
           </div>
 
-          {/* Listas */}
+          {/* Listas (Marcadores e Numeração) */}
           <div className="flex items-center gap-0.5 border-r border-[#D8E5E7] pr-2">
             <button
               type="button"
-              onMouseDown={(e) => { e.preventDefault(); execCmd("insertUnorderedList"); }}
+              onMouseDown={(e) => { e.preventDefault(); applyList("unordered"); }}
               className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
-              title="Lista com Marcadores"
+              title="Lista com Marcadores (Bolinhas)"
             >
               <List className="w-4 h-4" />
             </button>
             <button
               type="button"
-              onMouseDown={(e) => { e.preventDefault(); execCmd("insertOrderedList"); }}
+              onMouseDown={(e) => { e.preventDefault(); applyList("ordered"); }}
               className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
-              title="Lista Numerada"
+              title="Lista Numerada (1, 2, 3)"
             >
               <ListOrdered className="w-4 h-4" />
             </button>

@@ -154,6 +154,29 @@ font[size="6"] { font-size: 18px !important; line-height: 1.6 !important; font-w
 font[size="7"] { font-size: 22px !important; line-height: 1.6 !important; font-weight: 900 !important; }
 
 /* =========================================================================
+   ESTILOS DE LISTAS E ALINHAMENTO DO EDITOR WYSIWYG
+   ========================================================================= */
+.printable-report ul,
+.printable-report-modal ul {
+  list-style-type: disc !important;
+  padding-left: 24px !important;
+  margin: 6px 0 !important;
+}
+
+.printable-report ol,
+.printable-report-modal ol {
+  list-style-type: decimal !important;
+  padding-left: 24px !important;
+  margin: 6px 0 !important;
+}
+
+.printable-report li,
+.printable-report-modal li {
+  display: list-item !important;
+  margin-bottom: 3px !important;
+}
+
+/* =========================================================================
    SELEÇÃO DE TEXTO DE ALTO CONTRASTE (ESTILO BLOCO DE NOTAS / WINDOWS AZULÃO)
    ========================================================================= */
 ::selection {
