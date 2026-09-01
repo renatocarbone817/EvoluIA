@@ -125,6 +125,25 @@ export function ClinicalReportBuilderModal({
   const familyQuestions = useMemo(() => getCustomFamilyQuestions(profId), [profId])
   const schoolQuestions = useMemo(() => getCustomSchoolQuestions(profId), [profId])
 
+  const initialLocalLogo =
+    (profId && typeof window !== "undefined" ? localStorage.getItem(`evoluia_clinic_logo_${profId}`) : "") ||
+    (typeof window !== "undefined"
+      ? localStorage.getItem("evoluia_clinic_logo") || localStorage.getItem("clinic_logo") || ""
+      : "")
+
+  const [profInfo, setProfInfo] = useState({
+    professionalName: professional?.full_name || "Psicopedagoga Responsável",
+    cboOrCrp: professional?.crp || "2394-25",
+    clinicName: professional?.clinic_name || "Aprender Ensinando",
+    clinicLogoUrl:
+      (professional as any)?.clinic_logo_url || professional?.logo_url || initialLocalLogo || "",
+    logoUrl: professional?.logo_url || "",
+    address: (professional as any)?.address || "",
+    phone: professional?.phone || "",
+    city: professional?.city || "São Paulo",
+    state: professional?.state || "SP",
+  })
+
   // Form State
   const [patientData, setPatientData] = useState({
     fullName: child.full_name,
@@ -247,6 +266,43 @@ export function ClinicalReportBuilderModal({
         grade: child.grade || prev.grade,
         mainComplaint: child.main_complaint || prev.mainComplaint,
       }))
+
+      // Fetch Professional and Clinic Details
+      const targetProfId = professional?.id || child.professional_id
+      if (targetProfId) {
+        const { data: pData } = await supabase
+          .from("professionals")
+          .select("*")
+          .eq("id", targetProfId)
+          .maybeSingle()
+
+        const localLogo =
+          (typeof window !== "undefined" ? localStorage.getItem(`evoluia_clinic_logo_${targetProfId}`) : "") ||
+          (typeof window !== "undefined" ? localStorage.getItem("evoluia_clinic_logo") || localStorage.getItem("clinic_logo") : "") ||
+          ""
+
+        if (pData) {
+          setProfInfo({
+            professionalName: pData.full_name || professional?.full_name || "Psicopedagoga Responsável",
+            cboOrCrp: pData.crp || professional?.crp || "2394-25",
+            clinicName: pData.clinic_name || professional?.clinic_name || "Aprender Ensinando",
+            clinicLogoUrl:
+              (pData as any).clinic_logo_url ||
+              pData.logo_url ||
+              (professional as any)?.clinic_logo_url ||
+              professional?.logo_url ||
+              localLogo ||
+              "",
+            logoUrl: pData.logo_url || professional?.logo_url || "",
+            address: (pData as any).address || (professional as any)?.address || "",
+            phone: pData.phone || professional?.phone || "",
+            city: pData.city || professional?.city || "São Paulo",
+            state: pData.state || professional?.state || "SP",
+          })
+        } else if (localLogo) {
+          setProfInfo((prev) => ({ ...prev, clinicLogoUrl: localLogo }))
+        }
+      }
 
       // 3. Fetch Initial Assessment Answers (Anamnese)
       const { data: assessments } = await supabase
@@ -700,15 +756,15 @@ const completeData: CompleteReportData = {
           previousDiagnosis: patientData.previousDiagnosis,
         },
         professional: {
-          professionalName: professional?.full_name || "Psicopedagoga Responsável",
-          cboOrCrp: professional?.crp || "",
-          clinicName: professional?.clinic_name || "",
-          clinicLogoUrl: (professional as any)?.clinic_logo_url || "",
-          logoUrl: professional?.logo_url || "",
-          address: professional?.address || "",
-          phone: professional?.phone || "",
-          city: professional?.city || "",
-          state: professional?.state || "",
+          professionalName: profInfo.professionalName,
+          cboOrCrp: profInfo.cboOrCrp,
+          clinicName: profInfo.clinicName,
+          clinicLogoUrl: profInfo.clinicLogoUrl,
+          logoUrl: profInfo.logoUrl,
+          address: profInfo.address,
+          phone: profInfo.phone,
+          city: profInfo.city,
+          state: profInfo.state,
         },
         clinical: {
           selectedInstruments,
@@ -1638,17 +1694,7 @@ const completeData: CompleteReportData = {
         onClose={() => setShowPreviewModal(false)}
         onDownloadDocx={handleDownloadWord}
         patientData={patientData}
-        professionalData={{
-          professionalName: professional?.full_name || "Psicopedagoga Responsável",
-          cboOrCrp: professional?.crp || "2394-25",
-          clinicName: professional?.clinic_name || "",
-          clinicLogoUrl: (professional as any)?.clinic_logo_url || "",
-          logoUrl: professional?.logo_url || "",
-          address: professional?.address || "",
-          phone: professional?.phone || "",
-          city: professional?.city || "",
-          state: professional?.state || "",
-        }}
+        professionalData={profInfo}
         familyQuestions={familyQuestions.map((q) => ({
           id: q.id,
           num: q.num,

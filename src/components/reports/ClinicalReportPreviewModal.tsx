@@ -1,4 +1,4 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import {
   FileText,
   Printer,
@@ -34,6 +34,7 @@ import {
   Minimize2,
   ArrowLeft,
   ArrowRight as ArrowRightIcon,
+  Upload,
 } from "lucide-react"
 import type { ReportTestResult } from "@/lib/docxReportGenerator"
 
@@ -105,7 +106,37 @@ export function ClinicalReportPreviewModal({
   if (!isOpen) return null
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const clinicLogoInputRef = useRef<HTMLInputElement>(null)
   const [selectedImgEl, setSelectedImgEl] = useState<HTMLImageElement | null>(null)
+
+  // Carrega logo da clínica de múltiplas fontes confiáveis
+  const [headerLogo, setHeaderLogo] = useState<string>(() => {
+    const fromProps = professionalData.clinicLogoUrl || professionalData.logoUrl || ""
+    if (fromProps) return fromProps
+    if (typeof window !== "undefined") {
+      return (
+        localStorage.getItem("evoluia_clinic_logo") ||
+        localStorage.getItem("clinic_logo") ||
+        localStorage.getItem("clinicLogo") ||
+        ""
+      )
+    }
+    return ""
+  })
+
+  useEffect(() => {
+    const fromProps = professionalData.clinicLogoUrl || professionalData.logoUrl || ""
+    if (fromProps) {
+      setHeaderLogo(fromProps)
+    } else if (typeof window !== "undefined") {
+      const local =
+        localStorage.getItem("evoluia_clinic_logo") ||
+        localStorage.getItem("clinic_logo") ||
+        localStorage.getItem("clinicLogo") ||
+        ""
+      if (local) setHeaderLogo(local)
+    }
+  }, [professionalData.clinicLogoUrl, professionalData.logoUrl])
 
   const todayStr = new Date().toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -115,6 +146,26 @@ export function ClinicalReportPreviewModal({
 
   function execCmd(command: string, value: string | null = null) {
     document.execCommand(command, false, value)
+  }
+
+  // Upload direto de Logo da Clínica
+  function handleClinicLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string
+      if (base64) {
+        setHeaderLogo(base64)
+        try {
+          localStorage.setItem("evoluia_clinic_logo", base64)
+          localStorage.setItem("clinic_logo", base64)
+        } catch (err) {}
+      }
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ""
   }
 
   // Formatação garantida para Título (H2), Subtítulo (H3) e Parágrafo (P)
@@ -284,7 +335,7 @@ export function ClinicalReportPreviewModal({
   // Detecta clique em imagens no relatório para exibir os controles
   function handleReportClick(e: React.MouseEvent<HTMLDivElement>) {
     const target = e.target as HTMLElement
-    if (target && target.tagName === "IMG" && !target.closest(".modal-header-logo")) {
+    if (target && target.tagName === "IMG" && !target.closest(".modal-header-logo-box")) {
       if (selectedImgEl && selectedImgEl !== target) {
         selectedImgEl.style.outline = "none"
       }
@@ -833,6 +884,15 @@ export function ClinicalReportPreviewModal({
           </div>
         )}
 
+        {/* Input Oculto para Trocar / Subir Logo da Clínica */}
+        <input
+          type="file"
+          ref={clinicLogoInputRef}
+          onChange={handleClinicLogoUpload}
+          accept="image/*"
+          className="hidden"
+        />
+
         {/* Corpo do Documento Formatado (Estilo Folha A4 Clínica Editável) */}
         <div
           contentEditable={true}
@@ -861,20 +921,37 @@ export function ClinicalReportPreviewModal({
 
             <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-4 flex-wrap gap-4">
               <div className="flex items-center gap-4">
-                {professionalData.clinicLogoUrl ? (
-                  <img
-                    src={professionalData.clinicLogoUrl}
-                    alt="Logo Clínica"
-                    className="modal-header-logo h-14 w-auto object-contain rounded-xl"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold">
-                    <Building2 className="w-6 h-6" />
+                {headerLogo ? (
+                  <div
+                    contentEditable={false}
+                    className="modal-header-logo-box relative group/logo cursor-pointer shrink-0"
+                    onClick={() => clinicLogoInputRef.current?.click()}
+                    title="Clique para alterar a logo da clínica"
+                  >
+                    <img
+                      src={headerLogo}
+                      alt="Logo Clínica"
+                      className="modal-header-logo h-14 max-h-16 w-auto max-w-[170px] object-contain rounded-xl shadow-2xs"
+                    />
+                    <span className="absolute -bottom-1 -right-1 bg-[#7C3AED] text-white p-1 rounded-full text-[9px] opacity-0 group-hover/logo:opacity-100 transition-opacity print:hidden shadow-xs">
+                      <Upload className="w-3 h-3" />
+                    </span>
                   </div>
+                ) : (
+                  <button
+                    type="button"
+                    contentEditable={false}
+                    onClick={() => clinicLogoInputRef.current?.click()}
+                    className="modal-header-logo-box w-14 h-14 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] flex flex-col items-center justify-center font-bold border-2 border-dashed border-[#C4B5FD] transition-all cursor-pointer group shadow-2xs print:border-none print:shadow-none"
+                    title="Clique para adicionar a logo da sua clínica"
+                  >
+                    <Building2 className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                    <span className="text-[8px] font-black mt-0.5 print:hidden">+ Logo</span>
+                  </button>
                 )}
                 <div>
                   <h1 className="text-base font-black text-[#0D2329] uppercase tracking-wide">
-                    {professionalData.clinicName || "EvoluIA — Clínica de Psicopedagogia"}
+                    {professionalData.clinicName || "Aprender Ensinando"}
                   </h1>
                   <p className="text-[11px] font-bold text-[#6B7C83]">
                     {professionalData.address || "Atendimento Psicopedagógico Especializado"}
@@ -1394,7 +1471,7 @@ export function ClinicalReportPreviewModal({
               {"Psicopedagoga Clínica · CBO " + (professionalData.cboOrCrp || "2394-25")}
             </p>
             <p className="text-[10px] text-[#6B7C83]">
-              {professionalData.clinicName || "EvoluIA — Gestão Psicopedagógica"}
+              {professionalData.clinicName || "Aprender Ensinando"}
             </p>
           </div>
         </div>
