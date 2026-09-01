@@ -489,13 +489,12 @@ export function ClinicalReportBuilderModal({
           "O Questionário SNAP-IV é um instrumento construído a partir dos critérios do DSM-5-TR para rastreio de sintomas de Desatenção, Hiperatividade/Impulsividade e Transtorno Opositor Desafiador.",
         tableHeaders: ["Dimensão Avaliada", "Pontuação Família", "Pontuação Escola", "Interpretação"],
         tableRows: [
-          ["Desatenção (Itens 1 a 9)", "07 pontos", "07 pontos", "Indicativo Significativo"],
-          ["Hiperatividade (Itens 10 a 18)", "04 pontos", "04 pontos", "Dentro do Esperado"],
-          ["Transtorno Opositor (Itens 19 a 26)", "01 ponto", "01 ponto", "Sem Indicativos"],
+          ["Desatenção (Itens 1 a 9)", "—", "—", "A preencher"],
+          ["Hiperatividade (Itens 10 a 18)", "—", "—", "A preencher"],
+          ["Transtorno Opositor (Itens 19 a 26)", "—", "—", "A preencher"],
         ],
         scoreCutoffText: "Nota de corte: Acima de 6 pontos nas respostas 'bastante/demais' apresenta indicativo clínico.",
-        interpretationText:
-          "Segundo os questionários respondidos pela família e pela escola, os prejuízos de desatenção manifestam-se em ambos os ambientes, confirmando a pervasividade dos sintomas.",
+        interpretationText: "A preencher pela profissional após apuração dos questionários.",
       })
     }
 
@@ -505,8 +504,8 @@ export function ClinicalReportBuilderModal({
         title: "Escala Conners (Pais e Professores)",
         objective:
           "Avalia os fatores traçados no DSM-5-TR para sintomas de déficit de atenção e hiperatividade em crianças e adolescentes em múltiplos contextos.",
-        scoreCutoffText: "Versão Pais: 23 pontos (Corte: 58) | Versão Professores: 30 pontos (Corte: 64)",
-        interpretationText: "O paciente não ultrapassou os pontos de corte globais de hiperatividade motora na Escala Conners.",
+        scoreCutoffText: "Versão Pais: ___ pontos (Corte: 58) | Versão Professores: ___ pontos (Corte: 64)",
+        interpretationText: "A preencher pela profissional após aplicação.",
       })
     }
 
@@ -518,14 +517,13 @@ export function ClinicalReportBuilderModal({
           "Mapeia os fatores de Regulação Emocional (RE), Hiperatividade-Impulsividade (HI), Comportamento Adaptativo (CA) e Atenção (A).",
         tableHeaders: ["Fatores Avaliados", "Pontos Brutos", "Percentil", "Classificação Clínica"],
         tableRows: [
-          ["Regulação Emocional (RE)", "37", "40", "Média Inferior (Preservado)"],
-          ["Hiperatividade-Impulsividade (HI)", "26", "20", "Inferior (Sem Hiperatividade)"],
-          ["Comportamento Adaptativo (CA)", "53", "65", "Média (Prejuízo Leve)"],
-          ["Atenção Sustentada (A)", "39", "65", "Média Superior (Prejuízo Significativo)"],
-          ["ESCORE GERAL", "155", "55", "Média"],
+          ["Regulação Emocional (RE)", "—", "—", "A preencher"],
+          ["Hiperatividade-Impulsividade (HI)", "—", "—", "A preencher"],
+          ["Comportamento Adaptativo (CA)", "—", "—", "A preencher"],
+          ["Atenção Sustentada (A)", "—", "—", "A preencher"],
+          ["ESCORE GERAL", "—", "—", "A preencher"],
         ],
-        interpretationText:
-          "Conclui-se que o paciente apresenta indicativos para Déficit de Atenção, com prejuízos na sustentação do esforço mental e organização adaptativa.",
+        interpretationText: "A preencher pela profissional após correção normativa.",
       })
     }
 
@@ -536,13 +534,12 @@ export function ClinicalReportBuilderModal({
         objective: "Sonda a capacidade de audibilização e memória de trabalho em crianças em fase de alfabetização.",
         tableHeaders: ["Subteste", "Pontuação", "Classificação"],
         tableRows: [
-          ["Parte 1: Discriminação Fonética", "19", "Médio Inferior"],
-          ["Parte 2: Memória de Frases e Dígitos", "17", "Inferior"],
-          ["Memória para Figuras", "36", "Média Superior (Preservada)"],
-          ["TOTAL GERAL", "72", "Médio Inferior"],
+          ["Parte 1: Discriminação Fonética", "—", "A preencher"],
+          ["Parte 2: Memória de Frases e Dígitos", "—", "A preencher"],
+          ["Memória para Figuras", "—", "A preencher"],
+          ["TOTAL GERAL", "—", "A preencher"],
         ],
-        interpretationText:
-          "Apresenta dificuldades no reconhecimento e discriminação de sons da fala e memória imediata de dígitos, mantendo preservada a memória visual de longo prazo.",
+        interpretationText: "A preencher pela profissional após aplicação do teste.",
       })
     }
 
@@ -553,11 +550,10 @@ export function ClinicalReportBuilderModal({
         objective: "Avalia a memória visuoespacial de curto prazo (ordem direta) e funções executivas/planejamento (ordem indireta).",
         tableHeaders: ["Modalidade", "Pontuação Padrão", "Classificação"],
         tableRows: [
-          ["Ordem Direta (Memória de Curto Prazo)", "93", "Dentro da Média"],
-          ["Ordem Indireta (Memória Operacional/Trabalho)", "78", "Limítrofe / Abaixo da Média"],
+          ["Ordem Direta (Memória de Curto Prazo)", "—", "A preencher"],
+          ["Ordem Indireta (Memória Operacional/Trabalho)", "—", "A preencher"],
         ],
-        interpretationText:
-          "O paciente apresenta boa retenção passiva visuoespacial, porém demonstra lentificação e perda da sequência em tarefas de manipulação mental e ordem inversa.",
+        interpretationText: "A preencher pela profissional após apuração dos blocos.",
       })
     }
 
@@ -566,9 +562,8 @@ export function ClinicalReportBuilderModal({
         id: "trilhas",
         title: "Teste de Trilhas Pré-Escolares (Partes A e B)",
         objective: "Mede flexibilidade cognitiva, velocidade de processamento visual e atenção alternada.",
-        scoreCutoffText: "Trilha A: 48 segundos (Média) | Trilha B: 112 segundos (Percentil 25 - Abaixo da Média)",
-        interpretationText:
-          "Observa-se bom rastreio visual simples, mas presença de hesitação e alternância custosa ao intercalar duas categorias distintas (letras e números).",
+        scoreCutoffText: "Trilha A: ___ segundos | Trilha B: ___ segundos (Percentil: ___)",
+        interpretationText: "A preencher pela profissional após cronometragem.",
       })
     }
 
@@ -579,11 +574,10 @@ export function ClinicalReportBuilderModal({
         objective: "Avalia atenção seletiva sustentada e velocidade psicomotora.",
         tableHeaders: ["Parte do Teste", "Acertos", "Erros/Omissões", "Classificação"],
         tableRows: [
-          ["Parte 1 (Alvo Único)", "94%", "2 omissões", "Médio"],
-          ["Parte 2 (Alvo Duplo / Distratores)", "76%", "8 omissões", "Médio Inferior"],
+          ["Parte 1 (Alvo Único)", "—", "—", "A preencher"],
+          ["Parte 2 (Alvo Duplo / Distratores)", "—", "—", "A preencher"],
         ],
-        interpretationText:
-          "Declínio do rendimento ao longo do teste por fadiga atencional e aumento de omissões perante estímulos concorrentes.",
+        interpretationText: "A preencher pela profissional após correção do TAC.",
       })
     }
 
@@ -594,11 +588,11 @@ export function ClinicalReportBuilderModal({
         objective: "Avalia conceitos básicos, esquema corporal, discriminação visual/auditiva e coordenação visomotora.",
         tableHeaders: ["Área", "Desempenho", "Status"],
         tableRows: [
-          ["Conceitos Espaciais e Temporais", "Adequado", "Preservado"],
-          ["Discriminação Auditiva de Sons", "Defasado", "Atenção Necessária"],
-          ["Coordenação Visomotora Fina", "Adequado", "Preservado"],
+          ["Conceitos Espaciais e Temporais", "—", "A preencher"],
+          ["Discriminação Auditiva de Sons", "—", "A preencher"],
+          ["Coordenação Visomotora Fina", "—", "A preencher"],
         ],
-        interpretationText: "Repertório geral satisfatório com necessidade de reforço em consciência fonológica.",
+        interpretationText: "A preencher pela profissional após aplicação.",
       })
     }
 
@@ -609,10 +603,10 @@ export function ClinicalReportBuilderModal({
         objective: "Avalia a capacidade de retenção imediata da alça fonológica da memória de trabalho (ordem direta) e a manipulação ativa da memória operacional (ordem inversa).",
         tableHeaders: ["Modalidade", "Span Atingido", "Classificação Clínica"],
         tableRows: [
-          ["Ordem Direta (Memória Imediata)", "5 dígitos", "Médio / Adequado"],
-          ["Ordem Inversa (Memória Operacional)", "3 dígitos", "Médio Inferior"],
+          ["Ordem Direta (Memória Imediata)", "—", "A preencher"],
+          ["Ordem Inversa (Memória Operacional)", "—", "A preencher"],
         ],
-        interpretationText: "Apresenta capacidade de retenção passiva auditiva dentro do esperado, com leve declínio quando exigida a reversão mental da sequência numérica.",
+        interpretationText: "A preencher pela profissional após aplicação.",
       })
     }
 
@@ -623,12 +617,12 @@ export function ClinicalReportBuilderModal({
         objective: "Mapeia os fatores psicomotores essenciais para a aprendizagem escolar: tônus, equilíbrio, lateralidade, noção do corpo, estruturação espaço-temporal, praxia global e praxia fina.",
         tableHeaders: ["Fator Psicomotor", "Pontuação", "Perfil / Desempenho"],
         tableRows: [
-          ["Tônus e Equilíbrio", "Bom", "Preservado"],
-          ["Lateralidade e Noção de Corpo", "Definida", "Adequado"],
-          ["Estruturação Espaço-Temporal", "Regular", "Atenção Necessária"],
-          ["Praxia Global e Praxia Fina", "Bom", "Adequado"],
+          ["Tônus e Equilíbrio", "—", "A preencher"],
+          ["Lateralidade e Noção de Corpo", "—", "A preencher"],
+          ["Estruturação Espaço-Temporal", "—", "A preencher"],
+          ["Praxia Global e Praxia Fina", "—", "A preencher"],
         ],
-        interpretationText: "Apresenta perfil psicomotor global satisfatório, com necessidade de estimulação no planejamento espacial e organização gráfica no caderno.",
+        interpretationText: "A preencher pela profissional após avaliação psicomotora.",
       })
     }
 
@@ -639,10 +633,10 @@ export function ClinicalReportBuilderModal({
         objective: "Autoavaliação do paciente quanto à sua percepção de atenção, impulsividade e dificuldades nas rotinas diárias e escolares.",
         tableHeaders: ["Fator Avaliado", "Pontos Brutos", "Percentil", "Classificação"],
         tableRows: [
-          ["Fator 1: Atenção e Foco", "32", "60", "Média"],
-          ["Fator 2: Hiperatividade/Impulsividade", "20", "25", "Inferior"],
+          ["Fator 1: Atenção e Foco", "—", "—", "A preencher"],
+          ["Fator 2: Hiperatividade/Impulsividade", "—", "—", "A preencher"],
         ],
-        interpretationText: "A percepção da criança converge com os relatos familiares, reconhecendo dispersão ocasional sem percepção de agitação física acentuada.",
+        interpretationText: "A preencher pela profissional após autoaplicação.",
       })
     }
 
@@ -653,10 +647,10 @@ export function ClinicalReportBuilderModal({
         objective: "Avalia a habilidade de diferenciar pares mínimos de fonemas da língua portuguesa essenciais para a alfabetização e ortografia.",
         tableHeaders: ["Subteste", "Acertos", "Percentual", "Classificação"],
         tableRows: [
-          ["Pares de Palavras Diferentes", "18/20", "90%", "Médio"],
-          ["Pares de Palavras Semelhantes / P-B, T-D, F-V", "14/20", "70%", "Médio Inferior"],
+          ["Pares de Palavras Diferentes", "—", "—", "A preencher"],
+          ["Pares de Palavras Semelhantes / P-B, T-D, F-V", "—", "—", "A preencher"],
         ],
-        interpretationText: "Identifica-se oscilação na discriminação de fonemas de ponto articulatório próximo (surdos/sonoros), demandando reforço na consciência fonológica.",
+        interpretationText: "A preencher pela profissional após aplicação.",
       })
     }
 
@@ -667,10 +661,10 @@ export function ClinicalReportBuilderModal({
         objective: "Mede o acesso lexical, a velocidade de recuperação de informações fonológicas na memória de longo prazo e a fluência verbal.",
         tableHeaders: ["Prancha / Estímulo", "Tempo de Execução", "Erros", "Classificação"],
         tableRows: [
-          ["Nomeação de Figuras / Objetos", "38 seg", "1 erro", "Dentro da Média"],
-          ["Nomeação de Letras e Cores", "45 seg", "2 erros", "Média"],
+          ["Nomeação de Figuras / Objetos", "—", "—", "A preencher"],
+          ["Nomeação de Letras e Cores", "—", "—", "A preencher"],
         ],
-        interpretationText: "Velocidade de processamento e acesso ao léxico preservados, permitindo bom fluxo na decodificação leitora.",
+        interpretationText: "A preencher pela profissional após cronometragem.",
       })
     }
 
@@ -681,11 +675,11 @@ export function ClinicalReportBuilderModal({
         objective: "Investiga comportamentos auditivos em ambientes ruidosos, compreensão de ordens verbais sequenciais e localização sonora.",
         tableHeaders: ["Área Comportamental", "Pontuação", "Indicativo"],
         tableRows: [
-          ["Audição em Ambiente Ruidoso", "Alta Frequência", "Indicativo de Dificuldade"],
-          ["Compreensão de Mensagens Rápidas", "Moderada", "Atenção Necessária"],
-          ["Memória Sequencial Auditiva", "Moderada", "Defasagem Leve"],
+          ["Audição em Ambiente Ruidoso", "—", "A preencher"],
+          ["Compreensão de Mensagens Rápidas", "—", "A preencher"],
+          ["Memória Sequencial Auditiva", "—", "A preencher"],
         ],
-        interpretationText: "Apresenta sinais comportamentais sugestivos de alteração nas habilidades auditivas centrais, justificando encaminhamento para exame de PAC.",
+        interpretationText: "A preencher pela profissional após triagem de DPAC.",
       })
     }
 
@@ -696,9 +690,9 @@ export function ClinicalReportBuilderModal({
         objective: "Rastreio breve de traços e características do espectro autista em crianças de 4 a 11 anos.",
         tableHeaders: ["Instrumento", "Pontuação Obtida", "Ponto de Corte", "Classificação"],
         tableRows: [
-          ["AQ-10 Versão Infantil", "03 pontos", "06 ou mais pontos", "Abaixo do Ponto de Corte (Sem Indicativos)"],
+          ["AQ-10 Versão Infantil", "—", "06 ou mais pontos", "A preencher"],
         ],
-        interpretationText: "O escore obtido situou-se abaixo da nota de corte clínico de rastreio para o espectro autista.",
+        interpretationText: "A preencher pela profissional após correção do AQ-10.",
       })
     }
 
@@ -709,11 +703,11 @@ export function ClinicalReportBuilderModal({
         objective: "Observa a postura da criança frente ao material escolar, modalidade de aprendizagem (assimilativa/acomodativa), vínculo com o aprender e autonomia.",
         tableHeaders: ["Aspecto Observado", "Manifestação Clínica"],
         tableRows: [
-          ["Modalidade de Aprendizagem", "Predomínio de exploração lúdica com busca de mediação"],
-          ["Vínculo com o Objeto do Conhecimento", "Positivo, curioso, demonstrando receptividade"],
-          ["Organização do Espaço e Materiais", "Necessita de estruturação externa para ordenação"],
+          ["Modalidade de Aprendizagem", "A preencher pela profissional"],
+          ["Vínculo com o Objeto do Conhecimento", "A preencher pela profissional"],
+          ["Organização do Espaço e Materiais", "A preencher pela profissional"],
         ],
-        interpretationText: "Apresenta boa disponibilidade afetiva para aprender, beneficiando-se significativamente de propostas organizadas e mediação encorajadora.",
+        interpretationText: "A preencher pela profissional a partir da observação da sessão da EOCA.",
       })
     }
 
@@ -724,11 +718,11 @@ export function ClinicalReportBuilderModal({
         objective: "Avalia a estrutura do pensamento cognitivo, conservação de quantidades (líquida, massa, comprimento), seriação e classificação.",
         tableHeaders: ["Prova Aplicada", "Estágio Operatório Atingido", "Interpretação"],
         tableRows: [
-          ["Conservação de Matéria / Massa", "Intermediário / Transição", "Em consolidação"],
-          ["Conservação de Líquidos", "Operatório Concreto", "Preservado"],
-          ["Seriação e Classificação", "Operatório Concreto", "Preservado"],
+          ["Conservação de Matéria / Massa", "—", "A preencher"],
+          ["Conservação de Líquidos", "—", "A preencher"],
+          ["Seriação e Classificação", "—", "A preencher"],
         ],
-        interpretationText: "O paciente demonstra estruturas de pensamento lógico compatíveis com o estágio operatório concreto para a sua faixa etária.",
+        interpretationText: "A preencher pela profissional após aplicação das provas piagetianas.",
       })
     }
 
@@ -739,12 +733,12 @@ export function ClinicalReportBuilderModal({
         objective: "Avalia as habilidades acadêmicas fundamentais em três subtestes: Escrita (ortografia), Leitura (decodificação/fluência) e Aritmética (cálculo matemático).",
         tableHeaders: ["Subteste", "Escore Bruto", "Percentil", "Classificação Normativa"],
         tableRows: [
-          ["Subteste de Escrita", "24", "45", "Médio"],
-          ["Subteste de Aritmética", "28", "55", "Médio"],
-          ["Subteste de Leitura", "32", "40", "Médio Inferior"],
-          ["ESCORE TOTAL TDE-II", "84", "45", "Médio"],
+          ["Subteste de Escrita", "—", "—", "A preencher"],
+          ["Subteste de Aritmética", "—", "—", "A preencher"],
+          ["Subteste de Leitura", "—", "—", "A preencher"],
+          ["ESCORE TOTAL TDE-II", "—", "—", "A preencher"],
         ],
-        interpretationText: "Desempenho acadêmico global dentro do padrão médio, com maior oscilação no subteste de leitura decorrente de lapsos atencionais na decodificação.",
+        interpretationText: "A preencher pela profissional após aplicação e correção pelas tabelas normativas do TDE-II.",
       })
     }
 
