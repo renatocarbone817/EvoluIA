@@ -139,11 +139,12 @@ function createP(
     color?: string
     align?: (typeof AlignmentType)[keyof typeof AlignmentType]
     spacingAfter?: number
+    spacingBefore?: number
   }
 ) {
   return new Paragraph({
     alignment: options?.align || AlignmentType.LEFT,
-    spacing: { after: options?.spacingAfter ?? 140, line: 276 },
+    spacing: { before: options?.spacingBefore ?? 0, after: options?.spacingAfter ?? 160, line: 280 },
     children: [
       new TextRun({
         text,
@@ -163,7 +164,7 @@ function createLabeledP(
   options?: { labelColor?: string; valueColor?: string; boldLabel?: boolean }
 ) {
   return new Paragraph({
-    spacing: { after: 120, line: 260 },
+    spacing: { after: 140, line: 260 },
     children: [
       new TextRun({
         text: label + " ",
@@ -186,7 +187,7 @@ function createSectionHeader(title: string) {
   return new Paragraph({
     heading: HeadingLevel.HEADING_2,
     alignment: AlignmentType.LEFT,
-    spacing: { before: 280, after: 140 },
+    spacing: { before: 560, after: 200 }, // ~2 linhas de espaço antes de cada tema principal
     children: [
       new TextRun({
         text: title.toUpperCase(),
@@ -202,7 +203,7 @@ function createSectionHeader(title: string) {
 function createSubHeader(title: string) {
   return new Paragraph({
     alignment: AlignmentType.LEFT,
-    spacing: { before: 180, after: 80 },
+    spacing: { before: 380, after: 120 }, // Espaço agradável e nítido antes de cada sub-teste / pergunta
     children: [
       new TextRun({
         text: title.toUpperCase(),
@@ -732,14 +733,15 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
                   rows: [tableHeaderRow, ...tableBodyRows],
                 })
               )
+              elements.push(new Paragraph({ spacing: { after: 100 } }))
             }
 
             if (test.scoreCutoffText) {
-              elements.push(createP(test.scoreCutoffText, { bold: true, color: "005B94" }))
+              elements.push(createP(test.scoreCutoffText, { bold: true, color: "005B94", spacingAfter: 120 }))
             }
 
             if (test.interpretationText) {
-              elements.push(createP(test.interpretationText))
+              elements.push(createP(test.interpretationText, { spacingAfter: 240 }))
             }
 
             return elements
