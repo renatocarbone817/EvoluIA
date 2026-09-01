@@ -16,13 +16,20 @@ import {
   Check,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   X,
   Plus,
   Trash2,
   HelpCircle,
+  Copy,
+  Clock,
+  Target,
+  Activity,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
+import { formatDate } from "@/lib/utils"
 import toast from "react-hot-toast"
 import type { Child, Professional, Guardian } from "@/types/database"
 import {
@@ -117,6 +124,9 @@ export function ClinicalReportBuilderModal({
   const [generatingAI, setGeneratingAI] = useState(false)
   const [savingToDatabase, setSavingToDatabase] = useState(false)
   const [currentReportId, setCurrentReportId] = useState<string | undefined>(reportId)
+  const [childSessions, setChildSessions] = useState<any[]>([])
+  const [showSessionsDrawer, setShowSessionsDrawer] = useState(false)
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null)
 
   const profId = professional?.id || child.professional_id
   const familyQuestions = useMemo(() => getCustomFamilyQuestions(profId), [profId])
@@ -350,15 +360,19 @@ export function ClinicalReportBuilderModal({
         }
       }
 
-      // 4. Fetch Actual Sessions Count from database
-      const { count: sessionCount, data: sessionList } = await supabase
+      // 4. Fetch Actual Sessions from database
+      const { data: sessionList } = await supabase
         .from("sessions")
-        .select("id", { count: "exact" })
+        .select("*")
         .eq("child_id", child.id)
+        .order("session_number", { ascending: true })
 
-      let realCount = sessionCount !== null && sessionCount !== undefined && sessionCount > 0
-        ? sessionCount
-        : (sessionList && sessionList.length > 0 ? sessionList.length : 0)
+      if (sessionList && sessionList.length > 0) {
+        setChildSessions(sessionList)
+        setExpandedSessionId(sessionList[0].id)
+      }
+
+      let realCount = sessionList && sessionList.length > 0 ? sessionList.length : 0
 
       if (realCount === 0) {
         const { count: appCount } = await supabase
@@ -939,7 +953,7 @@ const completeData: CompleteReportData = {
   if (!isOpen) return null
 
   return (
-    <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] w-full shadow-sm space-y-0 animate-in fade-in overflow-hidden">
+    <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] w-full shadow-sm space-y-0 animate-in fade-in overflow-hidden relative">
       {/* Header do Gerador */}
       <div className="p-5 sm:p-6 border-b border-[#EEF5F6] flex items-center justify-between bg-gradient-to-r from-[#F0FDF4] to-[#EDE9FE] rounded-t-3xl gap-4 flex-wrap sm:flex-nowrap">
         <div className="flex items-center gap-3.5">
@@ -1338,11 +1352,26 @@ const completeData: CompleteReportData = {
             {activeStep === 4 && (
               <div className="space-y-5 animate-in fade-in">
                 <div className="p-5 rounded-2xl border-2 border-[#D8E5E7] space-y-4 bg-white">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
-                      <Stethoscope className="w-4 h-4 text-[#005B94]" />
-                      <span>Observação Clínica nas Sessões</span>
-                    </h3>
+                  <div className="flex items-center justify-between flex-wrap gap-2.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
+                        <Stethoscope className="w-4 h-4 text-[#005B94]" />
+                        <span>Observação Clínica nas Sessões</span>
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setShowSessionsDrawer(!showSessionsDrawer)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                          showSessionsDrawer
+                            ? "bg-[#7C3AED] text-white"
+                            : "bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] border border-[#DDD6FE]"
+                        }`}
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>{showSessionsDrawer ? "✕ Fechar Painel de Sessões" : `📋 Consultar Sessões (${childSessions.length})`}</span>
+                      </button>
+                    </div>
+
                     <div className="flex items-center gap-2">
                       <label className="text-xs font-bold text-[#6B7C83]">Total de Sessões Realizadas:</label>
                       <input
@@ -1674,6 +1703,159 @@ const completeData: CompleteReportData = {
           </button>
         </div>
       </div>
+
+      {/* =========================================================================
+          DRAWER LATERAL: CONSULTA DE SESSÕES CLÍNICAS (LADO A LADO)
+          ========================================================================= */}
+      {showSessionsDrawer && (
+        <aside className="absolute right-0 top-0 bottom-0 w-full sm:w-[460px] bg-white border-l-2 border-[#D8E5E7] shadow-2xl z-30 flex flex-col animate-in slide-in-from-right duration-200">
+          {/* Drawer Header */}
+          <div className="p-4 bg-[#F8FAFB] border-b border-[#EEF5F6] flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-[#0D2329]">
+                  Histórico de Sessões ({childSessions.length})
+                </h4>
+                <p className="text-[10px] font-semibold text-[#6B7C83]">
+                  {childSessions.length > 0
+                    ? `1ª sessão em ${childSessions[0].date ? formatDate(childSessions[0].date) : "..."} até a última em ${childSessions[childSessions.length - 1].date ? formatDate(childSessions[childSessions.length - 1].date) : "..."}`
+                    : "Nenhuma sessão registrada"}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowSessionsDrawer(false)}
+              className="w-7 h-7 rounded-full bg-white hover:bg-[#FEE2E2] text-[#6B7C83] hover:text-[#DC2626] border border-[#D8E5E7] flex items-center justify-center font-bold text-xs transition-colors cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Drawer Body: Lista de Sessões */}
+          <div className="p-4 overflow-y-auto flex-1 space-y-3">
+            {childSessions.length === 0 ? (
+              <div className="p-8 text-center bg-[#F8FAFB] rounded-2xl border border-dashed border-[#D8E5E7] space-y-2">
+                <Calendar className="w-8 h-8 text-[#8DA3A8] mx-auto opacity-50" />
+                <p className="text-xs font-bold text-[#6B7C83]">
+                  Nenhuma sessão individual encontrada para {child.full_name}.
+                </p>
+              </div>
+            ) : (
+              childSessions.map((sess, idx) => {
+                const isExpanded = expandedSessionId === sess.id || (!expandedSessionId && idx === 0)
+                const sessNum = sess.session_number || idx + 1
+                const sessDate = sess.date ? formatDate(sess.date) : "Data não informada"
+
+                return (
+                  <div
+                    key={sess.id || idx}
+                    className={`rounded-2xl border-2 transition-all ${
+                      isExpanded
+                        ? "border-[#7C3AED] bg-white shadow-sm"
+                        : "border-[#D8E5E7] bg-[#F8FAFB] hover:border-[#7C3AED]/40"
+                    }`}
+                  >
+                    {/* Session Header Item */}
+                    <button
+                      type="button"
+                      onClick={() => setExpandedSessionId(isExpanded ? null : sess.id)}
+                      className="w-full p-3 flex items-center justify-between text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#EDE9FE] text-[#7C3AED] text-[10px] font-black uppercase tracking-wider">
+                          Sessão {sessNum}
+                        </span>
+                        <span className="text-xs font-bold text-[#0D2329]">
+                          📅 {sessDate}
+                        </span>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4 text-[#7C3AED]" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-[#6B7C83]" />
+                      )}
+                    </button>
+
+                    {/* Session Expanded Content */}
+                    {isExpanded && (
+                      <div className="px-3.5 pb-3.5 pt-1 border-t border-[#EEF5F6] space-y-2.5 text-xs">
+                        {sess.objective && (
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-[#005B94] flex items-center gap-1">
+                              🎯 Objetivo da Sessão:
+                            </span>
+                            <p className="text-xs font-semibold text-[#0D2329] bg-[#F8FAFB] p-2 rounded-xl border border-[#EEF5F6]">
+                              {sess.objective}
+                            </p>
+                          </div>
+                        )}
+
+                        {sess.what_was_worked && (
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-[#7C3AED] flex items-center gap-1">
+                              🧠 O que foi trabalhado:
+                            </span>
+                            <p className="text-xs font-semibold text-[#0D2329] bg-[#F8FAFB] p-2 rounded-xl border border-[#EEF5F6]">
+                              {sess.what_was_worked}
+                            </p>
+                          </div>
+                        )}
+
+                        {sess.activities && (
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-[#059669] flex items-center gap-1">
+                              🎲 Atividades Realizadas:
+                            </span>
+                            <p className="text-xs font-semibold text-[#0D2329] bg-[#F8FAFB] p-2 rounded-xl border border-[#EEF5F6]">
+                              {sess.activities}
+                            </p>
+                          </div>
+                        )}
+
+                        {sess.professional_notes && (
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-[#D97706] flex items-center gap-1">
+                              📝 Observações Clínicas da Profissional:
+                            </span>
+                            <p className="text-xs font-semibold text-[#0D2329] bg-[#FEF3C7]/40 p-2 rounded-xl border border-[#FDE68A]">
+                              {sess.professional_notes}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Button: Append to clinicalObservation */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const noteToAdd = sess.professional_notes || sess.what_was_worked || sess.activities
+                            if (noteToAdd) {
+                              setClinicalObservation((prev) =>
+                                prev ? `${prev}\n\n[Sessão ${sessNum} - ${sessDate}]: ${noteToAdd}` : `[Sessão ${sessNum} - ${sessDate}]: ${noteToAdd}`
+                              )
+                              toast.success(`Anotação da Sessão ${sessNum} adicionada à observação!`, { icon: "📥" })
+                            } else {
+                              toast("Nenhuma anotação específica registrada nesta sessão.", { icon: "ℹ️" })
+                            }
+                          }}
+                          className="w-full mt-2 py-2 px-3 rounded-xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] font-black text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copiar anotações para o campo de Observação</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </aside>
+      )}
     </div>
   )
 }
