@@ -12,6 +12,22 @@ import {
   Building2,
   Calendar,
   CheckCircle2,
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  List,
+  ListOrdered,
+  Undo,
+  Redo,
+  Trash2,
+  Heading1,
+  Heading2,
+  RemoveFormatting,
 } from "lucide-react"
 import type { ReportTestResult } from "@/lib/docxReportGenerator"
 
@@ -87,6 +103,10 @@ export function ClinicalReportPreviewModal({
     month: "long",
     year: "numeric",
   })
+
+  function execCmd(command: string, value: string | null = null) {
+    document.execCommand(command, false, value)
+  }
 
   function handlePrint() {
     const reportElement = document.querySelector(".printable-report")
@@ -188,11 +208,11 @@ export function ClinicalReportPreviewModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 printable-report-modal print:static print:p-0 print:bg-white print:block print:inset-auto print:z-auto print:overflow-visible print:h-auto print:max-h-none print:w-full">
-      <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl animate-in zoom-in-95 print:border-none print:shadow-none print:max-h-none print:h-auto print:w-full print:block print:overflow-visible print:static print:p-0 print:m-0">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 printable-report-modal print:static print:p-0 print:bg-white print:block print:inset-auto print:z-auto print:overflow-visible print:h-auto print:max-h-none print:w-full">
+      <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-4xl w-full max-h-[94vh] flex flex-col shadow-2xl animate-in zoom-in-95 print:border-none print:shadow-none print:max-h-none print:h-auto print:w-full print:block print:overflow-visible print:static print:p-0 print:m-0">
         
         {/* Barra Superior de Ações */}
-        <div className="p-4 sm:p-5 border-b border-[#EEF5F6] flex items-center justify-between bg-[#F8FAFB] rounded-t-3xl gap-3 flex-wrap print:hidden">
+        <div className="p-3.5 sm:p-4 border-b border-[#EEF5F6] flex items-center justify-between bg-[#F8FAFB] rounded-t-3xl gap-3 flex-wrap print:hidden">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#6366F1] to-[#7C3AED] text-white flex items-center justify-center font-bold shadow-xs">
               <FileText className="w-5 h-5" />
@@ -200,14 +220,14 @@ export function ClinicalReportPreviewModal({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm sm:text-base font-black text-[#0D2329]">
-                  Prévia do Laudo Psicopedagógico
+                  Editor & Prévia do Laudo Psicopedagógico
                 </h3>
                 <span className="text-[10px] bg-[#EDE9FE] text-[#7C3AED] font-black px-2.5 py-0.5 rounded-full border border-[#DDD6FE]">
                   Padrão Oficial · CBO 2394-25
                 </span>
               </div>
               <p className="text-xs font-semibold text-[#6B7C83]">
-                Visualização formatada antes de baixar o arquivo Word (.docx)
+                Edite qualquer texto, tabela ou número direto na folha antes de imprimir ou salvar.
               </p>
             </div>
           </div>
@@ -216,9 +236,9 @@ export function ClinicalReportPreviewModal({
             <button
               type="button"
               onClick={handlePrint}
-              className="px-3.5 py-2 rounded-xl bg-white hover:bg-[#F8FAFB] text-[#0D2329] border-2 border-[#D8E5E7] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-white hover:bg-[#F8FAFB] text-[#0D2329] border-2 border-[#D8E5E7] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
             >
-              <Printer className="w-4 h-4 text-[#6B7C83]" />
+              <Printer className="w-4 h-4 text-[#005B94]" />
               <span>Imprimir / PDF</span>
             </button>
 
@@ -244,28 +264,209 @@ export function ClinicalReportPreviewModal({
           </div>
         </div>
 
-        {/* Banner Informativo de Edição */}
-        <div className="bg-[#EDE9FE] px-4 sm:px-6 py-2 border-b border-[#DDD6FE] flex items-center justify-between text-xs text-[#6D28D9] font-bold print:hidden">
-          <div className="flex items-center gap-2">
-            <span className="text-sm">✍️</span>
-            <span className="text-[11px] sm:text-xs">
-              <strong>Edição ao Vivo Ativa:</strong> Você pode clicar e digitar em qualquer texto, tabela ou nota na folha abaixo antes de imprimir!
-            </span>
+        {/* =========================================================================
+            MENU DE FERRAMENTAS ESTILO WORD / GOOGLE DOCS (PRINT:HIDDEN)
+            ========================================================================= */}
+        <div className="bg-[#F8FAFB] border-b border-[#D8E5E7] px-3 py-2 flex items-center gap-1.5 flex-wrap text-xs text-[#0D2329] print:hidden shadow-2xs select-none">
+          {/* Desfazer / Refazer */}
+          <div className="flex items-center gap-0.5 border-r border-[#D8E5E7] pr-2">
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("undo"); }}
+              className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
+              title="Desfazer (Ctrl+Z)"
+            >
+              <Undo className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("redo"); }}
+              className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
+              title="Refazer (Ctrl+Y)"
+            >
+              <Redo className="w-4 h-4" />
+            </button>
           </div>
-          <span className="text-[10px] bg-white text-[#7C3AED] px-2.5 py-0.5 rounded-full font-black shadow-2xs shrink-0 hidden sm:inline-block">
-            Clique e Digite
-          </span>
+
+          {/* Formatação de Texto (B, I, U, S) */}
+          <div className="flex items-center gap-0.5 border-r border-[#D8E5E7] pr-2">
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("bold"); }}
+              className="p-1.5 rounded-lg hover:bg-white text-[#0D2329] font-black border border-transparent hover:border-[#D8E5E7] cursor-pointer"
+              title="Negrito (Ctrl+B)"
+            >
+              <Bold className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("italic"); }}
+              className="p-1.5 rounded-lg hover:bg-white text-[#0D2329] italic border border-transparent hover:border-[#D8E5E7] cursor-pointer"
+              title="Itálico (Ctrl+I)"
+            >
+              <Italic className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("underline"); }}
+              className="p-1.5 rounded-lg hover:bg-white text-[#0D2329] underline border border-transparent hover:border-[#D8E5E7] cursor-pointer"
+              title="Sublinhado (Ctrl+U)"
+            >
+              <Underline className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("strikeThrough"); }}
+              className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
+              title="Tachado"
+            >
+              <Strikethrough className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Tamanho e Estilo de Bloco (Título / Texto) */}
+          <div className="flex items-center gap-1 border-r border-[#D8E5E7] pr-2">
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("formatBlock", "<h2>"); }}
+              className="px-2 py-1 rounded-lg hover:bg-white text-[11px] font-black text-[#005B94] border border-transparent hover:border-[#D8E5E7] cursor-pointer flex items-center gap-1"
+              title="Transformar em Título Principal"
+            >
+              <Heading1 className="w-3.5 h-3.5" />
+              <span>Título</span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("formatBlock", "<h3>"); }}
+              className="px-2 py-1 rounded-lg hover:bg-white text-[11px] font-bold text-[#7C3AED] border border-transparent hover:border-[#D8E5E7] cursor-pointer flex items-center gap-1"
+              title="Transformar em Subtítulo"
+            >
+              <Heading2 className="w-3.5 h-3.5" />
+              <span>Subtítulo</span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("formatBlock", "<p>"); }}
+              className="px-2 py-1 rounded-lg hover:bg-white text-[11px] font-medium text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
+              title="Texto Normal"
+            >
+              Parágrafo
+            </button>
+          </div>
+
+          {/* Cores Rápidas de Fonte */}
+          <div className="flex items-center gap-1 border-r border-[#D8E5E7] pr-2">
+            <span className="text-[10px] font-bold text-[#6B7C83] mr-0.5">Cor:</span>
+            {[
+              { color: "#005B94", name: "Azul Clínico" },
+              { color: "#7C3AED", name: "Roxo" },
+              { color: "#0D2329", name: "Preto" },
+              { color: "#059669", name: "Verde" },
+              { color: "#DC2626", name: "Vermelho" },
+            ].map((c) => (
+              <button
+                key={c.color}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); execCmd("foreColor", c.color); }}
+                className="w-4 h-4 rounded-full border border-black/10 hover:scale-125 transition-transform cursor-pointer shadow-2xs"
+                style={{ backgroundColor: c.color }}
+                title={c.name}
+              />
+            ))}
+          </div>
+
+          {/* Alinhamento */}
+          <div className="flex items-center gap-0.5 border-r border-[#D8E5E7] pr-2">
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("justifyLeft"); }}
+              className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
+              title="Alinhar à Esquerda"
+            >
+              <AlignLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("justifyCenter"); }}
+              className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
+              title="Centralizar"
+            >
+              <AlignCenter className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("justifyRight"); }}
+              className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
+              title="Alinhar à Direita"
+            >
+              <AlignRight className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("justifyFull"); }}
+              className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
+              title="Justificar Texto"
+            >
+              <AlignJustify className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Listas */}
+          <div className="flex items-center gap-0.5 border-r border-[#D8E5E7] pr-2">
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("insertUnorderedList"); }}
+              className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
+              title="Lista com Marcadores"
+            >
+              <List className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); execCmd("insertOrderedList"); }}
+              className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
+              title="Lista Numerada"
+            >
+              <ListOrdered className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Limpar Formatação */}
+          <button
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); execCmd("removeFormat"); }}
+            className="p-1.5 rounded-lg hover:bg-white text-[#6B7C83] hover:text-[#0D2329] border border-transparent hover:border-[#D8E5E7] cursor-pointer"
+            title="Limpar Formatação do Texto Selecionado"
+          >
+            <RemoveFormatting className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Corpo do Documento Formatado (Estilo Folha A4 Clínica) */}
+        {/* Corpo do Documento Formatado (Estilo Folha A4 Clínica Editável) */}
         <div
           contentEditable={true}
           suppressContentEditableWarning={true}
-          className="p-6 sm:p-10 overflow-y-auto space-y-8 text-xs font-sans bg-[#FBFDFD] printable-report print:bg-white print:p-0 print:overflow-visible print:max-h-none print:h-auto print:block print:space-y-6 focus:outline-none cursor-text selection:bg-[#EDE9FE]"
+          style={{ userSelect: "text", WebkitUserSelect: "text" }}
+          className="p-6 sm:p-10 overflow-y-auto space-y-8 text-xs font-sans bg-[#FBFDFD] printable-report print:bg-white print:p-0 print:overflow-visible print:max-h-none print:h-auto print:block print:space-y-6 focus:outline-none cursor-text select-text selection:bg-[#EDE9FE]"
         >
           
           {/* 1. Timbre e Cabeçalho da Clínica */}
-          <div className="p-6 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3">
+          <div className="relative group/card p-6 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3 print:border-none print:shadow-none print-avoid-break">
+            <button
+              type="button"
+              contentEditable={false}
+              onClick={(e) => {
+                e.stopPropagation()
+                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                if (card) card.remove()
+              }}
+              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
+              title="Excluir este bloco do laudo"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Excluir Card</span>
+            </button>
+
             <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-4 flex-wrap gap-4">
               <div className="flex items-center gap-4">
                 {professionalData.clinicLogoUrl ? (
@@ -311,7 +512,22 @@ export function ClinicalReportPreviewModal({
           </div>
 
           {/* 2. Identificação do Paciente */}
-          <div className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3">
+          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3 print:border print:shadow-none print-avoid-break">
+            <button
+              type="button"
+              contentEditable={false}
+              onClick={(e) => {
+                e.stopPropagation()
+                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                if (card) card.remove()
+              }}
+              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
+              title="Excluir este bloco do laudo"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Excluir Card</span>
+            </button>
+
             <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2 border-b border-[#EEF5F6] pb-2">
               <User className="w-4 h-4 text-[#005B94]" />
               <span>1. Identificação do Paciente</span>
@@ -360,7 +576,22 @@ export function ClinicalReportPreviewModal({
           </div>
 
           {/* 3. Instrumentos Avaliativos Utilizados */}
-          <div className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3">
+          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3 print:border print:shadow-none print-avoid-break">
+            <button
+              type="button"
+              contentEditable={false}
+              onClick={(e) => {
+                e.stopPropagation()
+                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                if (card) card.remove()
+              }}
+              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
+              title="Excluir este bloco do laudo"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Excluir Card</span>
+            </button>
+
             <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2 border-b border-[#EEF5F6] pb-2">
               <Brain className="w-4 h-4 text-[#005B94]" />
               <span>{"2. Instrumentos Avaliativos Utilizados (" + selectedInstruments.length + ")"}</span>
@@ -386,7 +617,22 @@ export function ClinicalReportPreviewModal({
           </div>
 
           {/* 4. Anamnese / Entrevista Inicial com a Família */}
-          <div className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-4">
+          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-4 print:border print:shadow-none print-avoid-break">
+            <button
+              type="button"
+              contentEditable={false}
+              onClick={(e) => {
+                e.stopPropagation()
+                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                if (card) card.remove()
+              }}
+              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
+              title="Excluir este bloco do laudo"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Excluir Card</span>
+            </button>
+
             <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-2">
               <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
                 <GraduationCap className="w-4 h-4 text-[#005B94]" />
@@ -414,7 +660,22 @@ export function ClinicalReportPreviewModal({
           </div>
 
           {/* 5. Entrevista / Visita Escolar */}
-          <div className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-4">
+          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-4 print:border print:shadow-none print-avoid-break">
+            <button
+              type="button"
+              contentEditable={false}
+              onClick={(e) => {
+                e.stopPropagation()
+                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                if (card) card.remove()
+              }}
+              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
+              title="Excluir este bloco do laudo"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Excluir Card</span>
+            </button>
+
             <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-2">
               <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
                 <School className="w-4 h-4 text-[#005B94]" />
@@ -487,7 +748,22 @@ export function ClinicalReportPreviewModal({
           </div>
 
           {/* 6. Resultados dos Testes e Instrumentos Avaliativos */}
-          <div className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-5">
+          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-5 print:border print:shadow-none print-avoid-break">
+            <button
+              type="button"
+              contentEditable={false}
+              onClick={(e) => {
+                e.stopPropagation()
+                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                if (card) card.remove()
+              }}
+              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
+              title="Excluir este bloco do laudo"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Excluir Card</span>
+            </button>
+
             <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2 border-b border-[#EEF5F6] pb-2">
               <Brain className="w-4 h-4 text-[#005B94]" />
               <span>{"5. Resultados dos Testes e Instrumentos Avaliativos (" + testsResults.length + ")"}</span>
@@ -553,7 +829,22 @@ export function ClinicalReportPreviewModal({
           </div>
 
           {/* 7. Observação Clínica nas Sessões */}
-          <div className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-2">
+          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-2 print:border print:shadow-none print-avoid-break">
+            <button
+              type="button"
+              contentEditable={false}
+              onClick={(e) => {
+                e.stopPropagation()
+                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                if (card) card.remove()
+              }}
+              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
+              title="Excluir este bloco do laudo"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Excluir Card</span>
+            </button>
+
             <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2 border-b border-[#EEF5F6] pb-2">
               <Stethoscope className="w-4 h-4 text-[#005B94]" />
               <span>6. Observação Clínica nas Sessões</span>
@@ -564,7 +855,22 @@ export function ClinicalReportPreviewModal({
           </div>
 
           {/* 8. Síntese da Avaliação Psicopedagógica */}
-          <div className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-2">
+          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-2 print:border print:shadow-none print-avoid-break">
+            <button
+              type="button"
+              contentEditable={false}
+              onClick={(e) => {
+                e.stopPropagation()
+                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                if (card) card.remove()
+              }}
+              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
+              title="Excluir este bloco do laudo"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Excluir Card</span>
+            </button>
+
             <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2 border-b border-[#EEF5F6] pb-2">
               <FileText className="w-4 h-4 text-[#005B94]" />
               <span>7. Síntese da Avaliação Psicopedagógica</span>
@@ -575,7 +881,22 @@ export function ClinicalReportPreviewModal({
           </div>
 
           {/* 9. Hipótese Diagnóstica (DSM-5-TR) */}
-          <div className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3">
+          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3 print:border print:shadow-none print-avoid-break">
+            <button
+              type="button"
+              contentEditable={false}
+              onClick={(e) => {
+                e.stopPropagation()
+                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                if (card) card.remove()
+              }}
+              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
+              title="Excluir este bloco do laudo"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Excluir Card</span>
+            </button>
+
             <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2 border-b border-[#EEF5F6] pb-2">
               <Lightbulb className="w-4 h-4 text-[#005B94]" />
               <span>8. Hipótese Diagnóstica (DSM-5-TR)</span>
@@ -602,7 +923,22 @@ export function ClinicalReportPreviewModal({
           </div>
 
           {/* 10. Encaminhamentos & Orientações */}
-          <div className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-4">
+          <div className="relative group/card p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-4 print:border print:shadow-none print-avoid-break">
+            <button
+              type="button"
+              contentEditable={false}
+              onClick={(e) => {
+                e.stopPropagation()
+                const card = (e.currentTarget as HTMLElement).closest(".group\\/card")
+                if (card) card.remove()
+              }}
+              className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
+              title="Excluir este bloco do laudo"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Excluir Card</span>
+            </button>
+
             <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2 border-b border-[#EEF5F6] pb-2">
               <CheckCircle2 className="w-4 h-4 text-[#005B94]" />
               <span>9. Encaminhamentos & Orientações Pedagógicas</span>
@@ -660,7 +996,7 @@ export function ClinicalReportPreviewModal({
           </div>
 
           {/* Assinatura */}
-          <div className="pt-10 text-center space-y-1 border-t-2 border-[#D8E5E7] mt-8">
+          <div className="relative group/card pt-10 text-center space-y-1 border-t-2 border-[#D8E5E7] mt-8 print-avoid-break">
             <p className="font-black text-sm text-[#0D2329]">{professionalData.professionalName}</p>
             <p className="text-xs font-semibold text-[#6B7C83]">
               {"Psicopedagoga Clínica · CBO " + (professionalData.cboOrCrp || "2394-25")}
@@ -672,7 +1008,7 @@ export function ClinicalReportPreviewModal({
         </div>
 
         {/* Footer do Modal */}
-        <div className="p-4 border-t border-[#EEF5F6] bg-[#F8FAFB] rounded-b-3xl flex items-center justify-between gap-3 print:hidden">
+        <div className="p-3.5 sm:p-4 border-t border-[#EEF5F6] bg-[#F8FAFB] rounded-b-3xl flex items-center justify-between gap-3 print:hidden">
           <button
             type="button"
             onClick={onClose}
