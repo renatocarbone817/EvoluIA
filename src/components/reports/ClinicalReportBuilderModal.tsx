@@ -1167,10 +1167,14 @@ export function ClinicalReportBuilderModal({
                       type="button"
                       disabled={generatingAI}
                       onClick={handleGenerateAISuggestions}
-                      className="px-3 py-1.5 rounded-lg bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer shrink-0 w-fit"
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer shrink-0 w-fit ${
+                        generatingAI
+                          ? "bg-[#DDD6FE] text-[#6D28D9] animate-pulse cursor-not-allowed"
+                          : "bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE]"
+                      }`}
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>{generatingAI ? "Aprimorando..." : "Sugerir Eixos com IA"}</span>
+                      <Sparkles className={`w-3.5 h-3.5 ${generatingAI ? "animate-spin" : ""}`} />
+                      <span>{generatingAI ? "✨ Estruturando com IA..." : "Sugerir Eixos com IA"}</span>
                     </button>
                   </div>
 
@@ -1183,8 +1187,12 @@ export function ClinicalReportBuilderModal({
                         rows={3}
                         value={anamneseAxes.family || ""}
                         onChange={(e) => setAnamneseAxes({ ...anamneseAxes, family: e.target.value })}
-                        placeholder="Constituição familiar, rotina e dinâmica relacional..."
-                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                        placeholder={generatingAI ? "✨ Estruturando dinâmica familiar com IA..." : "Constituição familiar, rotina e dinâmica relacional..."}
+                        className={`w-full p-2.5 text-xs rounded-xl border leading-relaxed transition-all duration-500 ${
+                          generatingAI
+                            ? "border-2 border-[#7C3AED] bg-[#F5F3FF] shadow-[0_0_20px_rgba(124,58,237,0.25)] animate-pulse ring-2 ring-[#7C3AED]/40 text-[#4C1D95]"
+                            : "border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-[#0D2329]"
+                        }`}
                       />
                     </div>
 
@@ -1196,8 +1204,12 @@ export function ClinicalReportBuilderModal({
                         rows={3}
                         value={anamneseAxes.conceptionAndPregnancy || ""}
                         onChange={(e) => setAnamneseAxes({ ...anamneseAxes, conceptionAndPregnancy: e.target.value })}
-                        placeholder="Histórico gestacional, condições de parto e primeiras semanas..."
-                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                        placeholder={generatingAI ? "✨ Sintetizando histórico gestacional e parto com IA..." : "Histórico gestacional, condições de parto e primeiras semanas..."}
+                        className={`w-full p-2.5 text-xs rounded-xl border leading-relaxed transition-all duration-500 ${
+                          generatingAI
+                            ? "border-2 border-[#7C3AED] bg-[#F5F3FF] shadow-[0_0_20px_rgba(124,58,237,0.25)] animate-pulse ring-2 ring-[#7C3AED]/40 text-[#4C1D95]"
+                            : "border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-[#0D2329]"
+                        }`}
                       />
                     </div>
 
@@ -1209,8 +1221,12 @@ export function ClinicalReportBuilderModal({
                         rows={3}
                         value={anamneseAxes.breastfeedingAndDiet || ""}
                         onChange={(e) => setAnamneseAxes({ ...anamneseAxes, breastfeedingAndDiet: e.target.value })}
-                        placeholder="Aleitamento, introdução de sólidos e seletividade alimentar..."
-                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                        placeholder={generatingAI ? "✨ Sintetizando aleitamento e introdução alimentar com IA..." : "Aleitamento, introdução de sólidos e seletividade alimentar..."}
+                        className={`w-full p-2.5 text-xs rounded-xl border leading-relaxed transition-all duration-500 ${
+                          generatingAI
+                            ? "border-2 border-[#7C3AED] bg-[#F5F3FF] shadow-[0_0_20px_rgba(124,58,237,0.25)] animate-pulse ring-2 ring-[#7C3AED]/40 text-[#4C1D95]"
+                            : "border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-[#0D2329]"
+                        }`}
                       />
                     </div>
 
@@ -1222,8 +1238,12 @@ export function ClinicalReportBuilderModal({
                         rows={3}
                         value={anamneseAxes.psychomotorAndLanguage || ""}
                         onChange={(e) => setAnamneseAxes({ ...anamneseAxes, psychomotorAndLanguage: e.target.value })}
-                        placeholder="Marcos motores (marcha, sustentação) e aquisição da fala..."
-                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                        placeholder={generatingAI ? "✨ Sintetizando marcos motores e aquisição da fala com IA..." : "Marcos motores (marcha, sustentação) e aquisição da fala..."}
+                        className={`w-full p-2.5 text-xs rounded-xl border leading-relaxed transition-all duration-500 ${
+                          generatingAI
+                            ? "border-2 border-[#7C3AED] bg-[#F5F3FF] shadow-[0_0_20px_rgba(124,58,237,0.25)] animate-pulse ring-2 ring-[#7C3AED]/40 text-[#4C1D95]"
+                            : "border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-[#0D2329]"
+                        }`}
                       />
                     </div>
 
@@ -1235,8 +1255,12 @@ export function ClinicalReportBuilderModal({
                         rows={3}
                         value={anamneseAxes.sleep || ""}
                         onChange={(e) => setAnamneseAxes({ ...anamneseAxes, sleep: e.target.value })}
-                        placeholder="Qualidade do sono noturno e rotina de descanso..."
-                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                        placeholder={generatingAI ? "✨ Analisando rotina e qualidade do sono com IA..." : "Qualidade do sono noturno e rotina de descanso..."}
+                        className={`w-full p-2.5 text-xs rounded-xl border leading-relaxed transition-all duration-500 ${
+                          generatingAI
+                            ? "border-2 border-[#7C3AED] bg-[#F5F3FF] shadow-[0_0_20px_rgba(124,58,237,0.25)] animate-pulse ring-2 ring-[#7C3AED]/40 text-[#4C1D95]"
+                            : "border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-[#0D2329]"
+                        }`}
                       />
                     </div>
 
@@ -1248,8 +1272,12 @@ export function ClinicalReportBuilderModal({
                         rows={3}
                         value={anamneseAxes.familyHealthHistory || ""}
                         onChange={(e) => setAnamneseAxes({ ...anamneseAxes, familyHealthHistory: e.target.value })}
-                        placeholder="Histórico clínico e antecedentes de dificuldades na família..."
-                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                        placeholder={generatingAI ? "✨ Estruturando antecedentes clínicos e histórico familiar com IA..." : "Histórico clínico e antecedentes de dificuldades na família..."}
+                        className={`w-full p-2.5 text-xs rounded-xl border leading-relaxed transition-all duration-500 ${
+                          generatingAI
+                            ? "border-2 border-[#7C3AED] bg-[#F5F3FF] shadow-[0_0_20px_rgba(124,58,237,0.25)] animate-pulse ring-2 ring-[#7C3AED]/40 text-[#4C1D95]"
+                            : "border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-[#0D2329]"
+                        }`}
                       />
                     </div>
 
@@ -1261,8 +1289,12 @@ export function ClinicalReportBuilderModal({
                         rows={3}
                         value={anamneseAxes.schooling || ""}
                         onChange={(e) => setAnamneseAxes({ ...anamneseAxes, schooling: e.target.value })}
-                        placeholder="Início escolar, adaptação e surgimento das dificuldades..."
-                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                        placeholder={generatingAI ? "✨ Estruturando trajetória acadêmica e queixas escolares com IA..." : "Início escolar, adaptação e surgimento das dificuldades..."}
+                        className={`w-full p-2.5 text-xs rounded-xl border leading-relaxed transition-all duration-500 ${
+                          generatingAI
+                            ? "border-2 border-[#7C3AED] bg-[#F5F3FF] shadow-[0_0_20px_rgba(124,58,237,0.25)] animate-pulse ring-2 ring-[#7C3AED]/40 text-[#4C1D95]"
+                            : "border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-[#0D2329]"
+                        }`}
                       />
                     </div>
 
@@ -1274,11 +1306,22 @@ export function ClinicalReportBuilderModal({
                         rows={3}
                         value={anamneseAxes.relationshipsAndSociability || ""}
                         onChange={(e) => setAnamneseAxes({ ...anamneseAxes, relationshipsAndSociability: e.target.value })}
-                        placeholder="Interação com amigos, convivência e brincadeiras..."
-                        className="w-full p-2.5 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed text-[#0D2329]"
+                        placeholder={generatingAI ? "✨ Estruturando sociabilidade e interação com pares com IA..." : "Interação com amigos, convivência e brincadeiras..."}
+                        className={`w-full p-2.5 text-xs rounded-xl border leading-relaxed transition-all duration-500 ${
+                          generatingAI
+                            ? "border-2 border-[#7C3AED] bg-[#F5F3FF] shadow-[0_0_20px_rgba(124,58,237,0.25)] animate-pulse ring-2 ring-[#7C3AED]/40 text-[#4C1D95]"
+                            : "border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-[#0D2329]"
+                        }`}
                       />
                     </div>
                   </div>
+
+                  {generatingAI && (
+                    <div className="flex items-center gap-2 mt-2 px-3.5 py-2.5 rounded-xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] text-xs font-black animate-pulse shadow-xs">
+                      <Sparkles className="w-4 h-4 animate-spin text-[#7C3AED] shrink-0" />
+                      <span>✨ A IA está analisando as 13 perguntas da família e estruturando os 8 eixos temáticos em tempo real...</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Perguntas Reais da Anamnese Familiar */}
