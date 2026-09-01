@@ -532,6 +532,7 @@ ESTRUTURA DO RETORNO (EXCLUSIVAMENTE JSON VÁLIDO):
           recommendationsSchool: Array.isArray(parsed.recommendationsSchool) ? parsed.recommendationsSchool : [],
           finalConsiderations: parsed.finalConsiderations || "",
           clinicalObservation: parsed.clinicalObservation || "",
+          anamneseAxes: parsed.anamneseAxes || undefined,
         }
       }
     } catch (err: any) {
