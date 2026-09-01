@@ -35,6 +35,8 @@ import {
   ArrowLeft,
   ArrowRight as ArrowRightIcon,
   Upload,
+  PlusCircle,
+  Table,
 } from "lucide-react"
 import type { ReportTestResult } from "@/lib/docxReportGenerator"
 
@@ -92,7 +94,7 @@ export function ClinicalReportPreviewModal({
   schoolObserver,
   schoolTraits = {},
   selectedInstruments,
-  testsResults,
+  testsResults: initialTestsResults,
   clinicalObservation,
   sessionsCount,
   synthesis,
@@ -109,7 +111,7 @@ export function ClinicalReportPreviewModal({
   const clinicLogoInputRef = useRef<HTMLInputElement>(null)
   const [selectedImgEl, setSelectedImgEl] = useState<HTMLImageElement | null>(null)
 
-  // Carrega logo da clínica de múltiplas fontes confiáveis (apenas logomarca, nunca a foto de rosto)
+  // Carrega logo da clínica de múltiplas fontes confiáveis (apenas logomarca da clínica, nunca a foto de perfil/rosto)
   const [headerLogo, setHeaderLogo] = useState<string>(() => {
     const fromProps = professionalData.clinicLogoUrl || ""
     if (fromProps) return fromProps
@@ -330,6 +332,132 @@ export function ClinicalReportPreviewModal({
     if (!selectedImgEl) return
     selectedImgEl.remove()
     setSelectedImgEl(null)
+  }
+
+  // Adiciona Linha em Tabela Ativa
+  function addTableRowToCard(targetButton: HTMLElement) {
+    const card = targetButton.closest(".test-card-item, .group\\/card, .p-4")
+    const table = card?.querySelector("table")
+    if (table) {
+      const tbody = table.querySelector("tbody") || table
+      const headerThs = table.querySelectorAll("thead th")
+      const colCount = headerThs.length > 0 ? headerThs.length : 4
+
+      const newRow = document.createElement("tr")
+      newRow.className = "border-b border-[#EEF5F6] hover:bg-[#F8FAFB]"
+
+      let cellsHtml = ""
+      for (let i = 0; i < colCount; i++) {
+        const defaultText = i === 0 ? "Novo Fator / Item" : i === colCount - 1 ? "Média" : "-"
+        cellsHtml += `<td class="p-2.5 font-medium text-[#0D2329]">${defaultText}</td>`
+      }
+
+      newRow.innerHTML = cellsHtml
+      tbody.appendChild(newRow)
+    }
+  }
+
+  function removeTableRowFromCard(targetButton: HTMLElement) {
+    const card = targetButton.closest(".test-card-item, .group\\/card, .p-4")
+    const tbody = card?.querySelector("table tbody")
+    if (tbody && tbody.children.length > 1) {
+      tbody.removeChild(tbody.lastElementChild as Node)
+    }
+  }
+
+  // Adiciona Novo Card de Teste no Bloco de Resultados
+  function handleAddCustomTestCard(targetSiblingCard?: HTMLElement) {
+    const container = document.querySelector(".tests-container-list")
+    if (!container) return
+
+    const cardDiv = document.createElement("div")
+    cardDiv.className = "relative group/card p-4 rounded-2xl bg-[#F8FAFB] border-2 border-[#D8E5E7] space-y-3 test-card-item"
+    cardDiv.innerHTML = `
+      <button
+        type="button"
+        contenteditable="false"
+        onclick="this.closest('.test-card-item').remove()"
+        class="absolute top-3 right-3 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
+        title="Excluir este bloco de teste"
+      >
+        🗑️ <span>Excluir Card</span>
+      </button>
+
+      <div class="flex items-center justify-between flex-wrap gap-2 pr-24">
+        <h3 class="text-xs font-black uppercase text-[#0D2329] tracking-wide">
+          NOVO INSTRUMENTO / TESTE AVALIATIVO
+        </h3>
+      </div>
+
+      <p class="text-[11px] text-[#6B7C83] font-medium leading-relaxed">
+        Objetivo da aplicação deste teste ou instrumento psicopedagógico.
+      </p>
+
+      <div class="overflow-x-auto rounded-xl border border-[#D8E5E7] bg-white">
+        <table class="w-full text-[11px] text-left border-collapse">
+          <thead>
+            <tr class="bg-[#E0F2FE] border-b border-[#BAE6FD]">
+              <th class="p-2.5 font-black text-[#005B94]">Fator / Parâmetro Avaliado</th>
+              <th class="p-2.5 font-black text-[#005B94]">Pontos Brutos</th>
+              <th class="p-2.5 font-black text-[#005B94]">Percentil</th>
+              <th class="p-2.5 font-black text-[#005B94]">Classificação Clínica</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-[#EEF5F6] hover:bg-[#F8FAFB]">
+              <td class="p-2.5 font-medium text-[#0D2329]">Item / Habilidade Avaliada 1</td>
+              <td class="p-2.5 font-medium text-[#0D2329]">10</td>
+              <td class="p-2.5 font-medium text-[#0D2329]">50</td>
+              <td class="p-2.5 font-medium text-[#0D2329]">Médio</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Controles da Tabela -->
+      <div class="flex items-center gap-2 pt-1 print:hidden" contenteditable="false">
+        <button
+          type="button"
+          class="add-row-btn px-2.5 py-1 rounded-lg bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#005B94] text-[11px] font-black flex items-center gap-1 border border-[#BAE6FD] cursor-pointer transition-all shadow-2xs"
+          title="Adicionar uma nova linha nesta tabela"
+        >
+          <span>➕ Adicionar Linha</span>
+        </button>
+        <button
+          type="button"
+          class="remove-row-btn px-2 py-1 rounded-lg hover:bg-red-50 text-red-600 text-[11px] font-bold flex items-center gap-1 border border-transparent hover:border-red-200 cursor-pointer transition-all"
+          title="Remover a última linha desta tabela"
+        >
+          <span>➖ Remover Linha</span>
+        </button>
+      </div>
+
+      <p class="text-xs font-medium text-[#0D2329] leading-relaxed pl-2.5 border-l-2 border-[#7C3AED]">
+        Interpretação clínica e qualitativa do desempenho do paciente neste instrumento avaliativo.
+      </p>
+    `
+
+    // Conecta botões de adicionar linha
+    const addBtn = cardDiv.querySelector(".add-row-btn") as HTMLElement
+    if (addBtn) {
+      addBtn.onclick = (e) => {
+        e.stopPropagation()
+        addTableRowToCard(addBtn)
+      }
+    }
+    const remBtn = cardDiv.querySelector(".remove-row-btn") as HTMLElement
+    if (remBtn) {
+      remBtn.onclick = (e) => {
+        e.stopPropagation()
+        removeTableRowFromCard(remBtn)
+      }
+    }
+
+    if (targetSiblingCard && targetSiblingCard.parentNode === container) {
+      container.insertBefore(cardDiv, targetSiblingCard.nextSibling)
+    } else {
+      container.appendChild(cardDiv)
+    }
   }
 
   // Detecta clique em imagens no relatório para exibir os controles
@@ -761,6 +889,17 @@ export function ClinicalReportPreviewModal({
             accept="image/*"
             className="hidden"
           />
+
+          {/* Botão Rápido de Inserir Novo Card de Teste */}
+          <button
+            type="button"
+            onClick={() => handleAddCustomTestCard()}
+            className="px-2.5 py-1 rounded-lg bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#005B94] font-black border border-[#BAE6FD] cursor-pointer flex items-center gap-1.5 shadow-2xs transition-all ml-1"
+            title="Adicionar um novo card de teste avaliativo"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>+ Card</span>
+          </button>
 
           {/* Limpar Formatação */}
           <button
@@ -1233,15 +1372,44 @@ export function ClinicalReportPreviewModal({
               <span>Excluir Card</span>
             </button>
 
-            <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2 border-b border-[#EEF5F6] pb-2">
-              <Brain className="w-4 h-4 text-[#005B94]" />
-              <span>{"5. Resultados dos Testes e Instrumentos Avaliativos (" + testsResults.length + ")"}</span>
-            </h2>
+            <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-2 flex-wrap gap-2">
+              <h2 className="text-xs font-black uppercase tracking-wider text-[#005B94] flex items-center gap-2">
+                <Brain className="w-4 h-4 text-[#005B94]" />
+                <span>5. Resultados dos Testes e Instrumentos Avaliativos</span>
+              </h2>
 
-            <div className="space-y-6">
-              {testsResults.map((test, tIdx) => (
-                <div key={tIdx} className="p-4 rounded-2xl bg-[#F8FAFB] border-2 border-[#D8E5E7] space-y-3">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
+              {/* Botão de Adicionar Card no Bloco */}
+              <button
+                type="button"
+                contentEditable={false}
+                onClick={() => handleAddCustomTestCard()}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-[11px] font-black flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all print:hidden"
+                title="Adicionar um novo card de teste ou instrumento avaliativo"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>+ Adicionar Novo Teste</span>
+              </button>
+            </div>
+
+            <div className="space-y-6 tests-container-list">
+              {initialTestsResults.map((test, tIdx) => (
+                <div key={tIdx} className="relative group/card p-4 rounded-2xl bg-[#F8FAFB] border-2 border-[#D8E5E7] space-y-3 test-card-item">
+                  <button
+                    type="button"
+                    contentEditable={false}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const card = (e.currentTarget as HTMLElement).closest(".test-card-item")
+                      if (card) card.remove()
+                    }}
+                    className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 border border-red-200 transition-all cursor-pointer print:hidden shadow-2xs z-10"
+                    title="Excluir este bloco de teste"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Excluir Card</span>
+                  </button>
+
+                  <div className="flex items-center justify-between flex-wrap gap-2 pr-24">
                     <h3 className="text-xs font-black uppercase text-[#0D2329] tracking-wide">
                       {test.title}
                     </h3>
@@ -1278,6 +1446,34 @@ export function ClinicalReportPreviewModal({
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                  )}
+
+                  {/* Controles da Tabela: Adicionar Linha / Remover Linha */}
+                  {test.tableHeaders && (
+                    <div className="flex items-center gap-2 pt-1 print:hidden" contentEditable={false}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          addTableRowToCard(e.currentTarget)
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-[#E0F2FE] hover:bg-[#BAE6FD] text-[#005B94] text-[11px] font-black flex items-center gap-1 border border-[#BAE6FD] cursor-pointer transition-all shadow-2xs"
+                        title="Adicionar uma nova linha nesta tabela"
+                      >
+                        <span>➕ Adicionar Linha</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeTableRowFromCard(e.currentTarget)
+                        }}
+                        className="px-2 py-1 rounded-lg hover:bg-red-50 text-red-600 text-[11px] font-bold flex items-center gap-1 border border-transparent hover:border-red-200 cursor-pointer transition-all"
+                        title="Remover a última linha desta tabela"
+                      >
+                        <span>➖ Remover Linha</span>
+                      </button>
                     </div>
                   )}
 
