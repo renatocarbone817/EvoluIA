@@ -794,7 +794,7 @@ const completeData: CompleteReportData = {
         },
       }
 
-      const doc = buildClinicalDocxReport(completeData)
+      const doc = await buildClinicalDocxReport(completeData)
       await downloadDocxReport(doc, "Laudo_Psicopedagogico_" + child.full_name.replace(/\s+/g, "_"))
       toast.success("Documento Word (.docx) gerado com sucesso!", { icon: "📥", duration: 5000 })
     } catch (err: any) {

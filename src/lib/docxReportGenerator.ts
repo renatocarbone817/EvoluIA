@@ -20,6 +20,8 @@ import {
   PageNumber,
   ShadingType,
   BorderStyle,
+  VerticalAlign,
+  ImageRun,
 } from "docx"
 
 export interface ReportPatientData {
@@ -216,11 +218,142 @@ function createSubHeader(title: string) {
   })
 }
 
-export function buildClinicalDocxReport(data: CompleteReportData): Document {
-  const clinicTitle = (data.professional.clinicName || "ESPAÇO MULTIDISCIPLINAR").toUpperCase()
+async function getLogoBuffer(logoUrlOrBase64?: string): Promise<Uint8Array | null> {
+  let source = logoUrlOrBase64
+  if (!source && typeof window !== "undefined") {
+    source =
+      localStorage.getItem("evoluia_clinic_logo") ||
+      localStorage.getItem("clinic_logo") ||
+      localStorage.getItem("clinicLogo") ||
+      ""
+  }
+  if (!source) return null
+
+  try {
+    if (source.startsWith("data:")) {
+      const base64Data = source.split(",")[1]
+      const binaryString = atob(base64Data)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+      return bytes
+    } else if (source.startsWith("http") || source.startsWith("/")) {
+      const response = await fetch(source)
+      const arrayBuffer = await response.arrayBuffer()
+      return new Uint8Array(arrayBuffer)
+    }
+  } catch (err) {
+    console.warn("Não foi possível carregar o buffer da logo para o Word:", err)
+  }
+  return null
+}
+
+export async function buildClinicalDocxReport(data: CompleteReportData): Promise<Document> {
+  const clinicTitle = (data.professional.clinicName || "ESPAÇO MULTIDISCIPLINAR APRENDER ENSINANDO").toUpperCase()
   const profTitle = `PSICOPEDAGOGA ${data.professional.professionalName.toUpperCase()} ${
-    data.professional.cboOrCrp ? `CBO ${data.professional.cboOrCrp}` : ""
+    data.professional.cboOrCrp ? `CBO ${data.professional.cboOrCrp}` : "CBO 2394-25"
   }`.trim()
+
+  const logoBuffer = await getLogoBuffer(data.professional.clinicLogoUrl)
+
+  // 1. Tabela do Cabeçalho Estilizado (Faixa Azul com Logo e Dados da Clínica)
+  const headerTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: {
+      top: { style: BorderStyle.NONE, size: 0, color: "auto" },
+      bottom: { style: BorderStyle.NONE, size: 0, color: "auto" },
+      left: { style: BorderStyle.NONE, size: 0, color: "auto" },
+      right: { style: BorderStyle.NONE, size: 0, color: "auto" },
+      insideHorizontal: { style: BorderStyle.NONE, size: 0, color: "auto" },
+      insideVertical: { style: BorderStyle.NONE, size: 0, color: "auto" },
+    },
+    rows: [
+      // Linha Principal Azul com a Logo e o Texto da Clínica
+      new TableRow({
+        children: [
+          // Coluna da Logo (Esquerda)
+          new TableCell({
+            width: { size: 20, type: WidthType.PERCENTAGE },
+            shading: { type: ShadingType.CLEAR, fill: "005B94" },
+            verticalAlign: VerticalAlign.CENTER,
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 60, after: 60 },
+                children: logoBuffer
+                  ? [
+                      new ImageRun({
+                        data: logoBuffer,
+                        transformation: { width: 56, height: 56 },
+                      }),
+                    ]
+                  : [
+                      new TextRun({
+                        text: "🏢",
+                        font: "Arial",
+                        size: 24,
+                        color: "FFFFFF",
+                      }),
+                    ],
+              }),
+            ],
+          }),
+          // Coluna dos Textos da Clínica e Profissional (Direita)
+          new TableCell({
+            width: { size: 80, type: WidthType.PERCENTAGE },
+            shading: { type: ShadingType.CLEAR, fill: "005B94" },
+            verticalAlign: VerticalAlign.CENTER,
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 80, after: 30 },
+                children: [
+                  new TextRun({
+                    text: clinicTitle,
+                    font: "Arial",
+                    size: 21,
+                    bold: true,
+                    color: "FFFFFF",
+                  }),
+                ],
+              }),
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 0, after: 80 },
+                children: [
+                  new TextRun({
+                    text: profTitle,
+                    font: "Arial",
+                    size: 18,
+                    bold: true,
+                    color: "E0F2FE",
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+      // Faixa Decorativa Azul Clara Inferior
+      new TableRow({
+        children: [
+          new TableCell({
+            columnSpan: 2,
+            shading: { type: ShadingType.CLEAR, fill: "BAE6FD" },
+            children: [
+              new Paragraph({
+                spacing: { before: 20, after: 20 },
+                children: [
+                  new TextRun({ text: "", font: "Arial", size: 4 }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+    ],
+  })
 
   const doc = new Document({
     styles: {
@@ -249,32 +382,8 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
         headers: {
           default: new Header({
             children: [
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                spacing: { after: 100 },
-                children: [
-                  new TextRun({
-                    text: clinicTitle,
-                    font: "Arial",
-                    size: 20,
-                    bold: true,
-                    color: "005B94",
-                  }),
-                ],
-              }),
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                spacing: { after: 200 },
-                children: [
-                  new TextRun({
-                    text: profTitle,
-                    font: "Arial",
-                    size: 18,
-                    bold: true,
-                    color: "555555",
-                  }),
-                ],
-              }),
+              headerTable,
+              new Paragraph({ spacing: { after: 140 } }),
             ],
           }),
         },
@@ -282,18 +391,30 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
           default: new Footer({
             children: [
               new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 80, after: 40 },
+                children: [
+                  new TextRun({
+                    text: `${data.professional.clinicName || "Aprender Ensinando"} · ${data.professional.address || "Atendimento Psicopedagógico Especializado"} · ${data.professional.phone || ""}`.trim(),
+                    font: "Arial",
+                    size: 16,
+                    color: "6B7C83",
+                  }),
+                ],
+              }),
+              new Paragraph({
                 alignment: AlignmentType.RIGHT,
                 children: [
                   new TextRun({
                     text: "Página ",
                     font: "Arial",
-                    size: 18,
+                    size: 16,
                     color: "888888",
                   }),
                   new TextRun({
                     children: [PageNumber.CURRENT],
                     font: "Arial",
-                    size: 18,
+                    size: 16,
                     color: "888888",
                   }),
                 ],
