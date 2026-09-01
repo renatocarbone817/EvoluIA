@@ -146,7 +146,7 @@ function createP(
 ) {
   return new Paragraph({
     alignment: options?.align || AlignmentType.LEFT,
-    spacing: { before: options?.spacingBefore ?? 0, after: options?.spacingAfter ?? 160, line: 280 },
+    spacing: { before: options?.spacingBefore ?? 0, after: options?.spacingAfter ?? 120, line: 260 },
     children: [
       new TextRun({
         text,
@@ -166,7 +166,7 @@ function createLabeledP(
   options?: { labelColor?: string; valueColor?: string; boldLabel?: boolean }
 ) {
   return new Paragraph({
-    spacing: { after: 140, line: 260 },
+    spacing: { after: 100, line: 240 },
     children: [
       new TextRun({
         text: label + " ",
@@ -189,7 +189,7 @@ function createSectionHeader(title: string) {
   return new Paragraph({
     heading: HeadingLevel.HEADING_2,
     alignment: AlignmentType.LEFT,
-    spacing: { before: 560, after: 200 }, // ~2 linhas de espaço antes de cada tema principal
+    spacing: { before: 320, after: 120 },
     children: [
       new TextRun({
         text: title.toUpperCase(),
@@ -205,7 +205,7 @@ function createSectionHeader(title: string) {
 function createSubHeader(title: string) {
   return new Paragraph({
     alignment: AlignmentType.LEFT,
-    spacing: { before: 380, after: 120 }, // Espaço agradável e nítido antes de cada sub-teste / pergunta
+    spacing: { before: 200, after: 80 },
     children: [
       new TextRun({
         text: title.toUpperCase(),
@@ -953,13 +953,13 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
           ),
 
           new Paragraph({
-            spacing: { before: 240, after: 300 },
+            spacing: { before: 200, after: 160 },
             alignment: AlignmentType.CENTER,
             children: [
               new TextRun({
                 text: '"Juntos, somos uma força! A paciência, a compreensão e o apoio são as nossas ferramentas para construir um futuro brilhante."',
                 font: "Arial",
-                size: 22,
+                size: 20,
                 italics: true,
                 bold: true,
                 color: "005B94",
@@ -969,38 +969,38 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
 
           // 13. DATA, LOCAL E ASSINATURA
           new Paragraph({
-            spacing: { before: 200, after: 300 },
+            spacing: { before: 100, after: 160 },
             alignment: AlignmentType.LEFT,
             children: [
               new TextRun({
                 text:
                   data.clinical.dateCityFormatted ||
-                  `${data.professional.city || "Votuporanga"}, ${new Date().toLocaleDateString("pt-BR", {
+                  `${data.professional.city || "Votuporanga"} - ${data.professional.state || "SP"}, ${new Date().toLocaleDateString("pt-BR", {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
                   })}.`,
                 font: "Arial",
-                size: 22,
+                size: 20,
               }),
             ],
           }),
 
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { before: 400, after: 40 },
+            spacing: { before: 240, after: 20 },
             children: [
               new TextRun({
                 text: "____________________________________________________",
                 font: "Arial",
-                size: 22,
+                size: 20,
                 color: "888888",
               }),
             ],
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { after: 40 },
+            spacing: { after: 20 },
             children: [
               new TextRun({
                 text: `Psicopedagoga ${data.professional.professionalName}`,
@@ -1013,14 +1013,14 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { after: 100 },
+            spacing: { after: 40 },
             children: [
               new TextRun({
                 text: data.professional.cboOrCrp
                   ? `CBO - ${data.professional.cboOrCrp}`
                   : "Psicopedagoga Clínica",
                 font: "Arial",
-                size: 20,
+                size: 18,
                 bold: true,
                 color: "555555",
               }),
