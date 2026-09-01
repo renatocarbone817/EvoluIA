@@ -180,41 +180,28 @@ export function ClinicalReportBuilderModal({
     retraido: false,
     melancolico: false,
     calmo: false,
-    desligado: true,
+    desligado: false,
     sem_limites: false,
     agitado: false,
     depressivo: false,
     ressentido: false,
   })
 
-  const [selectedInstruments, setSelectedInstruments] = useState<string[]>([
-    "DSM-5-TR MANUAL DE DIAGNÓSTICOS E ESTATÍSTICOS DE TRANSTORNOS MENTAIS",
-    "ANAMNESE",
-    "ENTREVISTA ESCOLAR",
-    "SNAP-IV (PAIS E PROFESSORES)",
-  ])
+  const [selectedInstruments, setSelectedInstruments] = useState<string[]>([])
 
-  const [clinicalObservation, setClinicalObservation] = useState(
-    "Durante as sessões avaliativas, o paciente demonstrou receptividade às propostas lúdicas e vínculo positivo com a profissional. Observou-se variação no tempo de sustentação atencional conforme o nível de exigência da tarefa, com oscilações de foco em propostas de raciocínio lógico e maior engajamento em jogos dinâmicos."
-  )
+  const [clinicalObservation, setClinicalObservation] = useState("")
 
-  const [sessionsCount, setSessionsCount] = useState(1)
+  const [sessionsCount, setSessionsCount] = useState(0)
 
-  const [synthesis, setSynthesis] = useState(
-    "A presente avaliação psicopedagógica foi realizada contemplando a aplicação de testes e instrumentos avaliativos, bem como entrevistas com o paciente, familiares e escola. A integração dessas informações possibilitou uma compreensão abrangente do funcionamento cognitivo, comportamental, emocional e acadêmico do paciente, permitindo a elaboração das conclusões e o levantamento da hipótese diagnóstica."
-  )
+  const [synthesis, setSynthesis] = useState("")
 
-  const [diagnosticHypothesis, setDiagnosticHypothesis] = useState(
-    "Os dados obtidos ao longo da avaliação psicopedagógica apontam para um perfil cognitivo e comportamental compatível com a hipótese de Transtorno do Déficit de Atenção/Hiperatividade (TDAH), com predomínio nas manifestações de desatenção, planejamento e sustentação do esforço mental, interferindo no rendimento pedagógico e na fixação de aprendizagens."
-  )
+  const [diagnosticHypothesis, setDiagnosticHypothesis] = useState("")
 
-  const [dsm5Criteria, setDsm5Criteria] = useState<string[]>(DEFAULT_DSM5_CRITERIA)
-  const [referrals, setReferrals] = useState<string[]>(DEFAULT_REFERRALS)
-  const [recommendationsFamily, setRecommendationsFamily] = useState<string[]>(DEFAULT_FAMILY_RECS)
-  const [recommendationsSchool, setRecommendationsSchool] = useState<string[]>(DEFAULT_SCHOOL_RECS)
-  const [finalConsiderations, setFinalConsiderations] = useState(
-    "Diante dos dados obtidos, os resultados encontrados são compatíveis com a hipótese diagnóstica levantada. Observam-se desafios no desempenho acadêmico que demandam intervenção clínica focada em estratégias metacognitivas, adaptações pedagógicas na rotina escolar e suporte familiar consistente."
-  )
+  const [dsm5Criteria, setDsm5Criteria] = useState<string[]>([])
+  const [referrals, setReferrals] = useState<string[]>([])
+  const [recommendationsFamily, setRecommendationsFamily] = useState<string[]>([])
+  const [recommendationsSchool, setRecommendationsSchool] = useState<string[]>([])
+  const [finalConsiderations, setFinalConsiderations] = useState("")
 
   // Calculate age and load initial assessments on mount
   useEffect(() => {
@@ -367,14 +354,32 @@ export function ClinicalReportBuilderModal({
         .eq("child_id", child.id)
         .order("session_number", { ascending: true })
 
+      let realCount = 0
+      let autoCompiledObservation = ""
+
       if (sessionList && sessionList.length > 0) {
         setChildSessions(sessionList)
         setExpandedSessionId(sessionList[0].id)
-      }
+        realCount = sessionList.length
 
-      let realCount = sessionList && sessionList.length > 0 ? sessionList.length : 0
+        // Compila anotações clínicas reais das sessões cadastradas
+        const sessionNotes = sessionList
+          .map((s: any, idx: number) => {
+            const dateStr = s.session_date ? new Date(s.session_date + "T12:00:00").toLocaleDateString("pt-BR") : ""
+            const parts: string[] = []
+            if (s.objective) parts.push(`Objetivo: ${s.objective}`)
+            if (s.activities) parts.push(`Trabalhado: ${s.activities}`)
+            if (s.notes) parts.push(`Observações: ${s.notes}`)
+            if (parts.length === 0) return null
+            return `Sessão #${s.session_number || idx + 1}${dateStr ? ` (${dateStr})` : ""}:\n${parts.join("\n")}`
+          })
+          .filter(Boolean)
+          .join("\n\n")
 
-      if (realCount === 0) {
+        if (sessionNotes) {
+          autoCompiledObservation = sessionNotes
+        }
+      } else {
         const { count: appCount } = await supabase
           .from("appointments")
           .select("id", { count: "exact" })
@@ -382,12 +387,10 @@ export function ClinicalReportBuilderModal({
         if (appCount && appCount > 0) realCount = appCount
       }
 
-      const finalCount = realCount > 0 ? realCount : 1
-      setSessionsCount(finalCount)
-
-      setSynthesis(
-        `A presente avaliação psicopedagógica foi realizada ao longo de ${finalCount} sessão${finalCount !== 1 ? "ões" : ""}, contemplando a aplicação de testes e instrumentos avaliativos, bem como entrevistas com o paciente, familiares e escola. A integração dessas informações possibilitou uma compreensão abrangente do funcionamento cognitivo, comportamental, emocional e acadêmico do paciente, permitindo a elaboração das conclusões e o levantamento da hipótese diagnóstica.`
-      )
+      setSessionsCount(realCount)
+      if (autoCompiledObservation) {
+        setClinicalObservation(autoCompiledObservation)
+      }
 
       // 5. Carrega Relatório e Instrumentos Salvos da tabela 'reports'
       let reportQuery = supabase
