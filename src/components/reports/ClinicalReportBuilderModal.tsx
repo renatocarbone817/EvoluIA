@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import {
   FileText,
-  Eye,
   Download,
   Sparkles,
   CheckCircle2,
@@ -37,7 +36,6 @@ import {
   getCustomSchoolQuestions,
   type InterviewQuestionItem,
 } from "@/lib/customInterviewService"
-import { ClinicalReportPreviewModal } from "./ClinicalReportPreviewModal"
 import { generateClinicalReportAI } from "@/lib/geminiAnalysis"
 
 interface ClinicalReportBuilderModalProps {
@@ -118,7 +116,6 @@ export function ClinicalReportBuilderModal({
   const [generatingDocx, setGeneratingDocx] = useState(false)
   const [generatingAI, setGeneratingAI] = useState(false)
   const [savingToDatabase, setSavingToDatabase] = useState(false)
-  const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [currentReportId, setCurrentReportId] = useState<string | undefined>(reportId)
 
   const profId = professional?.id || child.professional_id
@@ -967,11 +964,12 @@ const completeData: CompleteReportData = {
         <div className="flex items-center gap-2.5 ml-auto sm:ml-0 shrink-0">
           <button
             type="button"
-            onClick={() => setShowPreviewModal(true)}
-            className="px-4 py-2.5 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] border-2 border-[#DDD6FE] hover:border-[#7C3AED] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+            disabled={generatingDocx}
+            onClick={handleDownloadWord}
+            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-xs active:scale-95 transition-all cursor-pointer"
           >
-            <Eye className="w-4 h-4" />
-            <span>Visualizar Laudo</span>
+            <Download className="w-4 h-4" />
+            <span>{generatingDocx ? "Gerando Word..." : "Baixar Word (.docx)"}</span>
           </button>
 
           <button
@@ -1657,18 +1655,9 @@ const completeData: CompleteReportData = {
         <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
           <button
             type="button"
-            onClick={() => setShowPreviewModal(true)}
-            className="px-4 py-2.5 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] border-2 border-[#DDD6FE] hover:border-[#7C3AED] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
-          >
-            <Eye className="w-4 h-4" />
-            <span>Visualizar Laudo</span>
-          </button>
-
-          <button
-            type="button"
             disabled={savingToDatabase}
             onClick={handleSaveToSupabase}
-            className="px-4 py-2.5 rounded-2xl bg-white hover:bg-[#F0FDF4] border-2 border-[#D8E5E7] hover:border-[#10B981] text-[#0D2329] text-xs font-black transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2.5 rounded-2xl bg-white hover:bg-[#F0FDF4] border-2 border-[#D8E5E7] hover:border-[#10B981] text-[#0D2329] text-xs font-black transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95"
           >
             <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
             <span>{savingToDatabase ? "Salvando..." : "Salvar Prontuário"}</span>
@@ -1685,40 +1674,6 @@ const completeData: CompleteReportData = {
           </button>
         </div>
       </div>
-    
-      {/* Modal de Prévia Completa do Laudo */}
-      <ClinicalReportPreviewModal
-        isOpen={showPreviewModal}
-        onClose={() => setShowPreviewModal(false)}
-        onDownloadDocx={handleDownloadWord}
-        patientData={patientData}
-        professionalData={profInfo}
-        familyQuestions={familyQuestions.map((q) => ({
-          id: q.id,
-          num: q.num,
-          title: q.title,
-          answer: familyAnswers[q.id] || "",
-        }))}
-        schoolQuestions={schoolQuestions.map((q) => ({
-          id: q.id,
-          num: q.num,
-          title: q.title,
-          answer: schoolAnswers[q.id] || "",
-        }))}
-        schoolObserver={schoolObserver}
-        schoolTraits={schoolTraits}
-        selectedInstruments={selectedInstruments}
-        testsResults={getGeneratedTestsResults()}
-        clinicalObservation={clinicalObservation}
-        sessionsCount={sessionsCount}
-        synthesis={synthesis}
-        diagnosticHypothesis={diagnosticHypothesis}
-        dsm5Criteria={dsm5Criteria}
-        finalConsiderations={finalConsiderations}
-        referrals={referrals}
-        recommendationsFamily={recommendationsFamily}
-        recommendationsSchool={recommendationsSchool}
-      />
     </div>
   )
 }
