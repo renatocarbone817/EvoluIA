@@ -286,6 +286,7 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
                       new ImageRun({
                         data: logoBuffer,
                         transformation: { width: 56, height: 56 },
+                        type: "png",
                       }),
                     ]
                   : [
