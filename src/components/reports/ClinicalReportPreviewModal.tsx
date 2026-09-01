@@ -85,6 +85,9 @@ export interface ClinicalReportPreviewModalProps {
   recommendationsSchool: string[]
 }
 
+// Variável global para arrastar cards
+let draggedCardElement: HTMLElement | null = null
+
 export function ClinicalReportPreviewModal({
   isOpen,
   onClose,
@@ -109,6 +112,7 @@ export function ClinicalReportPreviewModal({
 }: ClinicalReportPreviewModalProps) {
   if (!isOpen) return null
 
+  const reportScrollRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const clinicLogoInputRef = useRef<HTMLInputElement>(null)
   const [selectedImgEl, setSelectedImgEl] = useState<HTMLImageElement | null>(null)
@@ -142,6 +146,19 @@ export function ClinicalReportPreviewModal({
       if (local) setHeaderLogo(local)
     }
   }, [professionalData.clinicLogoUrl])
+
+  // Suporte a Scroll pelo Scroll do Mouse (Wheel) durante o Arraste de Cards
+  useEffect(() => {
+    function handleWindowWheel(e: WheelEvent) {
+      if (draggedCardElement && reportScrollRef.current) {
+        reportScrollRef.current.scrollTop += e.deltaY
+      }
+    }
+    window.addEventListener("wheel", handleWindowWheel, { passive: true })
+    return () => {
+      window.removeEventListener("wheel", handleWindowWheel)
+    }
+  }, [])
 
   const todayStr = new Date().toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -268,20 +285,51 @@ export function ClinicalReportPreviewModal({
 
   // Listas Robustas (Marcadores e Numeração)
   function applyList(type: "unordered" | "ordered") {
+    const selection = window.getSelection()
+    if (!selection || selection.rangeCount === 0) return
+
+    const range = selection.getRangeAt(0)
+    const selectedText = selection.toString()
+
+    // 1. Tenta comando nativo do navegador
     const cmd = type === "unordered" ? "insertUnorderedList" : "insertOrderedList"
     const success = document.execCommand(cmd, false, null)
-    if (!success) {
-      const selection = window.getSelection()
-      if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
-        const range = selection.getRangeAt(0)
-        const list = document.createElement(type === "unordered" ? "ul" : "ol")
-        list.style.listStyleType = type === "unordered" ? "disc" : "decimal"
-        list.style.paddingLeft = "24px"
-        list.style.margin = "6px 0"
+
+    // 2. Se o comando nativo não inseriu lista ou se temos texto selecionado com quebras, garante a lista perfeita
+    const currentList = (range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+      ? (range.commonAncestorContainer as HTMLElement)
+      : range.commonAncestorContainer.parentElement)?.closest("ul, ol")
+
+    if (!success || (!currentList && selectedText.trim())) {
+      const listTag = type === "unordered" ? "ul" : "ol"
+      const list = document.createElement(listTag)
+      list.style.listStyleType = type === "unordered" ? "disc" : "decimal"
+      list.style.paddingLeft = "24px"
+      list.style.margin = "6px 0"
+      list.style.display = "block"
+
+      if (selectedText.trim()) {
+        const lines = selectedText.split(/\r?\n/).filter((l) => l.trim().length > 0)
+        lines.forEach((line) => {
+          const li = document.createElement("li")
+          li.style.display = "list-item"
+          li.style.marginBottom = "3px"
+          li.textContent = line
+          list.appendChild(li)
+        })
+      } else {
         const li = document.createElement("li")
-        li.appendChild(range.extractContents())
+        li.style.display = "list-item"
+        li.style.marginBottom = "3px"
+        li.textContent = "Novo item"
         list.appendChild(li)
+      }
+
+      try {
+        range.deleteContents()
         range.insertNode(list)
+      } catch (err) {
+        // Fallback
       }
     }
   }
@@ -303,31 +351,48 @@ export function ClinicalReportPreviewModal({
     e.target.value = ""
   }
 
-  // Controles de Alinhamento de Imagem
+  // Controles de Alinhamento de Imagem (Direto no elemento e com estilos forçados)
   function alignImage(align: "left" | "center" | "right") {
     if (!selectedImgEl) return
     selectedImgEl.style.display = "block"
+    selectedImgEl.style.float = "none"
     if (align === "left") {
-      selectedImgEl.style.margin = "12px auto 12px 0"
+      selectedImgEl.style.marginLeft = "0px"
+      selectedImgEl.style.marginRight = "auto"
+      selectedImgEl.style.marginTop = "12px"
+      selectedImgEl.style.marginBottom = "12px"
     } else if (align === "center") {
-      selectedImgEl.style.margin = "12px auto"
+      selectedImgEl.style.marginLeft = "auto"
+      selectedImgEl.style.marginRight = "auto"
+      selectedImgEl.style.marginTop = "12px"
+      selectedImgEl.style.marginBottom = "12px"
     } else if (align === "right") {
-      selectedImgEl.style.margin = "12px 0 12px auto"
+      selectedImgEl.style.marginLeft = "auto"
+      selectedImgEl.style.marginRight = "0px"
+      selectedImgEl.style.marginTop = "12px"
+      selectedImgEl.style.marginBottom = "12px"
     }
   }
 
   // Controles de Tamanho de Imagem
   function resizeImage(widthVal: string | number) {
     if (!selectedImgEl) return
-    selectedImgEl.style.width = typeof widthVal === "number" ? `${widthVal}px` : widthVal
+    if (typeof widthVal === "number") {
+      selectedImgEl.style.width = `${widthVal}px`
+      selectedImgEl.style.maxWidth = "100%"
+    } else {
+      selectedImgEl.style.width = widthVal
+      selectedImgEl.style.maxWidth = "100%"
+    }
     selectedImgEl.style.height = "auto"
   }
 
   function stepImageSize(delta: number) {
     if (!selectedImgEl) return
-    const currentW = selectedImgEl.offsetWidth || 280
-    const newW = Math.max(80, Math.min(750, currentW + delta))
+    const currentW = selectedImgEl.clientWidth || selectedImgEl.offsetWidth || 280
+    const newW = Math.max(80, Math.min(850, currentW + delta))
     selectedImgEl.style.width = `${newW}px`
+    selectedImgEl.style.maxWidth = "100%"
     selectedImgEl.style.height = "auto"
   }
 
@@ -337,6 +402,7 @@ export function ClinicalReportPreviewModal({
     setSelectedImgEl(null)
   }
 
+  // Navegação de vizinhos para mover cards com precisão (pulando divisores)
   function getPreviousCard(card: HTMLElement): HTMLElement | null {
     let el = card.previousElementSibling as HTMLElement | null
     while (el) {
@@ -378,9 +444,7 @@ export function ClinicalReportPreviewModal({
     }
   }
 
-  // Drag and Drop de Cards
-  let draggedCardElement: HTMLElement | null = null
-
+  // Drag and Drop de Cards com Auto-Scroll
   function handleDragStartCard(e: React.DragEvent<HTMLElement>) {
     const card = (e.currentTarget as HTMLElement).closest(".group\\/card, .test-card-item") as HTMLElement
     if (card) {
@@ -401,6 +465,18 @@ export function ClinicalReportPreviewModal({
   function handleDragOverCard(e: React.DragEvent<HTMLElement>) {
     e.preventDefault()
     e.dataTransfer.dropEffect = "move"
+
+    // Auto-scroll do container ao arrastar perto do topo ou do rodapé
+    const container = reportScrollRef.current
+    if (container) {
+      const rect = container.getBoundingClientRect()
+      const y = e.clientY
+      if (y < rect.top + 90) {
+        container.scrollTop -= 18
+      } else if (y > rect.bottom - 90) {
+        container.scrollTop += 18
+      }
+    }
   }
 
   function handleDropCard(e: React.DragEvent<HTMLElement>) {
@@ -451,12 +527,23 @@ export function ClinicalReportPreviewModal({
     const cardDiv = document.createElement("div")
     cardDiv.className = "relative group/card p-5 rounded-2xl bg-[#F8FAFB] border-2 border-[#D8E5E7] shadow-2xs space-y-3 test-card-item animate-in fade-in-50"
     cardDiv.draggable = true
-    cardDiv.ondragover = (e) => e.preventDefault()
+    cardDiv.ondragstart = (e) => {
+      draggedCardElement = cardDiv
+      e.dataTransfer.effectAllowed = "move"
+      cardDiv.classList.add("opacity-50", "border-dashed", "border-[#7C3AED]")
+    }
+    cardDiv.ondragend = () => {
+      cardDiv.classList.remove("opacity-50", "border-dashed", "border-[#7C3AED]")
+      draggedCardElement = null
+    }
+    cardDiv.ondragover = (e) => {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = "move"
+    }
     cardDiv.ondrop = (e) => {
       e.preventDefault()
-      const target = (e.currentTarget as HTMLElement)
-      if (draggedCardElement && target && draggedCardElement !== target && target.parentElement) {
-        target.parentElement.insertBefore(draggedCardElement, target)
+      if (draggedCardElement && cardDiv && draggedCardElement !== cardDiv && cardDiv.parentElement) {
+        cardDiv.parentElement.insertBefore(draggedCardElement, cardDiv)
       }
     }
 
@@ -573,7 +660,7 @@ export function ClinicalReportPreviewModal({
       img.style.outline = "3px solid #0078D7"
       img.style.outlineOffset = "2px"
       setSelectedImgEl(img)
-    } else {
+    } else if (!target.closest(".floating-image-toolbar") && !target.closest("button")) {
       if (selectedImgEl) {
         selectedImgEl.style.outline = "none"
         setSelectedImgEl(null)
@@ -730,7 +817,7 @@ export function ClinicalReportPreviewModal({
                 </span>
               </div>
               <p className="text-xs font-semibold text-[#6B7C83]">
-                Edite textos, títulos, tabelas, reordene cards com as setas ⬆️ ⬇️ ou arrastando, e insira cards onde quiser.
+                Segure e arraste o card com o scroll do mouse, use ⬆️ ⬇️ ou insira blocos onde clicar.
               </p>
             </div>
           </div>
@@ -1018,8 +1105,11 @@ export function ClinicalReportPreviewModal({
             BARRA FLUTUANTE DE CONTROLE DA IMAGEM SELECIONADA
             ========================================================================= */}
         {selectedImgEl && (
-          <div className="bg-[#EFF6FF] border-b-2 border-[#93C5FD] px-4 py-2 flex items-center justify-between gap-2 flex-wrap text-xs animate-in slide-in-from-top-2 print:hidden">
-            <div className="flex items-center gap-2">
+          <div
+            contentEditable={false}
+            className="floating-image-toolbar bg-[#EFF6FF] border-b-2 border-[#93C5FD] px-4 py-2 flex items-center justify-between gap-2 flex-wrap text-xs animate-in slide-in-from-top-2 print:hidden z-20"
+          >
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-black text-[#1E40AF] flex items-center gap-1">
                 <ImagePlus className="w-4 h-4" />
                 <span>Foto Selecionada:</span>
@@ -1029,7 +1119,7 @@ export function ClinicalReportPreviewModal({
               <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-[#BFDBFE]">
                 <button
                   type="button"
-                  onClick={() => alignImage("left")}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); alignImage("left"); }}
                   className="px-2 py-0.5 rounded-lg hover:bg-[#EFF6FF] text-[#1E40AF] font-bold text-[11px] flex items-center gap-1 cursor-pointer"
                   title="Alinhar à Esquerda"
                 >
@@ -1038,7 +1128,7 @@ export function ClinicalReportPreviewModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => alignImage("center")}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); alignImage("center"); }}
                   className="px-2 py-0.5 rounded-lg bg-[#DBEAFE] text-[#1E40AF] font-black text-[11px] flex items-center gap-1 cursor-pointer"
                   title="Centralizar Foto"
                 >
@@ -1046,7 +1136,7 @@ export function ClinicalReportPreviewModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => alignImage("right")}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); alignImage("right"); }}
                   className="px-2 py-0.5 rounded-lg hover:bg-[#EFF6FF] text-[#1E40AF] font-bold text-[11px] flex items-center gap-1 cursor-pointer"
                   title="Alinhar à Direita"
                 >
@@ -1059,7 +1149,7 @@ export function ClinicalReportPreviewModal({
               <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-[#BFDBFE]">
                 <button
                   type="button"
-                  onClick={() => resizeImage(160)}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); resizeImage(160); }}
                   className="px-2 py-0.5 rounded-lg hover:bg-[#EFF6FF] text-[#1E40AF] font-bold text-[11px] cursor-pointer"
                   title="Tamanho Pequeno (160px)"
                 >
@@ -1067,7 +1157,7 @@ export function ClinicalReportPreviewModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => resizeImage(280)}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); resizeImage(280); }}
                   className="px-2 py-0.5 rounded-lg hover:bg-[#EFF6FF] text-[#1E40AF] font-bold text-[11px] cursor-pointer"
                   title="Tamanho Médio (280px)"
                 >
@@ -1075,7 +1165,7 @@ export function ClinicalReportPreviewModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => resizeImage(440)}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); resizeImage(440); }}
                   className="px-2 py-0.5 rounded-lg hover:bg-[#EFF6FF] text-[#1E40AF] font-bold text-[11px] cursor-pointer"
                   title="Tamanho Grande (440px)"
                 >
@@ -1083,7 +1173,7 @@ export function ClinicalReportPreviewModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => resizeImage("100%")}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); resizeImage("100%"); }}
                   className="px-2 py-0.5 rounded-lg hover:bg-[#EFF6FF] text-[#1E40AF] font-bold text-[11px] cursor-pointer"
                   title="Largura Total"
                 >
@@ -1095,7 +1185,7 @@ export function ClinicalReportPreviewModal({
               <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-[#BFDBFE]">
                 <button
                   type="button"
-                  onClick={() => stepImageSize(-40)}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); stepImageSize(-40); }}
                   className="p-1 rounded-lg hover:bg-[#EFF6FF] text-[#1E40AF] font-black cursor-pointer"
                   title="Diminuir Imagem"
                 >
@@ -1103,7 +1193,7 @@ export function ClinicalReportPreviewModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => stepImageSize(40)}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); stepImageSize(40); }}
                   className="p-1 rounded-lg hover:bg-[#EFF6FF] text-[#1E40AF] font-black cursor-pointer"
                   title="Aumentar Imagem"
                 >
@@ -1115,7 +1205,7 @@ export function ClinicalReportPreviewModal({
             {/* Excluir Imagem */}
             <button
               type="button"
-              onClick={deleteSelectedImage}
+              onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); deleteSelectedImage(); }}
               className="px-3 py-1 rounded-xl bg-red-100 hover:bg-red-200 text-red-700 font-black flex items-center gap-1.5 border border-red-300 transition-all cursor-pointer"
               title="Excluir esta foto"
             >
@@ -1136,9 +1226,11 @@ export function ClinicalReportPreviewModal({
 
         {/* Corpo do Documento Formatado (Estilo Folha A4 Clínica Editável) */}
         <div
+          ref={reportScrollRef}
           contentEditable={true}
           suppressContentEditableWarning={true}
           onClick={handleReportClick}
+          onDragOver={handleDragOverCard}
           style={{ userSelect: "text", WebkitUserSelect: "text" }}
           className="p-6 sm:p-10 overflow-y-auto space-y-8 text-xs font-sans bg-[#FBFDFD] printable-report print:bg-white print:p-0 print:overflow-visible print:max-h-none print:h-auto print:block print:space-y-6 focus:outline-none cursor-text select-text selection:bg-[#0078D7] selection:text-white"
         >
