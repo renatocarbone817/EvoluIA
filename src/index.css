@@ -107,24 +107,9 @@
     padding: 0 !important;
   }
 
-  /* 1. Ocultar elementos de navegação e botões */
-  body * {
-    visibility: hidden;
-  }
-
-  /* 2. Tornar visível APENAS a árvore do relatório */
-  .printable-report-modal,
-  .printable-report-modal *,
-  .printable-report,
-  .printable-report * {
-    visibility: visible !important;
-  }
-
-  /* 3. Posicionamento estático para paginação natural do navegador */
+  /* Posicionamento estático para paginação natural do navegador */
   .printable-report-modal {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+    position: static !important;
     width: 100% !important;
     height: auto !important;
     min-height: auto !important;
@@ -135,7 +120,6 @@
     border: none !important;
     box-shadow: none !important;
     display: block !important;
-    z-index: 999999 !important;
   }
 
   .printable-report {

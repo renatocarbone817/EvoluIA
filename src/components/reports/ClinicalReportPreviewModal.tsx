@@ -139,6 +139,14 @@ export function ClinicalReportPreviewModal({
             print-color-adjust: exact !important;
             margin: 0 !important;
             padding: 0 !important;
+            visibility: visible !important;
+          }
+          * {
+            visibility: visible !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
           }
           .printable-report {
             overflow: visible !important;
@@ -147,6 +155,7 @@ export function ClinicalReportPreviewModal({
             display: block !important;
             padding: 0 !important;
             margin: 0 !important;
+            visibility: visible !important;
           }
           .print-avoid-break {
             page-break-inside: avoid !important;
@@ -156,16 +165,12 @@ export function ClinicalReportPreviewModal({
             width: 100% !important;
             border-collapse: collapse !important;
           }
-          * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            box-shadow: none !important;
-            text-shadow: none !important;
-          }
         </style>
       </head>
       <body class="p-4 space-y-6 bg-white">
-        ${reportElement.innerHTML}
+        <div class="printable-report space-y-6">
+          ${reportElement.innerHTML}
+        </div>
       </body>
       </html>
     `)
