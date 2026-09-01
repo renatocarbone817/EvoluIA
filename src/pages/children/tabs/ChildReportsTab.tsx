@@ -279,13 +279,13 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* CARD 1 (ESQUERDA): GERAR COM IA */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#7C3AED] hover:shadow-lg transition-all flex flex-col justify-between space-y-6 group">
-              <div className="space-y-4">
-                <div className="w-14 h-14 rounded-2xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center font-bold shadow-xs group-hover:scale-105 transition-transform">
-                  <Sparkles className="w-7 h-7" />
+            <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#7C3AED] hover:shadow-lg transition-all flex flex-col items-center justify-between text-center space-y-6 group">
+              <div className="space-y-4 flex flex-col items-center w-full">
+                <div className="w-16 h-16 rounded-3xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center font-bold shadow-xs group-hover:scale-105 transition-transform mx-auto">
+                  <Sparkles className="w-8 h-8" />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 max-w-sm mx-auto">
                   <h4 className="text-base sm:text-lg font-black text-[#0D2329] group-hover:text-[#7C3AED] transition-colors">
                     Gerar laudo com ajuda da IA no sistema
                   </h4>
@@ -295,7 +295,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
                 </div>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 w-full">
                 <button
                   type="button"
                   onClick={() => setShowClinicalModal(true)}
@@ -308,13 +308,13 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
             </div>
 
             {/* CARD 2 (DIREITA): UPAR DIRETO */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#10B981] hover:shadow-lg transition-all flex flex-col justify-between space-y-6 group">
-              <div className="space-y-4">
-                <div className="w-14 h-14 rounded-2xl bg-[#F0FDF4] border-2 border-[#BBF7D0] text-[#16A34A] flex items-center justify-center font-bold shadow-xs group-hover:scale-105 transition-transform">
-                  <Upload className="w-7 h-7" />
+            <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#10B981] hover:shadow-lg transition-all flex flex-col items-center justify-between text-center space-y-6 group">
+              <div className="space-y-4 flex flex-col items-center w-full">
+                <div className="w-16 h-16 rounded-3xl bg-[#F0FDF4] border-2 border-[#BBF7D0] text-[#16A34A] flex items-center justify-center font-bold shadow-xs group-hover:scale-105 transition-transform mx-auto">
+                  <Upload className="w-8 h-8" />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 max-w-sm mx-auto">
                   <h4 className="text-base sm:text-lg font-black text-[#0D2329] group-hover:text-[#16A34A] transition-colors">
                     Já tenho laudo pronto, upar direto
                   </h4>
@@ -324,7 +324,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
                 </div>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 w-full">
                 <button
                   type="button"
                   disabled={uploadingDoc}
