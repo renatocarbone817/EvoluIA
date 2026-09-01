@@ -28,6 +28,10 @@ import {
   Wallet,
   Repeat,
   Globe,
+  Edit3,
+  Eye,
+  FileText,
+  RotateCcw,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { getAccessibleProfessionalIds } from "@/lib/teamAccess"
@@ -109,6 +113,8 @@ export function FinancialPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [entryType, setEntryType] = useState<"income" | "expense">("income")
   const [confirmingRecord, setConfirmingRecord] = useState<FinancialRecordWithDetails | null>(null)
+  const [selectedDetailRecord, setSelectedDetailRecord] = useState<FinancialRecordWithDetails | null>(null)
+  const [editingRecord, setEditingRecord] = useState<FinancialRecordWithDetails | null>(null)
   const [saving, setSaving] = useState(false)
 
   // Advanced Expense Frequency Form State
@@ -127,6 +133,18 @@ export function FinancialPage() {
     category: "Sessões",
     firstMonthStatus: "pending" as "pending" | "paid",
     payment_method: "pix",
+    notes: "",
+  })
+
+  // Edit Form state
+  const [editFormData, setEditFormData] = useState({
+    description: "",
+    amount: "",
+    day: String(currentDay),
+    month: currentMonth,
+    year: currentYear,
+    category: "Sessões",
+    status: "pending" as "pending" | "paid",
     notes: "",
   })
 
@@ -436,6 +454,93 @@ export function FinancialPage() {
       toast.error(err?.message || "Erro ao salvar lançamento financeiro")
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Start editing a record
+  function handleStartEdit(record: FinancialRecordWithDetails) {
+    const info = getRecordInfo(record)
+    const day = getRecordDay(record)
+    setEditingRecord(record)
+    setEditFormData({
+      amount: String(record.amount),
+      description: info.description.replace(/\s*\(.*?\)$/, ""),
+      category: info.category,
+      month: record.month,
+      year: record.year,
+      day: String(day),
+      status: record.status as any,
+      notes: record.notes || "",
+    })
+    setSelectedDetailRecord(null)
+  }
+
+  // Save edited record
+  async function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editingRecord) return
+    setSaving(true)
+    try {
+      const rawAmount = parseFloat(editFormData.amount.replace(",", "."))
+      if (isNaN(rawAmount) || rawAmount <= 0) {
+        toast.error("Por favor, digite um valor válido.")
+        setSaving(false)
+        return
+      }
+
+      const isExpense = editingRecord.notes?.includes("[DESPESA:") || !editingRecord.child_id
+      let finalNotes = editFormData.notes
+      if (editFormData.description) {
+        if (isExpense) {
+          finalNotes = `[DESPESA: ${editFormData.category}] ${editFormData.description}`
+        } else {
+          finalNotes = `[RECEITA: ${editFormData.category}] ${editFormData.description}`
+        }
+      }
+
+      const chosenDay = Math.min(Math.max(Number(editFormData.day) || 10, 1), 31)
+      const paymentDateStr = `${editFormData.year}-${String(editFormData.month).padStart(2, "0")}-${String(chosenDay).padStart(2, "0")}`
+
+      const { error } = await supabase
+        .from("financial_records")
+        .update({
+          amount: rawAmount,
+          month: Number(editFormData.month),
+          year: Number(editFormData.year),
+          status: editFormData.status as any,
+          payment_date: editFormData.status === "paid" ? paymentDateStr : null,
+          notes: finalNotes,
+        })
+        .eq("id", editingRecord.id)
+
+      if (error) throw error
+      toast.success("Lançamento atualizado com sucesso! ✨")
+      setEditingRecord(null)
+      loadData()
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao salvar alterações.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Quick toggle paid <-> pending
+  async function handleToggleStatus(record: FinancialRecordWithDetails) {
+    const newStatus = record.status === "paid" ? "pending" : "paid"
+    const paymentDate = newStatus === "paid" ? new Date().toISOString().split("T")[0] : null
+    try {
+      const { error } = await supabase
+        .from("financial_records")
+        .update({ status: newStatus, payment_date: paymentDate })
+        .eq("id", record.id)
+      if (error) throw error
+      toast.success(newStatus === "paid" ? "Lançamento marcado como Pago! ✅" : "Lançamento reaberto como Pendente! ⏳")
+      if (selectedDetailRecord && selectedDetailRecord.id === record.id) {
+        setSelectedDetailRecord({ ...selectedDetailRecord, status: newStatus, payment_date: paymentDate })
+      }
+      loadData()
+    } catch (err: any) {
+      toast.error("Erro ao atualizar status do lançamento.")
     }
   }
 
@@ -1381,7 +1486,8 @@ export function FinancialPage() {
               return (
                 <div
                   key={record.id}
-                  className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-xs space-y-3 group"
+                  onClick={() => setSelectedDetailRecord(record)}
+                  className="p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#7C3AED]/40 cursor-pointer shadow-xs space-y-3 group transition-all"
                 >
                   {/* Top Row: Description + Amount */}
                   <div className="flex items-start justify-between gap-3">
@@ -1426,7 +1532,7 @@ export function FinancialPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                       {!info.isExpense && !isPaid && record.child && (
                         <button
                           onClick={() => handleSendWhatsApp(record)}
@@ -1438,7 +1544,16 @@ export function FinancialPage() {
                         </button>
                       )}
 
-                      {!isPaid && (
+                      {isPaid ? (
+                        <button
+                          onClick={() => handleToggleStatus(record)}
+                          className="px-2.5 py-1 bg-white border-2 border-[#D8E5E7] hover:bg-[#F8FAFB] text-[#6B7C83] text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1"
+                          title="Voltar para Pendente"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Desfazer</span>
+                        </button>
+                      ) : (
                         <button
                           onClick={() => setConfirmingRecord(record)}
                           className="px-3 py-1 bg-[#10B981] text-white text-xs font-black rounded-xl hover:bg-[#059669] transition-all shadow-2xs active:scale-95"
@@ -1446,6 +1561,14 @@ export function FinancialPage() {
                           Dar Baixa
                         </button>
                       )}
+
+                      <button
+                        onClick={() => handleStartEdit(record)}
+                        className="p-1.5 text-[#6B7C83] hover:text-[#7C3AED] hover:bg-[#EDE9FE] rounded-xl transition-all"
+                        title="Editar Lançamento"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
 
                       <button
                         onClick={() => handleDeleteRecord(record.id)}
@@ -1493,7 +1616,11 @@ export function FinancialPage() {
                   const yStr = record.year || currentYear
 
                   return (
-                    <tr key={record.id} className="hover:bg-[#F7FAFA] transition-colors group">
+                    <tr
+                      key={record.id}
+                      onClick={() => setSelectedDetailRecord(record)}
+                      className="hover:bg-[#F7FAFA] cursor-pointer transition-colors group"
+                    >
                       <td className="py-3 text-[#6B7C83] font-semibold">
                         <div className="font-bold text-[#0D2329]">
                           {dayStr}/{mStr}/{yStr}
@@ -1502,7 +1629,7 @@ export function FinancialPage() {
                           {MONTHS[record.month - 1]}
                         </span>
                       </td>
-                      <td className="py-3 font-bold text-[#0D2329] max-w-[220px] truncate">
+                      <td className="py-3 font-bold text-[#0D2329] max-w-[240px] truncate">
                         {info.description}
                       </td>
                       <td className="py-3">
@@ -1529,7 +1656,7 @@ export function FinancialPage() {
                           {isPaid ? (!info.isExpense ? "Recebido" : "Pago") : "Pendente"}
                         </span>
                       </td>
-                      <td className="py-3 text-right">
+                      <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1.5">
                           {!info.isExpense && !isPaid && record.child && (
                             <button
@@ -1541,14 +1668,30 @@ export function FinancialPage() {
                             </button>
                           )}
 
-                          {!isPaid && (
+                          {isPaid ? (
+                            <button
+                              onClick={() => handleToggleStatus(record)}
+                              className="px-2.5 py-1 bg-white border border-[#D8E5E7] hover:bg-[#F8FAFB] text-[#6B7C83] text-[10px] font-bold rounded-lg transition-colors shadow-2xs"
+                              title="Desfazer Baixa (Voltar para Pendente)"
+                            >
+                              Desfazer
+                            </button>
+                          ) : (
                             <button
                               onClick={() => setConfirmingRecord(record)}
-                              className="px-2 py-0.5 bg-[#10B981] text-white text-[10px] font-bold rounded-lg hover:bg-[#059669] transition-colors shadow-2xs"
+                              className="px-2.5 py-1 bg-[#10B981] text-white text-[10px] font-bold rounded-lg hover:bg-[#059669] transition-colors shadow-2xs"
                             >
                               Dar Baixa
                             </button>
                           )}
+
+                          <button
+                            onClick={() => handleStartEdit(record)}
+                            className="p-1 text-[#6B7C83] hover:text-[#7C3AED] hover:bg-[#EDE9FE] rounded-lg transition-colors"
+                            title="Editar Lançamento"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
 
                           <button
                             onClick={() => handleDeleteRecord(record.id)}
@@ -1903,6 +2046,350 @@ export function FinancialPage() {
             loadData()
           }}
         />
+      )}
+
+      {/* 7. MODAL: DETALHES DO LANÇAMENTO */}
+      {selectedDetailRecord && (() => {
+        const info = getRecordInfo(selectedDetailRecord)
+        const isPaid = selectedDetailRecord.status === "paid"
+        const day = getRecordDay(selectedDetailRecord)
+        const dayStr = String(day).padStart(2, "0")
+        const mStr = String(selectedDetailRecord.month).padStart(2, "0")
+        const yStr = selectedDetailRecord.year || currentYear
+        const notesStr = (selectedDetailRecord.notes || "").trim()
+        const isFechamento = notesStr.toLowerCase().includes("fechamento") || notesStr.includes("• Sessão")
+        const sessionLines = notesStr
+          .split("\n")
+          .map((l) => l.trim())
+          .filter((l) => l.startsWith("• Sessão") || l.startsWith("• ") || l.startsWith("Sessão #"))
+
+        return (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
+            <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-2xl max-w-lg w-full p-6 sm:p-7 space-y-5 animate-in zoom-in-95 my-8">
+              {/* Header */}
+              <div className="flex items-start justify-between border-b border-[#EEF5F6] pb-4">
+                <div className="flex items-center gap-3">
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-lg border-2 shrink-0 ${
+                    !info.isExpense
+                      ? "bg-[#E8F8F5] text-[#10B981] border-[#A7F3D0]"
+                      : "bg-red-50 text-[#EF4444] border-red-200"
+                  }`}>
+                    {!info.isExpense ? "↑" : "↓"}
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-[#8CAAB1]">
+                      {!info.isExpense ? "Receita / Cobrança" : "Despesa Operacional"}
+                    </span>
+                    <h3 className="text-base font-black text-[#0D2329] leading-snug">
+                      {info.description}
+                    </h3>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedDetailRecord(null)}
+                  className="w-8 h-8 rounded-full bg-[#F8FAFB] hover:bg-[#EEF5F6] text-[#8CAAB1] flex items-center justify-center transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Informações Principais */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#EEF5F6] space-y-1">
+                  <span className="text-[10px] font-black text-[#8CAAB1] uppercase">Valor Total</span>
+                  <p className={`text-xl sm:text-2xl font-black ${!info.isExpense ? "text-[#10B981]" : "text-[#EF4444]"}`}>
+                    {formatCurrency(selectedDetailRecord.amount)}
+                  </p>
+                </div>
+                <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#EEF5F6] space-y-1">
+                  <span className="text-[10px] font-black text-[#8CAAB1] uppercase">Status Atual</span>
+                  <div className="pt-0.5">
+                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black ${
+                      isPaid
+                        ? "bg-[#E8F8F5] text-[#10B981] border border-[#A7F3D0]"
+                        : "bg-[#FEF8EC] text-[#F59E0B] border border-[#FDE68A]"
+                    }`}>
+                      {isPaid ? "✅ Pago / Recebido" : "⏳ Pendente"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detalhes de Data e Categoria */}
+              <div className="p-4 rounded-2xl bg-white border border-[#D8E5E7] space-y-2.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#6B7C83]">Data / Vencimento:</span>
+                  <span className="font-black text-[#0D2329]">
+                    {dayStr}/{mStr}/{yStr} ({MONTHS[selectedDetailRecord.month - 1]})
+                  </span>
+                </div>
+                {selectedDetailRecord.payment_date && (
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#6B7C83]">Data de Pagamento:</span>
+                    <span className="font-black text-[#10B981]">
+                      {formatDate(selectedDetailRecord.payment_date)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#6B7C83]">Categoria:</span>
+                  <span className="px-2.5 py-0.5 rounded-lg bg-[#EAF8FC] text-[#7C3AED] font-black border border-[#DDD6FE]">
+                    {info.category}
+                  </span>
+                </div>
+                {selectedDetailRecord.child && (
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#6B7C83]">Paciente Vinculado:</span>
+                    <span className="font-black text-[#0D2329]">
+                      {selectedDetailRecord.child.full_name}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Lista de Sessões Agrupadas no Fechamento */}
+              {isFechamento && sessionLines.length > 0 && (
+                <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#DDD6FE] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-[#7C3AED] flex items-center gap-1.5">
+                      🎯 Fechamento Mensal ({sessionLines.length} {sessionLines.length === 1 ? "sessão" : "sessões acumuladas"})
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {sessionLines.map((line, idx) => (
+                      <div
+                        key={idx}
+                        className="p-2.5 bg-white rounded-xl border border-[#EEF5F6] text-xs font-bold text-[#19323A] flex items-center justify-between shadow-2xs"
+                      >
+                        <span>{line.replace(/^•\s*/, "")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Observações / Notas */}
+              {notesStr && !isFechamento && (
+                <div className="p-3.5 rounded-2xl bg-[#F8FAFB] border border-[#EEF5F6] text-xs text-[#6B7C83]">
+                  <p className="font-bold text-[#0D2329] mb-1">Observações:</p>
+                  <p className="italic">{notesStr}</p>
+                </div>
+              )}
+
+              {/* Ações / Botões */}
+              <div className="pt-2 border-t border-[#EEF5F6] flex flex-wrap items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2">
+                  {isPaid ? (
+                    <button
+                      type="button"
+                      onClick={() => handleToggleStatus(selectedDetailRecord)}
+                      className="px-4 py-2.5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:bg-[#F8FAFB] text-xs font-black text-[#6B7C83] flex items-center gap-1.5 transition-all active:scale-95"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Desfazer Baixa (Voltar para Pendente)</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const rec = selectedDetailRecord
+                        setSelectedDetailRecord(null)
+                        setConfirmingRecord(rec)
+                      }}
+                      className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                    >
+                      <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                      <span>Dar Baixa no Lançamento</span>
+                    </button>
+                  )}
+
+                  {!info.isExpense && selectedDetailRecord.child && (
+                    <button
+                      type="button"
+                      onClick={() => handleSendWhatsApp(selectedDetailRecord)}
+                      className="p-2.5 text-[#065F46] bg-[#E8F8F5] hover:bg-[#10B981] hover:text-white rounded-2xl border border-[#10B981]/30 transition-all text-xs font-black flex items-center gap-1.5 shadow-2xs"
+                      title="Enviar Cobrança / Recibo por WhatsApp"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span>WhatsApp</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleStartEdit(selectedDetailRecord)}
+                    className="px-4 py-2.5 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] font-black text-xs flex items-center gap-1.5 transition-all active:scale-95"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Editar</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const id = selectedDetailRecord.id
+                      setSelectedDetailRecord(null)
+                      handleDeleteRecord(id)
+                    }}
+                    className="p-2.5 text-[#8CAAB1] hover:text-[#EF4444] hover:bg-red-50 rounded-2xl transition-all"
+                    title="Excluir Lançamento"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* 8. MODAL: EDITAR LANÇAMENTO */}
+      {editingRecord && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
+          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] shadow-2xl max-w-lg w-full p-6 sm:p-7 space-y-4 animate-in zoom-in-95 my-8">
+            <div className="flex items-center justify-between border-b border-[#EEF5F6] pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center font-bold">
+                  <Edit3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-[#0D2329]">Editar Lançamento</h3>
+                  <p className="text-[11px] font-semibold text-[#6B7C83]">
+                    Altere valores, vencimento, categoria ou status.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingRecord(null)}
+                className="w-8 h-8 rounded-full bg-[#F8FAFB] hover:bg-[#EEF5F6] text-[#8CAAB1] flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
+              {/* Descrição */}
+              <div>
+                <label className="font-bold text-[#0D2329] block mb-1">
+                  Descrição do Lançamento *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.description}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-bold text-[#0D2329] focus:outline-none focus:bg-white focus:border-[#7C3AED]"
+                />
+              </div>
+
+              {/* Categoria */}
+              <div>
+                <label className="font-bold text-[#0D2329] block mb-1">Categoria *</label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.category}
+                  onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-bold text-[#0D2329] focus:outline-none focus:bg-white focus:border-[#7C3AED]"
+                />
+              </div>
+
+              {/* Data: Dia, Mês, Ano */}
+              <div className="grid grid-cols-3 gap-2.5">
+                <div>
+                  <label className="font-bold text-[#0D2329] block mb-1">Dia *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={31}
+                    required
+                    value={editFormData.day}
+                    onChange={(e) => setEditFormData({ ...editFormData, day: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-bold text-[#0D2329] focus:outline-none focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-[#0D2329] block mb-1">Mês *</label>
+                  <select
+                    value={editFormData.month}
+                    onChange={(e) => setEditFormData({ ...editFormData, month: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-bold focus:outline-none"
+                  >
+                    {MONTHS.map((m, idx) => (
+                      <option key={m} value={idx + 1}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-[#0D2329] block mb-1">Ano *</label>
+                  <input
+                    type="number"
+                    required
+                    value={editFormData.year}
+                    onChange={(e) => setEditFormData({ ...editFormData, year: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-bold focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Valor & Status */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-[#0D2329] block mb-1">Valor (R$) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editFormData.amount}
+                    onChange={(e) => setEditFormData({ ...editFormData, amount: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-black text-sm text-[#0D2329] focus:outline-none focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-[#0D2329] block mb-1">Status *</label>
+                  <select
+                    value={editFormData.status}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as any })}
+                    className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-bold focus:outline-none"
+                  >
+                    <option value="pending">⏳ Pendente</option>
+                    <option value="paid">✅ Pago / Recebido</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Observações */}
+              <div>
+                <label className="font-bold text-[#0D2329] block mb-1">Observações Adicionais</label>
+                <textarea
+                  rows={2}
+                  value={editFormData.notes}
+                  onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-[#D8E5E7] bg-[#F7FAFA] text-xs font-medium focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-[#EEF5F6] flex justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setEditingRecord(null)}
+                  className="px-4 py-2.5 rounded-xl border border-[#D8E5E7] text-[#6B7C83] font-bold hover:bg-[#F7FAFA]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-5 py-2.5 rounded-xl text-white font-black bg-[#7C3AED] hover:bg-[#6D28D9] shadow-sm active:scale-95 transition-all"
+                >
+                  {saving ? "Salvando..." : "Salvar Alterações"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   )
