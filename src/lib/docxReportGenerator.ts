@@ -189,7 +189,7 @@ function createSectionHeader(title: string) {
   return new Paragraph({
     heading: HeadingLevel.HEADING_2,
     alignment: AlignmentType.LEFT,
-    spacing: { before: 320, after: 120 },
+    spacing: { before: 460, after: 140 },
     children: [
       new TextRun({
         text: title.toUpperCase(),
@@ -202,10 +202,10 @@ function createSectionHeader(title: string) {
   })
 }
 
-function createSubHeader(title: string) {
+function createSubHeader(title: string, options?: { extraBefore?: boolean }) {
   return new Paragraph({
     alignment: AlignmentType.LEFT,
-    spacing: { before: 200, after: 80 },
+    spacing: { before: options?.extraBefore ? 360 : 260, after: 90 },
     children: [
       new TextRun({
         text: title.toUpperCase(),
@@ -837,7 +837,7 @@ export async function buildClinicalDocxReport(data: CompleteReportData): Promise
             })
           ),
 
-          createSubHeader("Para a Escola:"),
+          createSubHeader("Para a Escola:", { extraBefore: true }),
           ...data.clinical.recommendationsSchool.map((rec) =>
             new Paragraph({
               spacing: { after: 80 },
