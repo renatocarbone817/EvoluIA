@@ -88,40 +88,58 @@
 }
 
 /* =========================================================================
-   ESTILOS GLOBAIS DE IMPRESSÃO A4 (ISOLA EXCLUSIVAMENTE O DOCUMENTO)
+   ESTILOS GLOBAIS DE IMPRESSÃO A4 (MULTI-PÁGINAS COMPLETO)
    ========================================================================= */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 15mm 12mm 15mm 12mm;
+    margin: 12mm 10mm 12mm 10mm;
   }
 
-  html, body {
+  html, body, #root {
     background: #ffffff !important;
-    color: #19323A !important;
+    color: #0D2329 !important;
     height: auto !important;
     min-height: auto !important;
     overflow: visible !important;
-    font-size: 11pt !important;
+    position: static !important;
     margin: 0 !important;
     padding: 0 !important;
   }
 
-  /* 1. Ocultar absolutamente tudo do sistema na hora da impressão */
+  /* 1. Ocultar elementos de navegação e botões */
   body * {
-    visibility: hidden !important;
+    visibility: hidden;
   }
 
-  /* 2. Tornar visível APENAS o documento/relatório a ser impresso */
-  .printable-report, .printable-report * {
+  /* 2. Tornar visível APENAS a árvore do relatório */
+  .printable-report-modal,
+  .printable-report-modal *,
+  .printable-report,
+  .printable-report * {
     visibility: visible !important;
   }
 
-  /* 3. Posicionar o documento no topo absoluto da folha de papel */
-  .printable-report {
+  /* 3. Posicionamento estático para paginação natural do navegador */
+  .printable-report-modal {
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    display: block !important;
+    z-index: 999999 !important;
+  }
+
+  .printable-report {
+    position: static !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -132,17 +150,16 @@
     max-height: none !important;
     height: auto !important;
     display: block !important;
-    z-index: 999999 !important;
   }
 
   /* Elementos explicitamente ocultos */
-  button, [class*="print:hidden"] {
+  button, nav, header, aside, [class*="print:hidden"] {
     display: none !important;
     visibility: hidden !important;
   }
 
-  /* Quebra de página e fluxo A4 */
-  .print-avoid-break, p, h1, h2, h3, h4, .report-section {
+  /* Quebra de página controlada */
+  .print-avoid-break {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }

@@ -89,8 +89,8 @@ export function ClinicalReportPreviewModal({
   })
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 print:p-0 print:bg-white print:static print:block print:inset-auto print:z-auto">
-      <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl animate-in zoom-in-95 print:border-none print:shadow-none print:max-h-none print:h-auto print:w-full print:block">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 printable-report-modal print:static print:p-0 print:bg-white print:block print:inset-auto print:z-auto print:overflow-visible print:h-auto print:max-h-none print:w-full">
+      <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl animate-in zoom-in-95 print:border-none print:shadow-none print:max-h-none print:h-auto print:w-full print:block print:overflow-visible print:static print:p-0 print:m-0">
         
         {/* Barra Superior de Ações */}
         <div className="p-4 sm:p-5 border-b border-[#EEF5F6] flex items-center justify-between bg-[#F8FAFB] rounded-t-3xl gap-3 flex-wrap print:hidden">
@@ -146,7 +146,7 @@ export function ClinicalReportPreviewModal({
         </div>
 
         {/* Corpo do Documento Formatado (Estilo Folha A4 Clínica) */}
-        <div className="p-6 sm:p-10 overflow-y-auto space-y-8 text-xs font-sans bg-[#FBFDFD] printable-report print:bg-white print:p-0">
+        <div className="p-6 sm:p-10 overflow-y-auto space-y-8 text-xs font-sans bg-[#FBFDFD] printable-report print:bg-white print:p-0 print:overflow-visible print:max-h-none print:h-auto print:block print:space-y-6">
           
           {/* 1. Timbre e Cabeçalho da Clínica */}
           <div className="p-6 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3">
