@@ -153,6 +153,25 @@ font[size="5"] { font-size: 16px !important; line-height: 1.6 !important; font-w
 font[size="6"] { font-size: 18px !important; line-height: 1.6 !important; font-weight: 800 !important; }
 font[size="7"] { font-size: 22px !important; line-height: 1.6 !important; font-weight: 900 !important; }
 
+/* =========================================================================
+   SELEÇÃO DE TEXTO DE ALTO CONTRASTE (ESTILO BLOCO DE NOTAS / WINDOWS AZULÃO)
+   ========================================================================= */
+::selection {
+  background-color: #0078D7 !important;
+  color: #FFFFFF !important;
+}
+
+::-moz-selection {
+  background-color: #0078D7 !important;
+  color: #FFFFFF !important;
+}
+
+.printable-report ::selection,
+.printable-report *::selection {
+  background-color: #0078D7 !important;
+  color: #FFFFFF !important;
+}
+
   /* Quebra de página controlada */
   .print-avoid-break {
     page-break-inside: avoid !important;

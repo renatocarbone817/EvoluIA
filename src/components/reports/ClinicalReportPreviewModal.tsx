@@ -540,7 +540,7 @@ export function ClinicalReportPreviewModal({
           contentEditable={true}
           suppressContentEditableWarning={true}
           style={{ userSelect: "text", WebkitUserSelect: "text" }}
-          className="p-6 sm:p-10 overflow-y-auto space-y-8 text-xs font-sans bg-[#FBFDFD] printable-report print:bg-white print:p-0 print:overflow-visible print:max-h-none print:h-auto print:block print:space-y-6 focus:outline-none cursor-text select-text selection:bg-[#EDE9FE]"
+          className="p-6 sm:p-10 overflow-y-auto space-y-8 text-xs font-sans bg-[#FBFDFD] printable-report print:bg-white print:p-0 print:overflow-visible print:max-h-none print:h-auto print:block print:space-y-6 focus:outline-none cursor-text select-text selection:bg-[#0078D7] selection:text-white"
         >
           
           {/* 1. Timbre e Cabeçalho da Clínica */}
