@@ -821,9 +821,12 @@ export function ClinicalReportBuilderModal({
         },
       }
 
+      // 1. Salva automaticamente no banco de dados para garantir persistência total mesmo se fechar o navegador
+      await handleSaveToSupabase()
+
       const doc = await buildClinicalDocxReport(completeData)
       await downloadDocxReport(doc, "Laudo_Psicopedagogico_" + child.full_name.replace(/\s+/g, "_"))
-      toast.success("Documento Word (.docx) gerado com sucesso!", { icon: "📥", duration: 5000 })
+      toast.success("Documento Word (.docx) baixado e salvo no prontuário com sucesso!", { icon: "📥", duration: 5000 })
     } catch (err: any) {
       console.error("Erro ao gerar DOCX:", err)
       toast.error("Erro ao gerar arquivo Word (.docx).")

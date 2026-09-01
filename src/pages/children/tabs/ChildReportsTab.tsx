@@ -265,105 +265,84 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
         onChange={handleUploadFinalDoc}
       />
 
-      {/* CENÁRIO 1: A CRIANÇA AINDA NÃO POSSUI RELATÓRIO */}
-      {!activeReport ? (
-        <div className="p-8 sm:p-12 rounded-3xl bg-white border-2 border-dashed border-[#D8E5E7] text-center space-y-5 shadow-xs">
-          <div className="w-16 h-16 rounded-3xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center mx-auto shadow-xs">
-            <FileText className="w-8 h-8" />
-          </div>
-
-          <div className="space-y-1.5 max-w-md mx-auto">
-            <h3 className="text-lg font-black text-[#0D2329]">Laudo Psicopedagógico Completo</h3>
-            <p className="text-xs font-semibold text-[#6B7C83] leading-relaxed">
-              Gere o laudo psicopedagógico oficial de <strong>{child.full_name}</strong> com Anamnese Familiar, Entrevista Escolar, Instrumentos de Avaliação e exportação direta em Microsoft Word (.docx).
+      {/* CENÁRIO 1: A CRIANÇA NÃO POSSUI NENHUM RELATÓRIO NEM DOCUMENTO ANEXADO */}
+      {!activeReport && finalDocuments.length === 0 ? (
+        <div className="space-y-4 animate-in fade-in">
+          <div className="text-center space-y-1 max-w-lg mx-auto pb-2">
+            <h3 className="text-lg sm:text-xl font-black text-[#0D2329]">
+              Como você deseja registrar o laudo de {child.full_name}?
+            </h3>
+            <p className="text-xs font-semibold text-[#6B7C83]">
+              Escolha entre gerar com apoio da Inteligência Artificial ou anexar diretamente o arquivo que você já tem pronto.
             </p>
           </div>
 
-          <div className="pt-2 flex items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowClinicalModal(true)}
-              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#2563EB] via-[#6366F1] to-[#7C3AED] hover:from-[#1D4ED8] hover:to-[#6D28D9] text-white text-xs font-black inline-flex items-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>✨ Gerar Laudo Completo em Word (.docx)</span>
-            </button>
-          </div>
-        </div>
-      ) : (
-        /* CENÁRIO 2: RELATÓRIO JÁ CADASTRADO / EM ELABORAÇÃO */
-        <div className="space-y-6">
-          {/* Card Principal do Gerador de Laudo */}
-          <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-6">
-            {/* Header Card */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#EEF5F6] pb-5">
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center font-bold shrink-0 shadow-xs">
-                  <FileText className="w-7 h-7" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {/* CARD 1 (ESQUERDA): GERAR COM IA */}
+            <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#7C3AED] hover:shadow-lg transition-all flex flex-col justify-between space-y-6 group">
+              <div className="space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center font-bold shadow-xs group-hover:scale-105 transition-transform">
+                  <Sparkles className="w-7 h-7" />
                 </div>
 
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <h3 className="text-base sm:text-lg font-black text-[#0D2329]">
-                      Laudo Psicopedagógico Clínico
-                    </h3>
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${
-                        isCompleted
-                          ? "bg-[#E0F2FE] text-[#0284C7] border-[#BAE6FD]"
-                          : "bg-[#EDE9FE] text-[#7C3AED] border-[#DDD6FE]"
-                      }`}
-                    >
-                      {isCompleted ? "✅ Laudo Finalizado" : "📝 Em Elaboração"}
-                    </span>
-                  </div>
-
-                  <p className="text-xs font-semibold text-[#6B7C83] flex items-center gap-3 flex-wrap">
-                    <span>Iniciado em: <strong>{formatDate(activeReport.created_at)}</strong></span>
-                    {activeReport.updated_at && (
-                      <span>• Última atualização: <strong>{formatDate(activeReport.updated_at)}</strong></span>
-                    )}
+                <div className="space-y-2">
+                  <h4 className="text-base sm:text-lg font-black text-[#0D2329] group-hover:text-[#7C3AED] transition-colors">
+                    Gerar laudo com ajuda da IA no sistema
+                  </h4>
+                  <p className="text-xs font-semibold text-[#6B7C83] leading-relaxed">
+                    Gere o começo do laudo e deixe ele pronto em formato Word, só para alterar algumas informações e finalizar.
                   </p>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+              <div className="pt-2">
                 <button
                   type="button"
                   onClick={() => setShowClinicalModal(true)}
-                  className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#2563EB] via-[#6366F1] to-[#7C3AED] hover:from-[#1D4ED8] hover:to-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+                  className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-[#2563EB] via-[#6366F1] to-[#7C3AED] hover:from-[#1D4ED8] hover:to-[#6D28D9] text-white text-xs font-black flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>✨ Abrir Gerador de Laudo em Word (.docx)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteModal(true)}
-                  className="px-4 py-3 rounded-2xl bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#DC2626] border border-[#FECACA] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
-                  title="Excluir este laudo para criar outro"
-                >
-                  <Trash2 className="w-4 h-4 text-[#DC2626]" />
-                  <span>Excluir</span>
+                  <span>✨ Abrir Gerador de Laudo com IA (.docx)</span>
                 </button>
               </div>
             </div>
 
-            {/* Informações do Documento */}
-            <div className="p-5 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] space-y-2">
-              <h4 className="text-xs font-black uppercase tracking-wider text-[#6B7C83]">
-                Informações do Documento
-              </h4>
-              <p className="text-sm font-black text-[#0D2329]">{activeReport.title}</p>
-              <p className="text-xs font-semibold text-[#6B7C83] leading-relaxed">
-                Clique no botão <strong>"Abrir Gerador de Laudo em Word"</strong> acima para preencher ou revisar as etapas da Anamnese, Entrevista Escolar, Instrumentos Avaliativos, Hipótese Diagnóstica e exportar diretamente para o arquivo Word (.docx).
-              </p>
+            {/* CARD 2 (DIREITA): UPAR DIRETO */}
+            <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-[#D8E5E7] hover:border-[#10B981] hover:shadow-lg transition-all flex flex-col justify-between space-y-6 group">
+              <div className="space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-[#F0FDF4] border-2 border-[#BBF7D0] text-[#16A34A] flex items-center justify-center font-bold shadow-xs group-hover:scale-105 transition-transform">
+                  <Upload className="w-7 h-7" />
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="text-base sm:text-lg font-black text-[#0D2329] group-hover:text-[#16A34A] transition-colors">
+                    Já tenho laudo pronto, upar direto
+                  </h4>
+                  <p className="text-xs font-semibold text-[#6B7C83] leading-relaxed">
+                    Se você já possui o arquivo do laudo pronto no seu computador (PDF ou Word), anexe diretamente aqui para arquivar no prontuário.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  disabled={uploadingDoc}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-black flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {uploadingDoc ? <Clock className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 stroke-[2.5]" />}
+                  <span>{uploadingDoc ? "Enviando arquivo..." : "📎 Clique para Upar Relatório Pronto (.pdf ou .docx)"}</span>
+                </button>
+              </div>
             </div>
           </div>
-
+        </div>
+      ) : (
+        /* CENÁRIO 2: RELATÓRIO JÁ CADASTRADO OU ARQUIVO ANEXADO */
+        <div className="space-y-6">
           {/* =========================================================================
-              SEÇÃO EXCLUSIVA: ARQUIVAMENTO DO LAUDO FINAL ASSINADO (PDF / WORD)
+              SEÇÃO 1: ARQUIVAMENTO DO LAUDO FINAL ASSINADO (PDF / WORD)
               ========================================================================= */}
           <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#EEF5F6] pb-4">
@@ -381,7 +360,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
                 </div>
               </div>
 
-              {/* Botão de Upload */}
+              {/* Botão de Upload no topo */}
               <button
                 type="button"
                 disabled={uploadingDoc}
@@ -506,6 +485,98 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
               </button>
             </div>
           </div>
+
+          {/* =========================================================================
+              SEÇÃO 2: CARD DO LAUDO EDITÁVEL NO SISTEMA (GERADOR COM IA)
+              ========================================================================= */}
+          {activeReport ? (
+            <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#EEF5F6] pb-5">
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center font-bold shrink-0 shadow-xs">
+                    <FileText className="w-7 h-7" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <h3 className="text-base sm:text-lg font-black text-[#0D2329]">
+                        Laudo Editável no Sistema
+                      </h3>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${
+                          isCompleted
+                            ? "bg-[#E0F2FE] text-[#0284C7] border-[#BAE6FD]"
+                            : "bg-[#EDE9FE] text-[#7C3AED] border-[#DDD6FE]"
+                        }`}
+                      >
+                        {isCompleted ? "✅ Registrado" : "📝 Rascunho Ativo"}
+                      </span>
+                    </div>
+
+                    <p className="text-xs font-semibold text-[#6B7C83] flex items-center gap-3 flex-wrap">
+                      <span>Iniciado em: <strong>{formatDate(activeReport.created_at)}</strong></span>
+                      {activeReport.updated_at && (
+                        <span>• Última atualização: <strong>{formatDate(activeReport.updated_at)}</strong></span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Ações do Gerador */}
+                <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowClinicalModal(true)}
+                    className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#2563EB] via-[#6366F1] to-[#7C3AED] hover:from-[#1D4ED8] hover:to-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>✏️ Abrir / Continuar Editando no Gerador (.docx)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteModal(true)}
+                    className="px-4 py-3 rounded-2xl bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#DC2626] border border-[#FECACA] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+                    title="Excluir este rascunho de laudo"
+                  >
+                    <Trash2 className="w-4 h-4 text-[#DC2626]" />
+                    <span>Excluir</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Informações do Documento */}
+              <div className="p-5 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] space-y-2">
+                <h4 className="text-xs font-black uppercase tracking-wider text-[#6B7C83]">
+                  Informações da Estrutura Clínica
+                </h4>
+                <p className="text-sm font-black text-[#0D2329]">{activeReport.title}</p>
+                <p className="text-xs font-semibold text-[#6B7C83] leading-relaxed">
+                  Você pode abrir o gerador a qualquer momento para revisar Anamnese, Instrumentos, Hipótese Diagnóstica e baixar uma nova via atualizada em Word (.docx) sem perder nada do que já digitou.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="p-6 rounded-3xl bg-white border-2 border-dashed border-[#D8E5E7] flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-[#0D2329]">Deseja gerar também um laudo com auxílio da IA?</h4>
+                  <p className="text-xs font-semibold text-[#6B7C83]">Você pode usar o modelo oficial do sistema a qualquer momento.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowClinicalModal(true)}
+                className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#2563EB] via-[#6366F1] to-[#7C3AED] hover:from-[#1D4ED8] hover:to-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-xs cursor-pointer shrink-0"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>✨ Abrir Gerador de Laudo com IA</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
