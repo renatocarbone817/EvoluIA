@@ -112,6 +112,16 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
             updated_at: new Date().toISOString(),
           })
           .eq("id", activeReport.id)
+      } else {
+        await supabase
+          .from("reports")
+          .insert({
+            professional_id: profId,
+            child_id: child.id,
+            title: `Laudo de Avaliação Psicopedagógica - ${child.full_name}`,
+            status: "final",
+            content: {},
+          })
       }
 
       await supabase
@@ -119,7 +129,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
         .update({ status: "report_completed" })
         .eq("id", child.id)
 
-      toast.success("Laudo final anexado com sucesso! Paciente marcado como Concluído.", { id: toastId, icon: "📎" })
+      toast.success("Laudo final anexado com sucesso! Marcado automaticamente como Finalizado.", { id: toastId, icon: "✅" })
       if (onReloadChild) onReloadChild()
       await loadData()
     } catch (err: any) {
@@ -136,7 +146,25 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
     if (!confirm("Deseja realmente remover este laudo final anexado?")) return
     try {
       await supabase.from("documents").delete().eq("id", docId)
+
+      const remaining = finalDocuments.filter((d) => d.id !== docId)
+      setFinalDocuments(remaining)
+
+      if (remaining.length === 0) {
+        if (activeReport) {
+          await supabase
+            .from("reports")
+            .update({ status: "draft", updated_at: new Date().toISOString() })
+            .eq("id", activeReport.id)
+        }
+        await supabase
+          .from("children")
+          .update({ status: "report_in_progress" })
+          .eq("id", child.id)
+      }
+
       toast.success("Documento removido com sucesso!")
+      if (onReloadChild) onReloadChild()
       await loadData()
     } catch (err: any) {
       toast.error(err?.message || "Erro ao remover documento.")
@@ -145,15 +173,16 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
 
   // Alternar status do relatório (Em Elaboração <-> Finalizado)
   async function handleToggleStatus(newStatus: "draft" | "final") {
-    if (!activeReport) return
     try {
-      await supabase
-        .from("reports")
-        .update({
-          status: newStatus,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", activeReport.id)
+      if (activeReport) {
+        await supabase
+          .from("reports")
+          .update({
+            status: newStatus,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", activeReport.id)
+      }
 
       await supabase
         .from("children")
@@ -194,7 +223,11 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
   }
 
   const activeReport = reports[0] || null
-  const isCompleted = activeReport?.status === "final" || child.status === "report_completed"
+  const isCompleted =
+    finalDocuments.length > 0 ||
+    activeReport?.status === "final" ||
+    activeReport?.status === "completed" ||
+    child.status === "report_completed"
 
   if (loading) {
     return (
@@ -433,14 +466,28 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
             )}
 
             {/* Alternador de Status do Relatório */}
-            <div className="p-4 rounded-2xl bg-[#F0FDF4] border border-[#BBF7D0] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div
+              className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                isCompleted
+                  ? "bg-[#F0FDF4] border-[#BBF7D0]"
+                  : "bg-[#FEF8EC] border-[#FDE68A]"
+              }`}
+            >
               <div className="space-y-0.5">
-                <p className="text-xs font-black text-[#166534]">
-                  Status do Atendimento Clínico: {isCompleted ? "Concluído" : "Em Elaboração"}
+                <p
+                  className={`text-xs font-black ${
+                    isCompleted ? "text-[#166534]" : "text-[#B45309]"
+                  }`}
+                >
+                  Status do Atendimento Clínico: {isCompleted ? "✅ Finalizado e Arquivado" : "📝 Em Elaboração"}
                 </p>
-                <p className="text-[11px] font-medium text-[#15803D]">
+                <p
+                  className={`text-[11px] font-medium ${
+                    isCompleted ? "text-[#15803D]" : "text-[#92400E]"
+                  }`}
+                >
                   {isCompleted
-                    ? "Este laudo está marcado como finalizado. O prontuário e os relatórios constam como concluídos."
+                    ? `O laudo final foi anexado com sucesso e o prontuário de ${child.full_name} consta como concluído.`
                     : "O laudo ainda está em elaboração. Ao anexar o documento final assinado, ele será finalizado automaticamente."}
                 </p>
               </div>
@@ -451,7 +498,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
                 className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs shrink-0 cursor-pointer active:scale-95 ${
                   isCompleted
                     ? "bg-white text-[#6B7C83] hover:text-[#0D2329] border border-[#D8E5E7]"
-                    : "bg-[#16A34A] hover:bg-[#15803D] text-white"
+                    : "bg-[#16A34A] hover:bg-[#15803D] text-white shadow-sm"
                 }`}
               >
                 <CheckCircle2 className="w-4 h-4" />
