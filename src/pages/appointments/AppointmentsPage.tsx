@@ -548,7 +548,7 @@ export function AppointmentsPage() {
               📅
             </span>
           </div>
-          <p className="text-xs sm:text-sm font-medium text-[#6B7C83]">
+          <p className="text-xs sm:text-sm font-bold text-[#081B20]">
             Visualize e gerencie seus compromissos e atendimentos.
           </p>
         </div>
@@ -556,31 +556,31 @@ export function AppointmentsPage() {
         {/* Center/Right Controls: Navigation & View Pills */}
         <div className="flex items-center gap-3 flex-wrap">
           {/* Week Navigation */}
-          <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border-2 border-[#D8E5E7] shadow-2xs">
+          <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border-2 border-white shadow-sm">
             <button
               onClick={() => setCurrentDate(new Date())}
-              className="px-3 py-1.5 rounded-xl text-xs font-black bg-[#EEF5F6] text-[#0D2329] hover:bg-[#D8E5E7] transition-all"
+              className="px-3 py-1.5 rounded-xl text-xs font-black bg-[#E2ECEE] text-[#0D2329] hover:bg-[#D8E5E7] transition-all cursor-pointer"
             >
               Hoje
             </button>
 
             <button
               onClick={handlePrev}
-              className="p-1.5 rounded-xl text-[#6B7C83] hover:text-[#0D2329] hover:bg-[#F7FAFA] transition-all"
+              className="p-1.5 rounded-xl text-[#0D2329] hover:text-black hover:bg-[#F7FAFA] transition-all cursor-pointer"
               title="Anterior"
             >
-              <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+              <ChevronLeft className="w-4 h-4 stroke-[3]" />
             </button>
 
             <button
               onClick={handleNext}
-              className="p-1.5 rounded-xl text-[#6B7C83] hover:text-[#0D2329] hover:bg-[#F7FAFA] transition-all"
+              className="p-1.5 rounded-xl text-[#0D2329] hover:text-black hover:bg-[#F7FAFA] transition-all cursor-pointer"
               title="Próximo"
             >
-              <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+              <ChevronRight className="w-4 h-4 stroke-[3]" />
             </button>
 
-            <div className="px-2.5 py-1 text-xs font-black text-[#0D2329] flex items-center gap-1 border-l border-[#EEF5F6]">
+            <div className="px-2.5 py-1 text-xs font-black text-[#0D2329] flex items-center gap-1 border-l border-slate-200">
               <span>
                 {viewMode === "semana"
                   ? `${format(weekDays[0], "dd", { locale: ptBR })} - ${format(weekDays[6], "dd 'de' MMMM, yyyy", { locale: ptBR })}`
@@ -592,7 +592,7 @@ export function AppointmentsPage() {
           </div>
 
           {/* View Mode Switcher (Hidden on Mobile - Mobile is always native mobile layout) */}
-          <div className="hidden md:flex bg-[#F7FAFA] rounded-2xl p-1 border-2 border-[#D8E5E7] shadow-2xs">
+          <div className="hidden md:flex bg-white/90 rounded-2xl p-1 border-2 border-white shadow-sm">
             {[
               { id: "dia", label: "Dia" },
               { id: "semana", label: "Semana" },
@@ -601,10 +601,10 @@ export function AppointmentsPage() {
               <button
                 key={mode.id}
                 onClick={() => setViewMode(mode.id as ViewMode)}
-                className={`px-3.5 py-1.5 text-xs font-black rounded-xl transition-all ${
+                className={`px-3.5 py-1.5 text-xs font-black rounded-xl transition-all cursor-pointer ${
                   viewMode === mode.id
                     ? "bg-[#7C3AED] text-white shadow-xs"
-                    : "text-[#6B7C83] hover:text-[#0D2329] hover:bg-white"
+                    : "text-[#0D2329] hover:text-black hover:bg-white"
                 }`}
               >
                 {mode.label}

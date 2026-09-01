@@ -187,7 +187,7 @@ export function ReportsPage() {
               <FileText className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-xs sm:text-sm font-semibold text-[#6B7C83]">
+          <p className="text-xs sm:text-sm font-bold text-[#081B20]">
             Acompanhe e gerencie os relatórios dos seus pacientes.
           </p>
         </div>
@@ -195,7 +195,7 @@ export function ReportsPage() {
         {/* Action Button */}
         <button
           onClick={() => setShowNewReportModal(true)}
-          className="h-10 px-5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-md active:scale-95 transition-all shrink-0"
+          className="h-10 px-5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-md active:scale-95 transition-all shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[3]" />
           <span>+ Novo Relatório</span>
@@ -205,9 +205,9 @@ export function ReportsPage() {
       {/* 2. 3 SUMMARY CARDS (DADOS REAIS) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Card 1: TOTAL DE RELATÓRIOS */}
-        <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex items-center justify-between hover:border-[#7C3AED]/40 transition-all">
+        <div className="p-5 rounded-3xl bg-white border-2 border-white shadow-sm flex items-center justify-between hover:border-[#7C3AED]/40 transition-all">
           <div className="space-y-1">
-            <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider">
+            <p className="text-[11px] font-black uppercase text-[#0D2329] tracking-wider">
               Total de Relatórios
             </p>
             <h3 className="text-2xl font-black text-[#0D2329]">{totalReports}</h3>
@@ -221,9 +221,9 @@ export function ReportsPage() {
         </div>
 
         {/* Card 2: EM RELATÓRIO */}
-        <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex items-center justify-between hover:border-[#F59E0B]/40 transition-all">
+        <div className="p-5 rounded-3xl bg-white border-2 border-white shadow-sm flex items-center justify-between hover:border-[#F59E0B]/40 transition-all">
           <div className="space-y-1">
-            <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider">
+            <p className="text-[11px] font-black uppercase text-[#0D2329] tracking-wider">
               Em Relatório
             </p>
             <h3 className="text-2xl font-black text-[#0D2329]">{inProgressReports}</h3>
@@ -237,9 +237,9 @@ export function ReportsPage() {
         </div>
 
         {/* Card 3: FINALIZADOS */}
-        <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex items-center justify-between hover:border-[#0284C7]/40 transition-all">
+        <div className="p-5 rounded-3xl bg-white border-2 border-white shadow-sm flex items-center justify-between hover:border-[#0284C7]/40 transition-all">
           <div className="space-y-1">
-            <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider">
+            <p className="text-[11px] font-black uppercase text-[#0D2329] tracking-wider">
               Finalizados
             </p>
             <h3 className="text-2xl font-black text-[#0D2329]">{completedReports}</h3>

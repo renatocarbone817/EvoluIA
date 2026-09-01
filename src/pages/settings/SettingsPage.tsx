@@ -863,7 +863,7 @@ export function SettingsPage() {
               <SettingsIcon className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-xs sm:text-sm font-semibold text-[#6B7C83]">
+          <p className="text-xs sm:text-sm font-bold text-[#081B20]">
             Gerencie o perfil da profissional, dados do consultório, chave PIX, equipe e horários.
           </p>
         </div>
@@ -872,7 +872,7 @@ export function SettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="h-10 px-5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white text-xs font-black flex items-center gap-2 shadow-md active:scale-95 transition-all shrink-0"
+          className="h-10 px-5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white text-xs font-black flex items-center gap-2 shadow-md active:scale-95 transition-all shrink-0 cursor-pointer"
         >
           {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 stroke-[2.5]" />}
           <span>{saving ? "Salvando..." : "Salvar Alterações"}</span>
@@ -881,7 +881,7 @@ export function SettingsPage() {
 
       {/* 2. MODERN RESPONSIVE TAB BAR (Native Mobile Chips + Clean Desktop Tabs) */}
       <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none pb-1">
-        <div className="flex items-center gap-2 p-1.5 bg-white rounded-full sm:rounded-2xl border-2 border-[#D8E5E7] shadow-xs w-max sm:w-full">
+        <div className="flex items-center gap-2 p-1.5 bg-[#DCE8EB] rounded-full sm:rounded-2xl border-2 border-white shadow-inner w-max sm:w-full">
           {[
             { id: "consultorio", label: "Consultório, Perfil & PIX", shortLabel: "Perfil & PIX", icon: Building },
             ...(isMaster ? [{ id: "equipe", label: "Equipe & Acessos", shortLabel: "Equipe", icon: Users }] : []),
@@ -897,10 +897,10 @@ export function SettingsPage() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id as SettingsTab)}
-                className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full sm:rounded-xl text-xs font-black transition-all shrink-0 flex items-center gap-2 active:scale-95 ${
+                className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full sm:rounded-xl text-xs font-black transition-all shrink-0 flex items-center gap-2 active:scale-95 cursor-pointer ${
                   isActive
-                    ? "bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white shadow-md"
-                    : "text-[#4F6C74] hover:text-[#0D2329] hover:bg-[#F7FAFA] bg-transparent"
+                    ? "bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white shadow-md scale-[1.02]"
+                    : "text-[#0D2329] hover:text-[#7C3AED] hover:bg-white hover:shadow-sm hover:scale-[1.02] bg-white/40"
                 }`}
               >
                 <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-white" : "text-[#7C3AED]"}`} />

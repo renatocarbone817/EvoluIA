@@ -70,6 +70,7 @@
   h1 + p,
   h1 ~ p,
   h2 + p,
+  .space-y-1 > p,
   .page-subtitle {
     color: #081B20 !important;
     font-weight: 700 !important;

@@ -775,7 +775,7 @@ export function FinancialPage() {
               💵
             </span>
           </div>
-          <p className="text-xs sm:text-sm font-medium text-[#6B7C83]">
+          <p className="text-xs sm:text-sm font-bold text-[#081B20]">
             Acompanhe as finanças da sua clínica de forma simples e organizada.
           </p>
         </div>
@@ -783,7 +783,7 @@ export function FinancialPage() {
         {/* Global Month & Year Picker + Action Buttons (Symmetrical & Responsive) */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
           {/* Seletor Mês / Ano */}
-          <div className="flex items-center justify-between sm:justify-start gap-1.5 bg-white p-1.5 rounded-2xl border-2 border-[#D8E5E7] shadow-2xs">
+          <div className="flex items-center justify-between sm:justify-start gap-1.5 bg-white p-1.5 rounded-2xl border-2 border-white shadow-sm">
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
@@ -797,7 +797,7 @@ export function FinancialPage() {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="text-xs font-black bg-transparent text-[#0D2329] px-2 py-1 focus:outline-none cursor-pointer border-l-2 border-[#EEF5F6]"
+              className="text-xs font-black bg-transparent text-[#0D2329] px-2 py-1 focus:outline-none cursor-pointer border-l-2 border-slate-200"
             >
               {availableYears.map((y) => (
                 <option key={y} value={y}>{y}</option>
@@ -820,7 +820,7 @@ export function FinancialPage() {
                 }))
                 setShowAddModal(true)
               }}
-              className="h-10 px-4 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all shrink-0"
+              className="h-10 px-4 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all shrink-0 cursor-pointer"
               title="Nova Receita"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
@@ -839,7 +839,7 @@ export function FinancialPage() {
                 }))
                 setShowAddModal(true)
               }}
-              className="h-10 px-4 rounded-2xl bg-gradient-to-r from-[#EF4444] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all shrink-0"
+              className="h-10 px-4 rounded-2xl bg-gradient-to-r from-[#EF4444] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all shrink-0 cursor-pointer"
               title="Nova Despesa"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
@@ -852,10 +852,10 @@ export function FinancialPage() {
       {/* 2. TOP 4 METRIC CARDS WITH REAL VALUES */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Receita Total */}
-        <div className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#10B981] hover:shadow-md transition-all space-y-3 flex flex-col justify-between shadow-2xs">
+        <div className="p-5 rounded-2xl bg-white border-2 border-white shadow-sm hover:shadow-md transition-all space-y-3 flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[11px] font-bold text-[#6B7C83]">Receita Total ({MONTHS[selectedMonth - 1]})</p>
+              <p className="text-[11px] font-black text-[#0D2329] uppercase tracking-wide">Receita Total ({MONTHS[selectedMonth - 1]})</p>
               <p className="text-2xl font-black text-[#0D2329] tracking-tight mt-0.5">
                 {formatCurrency(realTotalIncome)}
               </p>
@@ -876,73 +876,73 @@ export function FinancialPage() {
         </div>
 
         {/* Receita Recebida */}
-        <div className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#7C3AED] hover:shadow-md transition-all space-y-3 flex flex-col justify-between shadow-2xs">
+        <div className="p-5 rounded-2xl bg-white border-2 border-white shadow-sm hover:shadow-md transition-all space-y-3 flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[11px] font-bold text-[#6B7C83]">Receita Recebida</p>
-              <p className="text-2xl font-black text-[#0D2329] tracking-tight mt-0.5">
+              <p className="text-[11px] font-black text-[#0D2329] uppercase tracking-wide">Recebido no Mês</p>
+              <p className="text-2xl font-black text-[#10B981] tracking-tight mt-0.5">
                 {formatCurrency(realReceivedIncome)}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shadow-2xs">
-              <CreditCard className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-full bg-[#E8F8F5] text-[#10B981] flex items-center justify-center font-black text-base shadow-2xs">
+              ✓
             </div>
           </div>
           <div className="flex items-center justify-between pt-1">
             <span className={`text-[11px] font-bold flex items-center gap-0.5 ${receivedGrowth.startsWith("-") ? "text-[#EF4444]" : "text-[#10B981]"}`}>
-              {receivedGrowth.startsWith("-") ? `↓ ${receivedGrowth.replace("-", "")}` : `↑ ${receivedGrowth}`} em relação ao mês anterior
+              {receivedGrowth.startsWith("-") ? `↓ ${receivedGrowth.replace("-", "")}` : `↑ ${receivedGrowth}`} vs mês anterior
             </span>
-            <svg className="w-20 h-6 stroke-[#7C3AED] fill-none stroke-[2.5]" viewBox="0 0 100 30">
-              <path d="M0,25 Q25,28 50,15 T80,18 T100,5" />
-              <circle cx="100" cy="5" r="3" className="fill-[#7C3AED]" />
+            <svg className="w-20 h-6 stroke-[#10B981] fill-none stroke-[2.5]" viewBox="0 0 100 30">
+              <path d="M0,20 Q25,8 50,15 T80,5 T100,2" />
+              <circle cx="100" cy="2" r="3" className="fill-[#10B981]" />
             </svg>
           </div>
         </div>
 
         {/* Receita Pendente */}
-        <div className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#F59E0B] hover:shadow-md transition-all space-y-3 flex flex-col justify-between shadow-2xs">
+        <div className="p-5 rounded-2xl bg-white border-2 border-white shadow-sm hover:shadow-md transition-all space-y-3 flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[11px] font-bold text-[#6B7C83]">Receita Pendente</p>
-              <p className="text-2xl font-black text-[#0D2329] tracking-tight mt-0.5">
+              <p className="text-[11px] font-black text-[#0D2329] uppercase tracking-wide">A Receber / Pendente</p>
+              <p className="text-2xl font-black text-[#F59E0B] tracking-tight mt-0.5">
                 {formatCurrency(realPendingIncome)}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[#FEF8EC] text-[#F59E0B] flex items-center justify-center shadow-2xs">
-              <Clock className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-full bg-[#FEF8EC] text-[#F59E0B] flex items-center justify-center font-black text-base shadow-2xs">
+              ⏳
             </div>
           </div>
           <div className="flex items-center justify-between pt-1">
-            <span className={`text-[11px] font-bold flex items-center gap-0.5 ${pendingGrowth.startsWith("-") ? "text-[#10B981]" : "text-[#F59E0B]"}`}>
-              {pendingGrowth.startsWith("-") ? `↓ ${pendingGrowth.replace("-", "")}` : `↑ ${pendingGrowth}`} em relação ao mês anterior
+            <span className="text-[11px] font-bold text-[#EA580C] flex items-center gap-0.5">
+              {pendingGrowth.startsWith("-") ? `↓ ${pendingGrowth.replace("-", "")}` : `↑ ${pendingGrowth}`} vs mês anterior
             </span>
             <svg className="w-20 h-6 stroke-[#F59E0B] fill-none stroke-[2.5]" viewBox="0 0 100 30">
-              <path d="M0,25 Q30,22 55,18 T80,10 T100,4" />
-              <circle cx="100" cy="4" r="3" className="fill-[#F59E0B]" />
+              <path d="M0,15 Q30,25 60,10 T100,18" />
+              <circle cx="100" cy="18" r="3" className="fill-[#F59E0B]" />
             </svg>
           </div>
         </div>
 
-        {/* Despesas Totais */}
-        <div className="p-5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:border-[#0284C7] hover:shadow-md transition-all space-y-3 flex flex-col justify-between shadow-2xs">
+        {/* Despesas do Mês */}
+        <div className="p-5 rounded-2xl bg-white border-2 border-white shadow-sm hover:shadow-md transition-all space-y-3 flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[11px] font-bold text-[#6B7C83]">Despesas Totais</p>
-              <p className="text-2xl font-black text-[#0D2329] tracking-tight mt-0.5">
+              <p className="text-[11px] font-black text-[#0D2329] uppercase tracking-wide">Total de Despesas</p>
+              <p className="text-2xl font-black text-[#EF4444] tracking-tight mt-0.5">
                 {formatCurrency(realTotalExpense)}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center shadow-2xs">
-              <ArrowDownLeft className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-full bg-[#FEF2F2] text-[#EF4444] flex items-center justify-center font-black text-base shadow-2xs">
+              📉
             </div>
           </div>
           <div className="flex items-center justify-between pt-1">
             <span className={`text-[11px] font-bold flex items-center gap-0.5 ${expenseGrowth.startsWith("+") ? "text-[#EF4444]" : "text-[#10B981]"}`}>
-              {expenseGrowth.startsWith("+") ? `↑ ${expenseGrowth}` : `↓ ${expenseGrowth.replace("-", "")}`} em relação ao mês anterior
+              {expenseGrowth.startsWith("-") ? `↓ ${expenseGrowth.replace("-", "")}` : `${expenseGrowth}`} vs mês anterior
             </span>
-            <svg className="w-20 h-6 stroke-[#0284C7] fill-none stroke-[2.5]" viewBox="0 0 100 30">
-              <path d="M0,28 Q20,20 45,22 T75,10 T100,4" />
-              <circle cx="100" cy="4" r="3" className="fill-[#0284C7]" />
+            <svg className="w-20 h-6 stroke-[#EF4444] fill-none stroke-[2.5]" viewBox="0 0 100 30">
+              <path d="M0,10 Q25,20 50,12 T80,25 T100,28" />
+              <circle cx="100" cy="28" r="3" className="fill-[#EF4444]" />
             </svg>
           </div>
         </div>

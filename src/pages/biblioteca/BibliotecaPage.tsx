@@ -261,7 +261,7 @@ export function BibliotecaPage() {
             <h1 className="text-xl md:text-2xl font-black text-[#0D2329] tracking-tight">
               Biblioteca de Materiais
             </h1>
-            <p className="text-xs font-semibold text-[#6B7C83] mt-0.5">
+            <p className="text-xs sm:text-sm font-bold text-[#081B20] mt-0.5">
               Protocolos, atividades, documentos e recursos profissionais.
             </p>
           </div>

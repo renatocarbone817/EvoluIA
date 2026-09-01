@@ -125,7 +125,7 @@ export function PlanPage() {
               PRO
             </span>
           </div>
-          <p className="text-xs sm:text-sm font-medium text-[#6B7C83]">
+          <p className="text-xs sm:text-sm font-bold text-[#081B20]">
             Acompanhe seu plano ativo, controle as vagas da sua equipe e gerencie sua assinatura.
           </p>
         </div>

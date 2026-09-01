@@ -257,7 +257,7 @@ export function GuardiansPage() {
               <UserCheck className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-xs sm:text-sm font-semibold text-[#6B7C83]">
+          <p className="text-xs sm:text-sm font-bold text-[#081B20]">
             Gerencie contatos, WhatsApp dos pais, vínculo familiar e dados cadastrais.
           </p>
         </div>
@@ -265,7 +265,7 @@ export function GuardiansPage() {
         {/* Action Button */}
         <button
           onClick={() => setShowNewChildDialog(true)}
-          className="h-10 px-5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-md active:scale-95 transition-all shrink-0"
+          className="h-10 px-5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black flex items-center gap-2 shadow-md active:scale-95 transition-all shrink-0 cursor-pointer"
         >
           <UserPlus className="w-4 h-4 stroke-[2.5]" />
           <span>+ Novo Responsável</span>
@@ -275,9 +275,9 @@ export function GuardiansPage() {
       {/* 2. COLORFUL SUMMARY METRIC CARDS (Dashboard-style) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Responsáveis */}
-        <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex items-center justify-between hover:border-[#7C3AED]/40 transition-all">
+        <div className="p-5 rounded-3xl bg-white border-2 border-white shadow-sm flex items-center justify-between hover:border-[#7C3AED]/40 transition-all">
           <div className="space-y-1">
-            <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider">
+            <p className="text-[11px] font-black uppercase text-[#0D2329] tracking-wider">
               Total de Responsáveis
             </p>
             <h3 className="text-2xl font-black text-[#0D2329]">{guardians.length}</h3>
@@ -291,9 +291,9 @@ export function GuardiansPage() {
         </div>
 
         {/* Card 2: Com WhatsApp */}
-        <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex items-center justify-between hover:border-[#10B981]/40 transition-all">
+        <div className="p-5 rounded-3xl bg-white border-2 border-white shadow-sm flex items-center justify-between hover:border-[#10B981]/40 transition-all">
           <div className="space-y-1">
-            <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider">
+            <p className="text-[11px] font-black uppercase text-[#0D2329] tracking-wider">
               Com WhatsApp Ativo
             </p>
             <h3 className="text-2xl font-black text-[#0D2329]">{countWithWhatsapp}</h3>
@@ -307,9 +307,9 @@ export function GuardiansPage() {
         </div>
 
         {/* Card 3: Com Filhos Vinculados */}
-        <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex items-center justify-between hover:border-[#0284C7]/40 transition-all">
+        <div className="p-5 rounded-3xl bg-white border-2 border-white shadow-sm flex items-center justify-between hover:border-[#0284C7]/40 transition-all">
           <div className="space-y-1">
-            <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider">
+            <p className="text-[11px] font-black uppercase text-[#0D2329] tracking-wider">
               Famílias com Filhos
             </p>
             <h3 className="text-2xl font-black text-[#0D2329]">{countWithChildren}</h3>
@@ -323,9 +323,9 @@ export function GuardiansPage() {
         </div>
 
         {/* Card 4: Total de Vínculos */}
-        <div className="p-5 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm flex items-center justify-between hover:border-[#F59E0B]/40 transition-all">
+        <div className="p-5 rounded-3xl bg-white border-2 border-white shadow-sm flex items-center justify-between hover:border-[#F59E0B]/40 transition-all">
           <div className="space-y-1">
-            <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider">
+            <p className="text-[11px] font-black uppercase text-[#0D2329] tracking-wider">
               Vínculos Familiares
             </p>
             <h3 className="text-2xl font-black text-[#0D2329]">{totalChildrenLinked}</h3>
@@ -340,7 +340,7 @@ export function GuardiansPage() {
       </div>
 
       {/* 3. TOOLBAR: SEARCH, SORT, VIEW TOGGLE & FILTER CHIPS */}
-      <div className="bg-white p-4 sm:p-5 rounded-3xl border-2 border-[#D8E5E7] shadow-sm space-y-4">
+      <div className="bg-white p-4 sm:p-5 rounded-3xl border-2 border-white shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
@@ -359,20 +359,20 @@ export function GuardiansPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="h-10 px-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] hover:bg-white text-xs font-black text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all flex-1 sm:flex-initial"
+              className="h-10 px-3.5 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] hover:bg-white text-xs font-black text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all flex-1 sm:flex-initial cursor-pointer"
             >
               <option value="recent">⏱️ Mais Recentes</option>
               <option value="az">🔤 Ordem Alfabética (A - Z)</option>
             </select>
 
             {/* View Mode Toggle: Cards vs List */}
-            <div className="flex bg-[#F7FAFA] rounded-2xl p-1 border-2 border-[#D8E5E7] shrink-0 gap-1">
+            <div className="flex bg-[#E2ECEE] rounded-2xl p-1 border-2 border-white shrink-0 gap-1 shadow-2xs">
               <button
                 onClick={() => setViewType("cards")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
                   viewType === "cards"
                     ? "bg-[#7C3AED] text-white shadow-xs"
-                    : "text-[#6B7C83] hover:text-[#0D2329] hover:bg-white"
+                    : "text-[#0D2329] hover:text-black hover:bg-white"
                 }`}
                 title="Visualização em Cards"
               >
@@ -381,10 +381,10 @@ export function GuardiansPage() {
               </button>
               <button
                 onClick={() => setViewType("list")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
                   viewType === "list"
                     ? "bg-[#7C3AED] text-white shadow-xs"
-                    : "text-[#6B7C83] hover:text-[#0D2329] hover:bg-white"
+                    : "text-[#0D2329] hover:text-black hover:bg-white"
                 }`}
                 title="Visualização em Lista / Tabela"
               >
@@ -396,8 +396,8 @@ export function GuardiansPage() {
         </div>
 
         {/* Filter Chips (Modern Smooth Pills Bar) */}
-        <div className="overflow-x-auto -mx-1 px-1 scrollbar-none pt-2 border-t border-[#EEF5F6]">
-          <div className="flex items-center gap-1.5 p-1 bg-[#F8FAFB] rounded-full sm:rounded-2xl border-2 border-[#D8E5E7] w-max">
+        <div className="overflow-x-auto -mx-1 px-1 scrollbar-none pt-2 border-t border-slate-100">
+          <div className="flex items-center gap-1.5 p-1.5 bg-[#DCE8EB] rounded-full sm:rounded-2xl border-2 border-white shadow-inner w-max">
             {[
               { id: "todos", label: "Todos", shortLabel: "Todos", count: guardians.length },
               { id: "with_whatsapp", label: "Com WhatsApp Ativo", shortLabel: "Com WhatsApp", count: countWithWhatsapp },
@@ -409,10 +409,10 @@ export function GuardiansPage() {
                   key={f.id}
                   type="button"
                   onClick={() => setFilterType(f.id as FilterType)}
-                  className={`px-3.5 py-1.5 sm:py-2 rounded-full sm:rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shrink-0 active:scale-95 ${
+                  className={`px-3.5 py-1.5 sm:py-2 rounded-full sm:rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shrink-0 active:scale-95 cursor-pointer ${
                     isSelected
-                      ? "bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white shadow-md"
-                      : "text-[#4F6C74] hover:text-[#0D2329] hover:bg-white bg-transparent"
+                      ? "bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white shadow-md scale-[1.02]"
+                      : "text-[#0D2329] hover:text-[#7C3AED] hover:bg-white hover:shadow-sm hover:scale-[1.02] bg-white/40"
                   }`}
                 >
                   <span className="sm:hidden">{f.shortLabel}</span>
@@ -421,7 +421,7 @@ export function GuardiansPage() {
                     className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
                       isSelected
                         ? "bg-white/25 text-white"
-                        : "bg-white text-[#6B7C83] border border-[#D8E5E7]"
+                        : "bg-white text-[#0D2329] border border-slate-300 shadow-2xs"
                     }`}
                   >
                     {f.count}

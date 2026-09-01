@@ -764,7 +764,7 @@ export function DashboardPage() {
               <Users className="w-5 h-5" />
             </div>
             <div className="text-right">
-              <p className="text-[11px] font-bold text-[#6B7C83]">Pacientes Ativos</p>
+              <p className="text-[11px] font-black text-[#0D2329] uppercase tracking-wide">Pacientes Ativos</p>
               <p className="text-2xl font-black text-[#0D2329] tracking-tight">{activeChildrenCount}</p>
             </div>
           </div>
@@ -790,7 +790,7 @@ export function DashboardPage() {
               <ClipboardList className="w-5 h-5" />
             </div>
             <div className="text-right">
-              <p className="text-[11px] font-bold text-[#6B7C83]">Entrevistas no mês</p>
+              <p className="text-[11px] font-black text-[#0D2329] uppercase tracking-wide">Entrevistas no mês</p>
               <p className="text-2xl font-black text-[#0D2329] tracking-tight">{evaluationsThisMonth}</p>
             </div>
           </div>
@@ -817,7 +817,7 @@ export function DashboardPage() {
               <Target className="w-5 h-5" />
             </div>
             <div className="text-right">
-              <p className="text-[11px] font-bold text-[#6B7C83]">Acompanhamento Contínuo</p>
+              <p className="text-[11px] font-black text-[#0D2329] uppercase tracking-wide">Acompanhamento Contínuo</p>
               <p className="text-2xl font-black text-[#0D2329] tracking-tight">{interventionsCount}</p>
             </div>
           </div>
@@ -843,7 +843,7 @@ export function DashboardPage() {
               <FileText className="w-5 h-5" />
             </div>
             <div className="text-right">
-              <p className="text-[11px] font-bold text-[#6B7C83]">Relatórios do Mês</p>
+              <p className="text-[11px] font-black text-[#0D2329] uppercase tracking-wide">Relatórios do Mês</p>
               <p className="text-2xl font-black text-[#0D2329] tracking-tight">{reportsThisMonth}</p>
             </div>
           </div>
@@ -874,7 +874,7 @@ export function DashboardPage() {
               <BarChart2 className="w-5 h-5" />
             </div>
             <div className="text-right">
-              <p className="text-[11px] font-bold text-[#6B7C83]">Aulas Este Mês</p>
+              <p className="text-[11px] font-black text-[#0D2329] uppercase tracking-wide">Aulas Este Mês</p>
               <p className="text-2xl font-black text-[#0D2329] tracking-tight">{sessionsThisMonth}</p>
             </div>
           </div>

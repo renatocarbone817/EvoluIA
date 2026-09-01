@@ -289,7 +289,7 @@ export function ChildProfilePage() {
         </div>
 
         {/* 2. MODERN TABS PILLS TOOLBAR */}
-        <div className="pt-3 border-t border-[#EEF5F6] flex items-center gap-1.5 overflow-x-auto -mx-1 px-1 scrollbar-none">
+        <div className="pt-3 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto -mx-1 px-1 scrollbar-none">
           {TABS.map((tab) => {
             const Icon = tab.icon
             const isSelected = activeTab === tab.id
@@ -297,10 +297,10 @@ export function ChildProfilePage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-3.5 py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shrink-0 ${
+                className={`px-3.5 py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
                   isSelected
                     ? "bg-[#7C3AED] text-white shadow-md scale-100"
-                    : "bg-[#F7FAFA] text-[#6B7C83] hover:text-[#0D2329] hover:bg-white border-2 border-[#D8E5E7]"
+                    : "bg-[#E2ECEE] text-[#0D2329] hover:text-[#7C3AED] hover:bg-white border-2 border-white shadow-2xs hover:shadow-sm hover:scale-[1.02]"
                 }`}
               >
                 <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-white" : tab.color}`} />
