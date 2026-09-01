@@ -1419,8 +1419,19 @@ const completeData: CompleteReportData = {
                       rows={5}
                       value={synthesis}
                       onChange={(e) => setSynthesis(e.target.value)}
-                      className="w-full p-3 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed"
+                      placeholder={generatingAI ? "✨ A Inteligência Artificial está analisando os dados e redigindo a síntese clínica..." : "Digite ou aprimore a síntese clínica..."}
+                      className={`w-full p-3 text-xs rounded-xl border leading-relaxed transition-all duration-500 ${
+                        generatingAI
+                          ? "border-2 border-[#7C3AED] bg-[#F5F3FF] shadow-[0_0_25px_rgba(124,58,237,0.30)] animate-pulse ring-2 ring-[#7C3AED]/40 text-[#4C1D95]"
+                          : "border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-[#0D2329]"
+                      }`}
                     />
+                    {generatingAI && (
+                      <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] text-xs font-black animate-pulse shadow-xs">
+                        <Sparkles className="w-4 h-4 animate-spin text-[#7C3AED]" />
+                        <span>✨ A IA está analisando os dados e redigindo a síntese clínica em tempo real...</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1441,7 +1452,7 @@ const completeData: CompleteReportData = {
                       type="button"
                       disabled={generatingAI}
                       onClick={handleGenerateAISuggestions}
-                      className="px-3 py-1 rounded-lg bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs"
+                      className="px-3 py-1 rounded-lg bg-[#EDE9FE] text-[#7C3AED] hover:bg-[#DDD6FE] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>{generatingAI ? "Aprimorando..." : "Sugerir com IA"}</span>
@@ -1451,8 +1462,19 @@ const completeData: CompleteReportData = {
                     rows={4}
                     value={diagnosticHypothesis}
                     onChange={(e) => setDiagnosticHypothesis(e.target.value)}
-                    className="w-full p-3 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed"
+                    placeholder={generatingAI ? "✨ A Inteligência Artificial está correlacionando as evidências e redigindo a hipótese clínica..." : "Digite ou aprimore a hipótese diagnóstica..."}
+                    className={`w-full p-3 text-xs rounded-xl border leading-relaxed transition-all duration-500 ${
+                      generatingAI
+                        ? "border-2 border-[#7C3AED] bg-[#F5F3FF] shadow-[0_0_25px_rgba(124,58,237,0.30)] animate-pulse ring-2 ring-[#7C3AED]/40 text-[#4C1D95]"
+                        : "border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-[#0D2329]"
+                    }`}
                   />
+                  {generatingAI && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] text-xs font-black animate-pulse shadow-xs">
+                      <Sparkles className="w-4 h-4 animate-spin text-[#7C3AED]" />
+                      <span>✨ A IA está correlacionando critérios DSM-5, encaminhamentos e orientações...</span>
+                    </div>
+                  )}
 
                   {/* Critérios DSM-5-TR */}
                   <div>
@@ -1650,7 +1672,12 @@ const completeData: CompleteReportData = {
                       rows={3}
                       value={finalConsiderations}
                       onChange={(e) => setFinalConsiderations(e.target.value)}
-                      className="w-full p-3 text-xs rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white leading-relaxed"
+                      placeholder={generatingAI ? "✨ A Inteligência Artificial está formulando as considerações finais..." : ""}
+                      className={`w-full p-3 text-xs rounded-xl border leading-relaxed transition-all duration-500 ${
+                        generatingAI
+                          ? "border-2 border-[#7C3AED] bg-[#F5F3FF] shadow-[0_0_25px_rgba(124,58,237,0.30)] animate-pulse ring-2 ring-[#7C3AED]/40 text-[#4C1D95]"
+                          : "border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-[#0D2329]"
+                      }`}
                     />
                   </div>
                 </div>
