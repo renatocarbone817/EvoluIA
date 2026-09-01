@@ -496,14 +496,15 @@ export async function getSuperAdminDashboardData(): Promise<SuperAdminDashboardC
         return buyerEmail === myEmail && (ev.event_type?.includes("APPROVED") || ev.event_type?.includes("ACTIVATED"))
       })
 
-      const isCourtesy = sub?.source === "admin_vip_cortesia" || sub?.hotmart_subscription_id === "VIP_CORTESIA" || sub?.source === "admin_manual" || !hasHotmartPurchase
-      const isTrial = sub?.status === "trial"
+      const isCourtesy = sub?.source === "admin_vip_cortesia" || sub?.hotmart_subscription_id === "VIP_CORTESIA" || sub?.source === "admin_manual"
+      const isTrial = sub?.status === "trial" || (!sub && !hasHotmartPurchase)
       const isPaying = !!(hasHotmartPurchase && sub?.status === "active")
 
-      let subStatusDisplay: "active" | "trial" | "cancelled" | "courtesy" = "courtesy"
+      let subStatusDisplay: "active" | "trial" | "cancelled" | "courtesy" = "trial"
       if (sub?.status === "cancelled") subStatusDisplay = "cancelled"
-      else if (isTrial) subStatusDisplay = "trial"
       else if (isPaying) subStatusDisplay = "active"
+      else if (isCourtesy) subStatusDisplay = "courtesy"
+      else if (isTrial) subStatusDisplay = "trial"
       else subStatusDisplay = "courtesy"
 
       return {

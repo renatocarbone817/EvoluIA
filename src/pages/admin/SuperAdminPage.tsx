@@ -1609,6 +1609,8 @@ export function SuperAdminPage() {
                               ? "bg-[#D1FAE5] text-[#065F46]"
                               : clinic.subscriptionStatus === "courtesy"
                               ? "bg-[#FEF3C7] text-[#92400E]"
+                              : clinic.subscriptionStatus === "trial"
+                              ? "bg-[#E0F2FE] text-[#0284C7]"
                               : "bg-[#FEE2E2] text-[#991B1B]"
                           }`}
                         >
@@ -1616,6 +1618,8 @@ export function SuperAdminPage() {
                             ? "🟢 Ativa"
                             : clinic.subscriptionStatus === "courtesy"
                             ? "🎁 VIP Cortesia"
+                            : clinic.subscriptionStatus === "trial"
+                            ? "⏳ Teste Grátis"
                             : "🔴 Cancelada"}
                         </span>
                       </td>
