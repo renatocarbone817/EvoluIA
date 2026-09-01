@@ -27,6 +27,31 @@ export function calculateAge(birthDate: string | Date): number {
   return differenceInYears(new Date(), new Date(birthDate))
 }
 
+export function calculateDetailedAge(birthDate: string | Date | null | undefined): string {
+  if (!birthDate) return "Não informada"
+  const bdate = typeof birthDate === "string" ? new Date(birthDate.includes("T") ? birthDate : birthDate + "T12:00:00") : birthDate
+  if (isNaN(bdate.getTime())) return "Não informada"
+
+  const now = new Date()
+  let years = now.getFullYear() - bdate.getFullYear()
+  let months = now.getMonth() - bdate.getMonth()
+  let days = now.getDate() - bdate.getDate()
+
+  if (days < 0) {
+    months--
+  }
+  if (months < 0) {
+    years--
+    months += 12
+  }
+
+  if (years < 0) return "Não informada"
+  if (years === 0 && months === 0) return "Recém-nascido"
+  if (years === 0) return `${months} m${months !== 1 ? "eses" : "ês"}`
+  if (months === 0) return `${years} ano${years !== 1 ? "s" : ""}`
+  return `${years} ano${years !== 1 ? "s" : ""} e ${months} m${months !== 1 ? "eses" : "ês"}`
+}
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",

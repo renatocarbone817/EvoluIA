@@ -30,7 +30,7 @@ import {
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
-import { formatDate } from "@/lib/utils"
+import { formatDate, calculateDetailedAge } from "@/lib/utils"
 import toast from "react-hot-toast"
 import type { Child, Professional, Guardian } from "@/types/database"
 import {
@@ -227,24 +227,13 @@ export function ClinicalReportBuilderModal({
   async function loadChildContext() {
     setLoading(true)
     try {
-      // 1. Calculate Age
-      let ageStr = ""
-      if (child.birth_date) {
-        const bdate = new Date(child.birth_date + "T12:00:00")
-        const now = new Date()
-        let years = now.getFullYear() - bdate.getFullYear()
-        let months = now.getMonth() - bdate.getMonth()
-        if (months < 0 || (months === 0 && now.getDate() < bdate.getDate())) {
-          years--
-          months += 12
-        }
-        ageStr = years + " ano" + (years !== 1 ? "s" : "") + (months > 0 ? " e " + months + " m" + (months !== 1 ? "eses" : "ês") : "")
-      }
+      // 1. Calculate Age with accurate precision
+      const ageStr = calculateDetailedAge(child.birth_date)
 
-      // 2. Fetch Guardians
+      // 2. Fetch Guardians (Pai e Mãe)
       const { data: links } = await supabase
         .from("guardian_children")
-        .select("guardian:guardians(*)")
+        .select("relationship, is_primary, guardian:guardians(*)")
         .eq("child_id", child.id)
 
       let father = ""
@@ -253,11 +242,20 @@ export function ClinicalReportBuilderModal({
         links.forEach((l: any) => {
           const g = l.guardian as Guardian | undefined
           if (g) {
-            const name = g.full_name
-            if (g.notes?.toLowerCase().includes("pai") || (!father && !mother)) {
+            const name = g.full_name?.trim() || ""
+            const rel = ((l.relationship || g.notes || "") as string).toLowerCase().trim()
+
+            if (rel.includes("pai") || rel === "pai") {
               father = name
-            } else {
+            } else if (rel.includes("mãe") || rel.includes("mae") || rel === "mãe" || rel === "mae") {
               mother = name
+            } else {
+              // Se não estiver categorizado explicitamente como pai ou mãe
+              if (!mother) {
+                mother = name
+              } else if (!father) {
+                father = name
+              }
             }
           }
         })
