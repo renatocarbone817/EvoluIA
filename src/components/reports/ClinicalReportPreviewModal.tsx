@@ -88,6 +88,85 @@ export function ClinicalReportPreviewModal({
     year: "numeric",
   })
 
+  function handlePrint() {
+    const reportElement = document.querySelector(".printable-report")
+    if (!reportElement) {
+      window.print()
+      return
+    }
+
+    // Cria iframe isolado no DOM para garantir quebra de páginas multi-folha A4 perfeita sem interferência de modais
+    const iframe = document.createElement("iframe")
+    iframe.style.position = "fixed"
+    iframe.style.right = "0"
+    iframe.style.bottom = "0"
+    iframe.style.width = "0"
+    iframe.style.height = "0"
+    iframe.style.border = "0"
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentWindow?.document
+    if (!doc) {
+      window.print()
+      return
+    }
+
+    doc.open()
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <title>Laudo Psicopedagógico - ${patientData.fullName || "Paciente"}</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 12mm 10mm 12mm 10mm;
+          }
+          body {
+            background: #ffffff !important;
+            color: #0D2329 !important;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            margin: 0;
+            padding: 0;
+          }
+          .print-avoid-break {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+          }
+        </style>
+      </head>
+      <body class="p-2 space-y-6">
+        ${reportElement.innerHTML}
+      </body>
+      </html>
+    `)
+    doc.close()
+
+    iframe.contentWindow?.focus()
+    setTimeout(() => {
+      iframe.contentWindow?.print()
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe)
+        }
+      }, 2000)
+    }, 400)
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 printable-report-modal print:static print:p-0 print:bg-white print:block print:inset-auto print:z-auto print:overflow-visible print:h-auto print:max-h-none print:w-full">
       <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl animate-in zoom-in-95 print:border-none print:shadow-none print:max-h-none print:h-auto print:w-full print:block print:overflow-visible print:static print:p-0 print:m-0">
@@ -116,7 +195,7 @@ export function ClinicalReportPreviewModal({
           <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={handlePrint}
               className="px-3.5 py-2 rounded-xl bg-white hover:bg-[#F8FAFB] text-[#0D2329] border-2 border-[#D8E5E7] text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
             >
               <Printer className="w-4 h-4 text-[#6B7C83]" />
