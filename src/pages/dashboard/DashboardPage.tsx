@@ -744,10 +744,10 @@ export function DashboardPage() {
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => navigate("/agenda?novo=true")}
-            className="h-10 px-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white text-xs font-black flex items-center gap-2 shadow-sm active:scale-95 transition-all"
+            className="h-10 px-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white text-xs font-black flex items-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
-            <span>+ Novo Agendamento</span>
+            <span>Novo Agendamento</span>
           </button>
         </div>
       </div>
