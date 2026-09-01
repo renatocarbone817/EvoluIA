@@ -244,8 +244,25 @@ export function ClinicalReportPreviewModal({
           </div>
         </div>
 
+        {/* Banner Informativo de Edição */}
+        <div className="bg-[#EDE9FE] px-4 sm:px-6 py-2 border-b border-[#DDD6FE] flex items-center justify-between text-xs text-[#6D28D9] font-bold print:hidden">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">✍️</span>
+            <span className="text-[11px] sm:text-xs">
+              <strong>Edição ao Vivo Ativa:</strong> Você pode clicar e digitar em qualquer texto, tabela ou nota na folha abaixo antes de imprimir!
+            </span>
+          </div>
+          <span className="text-[10px] bg-white text-[#7C3AED] px-2.5 py-0.5 rounded-full font-black shadow-2xs shrink-0 hidden sm:inline-block">
+            Clique e Digite
+          </span>
+        </div>
+
         {/* Corpo do Documento Formatado (Estilo Folha A4 Clínica) */}
-        <div className="p-6 sm:p-10 overflow-y-auto space-y-8 text-xs font-sans bg-[#FBFDFD] printable-report print:bg-white print:p-0 print:overflow-visible print:max-h-none print:h-auto print:block print:space-y-6">
+        <div
+          contentEditable={true}
+          suppressContentEditableWarning={true}
+          className="p-6 sm:p-10 overflow-y-auto space-y-8 text-xs font-sans bg-[#FBFDFD] printable-report print:bg-white print:p-0 print:overflow-visible print:max-h-none print:h-auto print:block print:space-y-6 focus:outline-none cursor-text selection:bg-[#EDE9FE]"
+        >
           
           {/* 1. Timbre e Cabeçalho da Clínica */}
           <div className="p-6 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-2xs space-y-3">
