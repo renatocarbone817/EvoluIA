@@ -337,20 +337,43 @@ export function ClinicalReportPreviewModal({
     setSelectedImgEl(null)
   }
 
+  function getPreviousCard(card: HTMLElement): HTMLElement | null {
+    let el = card.previousElementSibling as HTMLElement | null
+    while (el) {
+      if (el.classList.contains("group/card") || el.classList.contains("test-card-item")) {
+        return el
+      }
+      el = el.previousElementSibling as HTMLElement | null
+    }
+    return null
+  }
+
+  function getNextCard(card: HTMLElement): HTMLElement | null {
+    let el = card.nextElementSibling as HTMLElement | null
+    while (el) {
+      if (el.classList.contains("group/card") || el.classList.contains("test-card-item")) {
+        return el
+      }
+      el = el.nextElementSibling as HTMLElement | null
+    }
+    return null
+  }
+
   // Reordenação de Cards (Mover para Cima / Baixo)
   function moveCard(cardButton: HTMLElement, direction: "up" | "down") {
     const card = cardButton.closest(".group\\/card, .test-card-item") as HTMLElement
     if (!card || !card.parentElement) return
+    const parent = card.parentElement
 
     if (direction === "up") {
-      const prev = card.previousElementSibling as HTMLElement
-      if (prev && (prev.classList.contains("group/card") || prev.classList.contains("test-card-item"))) {
-        card.parentElement.insertBefore(card, prev)
+      const prev = getPreviousCard(card)
+      if (prev) {
+        parent.insertBefore(card, prev)
       }
     } else {
-      const next = card.nextElementSibling as HTMLElement
-      if (next && (next.classList.contains("group/card") || next.classList.contains("test-card-item"))) {
-        card.parentElement.insertBefore(next, card)
+      const next = getNextCard(card)
+      if (next) {
+        parent.insertBefore(card, next.nextElementSibling)
       }
     }
   }
