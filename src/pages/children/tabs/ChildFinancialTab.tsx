@@ -109,6 +109,7 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
   const [showAddModal, setShowAddModal] = useState(false)
   const [showCarePlanDialog, setShowCarePlanDialog] = useState(false)
   const [confirmingRecord, setConfirmingRecord] = useState<any | null>(null)
+  const [expandedRecordIds, setExpandedRecordIds] = useState<Record<string, boolean>>({})
   const [saving, setSaving] = useState(false)
 
   const [form, setForm] = useState({
@@ -155,16 +156,106 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
           .single(),
       ])
 
-      setRecords(recordsRes.data || [])
-      setCarePlan(planRes.data || null)
+      let rawRecords = recordsRes.data || []
+      const currentPlan = planRes.data || null
+      setCarePlan(currentPlan)
+
+      // Auto-consolidar se o plano for de fechamento mensal e houver múltiplos registros pendentes no mesmo mês
+      if (currentPlan && currentPlan.payment_type === "por_sessao") {
+        const isFechamento =
+          currentPlan.notes?.includes("[TIMING:fechamento]") ||
+          (currentPlan.payment_due_day && currentPlan.payment_due_day > 0)
+
+        if (isFechamento) {
+          const pendingGroups: Record<string, any[]> = {}
+          for (const r of rawRecords) {
+            if (r.status === "pending") {
+              const key = `${r.month}_${r.year}`
+              if (!pendingGroups[key]) pendingGroups[key] = []
+              pendingGroups[key].push(r)
+            }
+          }
+
+          let didConsolidate = false
+          for (const key in pendingGroups) {
+            const group = pendingGroups[key]
+            if (group.length > 1) {
+              // Consolida no primeiro
+              const primary = group[0]
+              let totalAmount = 0
+              const sessionLines: string[] = []
+
+              for (const item of group) {
+                totalAmount += Number(item.amount) || 0
+                const lines = (item.notes || "").split("\n").map((l: string) => l.trim()).filter(Boolean)
+                for (const l of lines) {
+                  if (l.startsWith("• Sessão") || l.startsWith("Sessão #") || l.startsWith("• ")) {
+                    const cleanL = l.startsWith("• ") ? l : `• ${l}`
+                    if (!sessionLines.includes(cleanL)) sessionLines.push(cleanL)
+                  } else if (l.includes("Sessão #")) {
+                    const cleanL = `• ${l}`
+                    if (!sessionLines.includes(cleanL)) sessionLines.push(cleanL)
+                  }
+                }
+                if (item.id !== primary.id) {
+                  await supabase.from("financial_records").delete().eq("id", item.id)
+                }
+              }
+
+              const [m, y] = key.split("_")
+              const count = sessionLines.length || group.length
+              const consolidatedNotes = `Fechamento ${months[Number(m) - 1]} / ${y} (${count} ${count === 1 ? "sessão" : "sessões"}):\n${sessionLines.join("\n")}`
+
+              await supabase
+                .from("financial_records")
+                .update({
+                  amount: totalAmount,
+                  notes: consolidatedNotes,
+                })
+                .eq("id", primary.id)
+
+              didConsolidate = true
+            }
+          }
+
+          if (didConsolidate) {
+            const { data: refreshed } = await supabase
+              .from("financial_records")
+              .select(`
+                *,
+                child:children(
+                  id,
+                  full_name,
+                  guardians:guardian_children(
+                    relationship,
+                    is_primary,
+                    guardian:guardians(id, full_name, phone, whatsapp)
+                  )
+                )
+              `)
+              .eq("child_id", childId)
+              .order("year", { ascending: false })
+              .order("month", { ascending: false })
+              .order("created_at", { ascending: false })
+
+            rawRecords = refreshed || []
+          }
+        }
+      }
+
+      setRecords(rawRecords)
 
       // Pre-fill the form with care plan amount if available
-      if (planRes.data?.price_per_session) {
-        setForm((prev) => ({ ...prev, amount: String(planRes.data.price_per_session) }))
+      if (currentPlan?.price_per_session) {
+        setForm((prev) => ({ ...prev, amount: String(currentPlan.price_per_session) }))
       }
     } finally {
       setLoading(false)
     }
+  }
+
+  function toggleExpanded(id: string) {
+    setExpandedRecordIds((prev) => ({ ...prev, [id]: !prev[id] }))
   }
 
   async function handleAddRecord() {
@@ -349,99 +440,134 @@ export function ChildFinancialTab({ childId, childName = "Paciente" }: ChildFina
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 bg-[#EEF5F6] animate-pulse rounded-2xl" />
+            <div key={i} className="h-16 bg-[#F7FAFA] animate-pulse rounded-2xl border border-[#D8E5E7]" />
           ))}
         </div>
       ) : records.length === 0 ? (
-        <div className="p-8 sm:p-12 rounded-3xl bg-white border-2 border-dashed border-[#D8E5E7] text-center space-y-4 shadow-xs">
-          <div className="w-16 h-16 rounded-3xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center mx-auto shadow-xs">
-            <DollarSign className="w-8 h-8" />
+        <div className="p-8 sm:p-12 text-center rounded-3xl border-2 border-dashed border-[#D8E5E7] bg-[#F8FAFB] space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center mx-auto font-bold">
+            <DollarSign className="w-6 h-6" />
           </div>
-
-          <div className="space-y-1.5 max-w-md mx-auto">
-            <h3 className="text-lg font-black text-[#0D2329]">Nenhum lançamento registrado</h3>
-            <p className="text-xs font-semibold text-[#6B7C83] leading-relaxed">
-              Crie cobranças mensais, pacotes de sessões ou lançamentos avulsos para <strong>{childName || "este paciente"}</strong>.
-            </p>
-          </div>
-
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={openAddModal}
-              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#6366F1] to-[#7C3AED] hover:from-[#4F46E5] hover:to-[#6D28D9] text-white text-xs font-black inline-flex items-center gap-2 shadow-md active:scale-95 transition-all"
-            >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              <span>+ Lançar Cobrança</span>
-            </button>
-          </div>
+          <p className="text-sm font-black text-[#0D2329]">Nenhum lançamento financeiro registrado</p>
+          <p className="text-xs font-semibold text-[#6B7C83] max-w-sm mx-auto">
+            Ao registrar atendimentos ou criar cobranças manuais, o histórico financeiro aparecerá aqui.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {records.map((r) => (
-            <div
-              key={r.id}
-              className="p-4 sm:p-5 rounded-3xl border-2 border-[#D8E5E7] bg-white hover:border-[#7C3AED]/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs group"
-            >
-              <div className="space-y-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-black text-sm text-[#0D2329]">
-                    {months[r.month - 1]} / {r.year}
-                  </span>
-                  <span
-                    className={`text-xs px-2.5 py-0.5 rounded-full font-black uppercase ${
-                      r.status === "paid"
-                        ? "bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0]"
-                        : "bg-[#FEF8EC] text-[#B8871E] border border-[#FDE68A]"
-                    }`}
-                  >
-                    {r.status === "paid" ? "✅ Pago" : "⏳ Pendente"}
-                  </span>
+          {records.map((r) => {
+            const notesStr = (r.notes || "").trim()
+            const isFechamento = notesStr.startsWith("Fechamento") || notesStr.includes("• Sessão")
+            const sessionLines = notesStr
+              .split("\n")
+              .map((l: string) => l.trim())
+              .filter((l: string) => l.startsWith("• Sessão") || l.startsWith("• ") || l.startsWith("Sessão #"))
+            const isExpanded = Boolean(expandedRecordIds[r.id])
+
+            return (
+              <div
+                key={r.id}
+                className="p-4 sm:p-5 rounded-3xl border-2 border-[#D8E5E7] bg-white hover:border-[#7C3AED]/40 transition-all flex flex-col justify-between gap-3 shadow-2xs group"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-black text-sm text-[#0D2329]">
+                        {months[r.month - 1]} / {r.year}
+                      </span>
+                      <span
+                        className={`text-xs px-2.5 py-0.5 rounded-full font-black uppercase ${
+                          r.status === "paid"
+                            ? "bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0]"
+                            : "bg-[#FEF8EC] text-[#B8871E] border border-[#FDE68A]"
+                        }`}
+                      >
+                        {r.status === "paid" ? "✅ Pago" : "⏳ Pendente"}
+                      </span>
+
+                      {isFechamento && sessionLines.length > 0 && (
+                        <span className="text-[11px] px-2.5 py-0.5 rounded-full font-black bg-[#EDE9FE] text-[#7C3AED] border border-[#DDD6FE]">
+                          🎯 Fechamento ({sessionLines.length} {sessionLines.length === 1 ? "aula" : "aulas acumuladas"})
+                        </span>
+                      )}
+                    </div>
+
+                    {r.payment_date && (
+                      <p className="text-xs font-semibold text-[#6B7C83]">
+                        Pago em: {formatDate(r.payment_date)}
+                      </p>
+                    )}
+
+                    {!isFechamento && r.notes && (
+                      <p className="text-xs text-[#6B7C83] italic truncate max-w-md">"{r.notes}"</p>
+                    )}
+
+                    {isFechamento && sessionLines.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => toggleExpanded(r.id)}
+                        className="text-xs font-bold text-[#7C3AED] hover:underline flex items-center gap-1 pt-0.5 cursor-pointer"
+                      >
+                        <span>{isExpanded ? "Ocultar detalhamento das aulas ▴" : `Ver detalhamento das ${sessionLines.length} aulas realizadas ▾`}</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#EEF5F6]">
+                    <span className="font-black text-base sm:text-lg text-[#0D2329]">{formatCurrency(r.amount)}</span>
+
+                    <div className="flex items-center gap-2">
+                      {r.status === "paid" ? (
+                        <button
+                          type="button"
+                          onClick={() => handleMarkPending(r)}
+                          className="px-3.5 py-1.5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:bg-[#F8FAFB] text-xs font-bold text-[#6B7C83] transition-all"
+                        >
+                          Desfazer
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingRecord(r)}
+                          className="px-4 py-2 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5"
+                        >
+                          <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+                          <span>Dar Baixa</span>
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleDelete(r)}
+                        className="w-9 h-9 flex items-center justify-center rounded-2xl text-[#8DA3A8] hover:text-red-600 hover:bg-red-50 transition-colors"
+                        title="Excluir lançamento"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                {r.payment_date && (
-                  <p className="text-xs font-semibold text-[#6B7C83]">
-                    Pago em: {formatDate(r.payment_date)}
-                  </p>
-                )}
-                {r.notes && (
-                  <p className="text-xs text-[#6B7C83] italic truncate max-w-md">"{r.notes}"</p>
+
+                {/* Detalhamento Expansível das Aulas no Fechamento */}
+                {isExpanded && sessionLines.length > 0 && (
+                  <div className="mt-2 p-3.5 rounded-2xl bg-[#F8FAFB] border border-[#D8E5E7] space-y-1.5 text-xs animate-in fade-in">
+                    <p className="font-black text-[#0D2329] text-[11px] uppercase tracking-wider">
+                      Aulas realizadas no mês ({sessionLines.length} sessões):
+                    </p>
+                    <div className="space-y-1">
+                      {sessionLines.map((line, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between text-xs font-bold text-[#19323A] bg-white p-2.5 rounded-xl border border-[#EEF5F6]"
+                        >
+                          <span>{line.replace(/^•\s*/, "")}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
-
-              <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#EEF5F6]">
-                <span className="font-black text-base sm:text-lg text-[#0D2329]">{formatCurrency(r.amount)}</span>
-
-                <div className="flex items-center gap-2">
-                  {r.status === "paid" ? (
-                    <button
-                      type="button"
-                      onClick={() => handleMarkPending(r)}
-                      className="px-3.5 py-1.5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:bg-[#F8FAFB] text-xs font-bold text-[#6B7C83] transition-all"
-                    >
-                      Desfazer
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingRecord(r)}
-                      className="px-4 py-2 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5"
-                    >
-                      <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-                      <span>Dar Baixa</span>
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => handleDelete(r)}
-                    className="w-9 h-9 flex items-center justify-center rounded-2xl text-[#8DA3A8] hover:text-red-600 hover:bg-red-50 transition-colors"
-                    title="Excluir lançamento"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

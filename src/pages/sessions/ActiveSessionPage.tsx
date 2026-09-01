@@ -229,8 +229,71 @@ export function ActiveSessionPage() {
         const sessionMonth = sessionDate.getMonth() + 1
         const sessionYear = sessionDate.getFullYear()
 
-        if (carePlan.payment_type === "por_sessao") {
-          // Per session: create one financial record per session
+        const isFechamento =
+          carePlan.payment_type === "por_sessao" &&
+          (carePlan.notes?.includes("[TIMING:fechamento]") || (carePlan.payment_due_day && carePlan.payment_due_day > 0))
+
+        if (isFechamento) {
+          // ── Modo Fechamento: Acumula sessões em uma única fatura mensal ──
+          const { data: existingRecords } = await supabase
+            .from("financial_records")
+            .select("*")
+            .eq("professional_id", profId)
+            .eq("child_id", child.id)
+            .eq("month", sessionMonth)
+            .eq("year", sessionYear)
+            .eq("status", "pending")
+            .order("created_at", { ascending: true })
+
+          const sessionEntryLine = `• Sessão #${sessionNumber} (${form.date}) - R$ ${carePlan.price_per_session.toFixed(2).replace('.', ',')}`
+
+          if (existingRecords && existingRecords.length > 0) {
+            const primaryRecord = existingRecords[0]
+            let totalAmount = Number(primaryRecord.amount) + Number(carePlan.price_per_session)
+
+            // Se existiam registros pendentes duplicados/soltos, consolida e remove os extras
+            for (let i = 1; i < existingRecords.length; i++) {
+              totalAmount += Number(existingRecords[i].amount) || 0
+              await supabase.from("financial_records").delete().eq("id", existingRecords[i].id)
+            }
+
+            let baseNotes = (primaryRecord.notes || "").trim()
+            let updatedNotes = ""
+            if (!baseNotes.includes(`Sessão #${sessionNumber}`)) {
+              if (baseNotes.startsWith("Fechamento") || baseNotes.includes("• Sessão")) {
+                updatedNotes = `${baseNotes}\n${sessionEntryLine}`
+              } else {
+                updatedNotes = `Fechamento ${sessionMonth}/${sessionYear}:\n${baseNotes ? `• ${baseNotes}\n` : ""}${sessionEntryLine}`
+              }
+            } else {
+              updatedNotes = baseNotes
+            }
+
+            await supabase
+              .from("financial_records")
+              .update({
+                amount: totalAmount,
+                notes: updatedNotes,
+              })
+              .eq("id", primaryRecord.id)
+
+            toast.success(`✅ Sessão #${sessionNumber} registrada! Fechamento atualizado para R$ ${totalAmount.toFixed(2).replace('.', ',')}.`)
+          } else {
+            const initialNotes = `Fechamento ${sessionMonth}/${sessionYear} (1 sessão):\n${sessionEntryLine}`
+            await supabase.from("financial_records").insert({
+              professional_id: profId,
+              child_id: child.id,
+              month: sessionMonth,
+              year: sessionYear,
+              amount: carePlan.price_per_session,
+              status: "pending",
+              payment_date: null,
+              notes: initialNotes,
+            })
+            toast.success(`✅ Sessão #${sessionNumber} registrada! Fechamento iniciado com R$ ${carePlan.price_per_session.toFixed(2).replace('.', ',')}.`)
+          }
+        } else if (carePlan.payment_type === "por_sessao") {
+          // ── Modo Por Sessão Avulsa (No Dia da Aula) ───────────────────
           await supabase.from("financial_records").insert({
             professional_id: profId,
             child_id: child.id,
@@ -241,9 +304,9 @@ export function ActiveSessionPage() {
             payment_date: null,
             notes: `Sessão #${sessionNumber} — ${child.full_name} (${form.date})`,
           })
-          toast.success(`✅ Sessão #${sessionNumber} registrada! Lançamento de R$ ${carePlan.price_per_session.toFixed(2)} criado no Financeiro.`)
+          toast.success(`✅ Sessão #${sessionNumber} registrada! Lançamento de R$ ${carePlan.price_per_session.toFixed(2).replace('.', ',')} criado no Financeiro.`)
         } else if (carePlan.payment_type === "mensal") {
-          // Monthly: check if a monthly record already exists for that month
+          // ── Modo Mensalidade Fixa ─────────────────────────────────────
           const { data: existing } = await supabase
             .from("financial_records")
             .select("id")
@@ -264,7 +327,7 @@ export function ActiveSessionPage() {
               payment_date: null,
               notes: `Mensalidade ${sessionMonth}/${sessionYear} — ${child.full_name}`,
             })
-            toast.success(`✅ Sessão #${sessionNumber} registrada! Mensalidade de R$ ${carePlan.price_per_session.toFixed(2)} criada no Financeiro.`)
+            toast.success(`✅ Sessão #${sessionNumber} registrada! Mensalidade de R$ ${carePlan.price_per_session.toFixed(2).replace('.', ',')} criada no Financeiro.`)
           } else {
             toast.success(`Sessão #${sessionNumber} registrada com sucesso!`)
           }

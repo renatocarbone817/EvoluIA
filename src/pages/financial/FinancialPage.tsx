@@ -235,12 +235,22 @@ export function FinancialPage() {
       }
     }
 
+    // 2.5. RECEITA de Fechamento de Sessões
+    if (rawNotes.toLowerCase().includes("fechamento")) {
+      const firstLine = rawNotes.split("\n")[0].trim()
+      return {
+        isExpense: false,
+        category: "Sessões",
+        description: r.child?.full_name ? `${firstLine} — ${r.child.full_name}` : firstLine,
+      }
+    }
+
     // 3. RECEITA de Sessão automática
     if (rawNotes.toLowerCase().includes("sessão") || rawNotes.toLowerCase().includes("atendimento") || rawNotes.toLowerCase().includes("presença")) {
       return {
         isExpense: false,
         category: "Sessões",
-        description: rawNotes || (r.child?.full_name ? `Sessão - ${r.child.full_name}` : "Sessão Psicopedagógica"),
+        description: rawNotes.split("\n")[0] || (r.child?.full_name ? `Sessão - ${r.child.full_name}` : "Sessão Psicopedagógica"),
       }
     }
 
