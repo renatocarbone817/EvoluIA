@@ -300,15 +300,15 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
           }),
         },
         children: [
-          // 1. TÍTULO PRINCIPAL
+          // 1. TÍTULO PRINCIPAL E CABEÇALHO DO LAUDO
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { before: 100, after: 80 },
+            spacing: { before: 120, after: 60 },
             children: [
               new TextRun({
-                text: "AVALIAÇÃO PSICOPEDAGÓGICA",
+                text: "LAUDO DE AVALIAÇÃO PSICOPEDAGÓGICA",
                 font: "Arial",
-                size: 28,
+                size: 26,
                 bold: true,
                 color: "005B94",
               }),
@@ -316,68 +316,137 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { after: 40 },
+            spacing: { after: 240 },
             children: [
               new TextRun({
-                text: clinicTitle,
-                font: "Arial",
-                size: 20,
-                bold: true,
-                color: "005B94",
-              }),
-            ],
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 300 },
-            children: [
-              new TextRun({
-                text: profTitle,
+                text: "Documento Clínico Oficial · Padrão CBO 2394-25 · Diagnóstico e Intervenção",
                 font: "Arial",
                 size: 18,
-                bold: true,
-                color: "005B94",
+                italics: true,
+                color: "6B7C83",
               }),
             ],
           }),
 
-          // 2. QUADRO DE IDENTIFICAÇÃO DO PACIENTE
-          createLabeledP("PACIENTE:", data.patient.fullName, { boldLabel: true }),
-          new Paragraph({
-            spacing: { after: 120, line: 260 },
-            children: [
-              new TextRun({ text: "DATA DE NASCIMENTO: ", font: "Arial", size: 22, bold: true, color: "004080" }),
-              new TextRun({ text: `${data.patient.birthDate || "Não informada"}    `, font: "Arial", size: 22 }),
-              new TextRun({ text: "IDADE: ", font: "Arial", size: 22, bold: true, color: "004080" }),
-              new TextRun({ text: data.patient.ageFormatted || "Não informada", font: "Arial", size: 22 }),
+          // 2. QUADRO DE IDENTIFICAÇÃO DO PACIENTE (TABELA FORMATADA)
+          createSectionHeader("1. Identificação do Paciente"),
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 6, color: "A0BDC6" },
+              bottom: { style: BorderStyle.SINGLE, size: 6, color: "A0BDC6" },
+              left: { style: BorderStyle.SINGLE, size: 6, color: "A0BDC6" },
+              right: { style: BorderStyle.SINGLE, size: 6, color: "A0BDC6" },
+              insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: "E2E8F0" },
+              insideVertical: { style: BorderStyle.NONE, size: 0, color: "auto" },
+            },
+            rows: [
+              new TableRow({
+                children: [
+                  new TableCell({
+                    shading: { type: ShadingType.CLEAR, fill: "F8FAFB" },
+                    children: [
+                      new Paragraph({
+                        spacing: { before: 60, after: 60 },
+                        children: [
+                          new TextRun({ text: "NOME DO PACIENTE: ", font: "Arial", size: 20, bold: true, color: "005B94" }),
+                          new TextRun({ text: data.patient.fullName, font: "Arial", size: 22, bold: true, color: "111827" }),
+                        ],
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({
+                    shading: { type: ShadingType.CLEAR, fill: "FFFFFF" },
+                    children: [
+                      new Paragraph({
+                        spacing: { before: 60, after: 60 },
+                        children: [
+                          new TextRun({ text: "DATA DE NASCIMENTO: ", font: "Arial", size: 20, bold: true, color: "005B94" }),
+                          new TextRun({ text: `${data.patient.birthDate || "Não informada"}     `, font: "Arial", size: 20 }),
+                          new TextRun({ text: "IDADE CRONOLÓGICA: ", font: "Arial", size: 20, bold: true, color: "005B94" }),
+                          new TextRun({ text: data.patient.ageFormatted || "Não informada", font: "Arial", size: 20, bold: true, color: "111827" }),
+                        ],
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({
+                    shading: { type: ShadingType.CLEAR, fill: "F8FAFB" },
+                    children: [
+                      new Paragraph({
+                        spacing: { before: 60, after: 60 },
+                        children: [
+                          new TextRun({ text: "FILIAÇÃO: ", font: "Arial", size: 20, bold: true, color: "005B94" }),
+                          new TextRun({
+                            text: `Pai: ${data.patient.fatherName || "Não informado"} | Mãe: ${data.patient.motherName || "Não informada"}`,
+                            font: "Arial",
+                            size: 20,
+                          }),
+                        ],
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({
+                    shading: { type: ShadingType.CLEAR, fill: "FFFFFF" },
+                    children: [
+                      new Paragraph({
+                        spacing: { before: 60, after: 60 },
+                        children: [
+                          new TextRun({ text: "ESCOLA / SÉRIE: ", font: "Arial", size: 20, bold: true, color: "005B94" }),
+                          new TextRun({ text: `${data.patient.schoolName || "Não informada"} (${data.patient.grade || "Não informada"})     `, font: "Arial", size: 20 }),
+                          new TextRun({ text: "SESSÕES REALIZADAS: ", font: "Arial", size: 20, bold: true, color: "005B94" }),
+                          new TextRun({ text: `${data.clinical.sessionsCount || 10} sessões clínicas`, font: "Arial", size: 20, bold: true, color: "7C3AED" }),
+                        ],
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({
+                    shading: { type: ShadingType.CLEAR, fill: "F8FAFB" },
+                    children: [
+                      new Paragraph({
+                        spacing: { before: 60, after: 60 },
+                        children: [
+                          new TextRun({ text: "QUEIXA PRINCIPAL / MOTIVO: ", font: "Arial", size: 20, bold: true, color: "005B94" }),
+                          new TextRun({
+                            text: `"${data.patient.mainComplaint || "Dificuldades de aprendizagem e atenção relatadas pela família/escola."}"`,
+                            font: "Arial",
+                            size: 20,
+                            italics: true,
+                          }),
+                        ],
+                      }),
+                    ],
+                  }),
+                ],
+              }),
             ],
           }),
-          createLabeledP(
-            "FILIAÇÃO:",
-            `${data.patient.fatherName || ""}${
-              data.patient.fatherName && data.patient.motherName ? " e " : ""
-            }${data.patient.motherName || ""}`.trim() || "Não informada"
-          ),
-          createLabeledP(
-            "ESCOLA:",
-            `${data.patient.schoolName || "Não informada"} - SÉRIE: ${data.patient.grade || "Não informada"}`
-          ),
-          createLabeledP(
-            "QUEIXA:",
-            data.patient.mainComplaint || "Dificuldades de aprendizagem e atenção relatadas pela família/escola."
-          ),
-          createLabeledP("DIAGNÓSTICO ANTERIOR:", data.patient.previousDiagnosis || "Nenhum"),
 
-          new Paragraph({ spacing: { after: 200 } }),
+          new Paragraph({ spacing: { after: 160 } }),
 
           // 3. INSTRUMENTOS DIAGNÓSTICOS UTILIZADOS
-          createSectionHeader("Instrumentos diagnósticos utilizados pela Psicopedagoga:"),
-          ...data.clinical.selectedInstruments.map((inst, index) =>
+          createSectionHeader("2. Instrumentos Avaliativos Utilizados"),
+          ...data.clinical.selectedInstruments.map((inst) =>
             new Paragraph({
-              spacing: { after: 80 },
+              spacing: { after: 60 },
               children: [
                 new TextRun({
-                  text: `${index + 1}. `,
+                  text: "✓ ",
                   font: "Arial",
                   size: 22,
                   bold: true,
@@ -386,28 +455,29 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
                 new TextRun({
                   text: inst,
                   font: "Arial",
-                  size: 22,
-                  color: "222222",
+                  size: 20,
+                  bold: true,
+                  color: "1F2937",
                 }),
               ],
             })
           ),
 
           new Paragraph({
-            spacing: { before: 200, after: 300 },
+            spacing: { before: 120, after: 200 },
             children: [
               new TextRun({
-                text: "Toda a avaliação teve como base: ciência, estatísticas, informações da família e escola, testes, escalas e questionários quantitativos e qualitativos e DSM-5-TR como instrumento norteador para a hipótese diagnóstica.",
+                text: "* Toda a avaliação teve como base: ciência, estatísticas, informações da família e escola, testes, escalas e questionários quantitativos e qualitativos e DSM-5-TR como instrumento norteador para a hipótese diagnóstica.",
                 font: "Arial",
-                size: 20,
+                size: 18,
                 italics: true,
-                color: "444444",
+                color: "6B7C83",
               }),
             ],
           }),
 
           // 4. ANAMNESE
-          createSectionHeader("Anamnese / Entrevista Inicial com a Família"),
+          createSectionHeader("3. Anamnese / Entrevista Inicial com a Família"),
 
           ...(data.clinical.familyQuestions && data.clinical.familyQuestions.length > 0
             ? data.clinical.familyQuestions.flatMap((q) => [
@@ -463,7 +533,7 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
               ]),
 
           // 5. ENTREVISTA ESCOLAR
-          createSectionHeader("Entrevista / Visita Escolar"),
+          createSectionHeader("4. Entrevista / Visita Escolar"),
 
           ...(data.clinical.schoolObserver?.name
             ? [
@@ -613,7 +683,7 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
           }),
 
           // 6. RESULTADOS DETALHADOS DE CADA INSTRUMENTO/TESTE
-          createSectionHeader("Resultados dos Testes e Instrumentos Avaliativos"),
+          createSectionHeader("5. Resultados dos Testes e Instrumentos Avaliativos"),
 
           ...data.clinical.tests.flatMap((test) => {
             const elements: (Paragraph | Table)[] = [
@@ -675,14 +745,14 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
           }),
 
           // 7. OBSERVAÇÃO CLÍNICA
-          createSectionHeader("Observação Clínica"),
+          createSectionHeader("6. Observação Clínica nas Sessões"),
           createP(
             data.clinical.clinicalObservation ||
               "Durante as sessões avaliativas, o paciente demonstrou receptividade às propostas lúdicas e vínculo positivo com a profissional. Observou-se variação no tempo de sustentação atencional conforme o nível de exigência da tarefa."
           ),
 
           // 8. SÍNTESE DA AVALIAÇÃO PSICOPEDAGÓGICA
-          createSectionHeader("Síntese da Avaliação Psicopedagógica"),
+          createSectionHeader("7. Síntese da Avaliação Psicopedagógica"),
           createP(
             data.clinical.synthesis ||
               `A presente avaliação psicopedagógica foi realizada ao longo de ${
@@ -691,7 +761,7 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
           ),
 
           // 9. HIPÓTESE DIAGNÓSTICA
-          createSectionHeader("Hipótese Diagnóstica (DSM-5-TR)"),
+          createSectionHeader("8. Hipótese Diagnóstica (DSM-5-TR)"),
           createP(
             data.clinical.diagnosticHypothesis ||
               "Os dados obtidos ao longo da avaliação psicopedagógica apontam para um perfil cognitivo compatível com dificuldades nas funções executivas e sustentação atencional, necessitando de acompanhamento contínuo e intervenção estruturada."
@@ -718,28 +788,10 @@ export function buildClinicalDocxReport(data: CompleteReportData): Document {
               ]
             : []),
 
-          // 10. CONSIDERAÇÕES FINAIS & CLÁUSULAS LEGAIS
-          createSectionHeader("Considerações Finais"),
-          createP(
-            data.clinical.finalConsiderations ||
-              "Diante dos dados obtidos, recomenda-se a continuidade do acompanhamento psicopedagógico clínico para fortalecimento das habilidades em defasagem e desenvolvimento de estratégias compensatórias de aprendizagem."
-          ),
+          // 10. ENCAMINHAMENTOS E ORIENTAÇÕES
+          createSectionHeader("9. Encaminhamentos & Orientações Pedagógicas"),
 
-          new Paragraph({
-            spacing: { before: 180, after: 140 },
-            children: [
-              new TextRun({
-                text: "Este parecer tem a validade de 6 meses a contar com a data de hoje. Destaco também que este documento não poderá ser utilizado para fins diferentes do apontado na identificação do documento (relatório de devolutiva e encaminhamento de paciente), o mesmo possui caráter sigiloso e extrajudicial. Não me responsabilizo pelo uso de dados deste relatório por parte da pessoa, grupo ou instituição após a sua entrega em entrevista devolutiva.",
-                font: "Arial",
-                size: 20,
-                bold: true,
-                color: "444444",
-              }),
-            ],
-          }),
-
-          // 11. ENCAMINHAMENTOS
-          createSectionHeader("Encaminhamentos:"),
+          createSubHeader("Encaminhamentos Profissionais Recomendados:"),
           ...data.clinical.referrals.map((ref) =>
             new Paragraph({
               spacing: { after: 80 },
