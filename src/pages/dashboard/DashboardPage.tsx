@@ -1053,6 +1053,8 @@ export function DashboardPage() {
                                 navigate(`/criancas/${appt.child_id}?editar=true`)
                               } else if (typeLower.includes("devolutiva") && appt.child_id) {
                                 navigate(`/criancas/${appt.child_id}?tab=relatorios`)
+                              } else if (typeLower.includes("interven") && appt.child_id) {
+                                navigate(`/atendimento/intervencao/${appt.id}`)
                               } else {
                                 navigate(`/atendimento/${appt.id}`)
                               }

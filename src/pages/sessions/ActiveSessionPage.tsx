@@ -87,6 +87,12 @@ export function ActiveSessionPage() {
           .single()
 
         if (apptData) {
+          // Se o agendamento for de intervenção, redireciona automaticamente para a página de Aula de Intervenção
+          const typeLower = (apptData.type || "").toLowerCase()
+          if (typeLower.includes("interven")) {
+            navigate(`/atendimento/intervencao/${appointmentId}`, { replace: true })
+            return
+          }
           setAppointment(apptData)
           resolvedChildId = apptData.child_id
           setChild((apptData as any).child)

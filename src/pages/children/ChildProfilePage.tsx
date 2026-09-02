@@ -295,7 +295,13 @@ export function ChildProfilePage() {
         .from("appointments")
         .update({ status: "in_progress" })
         .eq("id", nextAppointment.id)
-      navigate(`/atendimento/${nextAppointment.id}`)
+
+      const typeLower = (nextAppointment.type || "").toLowerCase()
+      if (typeLower.includes("interven")) {
+        navigate(`/atendimento/intervencao/${nextAppointment.id}`)
+      } else {
+        navigate(`/atendimento/${nextAppointment.id}`)
+      }
     }
   }
 
