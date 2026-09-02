@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import {
   ArrowLeft,
@@ -92,6 +92,33 @@ export function ChildProfilePage() {
   const [selectedGuardiansToDelete, setSelectedGuardiansToDelete] = useState<string[]>([])
   const [financialCount, setFinancialCount] = useState<number>(0)
   const [checkingFinance, setCheckingFinance] = useState(false)
+
+  const tabsContainerRef = useRef<HTMLDivElement>(null)
+  const tabButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+
+  // Centraliza a aba ativa no mobile / desktop suavemente
+  useEffect(() => {
+    const el = tabButtonRefs.current[activeTab]
+    if (el) {
+      el.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest",
+      })
+    }
+  }, [activeTab])
+
+  function handleSelectTab(tabId: Tab) {
+    setActiveTab(tabId)
+    const el = tabButtonRefs.current[tabId]
+    if (el) {
+      el.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest",
+      })
+    }
+  }
 
   useEffect(() => {
     if (id) loadChild()
@@ -390,15 +417,21 @@ export function ChildProfilePage() {
           </div>
         </div>
 
-        {/* 2. MODERN TABS PILLS TOOLBAR */}
-        <div className="pt-3 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto -mx-1 px-1 scrollbar-none">
+        {/* 2. MODERN TABS PILLS TOOLBAR (Auto-centralizado no Mobile) */}
+        <div
+          ref={tabsContainerRef}
+          className="pt-3 border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto -mx-1 px-1 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden scroll-smooth"
+        >
           {TABS.map((tab) => {
             const Icon = tab.icon
             const isSelected = activeTab === tab.id
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                ref={(el) => {
+                  tabButtonRefs.current[tab.id] = el
+                }}
+                onClick={() => handleSelectTab(tab.id)}
                 className={`px-3.5 py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
                   isSelected
                     ? "bg-[#7C3AED] text-white shadow-md scale-100"
