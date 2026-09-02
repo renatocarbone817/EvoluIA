@@ -129,7 +129,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
         .update({ status: "report_completed" })
         .eq("id", child.id)
 
-      toast.success("Laudo final anexado com sucesso! Marcado automaticamente como Finalizado.", { id: toastId, icon: "✅" })
+      toast.success("Laudo final anexado com sucesso! Marcado como Relatório Finalizado.", { id: toastId, icon: "🟢" })
       if (onReloadChild) onReloadChild()
       await loadData()
     } catch (err: any) {
@@ -191,7 +191,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
         })
         .eq("id", child.id)
 
-      toast.success(newStatus === "final" ? "Laudo marcado como Finalizado!" : "Laudo reaberto para Em Elaboração.")
+      toast.success(newStatus === "final" ? "Laudo marcado como Relatório Finalizado!" : "Laudo reaberto para Em Elaboração.")
       if (onReloadChild) onReloadChild()
       await loadData()
     } catch (err: any) {
@@ -449,40 +449,42 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
               className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
                 isCompleted
                   ? "bg-[#F0FDF4] border-[#BBF7D0]"
-                  : "bg-[#FEF8EC] border-[#FDE68A]"
+                  : "bg-[#EDE9FE] border-[#DDD6FE]"
               }`}
             >
               <div className="space-y-0.5">
                 <p
                   className={`text-xs font-black ${
-                    isCompleted ? "text-[#166534]" : "text-[#B45309]"
+                    isCompleted ? "text-[#166534]" : "text-[#7C3AED]"
                   }`}
                 >
-                  Status do Atendimento Clínico: {isCompleted ? "✅ Finalizado e Arquivado" : "📝 Em Elaboração"}
+                  Status do Relatório / Laudo: {isCompleted ? "🟢 Relatório Finalizado" : "🟣 Relatório em elaboração"}
                 </p>
                 <p
                   className={`text-[11px] font-medium ${
-                    isCompleted ? "text-[#15803D]" : "text-[#92400E]"
+                    isCompleted ? "text-[#15803D]" : "text-[#6D28D9]"
                   }`}
                 >
                   {isCompleted
-                    ? `O laudo final foi anexado com sucesso e o prontuário de ${child.full_name} consta como concluído.`
-                    : "O laudo ainda está em elaboração. Ao anexar o documento final assinado, ele será finalizado automaticamente."}
+                    ? `O laudo final foi concluído com sucesso e está disponível no prontuário de ${child.full_name}.`
+                    : "O laudo ainda está em elaboração. Ao anexar a via final assinada ou concluir no gerador, o status passará para Relatório Finalizado."}
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => handleToggleStatus(isCompleted ? "draft" : "final")}
-                className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs shrink-0 cursor-pointer active:scale-95 ${
-                  isCompleted
-                    ? "bg-white text-[#6B7C83] hover:text-[#0D2329] border border-[#D8E5E7]"
-                    : "bg-[#16A34A] hover:bg-[#15803D] text-white shadow-sm"
-                }`}
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>{isCompleted ? "Reabrir para Elaboração" : "Marcar como Finalizado ✅"}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleToggleStatus(isCompleted ? "draft" : "final")}
+                  className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs shrink-0 cursor-pointer active:scale-95 ${
+                    isCompleted
+                      ? "bg-white text-[#6B7C83] hover:text-[#0D2329] border border-[#D8E5E7]"
+                      : "bg-[#16A34A] hover:bg-[#15803D] text-white shadow-sm"
+                  }`}
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{isCompleted ? "Reabrir para Elaboração" : "Marcar como Relatório Finalizado 🟢"}</span>
+                </button>
+              </div>
             </div>
           </div>
 

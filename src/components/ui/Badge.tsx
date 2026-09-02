@@ -12,10 +12,7 @@ export function Badge({ className, statusKey, type, variant = "default", childre
     let label = STATUS_LABELS[statusKey] || statusKey
     let color = STATUS_COLORS[statusKey] || "bg-[#EEF5F6] text-[#4F6C74] border-[#D8E5E7]"
 
-    if (type === "child" && statusKey === "in_progress") {
-      label = "🌱 Em Acompanhamento"
-      color = "bg-[#E8F8F5] text-[#20836F] border-[#63C7B2]/40 font-semibold"
-    } else if ((!type || type === "appointment") && statusKey === "in_progress") {
+    if ((!type || type === "appointment") && statusKey === "in_progress") {
       label = "▶ Em Andamento"
       color = "bg-[#245C6B] text-white border-[#19323A] font-semibold"
     }

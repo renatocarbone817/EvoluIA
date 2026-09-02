@@ -80,14 +80,19 @@ export function getInitials(name: string): string {
 }
 
 export const STATUS_LABELS: Record<string, string> = {
-  initial_assessment: "📋 Entrevista Inicial",
-  in_progress: "▶ Em Andamento",
-  child_in_progress: "🌱 Em Acompanhamento",
-  report_in_progress: "📝 Em Relatório",
-  report_completed: "✅ Finalizado",
+  // Etapas Clínicas da Criança
+  initial_assessment: "🟡 Entrevista Inicial",
+  in_progress: "🔵 Em Avaliação",
+  assessment_in_progress: "🔵 Em Avaliação",
+  report_in_progress: "🟣 Relatório em elaboração",
+  report_completed: "🟢 Relatório Finalizado",
+  in_intervention: "🟠 Em Intervenção",
+  intervention_in_progress: "🟠 Em Intervenção",
+  closed: "⚪ Acompanhamento encerrado",
   paused: "⏸️ Pausado",
-  closed: "🔒 Encerrado",
   archived: "📦 Arquivado",
+
+  // Agendamentos & Atendimentos
   scheduled: "● Agendado",
   confirmed: "✓ Confirmado",
   in_progress_appt: "▶ Em Andamento",
@@ -95,36 +100,45 @@ export const STATUS_LABELS: Record<string, string> = {
   cancelled: "✕ Cancelado",
   missed: "⚠ Faltou",
   rescheduled: "🔄 Reagendado",
+
+  // Financeiro
   paid: "✓ Pago",
   pending: "⏳ Pendente",
   overdue: "⚠ Atrasado",
 }
 
 export const STATUS_COLORS: Record<string, string> = {
-  // Roxo para Em Relatório e Azul para Relatório Finalizado
-  report_in_progress: "bg-[#EDE9FE] text-[#7C3AED] border-[#DDD6FE] font-black",
-  report_completed: "bg-[#E0F2FE] text-[#0284C7] border-[#BAE6FD] font-black",
+  // 🟡 Entrevista Inicial (Amarelo / Dourado)
+  initial_assessment: "bg-[#FEF8EC] text-[#B8871E] border-[#FDE68A] font-black",
 
-  // Verde Menta para crescimento e sucesso
-  in_progress: "bg-[#E8F8F5] text-[#20836F] border-[#63C7B2]/40 font-semibold",
+  // 🔵 Em Avaliação (Azul Suave & Elegante)
+  in_progress: "bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD] font-black",
+  assessment_in_progress: "bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD] font-black",
+
+  // 🟣 Relatório em elaboração (Roxo / Lavanda)
+  report_in_progress: "bg-[#EDE9FE] text-[#7C3AED] border-[#DDD6FE] font-black",
+
+  // 🟢 Relatório Finalizado (Verde Menta / Esmeralda)
+  report_completed: "bg-[#E8F8F5] text-[#065F46] border-[#A7F3D0] font-black",
+
+  // 🟠 Em Intervenção (Laranja / Âmbar vibrante)
+  in_intervention: "bg-[#FFF7ED] text-[#C2410C] border-[#FED7AA] font-black",
+  intervention_in_progress: "bg-[#FFF7ED] text-[#C2410C] border-[#FED7AA] font-black",
+
+  // ⚪ Acompanhamento encerrado / Neutros
+  closed: "bg-[#F8FAFB] text-[#6B7C83] border-[#D8E5E7] font-black",
+  paused: "bg-[#EEF5F6] text-[#6B7C83] border-[#D8E5E7] font-bold",
+  archived: "bg-[#EEF5F6] text-[#6B7C83] border-[#D8E5E7] font-bold",
+
+  // Agendamentos
   confirmed: "bg-[#E8F8F5] text-[#20836F] border-[#63C7B2]/40 font-semibold",
   paid: "bg-[#E8F8F5] text-[#20836F] border-[#63C7B2]/40 font-semibold",
-
-  // Amarelo Suave para atenção e avaliações em andamento
-  initial_assessment: "bg-[#FEF8EC] text-[#B8871E] border-[#F4C95D]/40 font-semibold",
   pending: "bg-[#FEF8EC] text-[#B8871E] border-[#F4C95D]/40 font-semibold",
-
-  // Azul Petróleo para agendamentos
   scheduled: "bg-[#EAF3F5] text-[#245C6B] border-[#245C6B]/30 font-semibold",
   in_progress_appt: "bg-[#245C6B] text-white border-transparent font-semibold",
-
-  // Tons neutros
   done: "bg-[#EEF5F6] text-[#4F6C74] border-[#D8E5E7]",
-  paused: "bg-[#EEF5F6] text-[#6B7C83] border-[#D8E5E7]",
-  closed: "bg-[#EEF5F6] text-[#6B7C83] border-[#D8E5E7]",
-  archived: "bg-[#EEF5F6] text-[#6B7C83] border-[#D8E5E7]",
 
-  // Vermelho Suave para cancelamentos / alertas
+  // Cancelamentos / Alertas
   cancelled: "bg-[#FDF0F0] text-[#D96C6C] border-[#D96C6C]/30 font-semibold",
   overdue: "bg-[#FDF0F0] text-[#D96C6C] border-[#D96C6C]/30 font-semibold",
   missed: "bg-[#FEF4E8] text-[#C06A1C] border-[#F4A75D]/40 font-semibold",

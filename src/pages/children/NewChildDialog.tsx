@@ -40,8 +40,8 @@ export const GRADE_OPTIONS = [
 ]
 
 const STATUS_OPTIONS = [
-  { value: "initial_assessment", label: "📋 Entrevista Inicial" },
-  { value: "in_progress", label: "🌱 Em Acompanhamento" },
+  { value: "initial_assessment", label: "🟡 Entrevista Inicial" },
+  { value: "in_progress", label: "🔵 Em Avaliação" },
 ]
 
 export function NewChildDialog({ open, onClose, onSuccess }: NewChildDialogProps) {

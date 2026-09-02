@@ -169,7 +169,17 @@ export interface Guardian {
   updated_at: string
 }
 
-export type ChildStatus = 'initial_assessment' | 'in_progress' | 'report_in_progress' | 'report_completed' | 'paused' | 'closed' | 'archived'
+export type ChildStatus =
+  | 'initial_assessment'
+  | 'in_progress'
+  | 'assessment_in_progress'
+  | 'report_in_progress'
+  | 'report_completed'
+  | 'in_intervention'
+  | 'intervention_in_progress'
+  | 'paused'
+  | 'closed'
+  | 'archived'
 
 export interface Child {
   id: string

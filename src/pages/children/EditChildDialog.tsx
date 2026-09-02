@@ -60,10 +60,12 @@ export const GRADE_OPTIONS = [
 ]
 
 const STATUS_OPTIONS = [
-  { value: "initial_assessment", label: "📋 Entrevista Inicial" },
-  { value: "in_progress", label: "🌱 Em Acompanhamento" },
-  { value: "report_in_progress", label: "📝 Em Relatório" },
-  { value: "report_completed", label: "✅ Finalizado" },
+  { value: "initial_assessment", label: "🟡 Entrevista Inicial" },
+  { value: "in_progress", label: "🔵 Em Avaliação" },
+  { value: "report_in_progress", label: "🟣 Relatório em elaboração" },
+  { value: "report_completed", label: "🟢 Relatório Finalizado" },
+  { value: "in_intervention", label: "🟠 Em Intervenção" },
+  { value: "closed", label: "⚪ Acompanhamento encerrado" },
   { value: "paused", label: "⏸️ Pausado" },
 ]
 

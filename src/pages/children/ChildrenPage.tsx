@@ -71,7 +71,14 @@ interface ChildWithDetails extends Child {
 }
 
 type ViewType = "cards" | "list"
-type StatusFilterType = "todos" | "in_progress" | "initial_assessment" | "finalizado" | "pausado"
+type StatusFilterType =
+  | "todos"
+  | "initial_assessment"
+  | "in_progress"
+  | "report_in_progress"
+  | "report_completed"
+  | "in_intervention"
+  | "closed"
 
 export function ChildrenPage() {
   const navigate = useNavigate()
@@ -229,12 +236,23 @@ export function ChildrenPage() {
         let effectiveStatus = c.status
         const hasFinal = Boolean(childReport && (childReport.status === "final" || childReport.status === "completed"))
 
-        if (hasFinal) {
+        // Respeita decisões explícitas da profissional (Intervenção, Encerrado, Pausado)
+        if (
+          c.status === "in_intervention" ||
+          c.status === "intervention_in_progress" ||
+          c.status === "closed" ||
+          c.status === "paused" ||
+          c.status === "archived"
+        ) {
+          effectiveStatus = c.status
+        } else if (hasFinal || c.status === "report_completed") {
           effectiveStatus = "report_completed"
-        } else if (childReport && (childReport.status === "draft" || childReport.status === "in_progress")) {
-          if (effectiveStatus !== "report_completed") {
-            effectiveStatus = "report_in_progress"
-          }
+        } else if (c.status === "report_in_progress" || (childReport && (childReport.status === "draft" || childReport.status === "in_progress"))) {
+          effectiveStatus = "report_in_progress"
+        } else if (c.status === "initial_assessment") {
+          effectiveStatus = "initial_assessment"
+        } else {
+          effectiveStatus = c.status || "in_progress"
         }
 
         return {
@@ -267,10 +285,20 @@ export function ChildrenPage() {
   const filtered = children.filter((c) => {
     const q = search.toLowerCase().trim()
     let matchStatus = true
-    if (statusFilter === "in_progress") matchStatus = (c.status === "in_progress" || c.status === "report_in_progress") && !c.hasFinalReport
-    else if (statusFilter === "initial_assessment") matchStatus = c.status === "initial_assessment" && !c.hasFinalReport
-    else if (statusFilter === "finalizado") matchStatus = c.status === "report_completed" || Boolean(c.hasFinalReport) || c.status === "closed"
-    else if (statusFilter === "pausado") matchStatus = c.status === "paused" || c.status === "archived"
+
+    if (statusFilter === "initial_assessment") {
+      matchStatus = c.status === "initial_assessment"
+    } else if (statusFilter === "in_progress") {
+      matchStatus = c.status === "in_progress" || c.status === "assessment_in_progress"
+    } else if (statusFilter === "report_in_progress") {
+      matchStatus = c.status === "report_in_progress"
+    } else if (statusFilter === "report_completed") {
+      matchStatus = c.status === "report_completed"
+    } else if (statusFilter === "in_intervention") {
+      matchStatus = c.status === "in_intervention" || c.status === "intervention_in_progress"
+    } else if (statusFilter === "closed") {
+      matchStatus = c.status === "closed" || c.status === "paused" || c.status === "archived"
+    }
 
     if (!matchStatus) return false
     if (!q) return true
@@ -288,11 +316,12 @@ export function ChildrenPage() {
   })
 
   // Counts for status tabs
-  const countInProgress = children.filter((c) => (c.status === "in_progress" || c.status === "report_in_progress") && !c.hasFinalReport).length
-  const countInitial = children.filter((c) => c.status === "initial_assessment" && !c.hasFinalReport).length
-  const countFinalizado = children.filter((c) => c.status === "report_completed" || Boolean(c.hasFinalReport) || c.status === "closed").length
-  const countPausado = children.filter((c) => c.status === "paused" || c.status === "archived").length
-  const countWithUpcoming = children.filter((c) => c.nextAppointment).length
+  const countInitial = children.filter((c) => c.status === "initial_assessment").length
+  const countAssessment = children.filter((c) => c.status === "in_progress" || c.status === "assessment_in_progress").length
+  const countReportInProgress = children.filter((c) => c.status === "report_in_progress").length
+  const countReportCompleted = children.filter((c) => c.status === "report_completed").length
+  const countIntervention = children.filter((c) => c.status === "in_intervention" || c.status === "intervention_in_progress").length
+  const countClosed = children.filter((c) => c.status === "closed" || c.status === "paused" || c.status === "archived").length
 
   return (
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6 animate-in fade-in">
@@ -308,7 +337,7 @@ export function ChildrenPage() {
             </div>
           </div>
           <p className="text-xs sm:text-sm font-bold text-[#081B20]">
-            Gerencie anamneses, prontuários, evoluções clínicas e o histórico de cada criança.
+            Gerencie anamneses, avaliações, relatórios e intervenções psicopedagógicas.
           </p>
         </div>
 
@@ -340,51 +369,51 @@ export function ChildrenPage() {
           </div>
         </div>
 
-        {/* Card 2: Em Acompanhamento */}
-        <div className="p-5 rounded-3xl bg-white border-2 border-white shadow-sm flex items-center justify-between hover:border-[#10B981]/40 transition-all">
+        {/* Card 2: Em Intervenção */}
+        <div className="p-5 rounded-3xl bg-white border-2 border-white shadow-sm flex items-center justify-between hover:border-[#F97316]/40 transition-all">
           <div className="space-y-1">
             <p className="text-[11px] font-black uppercase text-[#0D2329] tracking-wider">
-              Em Acompanhamento
+              Em Intervenção
             </p>
-            <h3 className="text-2xl font-black text-[#0D2329]">{countInProgress}</h3>
-            <span className="inline-block text-[11px] font-bold text-[#10B981]">
-              Sessões contínuas
-            </span>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-[#E8F8F5] border border-[#A7F3D0] text-[#10B981] flex items-center justify-center shrink-0 shadow-xs">
-            <Sparkles className="w-6 h-6" />
-          </div>
-        </div>
-
-        {/* Card 3: Entrevistas Iniciais */}
-        <div className="p-5 rounded-3xl bg-white border-2 border-white shadow-sm flex items-center justify-between hover:border-[#F59E0B]/40 transition-all">
-          <div className="space-y-1">
-            <p className="text-[11px] font-black uppercase text-[#0D2329] tracking-wider">
-              Entrevistas Iniciais
-            </p>
-            <h3 className="text-2xl font-black text-[#0D2329]">{countInitial}</h3>
+            <h3 className="text-2xl font-black text-[#C2410C]">{countIntervention}</h3>
             <span className="inline-block text-[11px] font-bold text-[#EA580C]">
-              Avaliações e triagens
+              Plano de desenvolvimento ativo
             </span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-[#FEF8EC] border border-[#FDE68A] text-[#F59E0B] flex items-center justify-center shrink-0 shadow-xs">
-            <Smile className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-2xl bg-[#FFF7ED] border border-[#FED7AA] text-[#C2410C] flex items-center justify-center shrink-0 shadow-xs font-black">
+            🧠
           </div>
         </div>
 
-        {/* Card 4: Próximas Sessões */}
+        {/* Card 3: Em Avaliação / Entrevista */}
         <div className="p-5 rounded-3xl bg-white border-2 border-white shadow-sm flex items-center justify-between hover:border-[#0284C7]/40 transition-all">
           <div className="space-y-1">
             <p className="text-[11px] font-black uppercase text-[#0D2329] tracking-wider">
-              Com Sessão Agendada
+              Em Avaliação
             </p>
-            <h3 className="text-2xl font-black text-[#0D2329]">{countWithUpcoming}</h3>
+            <h3 className="text-2xl font-black text-[#0284C7]">{countAssessment + countInitial}</h3>
             <span className="inline-block text-[11px] font-bold text-[#0284C7]">
-              Próximos atendimentos
+              Investigação clínica em curso
             </span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-[#E0F2FE] border border-[#BAE6FD] text-[#0284C7] flex items-center justify-center shrink-0 shadow-xs">
-            <CalendarCheck className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-2xl bg-[#E0F2FE] border border-[#BAE6FD] text-[#0284C7] flex items-center justify-center shrink-0 shadow-xs font-black">
+            🔎
+          </div>
+        </div>
+
+        {/* Card 4: Relatórios Prontos */}
+        <div className="p-5 rounded-3xl bg-white border-2 border-white shadow-sm flex items-center justify-between hover:border-[#10B981]/40 transition-all">
+          <div className="space-y-1">
+            <p className="text-[11px] font-black uppercase text-[#0D2329] tracking-wider">
+              Relatórios Finalizados
+            </p>
+            <h3 className="text-2xl font-black text-[#065F46]">{countReportCompleted}</h3>
+            <span className="inline-block text-[11px] font-bold text-[#10B981]">
+              Prontos para intervenção
+            </span>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-[#E8F8F5] border border-[#A7F3D0] text-[#065F46] flex items-center justify-center shrink-0 shadow-xs font-black">
+            📄
           </div>
         </div>
       </div>
@@ -451,10 +480,12 @@ export function ChildrenPage() {
           <div className="flex items-center gap-1.5 p-1.5 bg-[#DCE8EB] rounded-full sm:rounded-2xl border-2 border-white shadow-inner w-max">
             {[
               { id: "todos", label: "Todos", shortLabel: "Todos", count: children.length },
-              { id: "in_progress", label: "Em Acompanhamento", shortLabel: "Acompanhamento", count: countInProgress },
-              { id: "initial_assessment", label: "Entrevistas Iniciais", shortLabel: "Entrevista", count: countInitial },
-              { id: "finalizado", label: "Finalizados", shortLabel: "Finalizados", count: countFinalizado },
-              { id: "pausado", label: "Pausados", shortLabel: "Pausados", count: countPausado },
+              { id: "initial_assessment", label: "🟡 Entrevista Inicial", shortLabel: "Entrevista", count: countInitial },
+              { id: "in_progress", label: "🔵 Em Avaliação", shortLabel: "Avaliação", count: countAssessment },
+              { id: "report_in_progress", label: "🟣 Em Relatório", shortLabel: "Em Relatório", count: countReportInProgress },
+              { id: "report_completed", label: "🟢 Relatório Finalizado", shortLabel: "Relatório Pronto", count: countReportCompleted },
+              { id: "in_intervention", label: "🟠 Em Intervenção", shortLabel: "Intervenção", count: countIntervention },
+              { id: "closed", label: "⚪ Encerrados", shortLabel: "Encerrados", count: countClosed },
             ].map((f) => {
               const isSelected = statusFilter === f.id
               return (

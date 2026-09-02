@@ -355,10 +355,14 @@ export function DashboardPage() {
     }).length
   }, [allAppointments, currentMonthNum, currentYearNum])
 
-  // 3. Acompanhamento Contínuo
+  // 3. Acompanhamento Contínuo / Intervenção
   const interventionsCount = useMemo(() => {
-    const inProgress = allChildren.filter((c) => c.status === "in_progress").length
-    return inProgress > 0 ? inProgress : allChildren.length
+    return allChildren.filter(
+      (c) =>
+        c.status === "in_intervention" ||
+        c.status === "intervention_in_progress" ||
+        c.status === "in_progress"
+    ).length
   }, [allChildren])
 
   // 4. Relatórios do Mês

@@ -44,17 +44,29 @@ import { ChildTimelineTab } from "./tabs/ChildTimelineTab"
 import { ChildDocumentsTab } from "./tabs/ChildDocumentsTab"
 import { ChildFinancialTab } from "./tabs/ChildFinancialTab"
 import { ChildReportsTab } from "./tabs/ChildReportsTab"
+import { ChildInterventionTab } from "./tabs/ChildInterventionTab"
+import { ChildClinicalStageTracker } from "./ChildClinicalStageTracker"
 import { EditChildDialog } from "./EditChildDialog"
 import { checkChildFinancialRecords, checkChildLinkedGuardians, deleteChildSafely } from "@/lib/deletionService"
 import toast from "react-hot-toast"
+import { Brain } from "lucide-react"
 
-type Tab = "resumo" | "avaliacao" | "sessoes" | "linha-do-tempo" | "documentos" | "financeiro" | "relatorios"
+type Tab =
+  | "resumo"
+  | "avaliacao"
+  | "sessoes"
+  | "linha-do-tempo"
+  | "intervencao"
+  | "documentos"
+  | "financeiro"
+  | "relatorios"
 
-const TABS: { id: Tab; label: string; icon: typeof Calendar; color: string }[] = [
+const TABS: { id: Tab; label: string; icon: any; color: string }[] = [
   { id: "resumo", label: "Resumo", icon: Users, color: "text-[#7C3AED]" },
   { id: "avaliacao", label: "Entrevista Inicial", icon: BookOpen, color: "text-[#F59E0B]" },
   { id: "sessoes", label: "Sessões", icon: Activity, color: "text-[#10B981]" },
   { id: "linha-do-tempo", label: "Linha do Tempo", icon: Clock, color: "text-[#0284C7]" },
+  { id: "intervencao", label: "Intervenção", icon: Brain, color: "text-[#EA580C]" },
   { id: "documentos", label: "Documentos", icon: FileText, color: "text-[#EC4899]" },
   { id: "financeiro", label: "Financeiro", icon: DollarSign, color: "text-[#059669]" },
   { id: "relatorios", label: "Relatórios", icon: FileText, color: "text-[#8B5CF6]" },
@@ -94,7 +106,9 @@ export function ChildProfilePage() {
     if (tabParam) {
       if (tabParam === "relatorios" || tabParam === "relatorio") {
         setActiveTab("relatorios")
-      } else if (["resumo", "avaliacao", "sessoes", "linha-do-tempo", "documentos", "financeiro"].includes(tabParam)) {
+      } else if (tabParam === "intervencao" || tabParam === "intervencoes") {
+        setActiveTab("intervencao")
+      } else if (["resumo", "avaliacao", "sessoes", "linha-do-tempo", "documentos", "financeiro", "intervencao"].includes(tabParam)) {
         setActiveTab(tabParam as Tab)
       }
     }
@@ -311,6 +325,13 @@ export function ChildProfilePage() {
         </div>
       </div>
 
+      {/* 2.5. CLINICAL STAGES TRACKER */}
+      <ChildClinicalStageTracker
+        child={child}
+        onReloadChild={loadChild}
+        onNavigateTab={(tab) => setActiveTab(tab as Tab)}
+      />
+
       {/* 3. TAB CONTENT */}
       <div className="space-y-6">
         {activeTab === "resumo" && (
@@ -325,6 +346,14 @@ export function ChildProfilePage() {
         {activeTab === "avaliacao" && <ChildAssessmentTab childId={child.id} childName={child.full_name} />}
         {activeTab === "sessoes" && <ChildSessionsTab childId={child.id} childName={child.full_name} />}
         {activeTab === "linha-do-tempo" && <ChildTimelineTab childId={child.id} />}
+        {activeTab === "intervencao" && (
+          <ChildInterventionTab
+            child={child}
+            childName={child.full_name}
+            onReloadChild={loadChild}
+            onNavigateTab={(tab) => setActiveTab(tab as Tab)}
+          />
+        )}
         {activeTab === "documentos" && <ChildDocumentsTab childId={child.id} />}
         {activeTab === "financeiro" && <ChildFinancialTab childId={child.id} childName={child.full_name} />}
         {activeTab === "relatorios" && <ChildReportsTab child={child} onReloadChild={loadChild} />}
