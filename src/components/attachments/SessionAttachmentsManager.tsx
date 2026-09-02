@@ -80,7 +80,9 @@ export function SessionAttachmentsManager({
         if (payload?.payload?.attachment) {
           const newAtt: AttachmentItem = payload.payload.attachment
           setReceivedFromPhone((prev) => [...prev, newAtt])
-          onChange([...attachmentsRef.current, newAtt])
+          const nextAttachments = [...attachmentsRef.current, newAtt]
+          attachmentsRef.current = nextAttachments
+          onChange(nextAttachments)
           toast.success("Foto recebida do celular! 📸✨")
           // Mantém o modal aberto para permitir fotografar a folha 2, folha 3, etc.
         }
