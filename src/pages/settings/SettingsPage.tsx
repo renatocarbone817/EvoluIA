@@ -138,6 +138,15 @@ export function SettingsPage() {
     }
   }, [searchParams, isMaster])
 
+  const settingsTabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+
+  useEffect(() => {
+    const el = settingsTabRefs.current[activeTab]
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+    }
+  }, [activeTab])
+
   // Subscription details
   const [subDetails, setSubDetails] = useState<SubscriptionDetails | null>(null)
 
@@ -880,7 +889,7 @@ export function SettingsPage() {
       </div>
 
       {/* 2. MODERN RESPONSIVE TAB BAR (Native Mobile Chips + Clean Desktop Tabs) */}
-      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none pb-1">
+      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden scroll-smooth pb-1">
         <div className="flex items-center gap-2 p-1.5 bg-[#DCE8EB] rounded-full sm:rounded-2xl border-2 border-white shadow-inner w-max sm:w-full">
           {[
             { id: "consultorio", label: "Consultório, Perfil & PIX", shortLabel: "Perfil & PIX", icon: Building },
@@ -895,8 +904,14 @@ export function SettingsPage() {
             return (
               <button
                 key={tab.id}
+                ref={(el) => {
+                  settingsTabRefs.current[tab.id] = el
+                }}
                 type="button"
-                onClick={() => setActiveTab(tab.id as SettingsTab)}
+                onClick={() => {
+                  setActiveTab(tab.id as SettingsTab)
+                  settingsTabRefs.current[tab.id]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+                }}
                 className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full sm:rounded-xl text-xs font-black transition-all shrink-0 flex items-center gap-2 active:scale-95 cursor-pointer ${
                   isActive
                     ? "bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white shadow-md scale-[1.02]"
