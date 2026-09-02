@@ -949,6 +949,46 @@ export function ChildInterventionTab({
                       )}
                     </div>
                   )}
+
+                  {/* Anexos e Fotos da Aula */}
+                  {session.attachments && Array.isArray(session.attachments) && session.attachments.length > 0 && (
+                    <div className="pt-2 border-t border-[#F0F5F6] space-y-2">
+                      <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider flex items-center gap-1.5">
+                        <span>📸 Anexos & Fotos ({session.attachments.length}):</span>
+                      </p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {session.attachments.map((att: any, attIdx: number) => {
+                          const isImg =
+                            att.file_type &&
+                            ["png", "jpg", "jpeg", "webp", "gif"].includes(
+                              att.file_type.toLowerCase()
+                            )
+                          return (
+                            <a
+                              key={att.id || attIdx}
+                              href={att.file_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="group flex items-center gap-2 p-1.5 pr-3 rounded-xl bg-[#F8FAFB] hover:bg-[#EDE9FE] border border-[#D8E5E7] hover:border-[#7C3AED] transition-all text-xs font-bold text-[#0D2329]"
+                            >
+                              {isImg ? (
+                                <img
+                                  src={att.file_url}
+                                  alt={att.file_name}
+                                  className="w-8 h-8 rounded-lg object-cover border border-[#D8E5E7]"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-lg bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center text-[10px] font-black">
+                                  PDF
+                                </div>
+                              )}
+                              <span className="truncate max-w-[160px]">{att.file_name}</span>
+                            </a>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}

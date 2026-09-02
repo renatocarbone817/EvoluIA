@@ -14,7 +14,6 @@ import {
   Gamepad2,
   BarChart3,
   Lightbulb,
-  FileCheck2,
   ChevronRight,
   User,
 } from "lucide-react"
@@ -24,6 +23,7 @@ import { ChildAvatar } from "@/components/ui/ChildAvatar"
 import { formatDate } from "@/lib/utils"
 import toast from "react-hot-toast"
 import type { Child, Appointment } from "@/types/database"
+import { SessionAttachmentsManager, type AttachmentItem } from "@/components/attachments/SessionAttachmentsManager"
 
 const SKILL_AREAS = [
   "Leitura",
@@ -65,8 +65,7 @@ export function ActiveSessionPage() {
   })
 
   const [selectedAreas, setSelectedAreas] = useState<string[]>([])
-  const [uploadedFiles, setUploadedFiles] = useState<{ file: File; name: string }[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [attachments, setAttachments] = useState<AttachmentItem[]>([])
 
   useEffect(() => {
     loadContext()
@@ -128,23 +127,6 @@ export function ActiveSessionPage() {
     }
   }
 
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files
-    if (!files || files.length === 0) return
-
-    const newFiles = Array.from(files).map((f) => ({
-      file: f,
-      name: f.name,
-    }))
-
-    setUploadedFiles([...uploadedFiles, ...newFiles])
-    if (fileInputRef.current) fileInputRef.current.value = ""
-  }
-
-  function removeFile(index: number) {
-    setUploadedFiles(uploadedFiles.filter((_, i) => i !== index))
-  }
-
   async function handleFinalizeSession() {
     const { user, professional } = useAuthStore.getState()
     const profId = professional?.id || user?.id
@@ -177,6 +159,7 @@ export function ActiveSessionPage() {
           test_results: form.test_results || null,
           professional_notes: form.professional_notes || null,
           next_objectives: form.next_objectives || null,
+          attachments: attachments.length > 0 ? attachments : [],
           status: "completed",
         })
         .select()
@@ -184,38 +167,7 @@ export function ActiveSessionPage() {
 
       if (sessionError) throw sessionError
 
-      // 2. Upload files if any
-      if (uploadedFiles.length > 0 && sessionData) {
-        for (const uf of uploadedFiles) {
-          try {
-            const ext = uf.name.split(".").pop()
-            const path = `${profId}/${child.id}/sessions/${sessionData.id}/${Date.now()}.${ext}`
-
-            const { error: uploadError } = await supabase.storage
-              .from("child-documents")
-              .upload(path, uf.file)
-
-            if (!uploadError) {
-              const { data: urlData } = supabase.storage
-                .from("child-documents")
-                .getPublicUrl(path)
-
-              await supabase.from("session_documents").insert({
-                session_id: sessionData.id,
-                professional_id: profId,
-                file_name: uf.name,
-                file_url: urlData.publicUrl,
-                file_size: uf.file.size,
-                file_type: uf.file.type,
-              })
-            }
-          } catch (fileErr) {
-            console.error("Error uploading file:", fileErr)
-          }
-        }
-      }
-
-      // 3. Mark appointment as done if linked
+      // 2. Mark appointment as done if linked
       if (appointment?.id) {
         await supabase
           .from("appointments")
@@ -589,71 +541,17 @@ export function ActiveSessionPage() {
           />
         </div>
 
-        {/* 7. ANEXOS */}
-        <div className="p-6 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-4 hover:border-[#7C3AED]/40 transition-all">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-[#EEF5F6] text-[#4F6C74] flex items-center justify-center font-black text-xs shadow-2xs">
-                7
-              </div>
-              <h3 className="font-black text-sm text-[#0D2329]">Anexos da Sessão (PDF, Fotos, Atividades)</h3>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="px-3.5 py-1.5 rounded-xl bg-[#F3E8FF] border border-[#DDD6FE] hover:bg-[#EDE9FE] text-[#7C3AED] font-black text-xs flex items-center gap-1.5 transition-all shadow-2xs active:scale-95"
-            >
-              <Upload className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Adicionar Arquivo</span>
-            </button>
-          </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={handleFileSelect}
-          />
-
-          {uploadedFiles.length === 0 ? (
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="p-6 border-2 border-dashed border-[#D8E5E7] hover:border-[#7C3AED] rounded-2xl text-center cursor-pointer bg-[#F8FAFB] hover:bg-[#F3E8FF]/20 transition-all group"
-            >
-              <Upload className="w-6 h-6 mx-auto text-[#8CAAB1] group-hover:text-[#7C3AED] transition-colors mb-1.5" />
-              <p className="text-xs font-bold text-[#0D2329]">
-                Clique aqui para selecionar arquivos ou fotos desta sessão
-              </p>
-              <p className="text-[11px] text-[#8CAAB1]">Formatos aceitos: PDF, JPG, PNG, DOCX</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {uploadedFiles.map((f, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-3 bg-[#F8FAFB] rounded-2xl border border-[#D8E5E7] shadow-2xs"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 font-bold text-xs">
-                      <Paperclip className="w-4 h-4" />
-                    </div>
-                    <span className="text-xs font-bold text-[#0D2329] truncate">{f.name}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeFile(idx)}
-                    className="p-1.5 hover:text-[#EF4444] text-[#8CAAB1] hover:bg-[#FEE2E2] rounded-xl transition-all"
-                    title="Remover anexo"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* 7. ANEXOS DA SESSÃO */}
+        <SessionAttachmentsManager
+          childId={child?.id || ""}
+          childName={child?.full_name || ""}
+          professionalId={professional?.id || ""}
+          attachments={attachments}
+          onChange={setAttachments}
+          category="testes"
+          title="Anexos da Sessão (Testes de Caneta, PDFs e Fotos)"
+          description="Tire foto da folha preenchida de caneta pelo celular ou anexe o PDF do teste externo."
+        />
       </div>
 
       {/* 4. FLOATING FOOTER ACTION BAR */}

@@ -29,6 +29,7 @@ import { PublicReceiptPage } from "@/pages/financial/PublicReceiptPage"
 import { BibliotecaPage } from "@/pages/biblioteca/BibliotecaPage"
 import { SuperAdminPage } from "@/pages/admin/SuperAdminPage"
 import { LandingPage } from "@/pages/landing/LandingPage"
+import { MobilePhotoCapturePage } from "@/pages/sessions/MobilePhotoCapturePage"
 
 const queryClient = new QueryClient()
 
@@ -115,6 +116,7 @@ export function App() {
           <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
           <Route path="/recibo/:id" element={<PublicReceiptPage />} />
           <Route path="/comprovante/:id" element={<PublicReceiptPage />} />
+          <Route path="/captura/:uploadId" element={<MobilePhotoCapturePage />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>

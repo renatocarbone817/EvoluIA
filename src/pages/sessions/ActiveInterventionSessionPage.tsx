@@ -21,6 +21,7 @@ import { ChildAvatar } from "@/components/ui/ChildAvatar"
 import { formatDate } from "@/lib/utils"
 import toast from "react-hot-toast"
 import type { Child, Appointment } from "@/types/database"
+import { SessionAttachmentsManager, type AttachmentItem } from "@/components/attachments/SessionAttachmentsManager"
 
 export const INTERVENTION_SKILL_AREAS = [
   { name: "Leitura & Decodificação", icon: "📖", badgeCls: "bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]" },
@@ -66,6 +67,7 @@ export function ActiveInterventionSessionPage() {
   const [generalNotes, setGeneralNotes] = useState("")
   const [familyRecommendation, setFamilyRecommendation] = useState("")
   const [nextSessionPlan, setNextSessionPlan] = useState("")
+  const [attachments, setAttachments] = useState<AttachmentItem[]>([])
 
   useEffect(() => {
     loadContext()
@@ -184,6 +186,7 @@ export function ActiveInterventionSessionPage() {
           general_notes: generalNotes.trim() || null,
           family_recommendation: familyRecommendation.trim() || null,
           next_session_plan: nextSessionPlan.trim() || null,
+          attachments: attachments.length > 0 ? attachments : [],
           status: "completed",
         })
         .select()
@@ -595,6 +598,18 @@ export function ActiveInterventionSessionPage() {
             />
           </div>
         </div>
+
+        {/* ── 4. ANEXOS & FOTOS DA ATIVIDADE ── */}
+        <SessionAttachmentsManager
+          childId={child?.id || ""}
+          childName={child?.full_name || ""}
+          professionalId={professional?.id || ""}
+          attachments={attachments}
+          onChange={setAttachments}
+          category="atividades"
+          title="Anexos & Fotos da Atividade"
+          description="Tire fotos das atividades feitas na mesa pelo celular ou anexe folhas e PDFs de fora."
+        />
 
         {/* ── FOOTER ACTIONS ── */}
         <div className="flex items-center justify-between pt-4">

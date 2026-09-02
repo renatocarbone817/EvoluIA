@@ -268,6 +268,7 @@ export interface Session {
   professional_notes: string | null
   next_objectives: string | null
   status: SessionStatus
+  attachments?: any[] | null
   created_at: string
   updated_at: string
 }
@@ -488,6 +489,7 @@ export interface InterventionSession {
   general_notes: string | null
   family_recommendation: string | null
   next_session_plan: string | null
+  attachments?: any[] | null
   status: string
   created_at: string
   updated_at: string
