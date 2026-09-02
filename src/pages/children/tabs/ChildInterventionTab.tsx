@@ -7,8 +7,6 @@ import {
   CheckCircle2,
   Plus,
   Clock,
-  Home,
-  School,
   RotateCcw,
   Pencil,
   Trash2,
@@ -31,8 +29,6 @@ import type { Child } from "@/types/database"
 import type {
   InterventionGoal,
   InterventionGoalStatus,
-  InterventionOrientation,
-  InterventionOrientationType,
 } from "@/types/database"
 import {
   Dialog,
@@ -88,7 +84,6 @@ export function ChildInterventionTab({
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [goals, setGoals] = useState<InterventionGoal[]>([])
-  const [orientations, setOrientations] = useState<InterventionOrientation[]>([])
   const [configuredAreas, setConfiguredAreas] = useState<string[]>([])
   const [interventionSessions, setInterventionSessions] = useState<any[]>([])
   const [sessionCount, setSessionCount] = useState(0)
@@ -99,9 +94,7 @@ export function ChildInterventionTab({
   const [showStartModal, setShowStartModal] = useState(false)
   const [showCloseModal, setShowCloseModal] = useState(false)
   const [showAddGoalModal, setShowAddGoalModal] = useState(false)
-  const [showAddOrientationModal, setShowAddOrientationModal] = useState(false)
   const [editingGoal, setEditingGoal] = useState<InterventionGoal | null>(null)
-  const [editingOrientation, setEditingOrientation] = useState<InterventionOrientation | null>(null)
 
   // Close form state
   const [closingReason, setClosingReason] = useState("")
@@ -114,12 +107,6 @@ export function ChildInterventionTab({
     area: SKILL_AREAS[0].name,
     strategy: "",
     status: "in_progress" as InterventionGoalStatus,
-  })
-
-  // Orientation form state
-  const [orientationForm, setOrientationForm] = useState({
-    type: "familia" as InterventionOrientationType,
-    content: "",
   })
 
   // ─── Load data ────────────────────────────────────────────
@@ -172,15 +159,7 @@ export function ChildInterventionTab({
       setGoals(fetchedGoals)
     }
 
-    // 2. Orientations
-    const { data: orientData } = await supabase
-      .from("intervention_orientations")
-      .select("*")
-      .eq("child_id", child.id)
-      .order("created_at", { ascending: true })
-    setOrientations((orientData || []) as InterventionOrientation[])
-
-    // 3. Configured intervention areas
+    // 2. Configured intervention areas
     const { data: areasData } = await supabase
       .from("intervention_areas")
       .select("area")
@@ -342,60 +321,6 @@ export function ChildInterventionTab({
     setGoalForm({ title: "", area: SKILL_AREAS[0].name, strategy: "", status: "in_progress" })
   }
 
-  // ─── Orientation CRUD ────────────────────────────────────
-  async function handleSaveOrientation(e: React.FormEvent) {
-    e.preventDefault()
-    if (!profId || !orientationForm.content.trim()) return
-    setLoading(true)
-    try {
-      if (editingOrientation) {
-        const { error } = await supabase
-          .from("intervention_orientations")
-          .update({ content: orientationForm.content.trim(), type: orientationForm.type })
-          .eq("id", editingOrientation.id)
-        if (error) throw error
-        toast.success("Orientação atualizada!")
-      } else {
-        const { error } = await supabase
-          .from("intervention_orientations")
-          .insert({
-            professional_id: profId,
-            child_id: child.id,
-            type: orientationForm.type,
-            content: orientationForm.content.trim(),
-          })
-        if (error) throw error
-        toast.success("Orientação adicionada!")
-      }
-      setShowAddOrientationModal(false)
-      setEditingOrientation(null)
-      setOrientationForm({ type: "familia", content: "" })
-      await loadData()
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao salvar orientação.")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function handleDeleteOrientation(id: string) {
-    if (!confirm("Deseja remover esta orientação?")) return
-    try {
-      const { error } = await supabase.from("intervention_orientations").delete().eq("id", id)
-      if (error) throw error
-      toast.success("Orientação removida.")
-      setOrientations((prev) => prev.filter((o) => o.id !== id))
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao remover orientação.")
-    }
-  }
-
-  function openEditOrientation(o: InterventionOrientation) {
-    setEditingOrientation(o)
-    setOrientationForm({ type: o.type, content: o.content })
-    setShowAddOrientationModal(true)
-  }
-
   // ─── Intervention lifecycle ────────────────────────────────
   async function handleStartIntervention() {
     if (!profId) return
@@ -501,9 +426,6 @@ export function ChildInterventionTab({
   const notStarted = goals.filter((g) => g.status === "not_started").length
 
   const filteredGoals = areaFilter ? goals.filter((g) => g.area === areaFilter) : goals
-
-  const familyOrientations = orientations.filter((o) => o.type === "familia")
-  const schoolOrientations = orientations.filter((o) => o.type === "escola")
 
   // ─── Render ───────────────────────────────────────────────
   return (
@@ -906,109 +828,7 @@ export function ChildInterventionTab({
         </div>
       </div>
 
-      {/* ── 4. ORIENTAÇÕES PARA FAMÍLIA E ESCOLA ────────────── */}
-      <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-sm space-y-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-[#FEF8EC] border border-[#FDE68A] text-[#F59E0B] flex items-center justify-center">
-              <Clock className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-base font-black text-[#0D2329]">Orientações Familiares & Escolares</h3>
-              <p className="text-xs font-semibold text-[#6B7C83]">
-                Recomendações para família e escola apoiarem o desenvolvimento.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => { setEditingOrientation(null); setOrientationForm({ type: "familia", content: "" }); setShowAddOrientationModal(true) }}
-            className="text-xs font-black text-[#EA580C] hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Adicionar
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* FAMÍLIA */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Home className="w-4 h-4 text-[#F59E0B]" />
-              <h4 className="text-xs font-black text-[#0D2329]">Para a Família</h4>
-            </div>
-            {familyOrientations.length === 0 ? (
-              <div className="p-4 rounded-xl border border-dashed border-[#FDE68A] bg-[#FEFCE8] text-[10px] font-semibold text-[#B8871E] text-center">
-                Nenhuma orientação para a família ainda.
-              </div>
-            ) : (
-              familyOrientations.map((o) => (
-                <div
-                  key={o.id}
-                  className="group p-3 rounded-xl bg-[#FEF8EC] border border-[#FDE68A] text-xs font-semibold text-[#B8871E] flex items-start justify-between gap-2"
-                >
-                  <span className="flex-1 leading-relaxed">{o.content}</span>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => openEditOrientation(o)}
-                      className="p-1 rounded-lg text-[#B8871E] hover:bg-[#FDE68A] transition-colors cursor-pointer"
-                    >
-                      <Pencil className="w-3 h-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteOrientation(o.id)}
-                      className="p-1 rounded-lg text-[#B8871E] hover:bg-red-100 hover:text-red-600 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* ESCOLA */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5 mb-2">
-              <School className="w-4 h-4 text-[#0284C7]" />
-              <h4 className="text-xs font-black text-[#0D2329]">Para a Escola</h4>
-            </div>
-            {schoolOrientations.length === 0 ? (
-              <div className="p-4 rounded-xl border border-dashed border-[#BAE6FD] bg-[#F0F9FF] text-[10px] font-semibold text-[#0369A1] text-center">
-                Nenhuma orientação para a escola ainda.
-              </div>
-            ) : (
-              schoolOrientations.map((o) => (
-                <div
-                  key={o.id}
-                  className="group p-3 rounded-xl bg-[#E0F2FE] border border-[#BAE6FD] text-xs font-semibold text-[#0284C7] flex items-start justify-between gap-2"
-                >
-                  <span className="flex-1 leading-relaxed">{o.content}</span>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => openEditOrientation(o)}
-                      className="p-1 rounded-lg text-[#0284C7] hover:bg-[#BAE6FD] transition-colors cursor-pointer"
-                    >
-                      <Pencil className="w-3 h-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteOrientation(o.id)}
-                      className="p-1 rounded-lg text-[#0284C7] hover:bg-red-100 hover:text-red-600 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── 5. HISTÓRICO DE AULAS DE INTERVENÇÃO ───────────── */}
+      {/* ── 3. HISTÓRICO DE AULAS DE INTERVENÇÃO ───────────── */}
       <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-sm space-y-5">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2.5">
@@ -1361,92 +1181,6 @@ export function ChildInterventionTab({
                 className="px-5 py-2.5 rounded-2xl bg-[#EA580C] hover:bg-[#C2410C] text-white font-black text-xs shadow-md active:scale-95 transition-all cursor-pointer"
               >
                 {loading ? "Salvando..." : editingGoal ? "Salvar Alterações" : "Adicionar Meta"}
-              </button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal: Adicionar / Editar Orientação */}
-      <Dialog
-        open={showAddOrientationModal}
-        onOpenChange={(open) => { if (!open) { setShowAddOrientationModal(false); setEditingOrientation(null) } }}
-      >
-        <DialogContent className="max-w-md p-0 overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
-          <DialogHeader className="p-6 pb-4 border-b border-[#EEF5F6] flex items-center justify-between">
-            <DialogTitle className="text-base font-black text-[#0D2329]">
-              {editingOrientation ? "Editar Orientação" : "Nova Orientação"}
-            </DialogTitle>
-            <button
-              type="button"
-              onClick={() => { setShowAddOrientationModal(false); setEditingOrientation(null) }}
-              className="text-[#8CAAB1] hover:text-[#0D2329] cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </DialogHeader>
-          <form onSubmit={handleSaveOrientation}>
-            <DialogBody className="p-6 space-y-3.5 text-xs">
-              <div className="space-y-1">
-                <label className="font-black text-[#0D2329]">Destinatário</label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setOrientationForm({ ...orientationForm, type: "familia" })}
-                    className={`flex-1 py-2.5 rounded-xl text-xs font-black border-2 transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      orientationForm.type === "familia"
-                        ? "border-[#F59E0B] bg-[#FEF8EC] text-[#B8871E]"
-                        : "border-[#D8E5E7] text-[#6B7C83] hover:border-[#F59E0B]/40"
-                    }`}
-                  >
-                    <Home className="w-3.5 h-3.5" />
-                    Para a Família
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOrientationForm({ ...orientationForm, type: "escola" })}
-                    className={`flex-1 py-2.5 rounded-xl text-xs font-black border-2 transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      orientationForm.type === "escola"
-                        ? "border-[#0284C7] bg-[#E0F2FE] text-[#0284C7]"
-                        : "border-[#D8E5E7] text-[#6B7C83] hover:border-[#0284C7]/40"
-                    }`}
-                  >
-                    <School className="w-3.5 h-3.5" />
-                    Para a Escola
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-black text-[#0D2329]">Orientação *</label>
-                <textarea
-                  rows={4}
-                  required
-                  placeholder={
-                    orientationForm.type === "familia"
-                      ? "Ex: Incentivar leitura compartilhada diariamente por 15 minutos..."
-                      : "Ex: Dar instruções passo a passo e adaptar o tempo de realização das atividades..."
-                  }
-                  value={orientationForm.content}
-                  onChange={(e) => setOrientationForm({ ...orientationForm, content: e.target.value })}
-                  className="w-full p-3 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#EA580C] resize-none"
-                />
-              </div>
-            </DialogBody>
-            <DialogFooter className="p-6 pt-4 border-t border-[#EEF5F6] flex items-center justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => { setShowAddOrientationModal(false); setEditingOrientation(null) }}
-                className="px-4 py-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#6B7C83] hover:bg-[#F8FAFB] transition-all cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-5 py-2.5 rounded-2xl bg-[#EA580C] hover:bg-[#C2410C] text-white font-black text-xs shadow-md active:scale-95 transition-all cursor-pointer"
-              >
-                {loading ? "Salvando..." : editingOrientation ? "Salvar" : "Adicionar"}
               </button>
             </DialogFooter>
           </form>
