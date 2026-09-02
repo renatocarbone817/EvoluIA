@@ -121,22 +121,13 @@ export function ActiveInterventionSessionPage() {
           .eq("child_id", resolvedChildId)
 
         if (areasData && areasData.length > 0) {
+          // Se a psicopedagoga ativou áreas no cadastro do aluno, puxa exatamente essas:
           const loaded = areasData.map((a) => a.area)
           setActiveAreas(loaded)
         } else {
-          // If none explicitly configured in intervention_areas, check if child has goals by area
-          const { data: goalsData } = await supabase
-            .from("intervention_goals")
-            .select("area")
-            .eq("child_id", resolvedChildId)
-
-          if (goalsData && goalsData.length > 0) {
-            const uniqueGoalAreas = Array.from(new Set(goalsData.map((g) => g.area)))
-            setActiveAreas(uniqueGoalAreas)
-          } else {
-            // Default to first 2 common areas so it's not empty
-            setActiveAreas([INTERVENTION_SKILL_AREAS[0].name, INTERVENTION_SKILL_AREAS[1].name])
-          }
+          // Se não deixou nenhuma ativada no cadastro, abre todas as 6 habilitadas por padrão:
+          const allAreas = INTERVENTION_SKILL_AREAS.map((a) => a.name)
+          setActiveAreas(allAreas)
         }
       }
     } catch (err) {
@@ -178,21 +169,7 @@ export function ActiveInterventionSessionPage() {
 
     setSaving(true)
     try {
-      // 1. Ensure active areas are saved in intervention_areas for this child
-      for (const area of activeAreas) {
-        await supabase
-          .from("intervention_areas")
-          .upsert(
-            {
-              professional_id: profId,
-              child_id: child.id,
-              area,
-            },
-            { onConflict: "child_id,area" }
-          )
-      }
-
-      // 2. Insert intervention_session
+      // 1. Insert intervention_session
       const { data: sessionData, error: sessionError } = await supabase
         .from("intervention_sessions")
         .insert({
