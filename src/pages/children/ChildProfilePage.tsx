@@ -159,15 +159,18 @@ export function ChildProfilePage() {
         const hasDraft = Boolean(
           reportsList.some((r: any) => r.status === "draft" || r.status === "in_progress")
         )
+        const hasInterventionTag = Boolean(
+          childData.notes?.includes("[FASE:intervencao]") || childData.notes?.includes("[STAGE:intervention]")
+        )
 
         let effectiveStatus = childData.status
         if (
           childData.status === "in_intervention" ||
           childData.status === "intervention_in_progress" ||
-          childData.status === "closed" ||
-          childData.status === "paused" ||
-          childData.status === "archived"
+          (hasInterventionTag && childData.status !== "closed" && childData.status !== "paused" && childData.status !== "archived")
         ) {
+          effectiveStatus = "in_intervention"
+        } else if (childData.status === "closed" || childData.status === "paused" || childData.status === "archived") {
           effectiveStatus = childData.status
         } else if (hasFinal || childData.status === "report_completed") {
           effectiveStatus = "report_completed"
@@ -179,11 +182,18 @@ export function ChildProfilePage() {
           effectiveStatus = childData.status || "in_progress"
         }
 
-        // Sincroniza a coluna no banco caso esteja desatualizada
-        if (childData.status !== effectiveStatus) {
+        // Sincroniza a coluna no banco caso esteja desatualizada (respeitando enum)
+        const validEnumValues = ["initial_assessment", "in_progress", "paused", "closed", "archived"]
+        const dbStatus = validEnumValues.includes(effectiveStatus)
+          ? effectiveStatus
+          : effectiveStatus === "closed"
+          ? "closed"
+          : "in_progress"
+
+        if (childData.status !== dbStatus && (childData.status === "initial_assessment" || childData.status === "in_progress")) {
           supabase
             .from("children")
-            .update({ status: effectiveStatus, updated_at: new Date().toISOString() })
+            .update({ status: dbStatus, updated_at: new Date().toISOString() })
             .eq("id", childData.id)
             .then()
         }

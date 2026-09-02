@@ -133,18 +133,40 @@ export function ChildInterventionTab({
     if (!profId) return
     setLoading(true)
     try {
-      const { error } = await supabase
+      let currentNotes = child.notes || ""
+      if (!currentNotes.includes("[FASE:intervencao]")) {
+        currentNotes = currentNotes ? `${currentNotes}\n[FASE:intervencao]` : "[FASE:intervencao]"
+      }
+      currentNotes = currentNotes.replace("[FASE:encerrado]", "").trim()
+
+      // Tenta primeiro status 'in_intervention'
+      let { error } = await supabase
         .from("children")
         .update({
           status: "in_intervention",
+          notes: currentNotes,
           updated_at: new Date().toISOString(),
         })
         .eq("id", child.id)
+
+      // Fallback se o enum Postgres não contiver 'in_intervention'
+      if (error && error.message?.includes("enum child_status")) {
+        const res = await supabase
+          .from("children")
+          .update({
+            status: "in_progress",
+            notes: currentNotes,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", child.id)
+        error = res.error
+      }
 
       if (error) throw error
       toast.success("🚀 Intervenção Psicopedagógica iniciada com sucesso!", { icon: "🧠" })
       setShowStartModal(false)
       onReloadChild()
+      onNavigateTab?.("intervencao")
     } catch (err: any) {
       toast.error(err?.message || "Erro ao iniciar intervenção.")
     } finally {
@@ -157,13 +179,18 @@ export function ChildInterventionTab({
     if (!profId) return
     setLoading(true)
     try {
+      let cleanNotes = (child.notes || "").replace("[FASE:intervencao]", "").trim()
+      if (closingReason) {
+        cleanNotes = cleanNotes
+          ? `${cleanNotes}\n[Alta/Encerramento]: ${closingReason}`
+          : `[Alta/Encerramento]: ${closingReason}`
+      }
+
       const { error } = await supabase
         .from("children")
         .update({
           status: "closed",
-          notes: closingReason
-            ? `${child.notes ? child.notes + "\n" : ""}[Alta/Encerramento]: ${closingReason}`
-            : child.notes,
+          notes: cleanNotes || null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", child.id)
@@ -184,13 +211,32 @@ export function ChildInterventionTab({
     if (!profId) return
     setLoading(true)
     try {
-      const { error } = await supabase
+      let currentNotes = child.notes || ""
+      if (!currentNotes.includes("[FASE:intervencao]")) {
+        currentNotes = currentNotes ? `${currentNotes}\n[FASE:intervencao]` : "[FASE:intervencao]"
+      }
+      currentNotes = currentNotes.replace("[FASE:encerrado]", "").trim()
+
+      let { error } = await supabase
         .from("children")
         .update({
           status: "in_intervention",
+          notes: currentNotes,
           updated_at: new Date().toISOString(),
         })
         .eq("id", child.id)
+
+      if (error && error.message?.includes("enum child_status")) {
+        const res = await supabase
+          .from("children")
+          .update({
+            status: "in_progress",
+            notes: currentNotes,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", child.id)
+        error = res.error
+      }
 
       if (error) throw error
       toast.success("Acompanhamento reaberto em Intervenção!", { icon: "🟠" })

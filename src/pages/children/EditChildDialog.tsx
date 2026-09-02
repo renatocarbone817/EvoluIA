@@ -287,8 +287,19 @@ export function EditChildDialog({ open, child, onClose, onSuccess, onDelete }: E
 
     setLoading(true)
     try {
+      let updatedStatus: any = form.status
+      let updatedNotes = form.notes || ""
+
+      if (form.status === "in_intervention") {
+        if (!updatedNotes.includes("[FASE:intervencao]")) {
+          updatedNotes = updatedNotes ? `${updatedNotes}\n[FASE:intervencao]` : "[FASE:intervencao]"
+        }
+      } else {
+        updatedNotes = updatedNotes.replace("[FASE:intervencao]", "").trim()
+      }
+
       // 1. Update Child Data
-      const { error: childErr } = await supabase
+      let { error: childErr } = await supabase
         .from("children")
         .update({
           full_name: form.full_name.trim(),
@@ -296,12 +307,41 @@ export function EditChildDialog({ open, child, onClose, onSuccess, onDelete }: E
           school: form.school || null,
           grade: form.grade || null,
           main_complaint: form.main_complaint || null,
-          status: form.status,
-          notes: form.notes || null,
+          status: updatedStatus,
+          notes: updatedNotes || null,
           photo_url: photoUrl || null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", child.id)
+
+      if (childErr && childErr.message?.includes("enum child_status")) {
+        const fallbackStatus =
+          form.status === "closed"
+            ? "closed"
+            : form.status === "paused"
+            ? "paused"
+            : form.status === "archived"
+            ? "archived"
+            : form.status === "initial_assessment"
+            ? "initial_assessment"
+            : "in_progress"
+
+        const res = await supabase
+          .from("children")
+          .update({
+            full_name: form.full_name.trim(),
+            birth_date: form.birth_date || null,
+            school: form.school || null,
+            grade: form.grade || null,
+            main_complaint: form.main_complaint || null,
+            status: fallbackStatus,
+            notes: updatedNotes || null,
+            photo_url: photoUrl || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", child.id)
+        childErr = res.error
+      }
 
       if (childErr) throw childErr
 

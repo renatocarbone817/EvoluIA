@@ -233,6 +233,9 @@ export function ChildrenPage() {
 
       const enriched: ChildWithDetails[] = (childrenData as any[]).map((c) => {
         const childReport = reportsByChild[c.id]
+        const hasInterventionTag = Boolean(
+          c.notes?.includes("[FASE:intervencao]") || c.notes?.includes("[STAGE:intervention]")
+        )
         let effectiveStatus = c.status
         const hasFinal = Boolean(childReport && (childReport.status === "final" || childReport.status === "completed"))
 
@@ -240,10 +243,10 @@ export function ChildrenPage() {
         if (
           c.status === "in_intervention" ||
           c.status === "intervention_in_progress" ||
-          c.status === "closed" ||
-          c.status === "paused" ||
-          c.status === "archived"
+          (hasInterventionTag && c.status !== "closed" && c.status !== "paused" && c.status !== "archived")
         ) {
+          effectiveStatus = "in_intervention"
+        } else if (c.status === "closed" || c.status === "paused" || c.status === "archived") {
           effectiveStatus = c.status
         } else if (hasFinal || c.status === "report_completed") {
           effectiveStatus = "report_completed"

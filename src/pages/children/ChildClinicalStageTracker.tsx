@@ -106,13 +106,32 @@ export function ChildClinicalStageTracker({
   async function handleQuickStartIntervention() {
     setChangingStage(true)
     try {
-      const { error } = await supabase
+      let currentNotes = child.notes || ""
+      if (!currentNotes.includes("[FASE:intervencao]")) {
+        currentNotes = currentNotes ? `${currentNotes}\n[FASE:intervencao]` : "[FASE:intervencao]"
+      }
+      currentNotes = currentNotes.replace("[FASE:encerrado]", "").trim()
+
+      let { error } = await supabase
         .from("children")
         .update({
           status: "in_intervention",
+          notes: currentNotes,
           updated_at: new Date().toISOString(),
         })
         .eq("id", child.id)
+
+      if (error && error.message?.includes("enum child_status")) {
+        const res = await supabase
+          .from("children")
+          .update({
+            status: "in_progress",
+            notes: currentNotes,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", child.id)
+        error = res.error
+      }
 
       if (error) throw error
       toast.success("🚀 Intervenção Psicopedagógica iniciada!", { icon: "🧠" })
@@ -129,13 +148,46 @@ export function ChildClinicalStageTracker({
   async function handleChangeStatus(newStatus: ChildStatus) {
     setChangingStage(true)
     try {
-      const { error } = await supabase
+      let currentNotes = child.notes || ""
+      if (newStatus === "in_intervention") {
+        if (!currentNotes.includes("[FASE:intervencao]")) {
+          currentNotes = currentNotes ? `${currentNotes}\n[FASE:intervencao]` : "[FASE:intervencao]"
+        }
+      } else {
+        currentNotes = currentNotes.replace("[FASE:intervencao]", "").trim()
+      }
+
+      let { error } = await supabase
         .from("children")
         .update({
           status: newStatus,
+          notes: currentNotes || null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", child.id)
+
+      if (error && error.message?.includes("enum child_status")) {
+        const fallbackStatus =
+          newStatus === "closed"
+            ? "closed"
+            : newStatus === "paused"
+            ? "paused"
+            : newStatus === "archived"
+            ? "archived"
+            : newStatus === "initial_assessment"
+            ? "initial_assessment"
+            : "in_progress"
+
+        const res = await supabase
+          .from("children")
+          .update({
+            status: fallbackStatus,
+            notes: currentNotes || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", child.id)
+        error = res.error
+      }
 
       if (error) throw error
       toast.success("Etapa clínica atualizada com sucesso!")
