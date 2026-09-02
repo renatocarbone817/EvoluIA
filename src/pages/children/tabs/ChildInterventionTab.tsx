@@ -1,34 +1,32 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Brain,
   Target,
   Sparkles,
   CheckCircle2,
-  Calendar,
-  Activity,
   Plus,
-  ArrowRight,
   Clock,
-  BookOpen,
-  Award,
-  Layers,
-  FileCheck,
-  Flame,
-  Lightbulb,
-  Lock,
-  ChevronRight,
-  HeartHandshake,
-  School,
   Home,
-  FileText,
-  AlertCircle,
+  School,
   RotateCcw,
+  Pencil,
+  Trash2,
+  X,
+  CalendarCheck,
+  Users,
+  BookOpen,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
 import { formatDate } from "@/lib/utils"
 import toast from "react-hot-toast"
 import type { Child } from "@/types/database"
+import type {
+  InterventionGoal,
+  InterventionGoalStatus,
+  InterventionOrientation,
+  InterventionOrientationType,
+} from "@/types/database"
 import {
   Dialog,
   DialogContent,
@@ -45,15 +43,7 @@ interface ChildInterventionTabProps {
   onNavigateTab?: (tab: string) => void
 }
 
-interface InterventionGoal {
-  id: string
-  title: string
-  area: string
-  status: "not_started" | "in_progress" | "achieved"
-  notes?: string
-}
-
-const DEFAULT_SKILL_PILLARS = [
+const SKILL_AREAS = [
   { name: "Leitura & Decodificação", icon: "📖", color: "bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]" },
   { name: "Compreensão Textual", icon: "💡", color: "bg-[#EDE9FE] text-[#7C3AED] border-[#DDD6FE]" },
   { name: "Escrita & Ortografia", icon: "✍️", color: "bg-[#FEF8EC] text-[#B8871E] border-[#FDE68A]" },
@@ -61,6 +51,18 @@ const DEFAULT_SKILL_PILLARS = [
   { name: "Atenção & Concentração", icon: "🎯", color: "bg-[#FFF7ED] text-[#C2410C] border-[#FED7AA]" },
   { name: "Funções Executivas & Memória", icon: "🧠", color: "bg-[#FDF2F8] text-[#BE185D] border-[#FBCFE8]" },
 ]
+
+function statusLabel(status: InterventionGoalStatus) {
+  if (status === "achieved") return { text: "Atingida", emoji: "🟢", cls: "bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0]" }
+  if (status === "in_progress") return { text: "Em andamento", emoji: "🟠", cls: "bg-[#FFF7ED] text-[#C2410C] border border-[#FED7AA]" }
+  return { text: "Não iniciada", emoji: "⚪", cls: "bg-[#F3F4F6] text-[#6B7C83] border border-[#E5E7EB]" }
+}
+
+function nextStatus(s: InterventionGoalStatus): InterventionGoalStatus {
+  if (s === "not_started") return "in_progress"
+  if (s === "in_progress") return "achieved"
+  return "in_progress"
+}
 
 export function ChildInterventionTab({
   child,
@@ -76,59 +78,270 @@ export function ChildInterventionTab({
   const isReportCompleted = child.status === "report_completed"
   const isClosed = child.status === "closed"
 
+  // ─── State ────────────────────────────────────────────────
   const [loading, setLoading] = useState(false)
+  const [goals, setGoals] = useState<InterventionGoal[]>([])
+  const [orientations, setOrientations] = useState<InterventionOrientation[]>([])
+  const [sessionCount, setSessionCount] = useState(0)
+  const [nextSession, setNextSession] = useState<{ date: string; time: string } | null>(null)
+  const [areaFilter, setAreaFilter] = useState<string | null>(null)
+
+  // Modals
   const [showStartModal, setShowStartModal] = useState(false)
   const [showCloseModal, setShowCloseModal] = useState(false)
   const [showAddGoalModal, setShowAddGoalModal] = useState(false)
+  const [showAddOrientationModal, setShowAddOrientationModal] = useState(false)
+  const [editingGoal, setEditingGoal] = useState<InterventionGoal | null>(null)
+  const [editingOrientation, setEditingOrientation] = useState<InterventionOrientation | null>(null)
+
+  // Close form state
   const [closingReason, setClosingReason] = useState("")
+  const [closingDate, setClosingDate] = useState(new Date().toISOString().split("T")[0])
+  const [closingObs, setClosingObs] = useState("")
 
-  // Saved or custom goals in localStorage per child
-  const [goals, setGoals] = useState<InterventionGoal[]>(() => {
-    const saved = localStorage.getItem(`evoluia_intervention_goals_${child.id}`)
-    if (saved) {
-      try {
-        return JSON.parse(saved)
-      } catch (e) {
-        return []
-      }
-    }
-    return [
-      {
-        id: "1",
-        title: "Desenvolvimento da consciência fonológica e segmentação",
-        area: "Leitura & Decodificação",
-        status: "in_progress",
-        notes: "Estimulação com jogos de rima e aliteração",
-      },
-      {
-        id: "2",
-        title: "Aprimoramento da atenção sustentada e controle inibitório",
-        area: "Funções Executivas & Memória",
-        status: "in_progress",
-        notes: "Atividades de mediação com tempo cronometrado",
-      },
-      {
-        id: "3",
-        title: "Compreensão de enunciados matemáticos",
-        area: "Raciocínio Matemático",
-        status: "not_started",
-        notes: "Material concreto e representação visual",
-      },
-    ]
-  })
-
-  const [newGoal, setNewGoal] = useState({
+  // Goal form state
+  const [goalForm, setGoalForm] = useState({
     title: "",
-    area: "Leitura & Decodificação",
-    status: "in_progress" as "not_started" | "in_progress" | "achieved",
-    notes: "",
+    area: SKILL_AREAS[0].name,
+    strategy: "",
+    status: "in_progress" as InterventionGoalStatus,
   })
+
+  // Orientation form state
+  const [orientationForm, setOrientationForm] = useState({
+    type: "familia" as InterventionOrientationType,
+    content: "",
+  })
+
+  // ─── Load data ────────────────────────────────────────────
+  const loadData = useCallback(async () => {
+    if (!profId) return
+
+    // 1. Goals
+    const { data: goalsData } = await supabase
+      .from("intervention_goals")
+      .select("*")
+      .eq("child_id", child.id)
+      .order("created_at", { ascending: true })
+
+    const fetchedGoals: InterventionGoal[] = (goalsData || []) as InterventionGoal[]
+
+    // Migrate from localStorage (one-time, transparent)
+    const lsKey = `evoluia_intervention_goals_${child.id}`
+    const lsSaved = localStorage.getItem(lsKey)
+    if (lsSaved && fetchedGoals.length === 0 && profId) {
+      try {
+        const lsGoals = JSON.parse(lsSaved) as Array<{
+          id: string; title: string; area: string; status: string; notes?: string
+        }>
+        if (Array.isArray(lsGoals) && lsGoals.length > 0) {
+          const toInsert = lsGoals.map((g) => ({
+            professional_id: profId,
+            child_id: child.id,
+            title: g.title,
+            area: g.area || SKILL_AREAS[0].name,
+            strategy: g.notes || null,
+            status: (["not_started", "in_progress", "achieved"].includes(g.status)
+              ? g.status
+              : "in_progress") as InterventionGoalStatus,
+          }))
+          const { data: migrated } = await supabase
+            .from("intervention_goals")
+            .insert(toInsert)
+            .select()
+          if (migrated) {
+            localStorage.removeItem(lsKey)
+            setGoals(migrated as InterventionGoal[])
+          }
+        } else {
+          setGoals(fetchedGoals)
+        }
+      } catch {
+        setGoals(fetchedGoals)
+      }
+    } else {
+      setGoals(fetchedGoals)
+    }
+
+    // 2. Orientations
+    const { data: orientData } = await supabase
+      .from("intervention_orientations")
+      .select("*")
+      .eq("child_id", child.id)
+      .order("created_at", { ascending: true })
+    setOrientations((orientData || []) as InterventionOrientation[])
+
+    // 3. Session count
+    const { count } = await supabase
+      .from("sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("child_id", child.id)
+    setSessionCount(count || 0)
+
+    // 4. Next appointment
+    const { data: nextAppt } = await supabase
+      .from("appointments")
+      .select("start_time")
+      .eq("child_id", child.id)
+      .gte("start_time", new Date().toISOString())
+      .in("status", ["scheduled", "confirmed"])
+      .order("start_time", { ascending: true })
+      .limit(1)
+    if (nextAppt && nextAppt.length > 0) {
+      const dt = new Date(nextAppt[0].start_time)
+      setNextSession({
+        date: dt.toLocaleDateString("pt-BR"),
+        time: dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      })
+    } else {
+      setNextSession(null)
+    }
+  }, [child.id, profId])
 
   useEffect(() => {
-    localStorage.setItem(`evoluia_intervention_goals_${child.id}`, JSON.stringify(goals))
-  }, [goals, child.id])
+    loadData()
+  }, [loadData])
 
-  // Iniciar Intervenção
+  // ─── Goal CRUD ────────────────────────────────────────────
+  async function handleSaveGoal(e: React.FormEvent) {
+    e.preventDefault()
+    if (!profId || !goalForm.title.trim()) return
+    setLoading(true)
+    try {
+      if (editingGoal) {
+        const { error } = await supabase
+          .from("intervention_goals")
+          .update({
+            title: goalForm.title.trim(),
+            area: goalForm.area,
+            strategy: goalForm.strategy.trim() || null,
+            status: goalForm.status,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", editingGoal.id)
+        if (error) throw error
+        toast.success("Meta atualizada!")
+      } else {
+        const { error } = await supabase
+          .from("intervention_goals")
+          .insert({
+            professional_id: profId,
+            child_id: child.id,
+            title: goalForm.title.trim(),
+            area: goalForm.area,
+            strategy: goalForm.strategy.trim() || null,
+            status: goalForm.status,
+          })
+        if (error) throw error
+        toast.success("Meta adicionada ao plano!")
+      }
+      setShowAddGoalModal(false)
+      setEditingGoal(null)
+      resetGoalForm()
+      await loadData()
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao salvar meta.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleToggleGoalStatus(goal: InterventionGoal) {
+    const ns = nextStatus(goal.status)
+    try {
+      const { error } = await supabase
+        .from("intervention_goals")
+        .update({ status: ns, updated_at: new Date().toISOString() })
+        .eq("id", goal.id)
+      if (error) throw error
+      setGoals((prev) => prev.map((g) => (g.id === goal.id ? { ...g, status: ns } : g)))
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar status.")
+    }
+  }
+
+  async function handleDeleteGoal(id: string) {
+    if (!confirm("Deseja remover esta meta do plano?")) return
+    try {
+      const { error } = await supabase.from("intervention_goals").delete().eq("id", id)
+      if (error) throw error
+      toast.success("Meta removida.")
+      setGoals((prev) => prev.filter((g) => g.id !== id))
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao remover meta.")
+    }
+  }
+
+  function openEditGoal(goal: InterventionGoal) {
+    setEditingGoal(goal)
+    setGoalForm({
+      title: goal.title,
+      area: goal.area,
+      strategy: goal.strategy || "",
+      status: goal.status,
+    })
+    setShowAddGoalModal(true)
+  }
+
+  function resetGoalForm() {
+    setGoalForm({ title: "", area: SKILL_AREAS[0].name, strategy: "", status: "in_progress" })
+  }
+
+  // ─── Orientation CRUD ────────────────────────────────────
+  async function handleSaveOrientation(e: React.FormEvent) {
+    e.preventDefault()
+    if (!profId || !orientationForm.content.trim()) return
+    setLoading(true)
+    try {
+      if (editingOrientation) {
+        const { error } = await supabase
+          .from("intervention_orientations")
+          .update({ content: orientationForm.content.trim(), type: orientationForm.type })
+          .eq("id", editingOrientation.id)
+        if (error) throw error
+        toast.success("Orientação atualizada!")
+      } else {
+        const { error } = await supabase
+          .from("intervention_orientations")
+          .insert({
+            professional_id: profId,
+            child_id: child.id,
+            type: orientationForm.type,
+            content: orientationForm.content.trim(),
+          })
+        if (error) throw error
+        toast.success("Orientação adicionada!")
+      }
+      setShowAddOrientationModal(false)
+      setEditingOrientation(null)
+      setOrientationForm({ type: "familia", content: "" })
+      await loadData()
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao salvar orientação.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleDeleteOrientation(id: string) {
+    if (!confirm("Deseja remover esta orientação?")) return
+    try {
+      const { error } = await supabase.from("intervention_orientations").delete().eq("id", id)
+      if (error) throw error
+      toast.success("Orientação removida.")
+      setOrientations((prev) => prev.filter((o) => o.id !== id))
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao remover orientação.")
+    }
+  }
+
+  function openEditOrientation(o: InterventionOrientation) {
+    setEditingOrientation(o)
+    setOrientationForm({ type: o.type, content: o.content })
+    setShowAddOrientationModal(true)
+  }
+
+  // ─── Intervention lifecycle ────────────────────────────────
   async function handleStartIntervention() {
     if (!profId) return
     setLoading(true)
@@ -139,34 +352,23 @@ export function ChildInterventionTab({
       }
       currentNotes = currentNotes.replace("[FASE:encerrado]", "").trim()
 
-      // Tenta primeiro status 'in_intervention'
       let { error } = await supabase
         .from("children")
-        .update({
-          status: "in_intervention",
-          notes: currentNotes,
-          updated_at: new Date().toISOString(),
-        })
+        .update({ status: "in_intervention", notes: currentNotes, updated_at: new Date().toISOString() })
         .eq("id", child.id)
 
-      // Fallback se o enum Postgres não contiver 'in_intervention'
-      if (error && error.message?.includes("enum child_status")) {
+      if (error?.message?.includes("enum child_status")) {
         const res = await supabase
           .from("children")
-          .update({
-            status: "in_progress",
-            notes: currentNotes,
-            updated_at: new Date().toISOString(),
-          })
+          .update({ status: "in_progress", notes: currentNotes, updated_at: new Date().toISOString() })
           .eq("id", child.id)
         error = res.error
       }
 
       if (error) throw error
-      toast.success("🚀 Intervenção Psicopedagógica iniciada com sucesso!", { icon: "🧠" })
+      toast.success("Intervenção Psicopedagógica iniciada!", { icon: "🚀" })
       setShowStartModal(false)
       onReloadChild()
-      onNavigateTab?.("intervencao")
     } catch (err: any) {
       toast.error(err?.message || "Erro ao iniciar intervenção.")
     } finally {
@@ -174,30 +376,29 @@ export function ChildInterventionTab({
     }
   }
 
-  // Encerrar Acompanhamento
   async function handleCloseIntervention() {
     if (!profId) return
     setLoading(true)
     try {
       let cleanNotes = (child.notes || "").replace("[FASE:intervencao]", "").trim()
-      if (closingReason) {
-        cleanNotes = cleanNotes
-          ? `${cleanNotes}\n[Alta/Encerramento]: ${closingReason}`
-          : `[Alta/Encerramento]: ${closingReason}`
+      const lines: string[] = []
+      if (closingReason) lines.push(`[Motivo de encerramento]: ${closingReason}`)
+      if (closingDate) lines.push(`[Data de encerramento]: ${closingDate}`)
+      if (closingObs) lines.push(`[Observação final]: ${closingObs}`)
+      if (lines.length) {
+        cleanNotes = cleanNotes ? `${cleanNotes}\n${lines.join("\n")}` : lines.join("\n")
       }
 
       const { error } = await supabase
         .from("children")
-        .update({
-          status: "closed",
-          notes: cleanNotes || null,
-          updated_at: new Date().toISOString(),
-        })
+        .update({ status: "closed", notes: cleanNotes || null, updated_at: new Date().toISOString() })
         .eq("id", child.id)
 
       if (error) throw error
-      toast.success("Acompanhamento encerrado com sucesso!", { icon: "⚪" })
+      toast.success("Acompanhamento encerrado.", { icon: "⚪" })
       setShowCloseModal(false)
+      setClosingReason("")
+      setClosingObs("")
       onReloadChild()
     } catch (err: any) {
       toast.error(err?.message || "Erro ao encerrar acompanhamento.")
@@ -206,7 +407,6 @@ export function ChildInterventionTab({
     }
   }
 
-  // Reabrir Acompanhamento
   async function handleReopenIntervention() {
     if (!profId) return
     setLoading(true)
@@ -219,27 +419,19 @@ export function ChildInterventionTab({
 
       let { error } = await supabase
         .from("children")
-        .update({
-          status: "in_intervention",
-          notes: currentNotes,
-          updated_at: new Date().toISOString(),
-        })
+        .update({ status: "in_intervention", notes: currentNotes, updated_at: new Date().toISOString() })
         .eq("id", child.id)
 
-      if (error && error.message?.includes("enum child_status")) {
+      if (error?.message?.includes("enum child_status")) {
         const res = await supabase
           .from("children")
-          .update({
-            status: "in_progress",
-            notes: currentNotes,
-            updated_at: new Date().toISOString(),
-          })
+          .update({ status: "in_progress", notes: currentNotes, updated_at: new Date().toISOString() })
           .eq("id", child.id)
         error = res.error
       }
 
       if (error) throw error
-      toast.success("Acompanhamento reaberto em Intervenção!", { icon: "🟠" })
+      toast.success("Acompanhamento reaberto!", { icon: "🟠" })
       onReloadChild()
     } catch (err: any) {
       toast.error(err?.message || "Erro ao reabrir acompanhamento.")
@@ -248,106 +440,66 @@ export function ChildInterventionTab({
     }
   }
 
-  function handleAddGoal(e: React.FormEvent) {
-    e.preventDefault()
-    if (!newGoal.title.trim()) return
-    const goalItem: InterventionGoal = {
-      id: Date.now().toString(),
-      title: newGoal.title.trim(),
-      area: newGoal.area,
-      status: newGoal.status,
-      notes: newGoal.notes.trim() || undefined,
-    }
-    setGoals((prev) => [...prev, goalItem])
-    setNewGoal({
-      title: "",
-      area: "Leitura & Decodificação",
-      status: "in_progress",
-      notes: "",
-    })
-    setShowAddGoalModal(false)
-    toast.success("Meta adicionada ao plano de intervenção!")
-  }
+  // ─── Derived data ─────────────────────────────────────────
+  const achieved = goals.filter((g) => g.status === "achieved").length
+  const inProgress = goals.filter((g) => g.status === "in_progress").length
+  const notStarted = goals.filter((g) => g.status === "not_started").length
 
-  function handleToggleGoalStatus(id: string) {
-    setGoals((prev) =>
-      prev.map((g) => {
-        if (g.id !== id) return g
-        const nextStatus =
-          g.status === "not_started"
-            ? "in_progress"
-            : g.status === "in_progress"
-            ? "achieved"
-            : "in_progress"
-        return { ...g, status: nextStatus }
-      })
-    )
-  }
+  const filteredGoals = areaFilter ? goals.filter((g) => g.area === areaFilter) : goals
 
-  function handleDeleteGoal(id: string) {
-    setGoals((prev) => prev.filter((g) => g.id !== id))
-    toast.success("Meta removida.")
-  }
+  const familyOrientations = orientations.filter((o) => o.type === "familia")
+  const schoolOrientations = orientations.filter((o) => o.type === "escola")
 
+  // ─── Render ───────────────────────────────────────────────
   return (
     <div className="space-y-6 animate-in fade-in">
-      {/* ── 1. STATUS & STAGE HERO BANNER ─────────────────────────── */}
+
+      {/* ── 1. CABEÇALHO / BANNER DE STATUS ─────────────────── */}
       {isInterventionActive ? (
         <div className="bg-gradient-to-r from-[#EA580C] via-[#F97316] to-[#FB923C] rounded-3xl p-6 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1.5 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-3.5 py-1 rounded-full bg-white/20 text-white font-black text-xs backdrop-blur-xs flex items-center gap-1.5 shadow-2xs">
-                🟠 Fase Ativa: Em Intervenção Psicopedagógica
-              </span>
-            </div>
+            <span className="px-3.5 py-1 rounded-full bg-white/20 text-white font-black text-xs backdrop-blur-xs inline-flex items-center gap-1.5 shadow-2xs">
+              🟠 Fase Ativa: Intervenção Psicopedagógica
+            </span>
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
               Plano de Intervenção e Estimulação
             </h2>
-            <p className="text-xs sm:text-sm font-medium text-white/90 max-w-2xl">
-              Nesta etapa, o foco é o desenvolvimento das habilidades cognitivas, funções executivas e superação das dificuldades levantadas na avaliação.
-            </p>
           </div>
-
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <button
-              onClick={() => setShowAddGoalModal(true)}
+              onClick={() => { resetGoalForm(); setEditingGoal(null); setShowAddGoalModal(true) }}
               className="h-10 px-4 rounded-2xl bg-white text-[#EA580C] font-black text-xs flex items-center gap-1.5 shadow-md hover:bg-[#FFF7ED] active:scale-95 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
-              <span>+ Nova Meta</span>
+              + Nova Meta
             </button>
-
             <button
               onClick={() => setShowCloseModal(true)}
               className="h-10 px-3.5 rounded-2xl bg-white/20 hover:bg-white/30 text-white font-black text-xs border border-white/30 flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-              title="Encerrar acompanhamento do paciente"
             >
-              <span>Encerrar Acompanhamento</span>
+              Encerrar Acompanhamento
             </button>
           </div>
         </div>
       ) : isReportCompleted ? (
         <div className="bg-gradient-to-r from-[#065F46] via-[#10B981] to-[#059669] rounded-3xl p-6 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1.5 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-3.5 py-1 rounded-full bg-white/20 text-white font-black text-xs backdrop-blur-xs flex items-center gap-1.5 shadow-2xs">
-                🟢 Relatório Finalizado
-              </span>
-            </div>
+            <span className="px-3.5 py-1 rounded-full bg-white/20 text-white font-black text-xs inline-flex items-center gap-1.5 shadow-2xs">
+              🟢 Relatório Finalizado
+            </span>
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Avaliação Concluída! Pronto para Intervenção
+              Avaliação Concluída — Pronto para Intervenção
             </h2>
             <p className="text-xs sm:text-sm font-medium text-white/90 max-w-2xl">
-              O laudo psicopedagógico foi finalizado. Inicie a etapa de intervenção para começar o trabalho direcionado de estimulação e acompanhamento.
+              O laudo foi finalizado. Inicie a etapa de intervenção para começar o trabalho de estimulação e acompanhamento.
             </p>
           </div>
-
           <button
             onClick={() => setShowStartModal(true)}
             className="h-12 px-6 rounded-2xl bg-white text-[#065F46] hover:bg-[#E8F8F5] font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg active:scale-95 transition-all shrink-0 cursor-pointer"
           >
             <Sparkles className="w-4 h-4 text-[#F59E0B]" />
-            <span>🚀 Iniciar Intervenção</span>
+            🚀 Iniciar Intervenção
           </button>
         </div>
       ) : isClosed ? (
@@ -360,7 +512,7 @@ export function ChildInterventionTab({
               O ciclo de acompanhamento deste paciente foi finalizado.
             </h3>
             <p className="text-xs font-semibold text-[#6B7C83]">
-              Todos os registros de anamnese, avaliação, laudos e intervenções permanecem arquivados com segurança.
+              Todos os registros permanecem arquivados com segurança.
             </p>
           </div>
           <button
@@ -369,7 +521,7 @@ export function ChildInterventionTab({
             className="px-4 py-2.5 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] font-black text-xs flex items-center gap-1.5 transition-all shadow-xs shrink-0 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reabrir Acompanhamento</span>
+            Reabrir Acompanhamento
           </button>
         </div>
       ) : (
@@ -382,27 +534,27 @@ export function ChildInterventionTab({
               Etapa de Intervenção Psicopedagógica
             </h3>
             <p className="text-xs font-semibold text-[#6B7C83]">
-              Recomendamos concluir a avaliação e finalizar o relatório antes de iniciar a intervenção. Se preferir, você pode iniciar o acompanhamento agora.
+              Recomendamos concluir a avaliação e finalizar o relatório antes de iniciar a intervenção.
             </p>
           </div>
           <button
             onClick={() => setShowStartModal(true)}
             className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#EA580C] to-[#F97316] text-white font-black text-xs flex items-center gap-1.5 shadow-md hover:from-[#C2410C] hover:to-[#EA580C] transition-all shrink-0 cursor-pointer"
           >
-            <span>🚀 Iniciar Intervenção</span>
+            🚀 Iniciar Intervenção
           </button>
         </div>
       )}
 
-      {/* ── 2. GRID ESTRUTURAL DA INTERVENÇÃO ─────────────────────── */}
+      {/* ── 2. METAS + RESUMO ────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* COLUNA ESQUERDA (2/3): METAS E OBJETIVOS CLÍNICOS */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Card de Metas e Objetivos */}
+
+        {/* COLUNA METAS (2/3) */}
+        <div className="lg:col-span-2">
           <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-[#FFF7ED] border border-[#FED7AA] text-[#EA580C] flex items-center justify-center font-bold">
+                <div className="w-9 h-9 rounded-2xl bg-[#FFF7ED] border border-[#FED7AA] text-[#EA580C] flex items-center justify-center">
                   <Target className="w-4 h-4" />
                 </div>
                 <div>
@@ -410,192 +562,345 @@ export function ChildInterventionTab({
                     Objetivos & Metas do Plano de Intervenção
                   </h3>
                   <p className="text-xs font-semibold text-[#6B7C83]">
-                    Habilidades e metas específicas traçadas para <strong>{childName}</strong>.
+                    {areaFilter ? (
+                      <span>
+                        Filtrando: <strong>{areaFilter}</strong> —{" "}
+                        <button
+                          onClick={() => setAreaFilter(null)}
+                          className="text-[#EA580C] underline cursor-pointer"
+                        >
+                          ver todas
+                        </button>
+                      </span>
+                    ) : (
+                      `${goals.length} meta${goals.length !== 1 ? "s" : ""} cadastrada${goals.length !== 1 ? "s" : ""}`
+                    )}
                   </p>
                 </div>
               </div>
-
               <button
-                onClick={() => setShowAddGoalModal(true)}
+                onClick={() => { resetGoalForm(); setEditingGoal(null); setShowAddGoalModal(true) }}
                 className="text-xs font-black text-[#EA580C] hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Adicionar Meta</span>
+                Adicionar
               </button>
             </div>
 
-            {/* Lista de Metas */}
-            <div className="space-y-2.5 pt-1">
-              {goals.length === 0 ? (
+            <div className="space-y-2.5">
+              {filteredGoals.length === 0 ? (
                 <div className="p-6 text-center rounded-2xl border border-dashed border-[#D8E5E7] bg-[#F8FAFB] text-xs font-semibold text-[#8CAAB1]">
-                  Nenhuma meta cadastrada ainda. Clique em "+ Nova Meta" para estruturar o plano.
+                  {areaFilter
+                    ? "Nenhuma meta nesta área ainda."
+                    : "Nenhuma meta cadastrada. Clique em \"Adicionar\" para começar."}
                 </div>
               ) : (
-                goals.map((g) => (
-                  <div
-                    key={g.id}
-                    className="p-4 rounded-2xl border-2 border-[#EEF5F6] hover:border-[#EA580C]/30 bg-white transition-all flex items-start justify-between gap-3 shadow-2xs group"
-                  >
-                    <div className="flex items-start gap-3 min-w-0 flex-1">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleGoalStatus(g.id)}
-                        className={`mt-0.5 w-5 h-5 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
-                          g.status === "achieved"
-                            ? "bg-[#10B981] text-white"
-                            : g.status === "in_progress"
-                            ? "bg-[#FED7AA] text-[#C2410C]"
-                            : "bg-[#F3F4F6] text-[#9CA3AF] border border-[#D1D5DB]"
-                        }`}
-                        title="Clique para alternar status da meta"
-                      >
-                        {g.status === "achieved" ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />
-                        ) : (
-                          <span className="w-2 h-2 rounded-full bg-current" />
-                        )}
-                      </button>
-
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-black text-[#0D2329] leading-snug">
-                            {g.title}
-                          </span>
-                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-[#F8FAFB] text-[#6B7C83] border border-[#D8E5E7]">
-                            {g.area}
-                          </span>
-                          <span
-                            className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                              g.status === "achieved"
-                                ? "bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0]"
-                                : g.status === "in_progress"
-                                ? "bg-[#FFF7ED] text-[#C2410C] border border-[#FED7AA]"
-                                : "bg-[#F3F4F6] text-[#6B7C83] border border-[#E5E7EB]"
-                            }`}
-                          >
-                            {g.status === "achieved"
-                              ? "✅ Concluída"
+                filteredGoals.map((g) => {
+                  const s = statusLabel(g.status)
+                  return (
+                    <div
+                      key={g.id}
+                      className="p-4 rounded-2xl border-2 border-[#EEF5F6] hover:border-[#EA580C]/30 bg-white transition-all flex items-start justify-between gap-3 shadow-2xs group"
+                    >
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        {/* Status toggle button */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleGoalStatus(g)}
+                          title="Clique para avançar o status"
+                          className={`mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 text-xs font-black ${
+                            g.status === "achieved"
+                              ? "bg-[#10B981] text-white"
                               : g.status === "in_progress"
-                              ? "⚡ Em Estimulação"
-                              : "⏳ A Iniciar"}
-                          </span>
+                              ? "bg-[#FED7AA] text-[#C2410C]"
+                              : "bg-[#F3F4F6] text-[#9CA3AF] border border-[#D1D5DB]"
+                          }`}
+                        >
+                          {g.status === "achieved" ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />
+                          ) : (
+                            <span className="w-2 h-2 rounded-full bg-current" />
+                          )}
+                        </button>
+
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-black text-[#0D2329] leading-snug">
+                              {g.title}
+                            </span>
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-[#F8FAFB] text-[#6B7C83] border border-[#D8E5E7]">
+                              {g.area}
+                            </span>
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${s.cls}`}>
+                              {s.emoji} {s.text}
+                            </span>
+                          </div>
+                          {g.strategy && (
+                            <p className="text-[11px] text-[#6B7C83] italic">
+                              Estratégia: {g.strategy}
+                            </p>
+                          )}
+                          {g.started_at && (
+                            <p className="text-[10px] text-[#8CAAB1]">
+                              Iniciada em: {formatDate(g.started_at)}
+                            </p>
+                          )}
                         </div>
-                        {g.notes && (
-                          <p className="text-[11px] text-[#6B7C83] italic">
-                            Estratégia: {g.notes}
-                          </p>
-                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => openEditGoal(g)}
+                          className="p-1.5 rounded-lg text-[#8CAAB1] hover:text-[#EA580C] hover:bg-[#FFF7ED] transition-colors cursor-pointer"
+                          title="Editar meta"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteGoal(g.id)}
+                          className="p-1.5 rounded-lg text-[#8CAAB1] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+                          title="Excluir meta"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteGoal(g.id)}
-                      className="text-[#8DA3A8] hover:text-red-600 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                      title="Excluir meta"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))
+                  )
+                })
               )}
-            </div>
-          </div>
-
-          {/* Card de Pilares e Habilidades Trabalhadas */}
-          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-sm space-y-3.5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center font-bold">
-                <Brain className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-base font-black text-[#0D2329]">
-                  Habilidades & Eixos de Desenvolvimento
-                </h3>
-                <p className="text-xs font-semibold text-[#6B7C83]">
-                  Áreas centrais estimuladas nos atendimentos de intervenção.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              {DEFAULT_SKILL_PILLARS.map((skill, idx) => (
-                <div
-                  key={idx}
-                  className={`p-3.5 rounded-2xl border-2 flex items-center gap-2.5 ${skill.color}`}
-                >
-                  <span className="text-lg">{skill.icon}</span>
-                  <span className="text-xs font-black">{skill.name}</span>
-                </div>
-              ))}
             </div>
           </div>
         </div>
 
-        {/* COLUNA DIREITA (1/3): ATALHOS, ORIENTAÇÕES E EVOLUÇÃO */}
-        <div className="space-y-6">
-          {/* Card de Ações Rápidas de Sessões */}
-          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-5 shadow-sm space-y-3">
+        {/* COLUNA RESUMO (1/3) */}
+        <div className="space-y-4">
+          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-5 shadow-sm space-y-4">
             <h4 className="text-xs font-black uppercase text-[#0D2329] tracking-wider flex items-center gap-1.5">
-              <Activity className="w-4 h-4 text-[#EA580C]" />
-              <span>Sessões de Intervenção</span>
+              <BookOpen className="w-4 h-4 text-[#EA580C]" />
+              Resumo do Acompanhamento
             </h4>
-            <p className="text-xs font-medium text-[#6B7C83] leading-relaxed">
-              Diferente das sessões de avaliação diagnóstica, os atendimentos de intervenção focam na estimulação contínua e registro do avanço pedagógico.
-            </p>
-            <div className="pt-1 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => onNavigateTab?.("sessoes")}
-                className="w-full py-2.5 px-4 rounded-2xl bg-[#F8FAFB] hover:bg-[#EDE9FE] text-[#7C3AED] border-2 border-[#D8E5E7] text-xs font-black flex items-center justify-between transition-all cursor-pointer shadow-2xs"
-              >
-                <span>Ver Prontuário de Sessões</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
 
-              <button
-                type="button"
-                onClick={() => onNavigateTab?.("relatorios")}
-                className="w-full py-2.5 px-4 rounded-2xl bg-[#F8FAFB] hover:bg-[#E8F8F5] text-[#065F46] border-2 border-[#D8E5E7] text-xs font-black flex items-center justify-between transition-all cursor-pointer shadow-2xs"
-              >
-                <span>Consultar Laudo / Relatório</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Card de Orientações Escola e Família */}
-          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-5 shadow-sm space-y-3">
-            <h4 className="text-xs font-black uppercase text-[#0D2329] tracking-wider flex items-center gap-1.5">
-              <HeartHandshake className="w-4 h-4 text-[#F59E0B]" />
-              <span>Orientações Familiares & Escolares</span>
-            </h4>
-            <div className="space-y-2 text-xs">
-              <div className="p-3 rounded-xl bg-[#FEF8EC] border border-[#FDE68A] text-[#B8871E] font-semibold space-y-1">
-                <p className="font-black text-[#0D2329] flex items-center gap-1">
-                  <Home className="w-3.5 h-3.5 text-[#F59E0B]" />
-                  <span>Para a Família em Casa:</span>
-                </p>
-                <p className="text-[11px]">Rotina de leitura diária e reforço positivo durante tarefas.</p>
+            {/* Metas */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-black text-[#0D2329]">
+                Metas: <span className="text-[#EA580C]">{goals.length} cadastrada{goals.length !== 1 ? "s" : ""}</span>
+              </p>
+              <div className="space-y-1 pl-1">
+                <div className="flex items-center gap-2 text-[11px] font-semibold text-[#6B7C83]">
+                  <span>🟢</span>
+                  <span>{achieved} atingida{achieved !== 1 ? "s" : ""}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] font-semibold text-[#6B7C83]">
+                  <span>🟠</span>
+                  <span>{inProgress} em andamento</span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] font-semibold text-[#6B7C83]">
+                  <span>⚪</span>
+                  <span>{notStarted} não iniciada{notStarted !== 1 ? "s" : ""}</span>
+                </div>
               </div>
+            </div>
 
-              <div className="p-3 rounded-xl bg-[#E0F2FE] border border-[#BAE6FD] text-[#0284C7] font-semibold space-y-1">
-                <p className="font-black text-[#0D2329] flex items-center gap-1">
-                  <School className="w-3.5 h-3.5 text-[#0284C7]" />
-                  <span>Para os Professores:</span>
-                </p>
-                <p className="text-[11px]">Adaptação do tempo de prova e instruções passo a passo.</p>
+            <div className="border-t border-[#EEF5F6]" />
+
+            {/* Sessões */}
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-[#7C3AED] shrink-0" />
+              <div>
+                <p className="text-xs font-black text-[#0D2329]">Sessões realizadas</p>
+                <p className="text-lg font-black text-[#7C3AED]">{sessionCount}</p>
+              </div>
+            </div>
+
+            <div className="border-t border-[#EEF5F6]" />
+
+            {/* Próxima sessão */}
+            <div className="flex items-start gap-2">
+              <CalendarCheck className="w-4 h-4 text-[#10B981] shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-black text-[#0D2329]">Próxima sessão</p>
+                {nextSession ? (
+                  <p className="text-xs font-semibold text-[#065F46] mt-0.5">
+                    {nextSession.date} às {nextSession.time}
+                  </p>
+                ) : (
+                  <p className="text-[11px] font-semibold text-[#8CAAB1] mt-0.5">
+                    Não há próxima sessão agendada.
+                  </p>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── MODAL: INICIAR INTERVENÇÃO ───────────────────────────── */}
+      {/* ── 3. MAPA DE DESENVOLVIMENTO ───────────────────────── */}
+      <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-sm space-y-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center">
+            <Brain className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-base font-black text-[#0D2329]">Mapa de Desenvolvimento</h3>
+            <p className="text-xs font-semibold text-[#6B7C83]">
+              Clique em uma área para filtrar as metas relacionadas.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          {SKILL_AREAS.map((area) => {
+            const areaGoals = goals.filter((g) => g.area === area.name)
+            const areaAchieved = areaGoals.filter((g) => g.status === "achieved").length
+            const areaInProgress = areaGoals.filter((g) => g.status === "in_progress").length
+            const isFiltered = areaFilter === area.name
+
+            return (
+              <button
+                key={area.name}
+                type="button"
+                onClick={() => setAreaFilter(isFiltered ? null : area.name)}
+                className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                  isFiltered
+                    ? "border-[#EA580C] ring-2 ring-[#EA580C]/20 " + area.color
+                    : area.color + " hover:opacity-80"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">{area.icon}</span>
+                  <span className="text-xs font-black leading-tight">{area.name}</span>
+                </div>
+                {areaGoals.length === 0 ? (
+                  <p className="text-[10px] font-semibold opacity-60">Nenhuma meta cadastrada</p>
+                ) : (
+                  <p className="text-[10px] font-semibold opacity-80">
+                    {areaInProgress > 0 && `${areaInProgress} em andamento`}
+                    {areaInProgress > 0 && areaAchieved > 0 && " · "}
+                    {areaAchieved > 0 && `${areaAchieved} atingida${areaAchieved !== 1 ? "s" : ""}`}
+                    {areaInProgress === 0 && areaAchieved === 0 && `${areaGoals.length} não iniciada${areaGoals.length !== 1 ? "s" : ""}`}
+                  </p>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── 4. ORIENTAÇÕES PARA FAMÍLIA E ESCOLA ────────────── */}
+      <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-sm space-y-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-2xl bg-[#FEF8EC] border border-[#FDE68A] text-[#F59E0B] flex items-center justify-center">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-[#0D2329]">Orientações Familiares & Escolares</h3>
+              <p className="text-xs font-semibold text-[#6B7C83]">
+                Recomendações para família e escola apoiarem o desenvolvimento.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => { setEditingOrientation(null); setOrientationForm({ type: "familia", content: "" }); setShowAddOrientationModal(true) }}
+            className="text-xs font-black text-[#EA580C] hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Adicionar
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* FAMÍLIA */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Home className="w-4 h-4 text-[#F59E0B]" />
+              <h4 className="text-xs font-black text-[#0D2329]">Para a Família</h4>
+            </div>
+            {familyOrientations.length === 0 ? (
+              <div className="p-4 rounded-xl border border-dashed border-[#FDE68A] bg-[#FEFCE8] text-[10px] font-semibold text-[#B8871E] text-center">
+                Nenhuma orientação para a família ainda.
+              </div>
+            ) : (
+              familyOrientations.map((o) => (
+                <div
+                  key={o.id}
+                  className="group p-3 rounded-xl bg-[#FEF8EC] border border-[#FDE68A] text-xs font-semibold text-[#B8871E] flex items-start justify-between gap-2"
+                >
+                  <span className="flex-1 leading-relaxed">{o.content}</span>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => openEditOrientation(o)}
+                      className="p-1 rounded-lg text-[#B8871E] hover:bg-[#FDE68A] transition-colors cursor-pointer"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteOrientation(o.id)}
+                      className="p-1 rounded-lg text-[#B8871E] hover:bg-red-100 hover:text-red-600 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* ESCOLA */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 mb-2">
+              <School className="w-4 h-4 text-[#0284C7]" />
+              <h4 className="text-xs font-black text-[#0D2329]">Para a Escola</h4>
+            </div>
+            {schoolOrientations.length === 0 ? (
+              <div className="p-4 rounded-xl border border-dashed border-[#BAE6FD] bg-[#F0F9FF] text-[10px] font-semibold text-[#0369A1] text-center">
+                Nenhuma orientação para a escola ainda.
+              </div>
+            ) : (
+              schoolOrientations.map((o) => (
+                <div
+                  key={o.id}
+                  className="group p-3 rounded-xl bg-[#E0F2FE] border border-[#BAE6FD] text-xs font-semibold text-[#0284C7] flex items-start justify-between gap-2"
+                >
+                  <span className="flex-1 leading-relaxed">{o.content}</span>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => openEditOrientation(o)}
+                      className="p-1 rounded-lg text-[#0284C7] hover:bg-[#BAE6FD] transition-colors cursor-pointer"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteOrientation(o.id)}
+                      className="p-1 rounded-lg text-[#0284C7] hover:bg-red-100 hover:text-red-600 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+
+      {/* ══════════════════════════════════════════════════════
+          MODAIS
+      ══════════════════════════════════════════════════════ */}
+
+      {/* Modal: Iniciar Intervenção */}
       <Dialog open={showStartModal} onOpenChange={(open) => !open && setShowStartModal(false)}>
         <DialogContent className="max-w-md p-0 overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
           <DialogHeader className="p-6 pb-4 border-b border-[#EEF5F6] flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#FFF7ED] text-[#EA580C] border-2 border-[#FED7AA] flex items-center justify-center shrink-0 shadow-xs font-black text-xl">
+            <div className="w-12 h-12 rounded-2xl bg-[#FFF7ED] text-[#EA580C] border-2 border-[#FED7AA] flex items-center justify-center shrink-0 font-black text-xl">
               🚀
             </div>
             <div>
@@ -607,19 +912,17 @@ export function ChildInterventionTab({
               </p>
             </div>
           </DialogHeader>
-
           <DialogBody className="p-6 space-y-3.5 text-xs text-[#0D2329] leading-relaxed">
             <p>
-              Ao confirmar o início da intervenção, o status do paciente no sistema passará para:
+              Ao confirmar, o status do paciente será atualizado para:
             </p>
             <div className="p-3 rounded-2xl bg-[#FFF7ED] border-2 border-[#FED7AA] text-center font-black text-[#C2410C] text-sm">
               🟠 Em Intervenção
             </div>
             <p className="text-[#6B7C83]">
-              Isso indica que a avaliação diagnóstica inicial foi finalizada e você está iniciando o acompanhamento clínico e estimulação das habilidades.
+              Isso indica que a avaliação diagnóstica foi finalizada e você está iniciando o acompanhamento clínico e estimulação das habilidades.
             </p>
           </DialogBody>
-
           <DialogFooter className="p-6 pt-4 border-t border-[#EEF5F6] flex items-center justify-end gap-2.5">
             <button
               type="button"
@@ -634,18 +937,18 @@ export function ChildInterventionTab({
               disabled={loading}
               className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#EA580C] to-[#F97316] hover:from-[#C2410C] hover:to-[#EA580C] text-white font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
             >
-              <Sparkles className="w-4 h-4 text-white" />
-              <span>{loading ? "Iniciando..." : "Confirmar e Iniciar Intervenção"}</span>
+              <Sparkles className="w-4 h-4" />
+              {loading ? "Iniciando..." : "Confirmar e Iniciar"}
             </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* ── MODAL: ENCERRAR ACOMPANHAMENTO ────────────────────────── */}
+      {/* Modal: Encerrar Acompanhamento */}
       <Dialog open={showCloseModal} onOpenChange={(open) => !open && setShowCloseModal(false)}>
         <DialogContent className="max-w-md p-0 overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
           <DialogHeader className="p-6 pb-4 border-b border-[#EEF5F6] flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#F8FAFB] text-[#6B7C83] border-2 border-[#D8E5E7] flex items-center justify-center shrink-0 shadow-xs font-black text-xl">
+            <div className="w-12 h-12 rounded-2xl bg-[#F8FAFB] text-[#6B7C83] border-2 border-[#D8E5E7] flex items-center justify-center shrink-0 font-black text-xl">
               ⚪
             </div>
             <div>
@@ -657,24 +960,46 @@ export function ChildInterventionTab({
               </p>
             </div>
           </DialogHeader>
-
-          <DialogBody className="p-6 space-y-3.5 text-xs text-[#0D2329]">
-            <p className="leading-relaxed">
-              O status do paciente passará para <strong>⚪ Acompanhamento encerrado</strong>. Você poderá reabri-lo no futuro a qualquer momento.
+          <DialogBody className="p-6 space-y-4 text-xs text-[#0D2329]">
+            <div className="p-3 rounded-2xl bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] font-semibold text-center">
+              Tem certeza que deseja encerrar o acompanhamento de <strong>{childName}</strong>?
+            </div>
+            <p className="text-[#6B7C83] leading-relaxed">
+              Todos os dados serão preservados — entrevista, avaliações, sessões, metas, documentos e histórico completo. Você poderá reabrir o acompanhamento quando necessário.
             </p>
 
             <div className="space-y-1">
-              <label className="font-black text-[#0D2329]">Motivo do Encerramento / Alta (Opcional):</label>
+              <label className="font-black text-[#0D2329]">Motivo do encerramento (opcional)</label>
               <textarea
-                rows={3}
-                placeholder="Ex: Alta clínica por alcance pleno dos objetivos pedagógicos..."
+                rows={2}
+                placeholder="Ex: Alta clínica por alcance pleno dos objetivos..."
                 value={closingReason}
                 onChange={(e) => setClosingReason(e.target.value)}
-                className="w-full p-3 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+                className="w-full p-3 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] resize-none"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-black text-[#0D2329]">Data de encerramento</label>
+              <input
+                type="date"
+                value={closingDate}
+                onChange={(e) => setClosingDate(e.target.value)}
+                className="w-full p-2.5 rounded-xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-black text-[#0D2329]">Observação final (opcional)</label>
+              <textarea
+                rows={2}
+                placeholder="Ex: Paciente evoluiu significativamente em todas as áreas trabalhadas..."
+                value={closingObs}
+                onChange={(e) => setClosingObs(e.target.value)}
+                className="w-full p-3 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#7C3AED] resize-none"
               />
             </div>
           </DialogBody>
-
           <DialogFooter className="p-6 pt-4 border-t border-[#EEF5F6] flex items-center justify-end gap-2.5">
             <button
               type="button"
@@ -695,16 +1020,25 @@ export function ChildInterventionTab({
         </DialogContent>
       </Dialog>
 
-      {/* ── MODAL: ADICIONAR META DO PLANO ───────────────────────── */}
-      <Dialog open={showAddGoalModal} onOpenChange={(open) => !open && setShowAddGoalModal(false)}>
+      {/* Modal: Adicionar / Editar Meta */}
+      <Dialog
+        open={showAddGoalModal}
+        onOpenChange={(open) => { if (!open) { setShowAddGoalModal(false); setEditingGoal(null); resetGoalForm() } }}
+      >
         <DialogContent className="max-w-md p-0 overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
-          <DialogHeader className="p-6 pb-4 border-b border-[#EEF5F6]">
+          <DialogHeader className="p-6 pb-4 border-b border-[#EEF5F6] flex items-center justify-between">
             <DialogTitle className="text-base font-black text-[#0D2329]">
-              Nova Meta de Intervenção
+              {editingGoal ? "Editar Meta" : "Nova Meta de Intervenção"}
             </DialogTitle>
+            <button
+              type="button"
+              onClick={() => { setShowAddGoalModal(false); setEditingGoal(null); resetGoalForm() }}
+              className="text-[#8CAAB1] hover:text-[#0D2329] cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </DialogHeader>
-
-          <form onSubmit={handleAddGoal}>
+          <form onSubmit={handleSaveGoal}>
             <DialogBody className="p-6 space-y-3.5 text-xs">
               <div className="space-y-1">
                 <label className="font-black text-[#0D2329]">Objetivo / Meta *</label>
@@ -712,58 +1046,168 @@ export function ChildInterventionTab({
                   type="text"
                   required
                   placeholder="Ex: Automatização da leitura de dígrafos..."
-                  value={newGoal.title}
-                  onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
+                  value={goalForm.title}
+                  onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })}
                   className="w-full p-2.5 rounded-xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#EA580C]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="font-black text-[#0D2329]">Eixo / Área</label>
+                <label className="font-black text-[#0D2329]">Área / Eixo</label>
                 <select
-                  value={newGoal.area}
-                  onChange={(e) => setNewGoal({ ...newGoal, area: e.target.value })}
+                  value={goalForm.area}
+                  onChange={(e) => setGoalForm({ ...goalForm, area: e.target.value })}
                   className="w-full p-2.5 rounded-xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#EA580C]"
                 >
-                  {DEFAULT_SKILL_PILLARS.map((p, idx) => (
-                    <option key={idx} value={p.name}>
-                      {p.icon} {p.name}
+                  {SKILL_AREAS.map((a) => (
+                    <option key={a.name} value={a.name}>
+                      {a.icon} {a.name}
                     </option>
                   ))}
-                  <option value="Outros">Outro Eixo</option>
+                  <option value="Outros">Outro eixo</option>
                 </select>
               </div>
 
               <div className="space-y-1">
-                <label className="font-black text-[#0D2329]">Estratégia Pedagógica (Opcional)</label>
+                <label className="font-black text-[#0D2329]">Estratégia de Intervenção (opcional)</label>
                 <input
                   type="text"
-                  placeholder="Ex: Uso do jogo Lince das Letras e cartões ilustrados"
-                  value={newGoal.notes}
-                  onChange={(e) => setNewGoal({ ...newGoal, notes: e.target.value })}
+                  placeholder="Ex: Jogos de rima, leitura compartilhada..."
+                  value={goalForm.strategy}
+                  onChange={(e) => setGoalForm({ ...goalForm, strategy: e.target.value })}
                   className="w-full p-2.5 rounded-xl border-2 border-[#D8E5E7] bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#EA580C]"
                 />
               </div>
-            </DialogBody>
 
+              <div className="space-y-1">
+                <label className="font-black text-[#0D2329]">Status</label>
+                <div className="flex gap-2">
+                  {(["not_started", "in_progress", "achieved"] as InterventionGoalStatus[]).map((s) => {
+                    const sl = statusLabel(s)
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setGoalForm({ ...goalForm, status: s })}
+                        className={`flex-1 py-2 rounded-xl text-[10px] font-black border-2 transition-all cursor-pointer ${
+                          goalForm.status === s
+                            ? "border-[#EA580C] bg-[#FFF7ED] text-[#EA580C]"
+                            : "border-[#D8E5E7] text-[#6B7C83] hover:border-[#EA580C]/40"
+                        }`}
+                      >
+                        {sl.emoji} {sl.text}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </DialogBody>
             <DialogFooter className="p-6 pt-4 border-t border-[#EEF5F6] flex items-center justify-end gap-2.5">
               <button
                 type="button"
-                onClick={() => setShowAddGoalModal(false)}
+                onClick={() => { setShowAddGoalModal(false); setEditingGoal(null); resetGoalForm() }}
                 className="px-4 py-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#6B7C83] hover:bg-[#F8FAFB] transition-all cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
+                disabled={loading}
                 className="px-5 py-2.5 rounded-2xl bg-[#EA580C] hover:bg-[#C2410C] text-white font-black text-xs shadow-md active:scale-95 transition-all cursor-pointer"
               >
-                Salvar Meta
+                {loading ? "Salvando..." : editingGoal ? "Salvar Alterações" : "Adicionar Meta"}
               </button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Modal: Adicionar / Editar Orientação */}
+      <Dialog
+        open={showAddOrientationModal}
+        onOpenChange={(open) => { if (!open) { setShowAddOrientationModal(false); setEditingOrientation(null) } }}
+      >
+        <DialogContent className="max-w-md p-0 overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
+          <DialogHeader className="p-6 pb-4 border-b border-[#EEF5F6] flex items-center justify-between">
+            <DialogTitle className="text-base font-black text-[#0D2329]">
+              {editingOrientation ? "Editar Orientação" : "Nova Orientação"}
+            </DialogTitle>
+            <button
+              type="button"
+              onClick={() => { setShowAddOrientationModal(false); setEditingOrientation(null) }}
+              className="text-[#8CAAB1] hover:text-[#0D2329] cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </DialogHeader>
+          <form onSubmit={handleSaveOrientation}>
+            <DialogBody className="p-6 space-y-3.5 text-xs">
+              <div className="space-y-1">
+                <label className="font-black text-[#0D2329]">Destinatário</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setOrientationForm({ ...orientationForm, type: "familia" })}
+                    className={`flex-1 py-2.5 rounded-xl text-xs font-black border-2 transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      orientationForm.type === "familia"
+                        ? "border-[#F59E0B] bg-[#FEF8EC] text-[#B8871E]"
+                        : "border-[#D8E5E7] text-[#6B7C83] hover:border-[#F59E0B]/40"
+                    }`}
+                  >
+                    <Home className="w-3.5 h-3.5" />
+                    Para a Família
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrientationForm({ ...orientationForm, type: "escola" })}
+                    className={`flex-1 py-2.5 rounded-xl text-xs font-black border-2 transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      orientationForm.type === "escola"
+                        ? "border-[#0284C7] bg-[#E0F2FE] text-[#0284C7]"
+                        : "border-[#D8E5E7] text-[#6B7C83] hover:border-[#0284C7]/40"
+                    }`}
+                  >
+                    <School className="w-3.5 h-3.5" />
+                    Para a Escola
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-black text-[#0D2329]">Orientação *</label>
+                <textarea
+                  rows={4}
+                  required
+                  placeholder={
+                    orientationForm.type === "familia"
+                      ? "Ex: Incentivar leitura compartilhada diariamente por 15 minutos..."
+                      : "Ex: Dar instruções passo a passo e adaptar o tempo de realização das atividades..."
+                  }
+                  value={orientationForm.content}
+                  onChange={(e) => setOrientationForm({ ...orientationForm, content: e.target.value })}
+                  className="w-full p-3 rounded-2xl border-2 border-[#D8E5E7] bg-[#F8FAFB] focus:bg-white text-xs font-medium text-[#0D2329] focus:outline-none focus:border-[#EA580C] resize-none"
+                />
+              </div>
+            </DialogBody>
+            <DialogFooter className="p-6 pt-4 border-t border-[#EEF5F6] flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => { setShowAddOrientationModal(false); setEditingOrientation(null) }}
+                className="px-4 py-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#6B7C83] hover:bg-[#F8FAFB] transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-5 py-2.5 rounded-2xl bg-[#EA580C] hover:bg-[#C2410C] text-white font-black text-xs shadow-md active:scale-95 transition-all cursor-pointer"
+              >
+                {loading ? "Salvando..." : editingOrientation ? "Salvar" : "Adicionar"}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
     </div>
   )
 }

@@ -93,6 +93,21 @@ export interface Database {
         Insert: Omit<SubscriptionEvent, 'id' | 'created_at'>
         Update: Partial<Omit<SubscriptionEvent, 'id' | 'created_at'>>
       }
+      intervention_goals: {
+        Row: InterventionGoal
+        Insert: Omit<InterventionGoal, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<InterventionGoal, 'id' | 'created_at'>>
+      }
+      intervention_orientations: {
+        Row: InterventionOrientation
+        Insert: Omit<InterventionOrientation, 'id' | 'created_at'>
+        Update: Partial<Omit<InterventionOrientation, 'id' | 'created_at'>>
+      }
+      session_goals: {
+        Row: SessionGoal
+        Insert: Omit<SessionGoal, 'id' | 'created_at'>
+        Update: Partial<Omit<SessionGoal, 'id' | 'created_at'>>
+      }
     }
   }
 }
@@ -402,4 +417,37 @@ export interface AppointmentWithChild extends Appointment {
 export interface SessionWithDocuments extends Session {
   documents?: SessionDocument[]
   child?: Child
+}
+
+export type InterventionGoalStatus = 'not_started' | 'in_progress' | 'achieved'
+
+export interface InterventionGoal {
+  id: string
+  professional_id: string
+  child_id: string
+  title: string
+  area: string
+  strategy: string | null
+  status: InterventionGoalStatus
+  started_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type InterventionOrientationType = 'familia' | 'escola'
+
+export interface InterventionOrientation {
+  id: string
+  professional_id: string
+  child_id: string
+  type: InterventionOrientationType
+  content: string
+  created_at: string
+}
+
+export interface SessionGoal {
+  id: string
+  session_id: string
+  goal_id: string
+  created_at: string
 }
