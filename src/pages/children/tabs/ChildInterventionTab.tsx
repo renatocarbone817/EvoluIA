@@ -608,137 +608,104 @@ export function ChildInterventionTab({
         </div>
       )}
 
-      {/* ── 2. METAS + RESUMO ────────────────────────────────── */}
+      {/* ── 2. SEÇÃO PRINCIPAL: ÁREAS DE INTERVENÇÃO (ESQUERDA) + RESUMO & METAS (DIREITA) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* COLUNA METAS (2/3) */}
+        {/* COLUNA ESQUERDA: ÁREAS DE INTERVENÇÃO & MAPA DE HABILIDADES (2/3) */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-[#FFF7ED] border border-[#FED7AA] text-[#EA580C] flex items-center justify-center">
-                  <Target className="w-4 h-4" />
+                <div className="w-9 h-9 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center shrink-0">
+                  <Brain className="w-4 h-4" />
                 </div>
                 <div>
                   <h3 className="text-base font-black text-[#0D2329]">
-                    Objetivos & Metas do Plano de Intervenção
+                    Áreas de Intervenção & Mapa de Habilidades
                   </h3>
                   <p className="text-xs font-semibold text-[#6B7C83]">
-                    {areaFilter ? (
-                      <span>
-                        Filtrando: <strong>{areaFilter}</strong> —{" "}
-                        <button
-                          onClick={() => setAreaFilter(null)}
-                          className="text-[#EA580C] underline cursor-pointer"
-                        >
-                          ver todas
-                        </button>
-                      </span>
-                    ) : (
-                      `${goals.length} meta${goals.length !== 1 ? "s" : ""} cadastrada${goals.length !== 1 ? "s" : ""}`
-                    )}
+                    Defina quais áreas trabalhar nesta criança. As áreas com <strong>[Na Aula]</strong> geram os campos na aula de intervenção.
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => { resetGoalForm(); setEditingGoal(null); setShowAddGoalModal(true) }}
-                className="text-xs font-black text-[#EA580C] hover:underline flex items-center gap-1 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Adicionar
-              </button>
+              <div className="text-xs font-bold text-[#7C3AED] bg-[#EDE9FE] px-3 py-1.5 rounded-2xl border border-[#DDD6FE] self-start sm:self-auto">
+                {configuredAreas.length} {configuredAreas.length === 1 ? "área ativa para aulas" : "áreas ativas para aulas"}
+              </div>
             </div>
 
-            <div className="space-y-2.5">
-              {filteredGoals.length === 0 ? (
-                <div className="p-6 text-center rounded-2xl border border-dashed border-[#D8E5E7] bg-[#F8FAFB] text-xs font-semibold text-[#8CAAB1]">
-                  {areaFilter
-                    ? "Nenhuma meta nesta área ainda."
-                    : "Nenhuma meta cadastrada. Clique em \"Adicionar\" para começar."}
-                </div>
-              ) : (
-                filteredGoals.map((g) => {
-                  const s = statusLabel(g.status)
-                  return (
-                    <div
-                      key={g.id}
-                      className="p-4 rounded-2xl border-2 border-[#EEF5F6] hover:border-[#EA580C]/30 bg-white transition-all flex items-start justify-between gap-3 shadow-2xs group"
-                    >
-                      <div className="flex items-start gap-3 min-w-0 flex-1">
-                        {/* Status toggle button */}
-                        <button
-                          type="button"
-                          onClick={() => handleToggleGoalStatus(g)}
-                          title="Clique para avançar o status"
-                          className={`mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 text-xs font-black ${
-                            g.status === "achieved"
-                              ? "bg-[#10B981] text-white"
-                              : g.status === "in_progress"
-                              ? "bg-[#FED7AA] text-[#C2410C]"
-                              : "bg-[#F3F4F6] text-[#9CA3AF] border border-[#D1D5DB]"
-                          }`}
-                        >
-                          {g.status === "achieved" ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />
-                          ) : (
-                            <span className="w-2 h-2 rounded-full bg-current" />
-                          )}
-                        </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {SKILL_AREAS.map((area) => {
+                const areaGoals = goals.filter((g) => g.area === area.name)
+                const areaAchieved = areaGoals.filter((g) => g.status === "achieved").length
+                const areaInProgress = areaGoals.filter((g) => g.status === "in_progress").length
+                const isFiltered = areaFilter === area.name
+                const isConfigured = configuredAreas.includes(area.name)
 
-                        <div className="space-y-1 min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-black text-[#0D2329] leading-snug">
-                              {g.title}
-                            </span>
-                            <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-[#F8FAFB] text-[#6B7C83] border border-[#D8E5E7]">
-                              {g.area}
-                            </span>
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${s.cls}`}>
-                              {s.emoji} {s.text}
-                            </span>
-                          </div>
-                          {g.strategy && (
-                            <p className="text-[11px] text-[#6B7C83] italic">
-                              Estratégia: {g.strategy}
-                            </p>
-                          )}
-                          {g.started_at && (
-                            <p className="text-[10px] text-[#8CAAB1]">
-                              Iniciada em: {formatDate(g.started_at)}
-                            </p>
-                          )}
-                        </div>
+                return (
+                  <div
+                    key={area.name}
+                    onClick={() => setAreaFilter(isFiltered ? null : area.name)}
+                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 ${
+                      isFiltered
+                        ? "border-[#EA580C] ring-2 ring-[#EA580C]/20 " + area.color
+                        : area.color + " hover:border-[#EA580C]/40"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xl">{area.icon}</span>
+                        <span className="text-xs font-black leading-tight text-[#0D2329]">
+                          {area.name}
+                        </span>
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => openEditGoal(g)}
-                          className="p-1.5 rounded-lg text-[#8CAAB1] hover:text-[#EA580C] hover:bg-[#FFF7ED] transition-colors cursor-pointer"
-                          title="Editar meta"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteGoal(g.id)}
-                          className="p-1.5 rounded-lg text-[#8CAAB1] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
-                          title="Excluir meta"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleToggleConfiguredArea(area.name)
+                        }}
+                        title={isConfigured ? "Clique para desativar dos campos de aula" : "Clique para ativar nos campos de aula"}
+                        className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer shrink-0 border ${
+                          isConfigured
+                            ? "bg-[#10B981] text-white border-[#059669] shadow-xs"
+                            : "bg-white/80 text-[#6B7C83] border-[#D8E5E7] hover:bg-white hover:text-[#0D2329]"
+                        }`}
+                      >
+                        {isConfigured ? (
+                          <>
+                            <CheckSquare className="w-3 h-3 stroke-[3]" />
+                            <span>Na Aula</span>
+                          </>
+                        ) : (
+                          <>
+                            <Square className="w-3 h-3" />
+                            <span>+ Ativar</span>
+                          </>
+                        )}
+                      </button>
                     </div>
-                  )
-                })
-              )}
+
+                    {areaGoals.length === 0 ? (
+                      <p className="text-[10px] font-semibold opacity-60">Nenhuma meta cadastrada · Clique no card para filtrar</p>
+                    ) : (
+                      <p className="text-[10px] font-semibold opacity-80">
+                        {areaInProgress > 0 && `${areaInProgress} em andamento`}
+                        {areaInProgress > 0 && areaAchieved > 0 && " · "}
+                        {areaAchieved > 0 && `${areaAchieved} atingida${areaAchieved !== 1 ? "s" : ""}`}
+                        {areaInProgress === 0 && areaAchieved === 0 && `${areaGoals.length} não iniciada${areaGoals.length !== 1 ? "s" : ""}`}
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
 
-        {/* COLUNA RESUMO (1/3) */}
-        <div className="space-y-4">
+        {/* COLUNA DIREITA: RESUMO (TOP) + OBJETIVOS & METAS (BOTTOM) (1/3) */}
+        <div className="space-y-6">
+          {/* 1. RESUMO DO ACOMPANHAMENTO */}
           <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-5 shadow-sm space-y-4">
             <h4 className="text-xs font-black uppercase text-[#0D2329] tracking-wider flex items-center gap-1.5">
               <BookOpen className="w-4 h-4 text-[#EA580C]" />
@@ -796,96 +763,130 @@ export function ChildInterventionTab({
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* ── 3. MAPA DE DESENVOLVIMENTO & CONFIGURAÇÃO DAS AULAS ── */}
-      <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center shrink-0">
-              <Brain className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-base font-black text-[#0D2329]">
-                Áreas de Intervenção & Mapa de Habilidades
-              </h3>
-              <p className="text-xs font-semibold text-[#6B7C83]">
-                Defina quais áreas trabalhar nesta criança. As áreas com <strong>[Na Aula]</strong> geram os campos na aula de intervenção.
-              </p>
-            </div>
-          </div>
-          <div className="text-xs font-bold text-[#7C3AED] bg-[#EDE9FE] px-3 py-1.5 rounded-2xl border border-[#DDD6FE] self-start sm:self-auto">
-            {configuredAreas.length} {configuredAreas.length === 1 ? "área ativa para aulas" : "áreas ativas para aulas"}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {SKILL_AREAS.map((area) => {
-            const areaGoals = goals.filter((g) => g.area === area.name)
-            const areaAchieved = areaGoals.filter((g) => g.status === "achieved").length
-            const areaInProgress = areaGoals.filter((g) => g.status === "in_progress").length
-            const isFiltered = areaFilter === area.name
-            const isConfigured = configuredAreas.includes(area.name)
-
-            return (
-              <div
-                key={area.name}
-                onClick={() => setAreaFilter(isFiltered ? null : area.name)}
-                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 ${
-                  isFiltered
-                    ? "border-[#EA580C] ring-2 ring-[#EA580C]/20 " + area.color
-                    : area.color + " hover:border-[#EA580C]/40"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xl">{area.icon}</span>
-                    <span className="text-xs font-black leading-tight text-[#0D2329]">
-                      {area.name}
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleToggleConfiguredArea(area.name)
-                    }}
-                    title={isConfigured ? "Clique para desativar dos campos de aula" : "Clique para ativar nos campos de aula"}
-                    className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer shrink-0 border ${
-                      isConfigured
-                        ? "bg-[#10B981] text-white border-[#059669] shadow-xs"
-                        : "bg-white/80 text-[#6B7C83] border-[#D8E5E7] hover:bg-white hover:text-[#0D2329]"
-                    }`}
-                  >
-                    {isConfigured ? (
-                      <>
-                        <CheckSquare className="w-3 h-3 stroke-[3]" />
-                        <span>Na Aula</span>
-                      </>
-                    ) : (
-                      <>
-                        <Square className="w-3 h-3" />
-                        <span>+ Ativar</span>
-                      </>
-                    )}
-                  </button>
+          {/* 2. OBJETIVOS & METAS DO PLANO DE INTERVENÇÃO */}
+          <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-2xl bg-[#FFF7ED] border border-[#FED7AA] text-[#EA580C] flex items-center justify-center shrink-0">
+                  <Target className="w-4 h-4" />
                 </div>
-
-                {areaGoals.length === 0 ? (
-                  <p className="text-[10px] font-semibold opacity-60">Nenhuma meta cadastrada · Clique no card para filtrar</p>
-                ) : (
-                  <p className="text-[10px] font-semibold opacity-80">
-                    {areaInProgress > 0 && `${areaInProgress} em andamento`}
-                    {areaInProgress > 0 && areaAchieved > 0 && " · "}
-                    {areaAchieved > 0 && `${areaAchieved} atingida${areaAchieved !== 1 ? "s" : ""}`}
-                    {areaInProgress === 0 && areaAchieved === 0 && `${areaGoals.length} não iniciada${areaGoals.length !== 1 ? "s" : ""}`}
+                <div className="min-w-0">
+                  <h4 className="text-xs sm:text-sm font-black text-[#0D2329] truncate">
+                    Metas do Plano
+                  </h4>
+                  <p className="text-[11px] font-semibold text-[#6B7C83] truncate">
+                    {areaFilter ? (
+                      <span>
+                        Filtro: <strong>{areaFilter}</strong> —{" "}
+                        <button
+                          onClick={() => setAreaFilter(null)}
+                          className="text-[#EA580C] underline cursor-pointer"
+                        >
+                          todas
+                        </button>
+                      </span>
+                    ) : (
+                      `${goals.length} cadastrada${goals.length !== 1 ? "s" : ""}`
+                    )}
                   </p>
-                )}
+                </div>
               </div>
-            )
-          })}
+              <button
+                onClick={() => { resetGoalForm(); setEditingGoal(null); setShowAddGoalModal(true) }}
+                className="text-xs font-black text-[#EA580C] hover:underline flex items-center gap-1 cursor-pointer shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Adicionar
+              </button>
+            </div>
+
+            <div className="space-y-2.5 max-h-[600px] overflow-y-auto pr-0.5">
+              {filteredGoals.length === 0 ? (
+                <div className="p-5 text-center rounded-2xl border border-dashed border-[#D8E5E7] bg-[#F8FAFB] text-xs font-semibold text-[#8CAAB1]">
+                  {areaFilter
+                    ? "Nenhuma meta nesta área ainda."
+                    : "Nenhuma meta cadastrada. Clique em \"Adicionar\" para começar."}
+                </div>
+              ) : (
+                filteredGoals.map((g) => {
+                  const s = statusLabel(g.status)
+                  return (
+                    <div
+                      key={g.id}
+                      className="p-3.5 rounded-2xl border-2 border-[#EEF5F6] hover:border-[#EA580C]/30 bg-white transition-all flex items-start justify-between gap-2 shadow-2xs group"
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        {/* Status toggle button */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleGoalStatus(g)}
+                          title="Clique para avançar o status"
+                          className={`mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 text-xs font-black ${
+                            g.status === "achieved"
+                              ? "bg-[#10B981] text-white"
+                              : g.status === "in_progress"
+                              ? "bg-[#FED7AA] text-[#C2410C]"
+                              : "bg-[#F3F4F6] text-[#9CA3AF] border border-[#D1D5DB]"
+                          }`}
+                        >
+                          {g.status === "achieved" ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />
+                          ) : (
+                            <span className="w-2 h-2 rounded-full bg-current" />
+                          )}
+                        </button>
+
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-black text-[#0D2329] leading-snug break-words">
+                              {g.title}
+                            </span>
+                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-[#F8FAFB] text-[#6B7C83] border border-[#D8E5E7]">
+                              {g.area}
+                            </span>
+                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${s.cls}`}>
+                              {s.emoji} {s.text}
+                            </span>
+                          </div>
+                          {g.strategy && (
+                            <p className="text-[11px] text-[#6B7C83] italic break-words">
+                              Estratégia: {g.strategy}
+                            </p>
+                          )}
+                          {g.started_at && (
+                            <p className="text-[10px] text-[#8CAAB1]">
+                              Iniciada em: {formatDate(g.started_at)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => openEditGoal(g)}
+                          className="p-1 rounded-lg text-[#8CAAB1] hover:text-[#EA580C] hover:bg-[#FFF7ED] transition-colors cursor-pointer"
+                          title="Editar meta"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteGoal(g.id)}
+                          className="p-1 rounded-lg text-[#8CAAB1] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+                          title="Excluir meta"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
