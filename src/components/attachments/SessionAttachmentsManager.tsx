@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useId } from "react"
+import { useState, useEffect, useRef } from "react"
 import { QRCodeSVG } from "qrcode.react"
 import {
   Paperclip,
@@ -13,9 +13,10 @@ import {
   Copy,
   Check,
   ImageIcon,
+  Wifi,
+  AlertTriangle,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/Dialog"
 import toast from "react-hot-toast"
 
 export interface AttachmentItem {
@@ -40,9 +41,9 @@ interface SessionAttachmentsManagerProps {
 
 export function SessionAttachmentsManager({
   childId,
-  childName,
-  professionalId,
-  attachments,
+  childName = "Paciente",
+  professionalId = "",
+  attachments = [],
   onChange,
   category = "atividades",
   title = "Anexos & Fotos da Sessão",
@@ -54,54 +55,110 @@ export function SessionAttachmentsManager({
   const [copiedLink, setCopiedLink] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [receivedFromPhone, setReceivedFromPhone] = useState<AttachmentItem[]>([])
+  const [customHost, setCustomHost] = useState<string>("")
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const attachmentsRef = useRef(attachments)
 
+  // Referência sempre atualizada para evitar closures antigas
+  const attachmentsRef = useRef(attachments)
+  attachmentsRef.current = attachments
+
+  // Failsafe: se algum modal anterior deixou o body bloqueado com pointer-events: none, restaura imediatamente
   useEffect(() => {
-    attachmentsRef.current = attachments
-  }, [attachments])
+    if (document.body.style.pointerEvents === "none") {
+      document.body.style.pointerEvents = "auto"
+    }
+  }, [])
+
+  // Detecta se está rodando localmente (localhost ou 127.0.0.1)
+  const isLocalhost =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
 
   // Gera um uploadId único sempre que abrir o modal de QR code
   const openQrModal = () => {
-    const newId = `${childId.substring(0, 8)}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`
+    // Garante que o body não esteja travado
+    document.body.style.pointerEvents = "auto"
+    const safeChildId = (childId || "avulso").substring(0, 8)
+    const newId = `${safeChildId}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`
     setUploadChannelId(newId)
     setReceivedFromPhone([])
     setShowQrModal(true)
+  }
+
+  const closeQrModal = () => {
+    document.body.style.pointerEvents = "auto"
+    setShowQrModal(false)
   }
 
   // Escuta via Supabase Realtime quando a foto for enviada pelo celular
   useEffect(() => {
     if (!showQrModal || !uploadChannelId) return
 
-    const channel = supabase.channel(`photo_upload_${uploadChannelId}`)
+    const channelName = `photo_upload_${uploadChannelId}`
+    const channel = supabase.channel(channelName, {
+      config: { broadcast: { self: false } },
+    })
 
     channel
-      .on("broadcast", { event: "photo_uploaded" }, (payload) => {
-        if (payload?.payload?.attachment) {
-          const newAtt: AttachmentItem = payload.payload.attachment
-          setReceivedFromPhone((prev) => [...prev, newAtt])
-          const nextAttachments = [...attachmentsRef.current, newAtt]
-          attachmentsRef.current = nextAttachments
-          onChange(nextAttachments)
+      .on("broadcast", { event: "photo_uploaded" }, async (payload) => {
+        try {
+          const item = payload?.payload?.attachment
+          if (!item) return
+
+          let finalAttachment: AttachmentItem = item
+
+          // Se a foto veio como Base64 (fallback para quando o celular não tem login/permissão de storage),
+          // o próprio Desktop (que está logado!) faz o upload e salva com credenciais válidas!
+          if (item.base64_data && item.base64_data.startsWith("data:")) {
+            try {
+              const res = await fetch(item.base64_data)
+              const blob = await res.blob()
+              const ext = item.file_type || "jpg"
+              const fileName = `${Date.now()}_mobile_${item.file_name || "foto.jpg"}`
+              const filePath = `${professionalId || "geral"}/${childId || "avulso"}/${fileName}`
+
+              const { error: uploadErr } = await supabase.storage
+                .from("child-documents")
+                .upload(filePath, blob, { upsert: true })
+
+              if (!uploadErr) {
+                const { data: pubData } = supabase.storage
+                  .from("child-documents")
+                  .getPublicUrl(filePath)
+                finalAttachment = {
+                  id: `att_${Date.now()}`,
+                  file_name: item.file_name || fileName,
+                  file_url: pubData.publicUrl,
+                  file_type: ext,
+                  file_size: blob.size,
+                  created_at: new Date().toISOString(),
+                }
+              }
+            } catch (err) {
+              console.warn("Aviso ao processar base64:", err)
+            }
+          }
+
+          setReceivedFromPhone((prev) => [...prev, finalAttachment])
+          const nextList = [...attachmentsRef.current, finalAttachment]
+          attachmentsRef.current = nextList
+          onChange(nextList)
           toast.success("Foto recebida do celular! 📸✨")
-          // Mantém o modal aberto para permitir fotografar a folha 2, folha 3, etc.
+        } catch (err) {
+          console.error("Erro ao receber broadcast:", err)
         }
       })
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log("Aguardando fotos pelo canal:", uploadChannelId)
-        }
-      })
+      .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [showQrModal, uploadChannelId, onChange])
+  }, [showQrModal, uploadChannelId, childId, professionalId, onChange])
 
   // Upload direto pelo computador / navegador
   async function handleDirectUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files
-    if (!files || files.length === 0 || !childId) return
+    if (!files || files.length === 0) return
 
     setUploading(true)
     try {
@@ -112,14 +169,16 @@ export function SessionAttachmentsManager({
         const ext = file.name.split(".").pop()?.toLowerCase() || ""
         const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_")
         const fileName = `${Date.now()}_${cleanName}`
-        const filePath = `${professionalId || "geral"}/${childId}/${fileName}`
+        const filePath = `${professionalId || "geral"}/${childId || "avulso"}/${fileName}`
 
         // Upload no Storage
         const { error: storageError } = await supabase.storage
           .from("child-documents")
           .upload(filePath, file, { upsert: true })
 
-        if (storageError) throw storageError
+        if (storageError) {
+          console.warn("Erro no storage:", storageError)
+        }
 
         const { data: publicUrlData } = supabase.storage
           .from("child-documents")
@@ -127,23 +186,32 @@ export function SessionAttachmentsManager({
 
         const fileUrl = publicUrlData.publicUrl
 
-        // Salvar na tabela documents para alimentar a aba Documentos
-        const { data: docData } = await supabase
-          .from("documents")
-          .insert({
-            professional_id: professionalId || "00000000-0000-0000-0000-000000000000",
-            child_id: childId,
-            file_name: file.name,
-            file_url: fileUrl,
-            file_type: ext,
-            file_size: file.size,
-            category,
-          })
-          .select()
-          .single()
+        // Salvar na tabela documents se o profissional existir
+        let docId = `att_${Date.now()}_${i}`
+        if (professionalId && childId) {
+          try {
+            const { data: docData } = await supabase
+              .from("documents")
+              .insert({
+                professional_id: professionalId,
+                child_id: childId,
+                file_name: file.name,
+                file_url: fileUrl,
+                file_type: ext,
+                file_size: file.size,
+                category,
+              })
+              .select()
+              .single()
+
+            if (docData?.id) docId = docData.id
+          } catch (docErr) {
+            console.warn("Aviso ao registrar em documents:", docErr)
+          }
+        }
 
         newItems.push({
-          id: docData?.id || `att_${Date.now()}_${i}`,
+          id: docId,
           file_name: file.name,
           file_url: fileUrl,
           file_type: ext,
@@ -152,7 +220,9 @@ export function SessionAttachmentsManager({
         })
       }
 
-      onChange([...attachments, ...newItems])
+      const updated = [...attachments, ...newItems]
+      attachmentsRef.current = updated
+      onChange(updated)
       toast.success(
         newItems.length === 1
           ? "Arquivo anexado com sucesso!"
@@ -168,12 +238,21 @@ export function SessionAttachmentsManager({
   }
 
   function handleRemoveAttachment(id: string) {
-    onChange(attachments.filter((a) => a.id !== id))
+    const filtered = attachments.filter((a) => a.id !== id)
+    attachmentsRef.current = filtered
+    onChange(filtered)
     toast.success("Anexo removido desta sessão.")
   }
 
+  // Define a base da URL (se em localhost, permite usar o IP da rede local para o celular conseguir abrir)
+  const baseOrigin = customHost
+    ? `http://${customHost}`
+    : isLocalhost
+    ? `http://192.168.1.33:5173`
+    : window.location.origin
+
   const mobileCaptureUrl = uploadChannelId
-    ? `${window.location.origin}/captura/${uploadChannelId}?childId=${childId}&childName=${encodeURIComponent(
+    ? `${baseOrigin}/captura/${uploadChannelId}?childId=${childId || ""}&childName=${encodeURIComponent(
         childName || ""
       )}&profId=${professionalId || ""}&category=${category}`
     : ""
@@ -207,7 +286,7 @@ export function SessionAttachmentsManager({
 
         {/* Botões de Ação */}
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
-          {/* Input oculto de arquivo */}
+          {/* Input oculto de arquivo com seleção múltipla */}
           <input
             ref={fileInputRef}
             type="file"
@@ -217,7 +296,7 @@ export function SessionAttachmentsManager({
             className="hidden"
           />
 
-          {/* Botão de upload no PC ou celular */}
+          {/* Botão de upload no PC */}
           <button
             type="button"
             disabled={uploading}
@@ -323,53 +402,71 @@ export function SessionAttachmentsManager({
         </div>
       )}
 
-      {/* Modal: QR Code para Captura no Celular */}
-      <Dialog open={showQrModal} onOpenChange={setShowQrModal}>
-        <DialogContent className="max-w-md p-0 overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
-          <DialogHeader className="p-6 pb-4 border-b border-[#EEF5F6] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center">
-                <Smartphone className="w-4 h-4" />
+      {/* ── MODAL NATIVO: QR CODE (Sem dependência do Radix para evitar travamentos de ponteiro) ── */}
+      {showQrModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeQrModal()
+          }}
+        >
+          <div className="relative w-full max-w-md bg-white rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
+            {/* Header do Modal */}
+            <div className="flex items-center justify-between pb-3 border-b border-[#EEF5F6]">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center">
+                  <Smartphone className="w-4 h-4" />
+                </div>
+                <h4 className="text-base font-black text-[#0D2329]">
+                  Tirar Foto com o Celular
+                </h4>
               </div>
-              <DialogTitle className="text-base font-black text-[#0D2329]">
-                Tirar Foto com o Celular
-              </DialogTitle>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowQrModal(false)}
-              className="text-[#8CAAB1] hover:text-[#0D2329] cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </DialogHeader>
-
-          <div className="p-6 text-center space-y-4">
-            <p className="text-xs font-semibold text-[#6B7C83] leading-relaxed">
-              Aponte a câmera do seu celular para o <strong>QR Code</strong> abaixo. A tela de captura vai se abrir e a foto que você tirar aparecerá automaticamente aqui nesta sessão!
-            </p>
-
-            {/* Container do QR Code */}
-            <div className="inline-block p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-inner mx-auto">
-              <QRCodeSVG
-                value={mobileCaptureUrl}
-                size={220}
-                level="M"
-                includeMargin={false}
-              />
+              <button
+                type="button"
+                onClick={closeQrModal}
+                className="w-8 h-8 rounded-xl bg-[#F7FAFA] hover:bg-[#EEF5F6] text-[#6B7C83] hover:text-[#0D2329] flex items-center justify-center transition-colors cursor-pointer"
+                title="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div className="space-y-3 pt-1">
-              {/* Fotos recebidas do celular nesta sessão de QR Code */}
+            {/* Explicação */}
+            <div className="text-center space-y-3">
+              <p className="text-xs font-semibold text-[#6B7C83] leading-relaxed">
+                Aponte a câmera do celular para o QR Code abaixo. As fotos que você tirar cairão diretamente nesta tela!
+              </p>
+
+              {/* QR Code */}
+              <div className="inline-block p-4 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-inner mx-auto">
+                <QRCodeSVG
+                  value={mobileCaptureUrl}
+                  size={210}
+                  level="M"
+                  includeMargin={false}
+                />
+              </div>
+
+              {/* Dica de IP se estiver em localhost */}
+              {isLocalhost && (
+                <div className="p-2.5 rounded-xl bg-[#FEF8EC] border border-[#FDE68A] text-left text-[11px] text-[#B8871E] flex items-start gap-2">
+                  <Wifi className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Dica de Rede Wi-Fi:</span> O QR Code está apontando para o seu IP local (<strong>{baseOrigin.replace("http://", "")}</strong>). O celular precisa estar no mesmo Wi-Fi do computador.
+                  </div>
+                </div>
+              )}
+
+              {/* Contador de fotos recebidas */}
               {receivedFromPhone.length > 0 ? (
-                <div className="p-3.5 bg-[#E8F8F5] border-2 border-[#A7F3D0] rounded-2xl space-y-2 text-left animate-in fade-in">
+                <div className="p-3 bg-[#E8F8F5] border-2 border-[#A7F3D0] rounded-2xl space-y-2 text-left animate-in fade-in">
                   <div className="flex items-center justify-between text-xs font-black text-[#065F46]">
                     <span className="flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
-                      <span>{receivedFromPhone.length} foto(s) recebida(s) do celular!</span>
+                      <span>{receivedFromPhone.length} foto(s) recebida(s) agora!</span>
                     </span>
                     <span className="text-[10px] font-bold text-[#059669] bg-white px-2 py-0.5 rounded-full border border-[#A7F3D0]">
-                      Pode fotografar mais
+                      Ao vivo
                     </span>
                   </div>
                   <div className="flex gap-2 overflow-x-auto py-1">
@@ -378,7 +475,7 @@ export function SessionAttachmentsManager({
                         key={p.id || idx}
                         src={p.file_url}
                         alt={p.file_name}
-                        className="w-12 h-12 rounded-xl object-cover border border-[#A7F3D0] shrink-0"
+                        className="w-12 h-12 rounded-xl object-cover border border-[#A7F3D0] shrink-0 bg-white"
                       />
                     ))}
                   </div>
@@ -390,16 +487,17 @@ export function SessionAttachmentsManager({
                 </div>
               )}
 
+              {/* Botões do Modal */}
               <div className="pt-2 flex flex-col gap-2">
                 <button
                   type="button"
-                  onClick={() => setShowQrModal(false)}
+                  onClick={closeQrModal}
                   className="w-full h-11 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white font-black text-xs shadow-md active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   {receivedFromPhone.length > 0 ? (
                     <>
                       <Check className="w-4 h-4 stroke-[3]" />
-                      <span>Concluir e Fechar ({receivedFromPhone.length} fotos recebidas)</span>
+                      <span>Concluir e Fechar ({receivedFromPhone.length} fotos salvas)</span>
                     </>
                   ) : (
                     <span>Fechar Janela</span>
@@ -417,30 +515,32 @@ export function SessionAttachmentsManager({
               </div>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
-      {/* Modal: Preview da Imagem em Tamanho Real */}
-      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
-        <DialogContent className="max-w-2xl p-2 overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
-          <div className="relative">
+      {/* ── MODAL NATIVO: PREVIEW DE IMAGEM ── */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-3xl max-h-[90vh] bg-white rounded-3xl overflow-hidden shadow-2xl p-2">
             <button
               type="button"
               onClick={() => setPreviewImage(null)}
-              className="absolute top-3 right-3 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors z-10 cursor-pointer"
+              className="absolute top-4 right-4 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors cursor-pointer z-10"
+              title="Fechar"
             >
               <X className="w-4 h-4" />
             </button>
-            {previewImage && (
-              <img
-                src={previewImage}
-                alt="Visualização do anexo"
-                className="w-full max-h-[80vh] object-contain rounded-2xl"
-              />
-            )}
+            <img
+              src={previewImage}
+              alt="Visualização do anexo"
+              className="w-full h-full max-h-[85vh] object-contain rounded-2xl"
+            />
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   )
 }

@@ -172,25 +172,42 @@ export function ActiveInterventionSessionPage() {
     setSaving(true)
     try {
       // 1. Insert intervention_session
-      const { data: sessionData, error: sessionError } = await supabase
+      const sessionPayload: any = {
+        professional_id: profId,
+        child_id: child.id,
+        appointment_id: appointment?.id || null,
+        session_number: sessionNumber,
+        date,
+        start_time: startTime || null,
+        end_time: endTime || null,
+        behavior: behavior || null,
+        general_notes: generalNotes.trim() || null,
+        family_recommendation: familyRecommendation.trim() || null,
+        next_session_plan: nextSessionPlan.trim() || null,
+        status: "completed",
+      }
+
+      if (attachments.length > 0) {
+        sessionPayload.attachments = attachments
+      }
+
+      let { data: sessionData, error: sessionError } = await supabase
         .from("intervention_sessions")
-        .insert({
-          professional_id: profId,
-          child_id: child.id,
-          appointment_id: appointment?.id || null,
-          session_number: sessionNumber,
-          date,
-          start_time: startTime || null,
-          end_time: endTime || null,
-          behavior: behavior || null,
-          general_notes: generalNotes.trim() || null,
-          family_recommendation: familyRecommendation.trim() || null,
-          next_session_plan: nextSessionPlan.trim() || null,
-          attachments: attachments.length > 0 ? attachments : [],
-          status: "completed",
-        })
+        .insert(sessionPayload)
         .select()
         .single()
+
+      // Failsafe: se a coluna attachments ainda não foi criada no banco, tenta sem ela
+      if (sessionError && sessionError.message?.toLowerCase().includes("attachments")) {
+        delete sessionPayload.attachments
+        const retry = await supabase
+          .from("intervention_sessions")
+          .insert(sessionPayload)
+          .select()
+          .single()
+        sessionData = retry.data
+        sessionError = retry.error
+      }
 
       if (sessionError) throw sessionError
 

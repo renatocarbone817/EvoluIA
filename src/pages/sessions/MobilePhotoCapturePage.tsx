@@ -12,7 +12,6 @@ import {
   ImageIcon,
   Check,
   Trash2,
-  Layers,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import type { AttachmentItem } from "@/components/attachments/SessionAttachmentsManager"
@@ -21,6 +20,59 @@ interface QueuedPhoto {
   id: string
   file: File
   previewUrl: string
+}
+
+// Comprime a foto no navegador do celular para ~150KB (mantendo nitidez perfeita para leitura)
+async function compressImage(file: File, maxWidth = 1280, quality = 0.75): Promise<{ blob: Blob; dataUrl: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        let width = img.width
+        let height = img.height
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width)
+            width = maxWidth
+          }
+        } else {
+          if (height > maxWidth) {
+            width = Math.round((width * maxWidth) / height)
+            height = maxWidth
+          }
+        }
+
+        const canvas = document.createElement("canvas")
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext("2d")
+        if (!ctx) {
+          return reject(new Error("Canvas context error"))
+        }
+
+        ctx.drawImage(img, 0, 0, width, height)
+        const dataUrl = canvas.toDataURL("image/jpeg", quality)
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve({ blob, dataUrl })
+            } else {
+              reject(new Error("Erro na compressão"))
+            }
+          },
+          "image/jpeg",
+          quality
+        )
+      }
+      img.onerror = reject
+      img.src = e.target?.result as string
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
 }
 
 export function MobilePhotoCapturePage() {
@@ -51,7 +103,9 @@ export function MobilePhotoCapturePage() {
   useEffect(() => {
     if (!uploadId) return
 
-    const ch = supabase.channel(`photo_upload_${uploadId}`)
+    const ch = supabase.channel(`photo_upload_${uploadId}`, {
+      config: { broadcast: { self: false } },
+    })
     ch.subscribe((status) => {
       if (status === "SUBSCRIBED") {
         console.log("Canal Realtime conectado no celular:", uploadId)
@@ -67,7 +121,7 @@ export function MobilePhotoCapturePage() {
     }
   }, [uploadId])
 
-  // Adiciona fotos à fila (sem apagar as anteriores!)
+  // Adiciona fotos à fila (sem apagar as anteriores)
   function handleAppendPhotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files
     if (!files || files.length === 0) return
@@ -82,7 +136,7 @@ export function MobilePhotoCapturePage() {
     setErrorMsg(null)
     setIsFinished(false)
 
-    // Limpa os inputs para permitir selecionar a mesma foto ou disparar a câmera novamente
+    // Limpa os inputs para permitir nova seleção
     if (cameraInputRef.current) cameraInputRef.current.value = ""
     if (galleryInputRef.current) galleryInputRef.current.value = ""
   }
@@ -96,7 +150,7 @@ export function MobilePhotoCapturePage() {
     })
   }
 
-  // Envia todas as fotos acumuladas na fila de uma só vez para o computador
+  // Envia todas as fotos da fila para o computador
   async function handleSendAllToDesktop() {
     if (queuedPhotos.length === 0 || !uploadId) return
 
@@ -110,64 +164,63 @@ export function MobilePhotoCapturePage() {
       for (let i = 0; i < queuedPhotos.length; i++) {
         setUploadProgress({ current: i + 1, total: queuedPhotos.length })
         const item = queuedPhotos[i]
-        const file = item.file
-        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg"
-        const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_")
+        const originalFile = item.file
+
+        // 1. Comprime a foto para upload ultrarrápido (~150KB)
+        let compressedBlob = originalFile as Blob
+        let base64Data = ""
+        try {
+          const comp = await compressImage(originalFile)
+          compressedBlob = comp.blob
+          base64Data = comp.dataUrl
+        } catch (compErr) {
+          console.warn("Compressão fallback:", compErr)
+        }
+
+        const ext = "jpg"
+        const cleanName = originalFile.name.replace(/[^a-zA-Z0-9.-]/g, "_")
         const fileName = `${Date.now()}_mobile_${i}_${cleanName}`
         const filePath = `${profId || "geral"}/${childId || "avulso"}/${fileName}`
 
-        // 1. Upload no Supabase Storage
-        const { error: storageError } = await supabase.storage
-          .from("child-documents")
-          .upload(filePath, file, { upsert: true })
+        let fileUrl = ""
 
-        if (storageError) throw storageError
+        // 2. Tenta fazer o upload direto no Supabase Storage se permitido
+        try {
+          const { error: storageError } = await supabase.storage
+            .from("child-documents")
+            .upload(filePath, compressedBlob, { upsert: true })
 
-        const { data: publicUrlData } = supabase.storage
-          .from("child-documents")
-          .getPublicUrl(filePath)
-
-        const fileUrl = publicUrlData.publicUrl
-
-        // 2. Inserir na tabela documents
-        let docId = `att_${Date.now()}_${i}`
-        if (childId) {
-          const { data: docData } = await supabase
-            .from("documents")
-            .insert({
-              professional_id: profId || "00000000-0000-0000-0000-000000000000",
-              child_id: childId,
-              file_name: file.name || `foto_folha_${Date.now()}_${i + 1}.${ext}`,
-              file_url: fileUrl,
-              file_type: ext,
-              file_size: file.size,
-              category,
-            })
-            .select()
-            .single()
-
-          if (docData?.id) docId = docData.id
+          if (!storageError) {
+            const { data: publicUrlData } = supabase.storage
+              .from("child-documents")
+              .getPublicUrl(filePath)
+            fileUrl = publicUrlData?.publicUrl || ""
+          }
+        } catch (uploadErr) {
+          console.warn("Storage upload fallback:", uploadErr)
         }
 
-        const attachmentItem: AttachmentItem = {
-          id: docId,
-          file_name: file.name || `foto_folha_${Date.now()}_${i + 1}.${ext}`,
-          file_url: fileUrl,
+        // Se não conseguiu URL do storage, usa a base64Data para o Desktop autenticado salvar!
+        const payloadAttachment: any = {
+          id: `att_${Date.now()}_${i}`,
+          file_name: originalFile.name || `foto_folha_${i + 1}.jpg`,
+          file_url: fileUrl || base64Data,
           file_type: ext,
-          file_size: file.size,
+          file_size: compressedBlob.size,
+          base64_data: base64Data,
           created_at: new Date().toISOString(),
         }
 
-        // 3. Broadcast Realtime para o Desktop
+        // 3. Dispara transmissão Realtime para a tela do computador
         if (channelRef.current) {
           await channelRef.current.send({
             type: "broadcast",
             event: "photo_uploaded",
-            payload: { attachment: attachmentItem },
+            payload: { attachment: payloadAttachment },
           })
         }
 
-        newlySent.push(attachmentItem)
+        newlySent.push(payloadAttachment)
       }
 
       // Adiciona aos itens enviados com sucesso
@@ -266,7 +319,7 @@ export function MobilePhotoCapturePage() {
                 </div>
               </div>
 
-              {/* Botão de limpar tudo se quiser */}
+              {/* Botão de limpar tudo */}
               <button
                 type="button"
                 onClick={() => {

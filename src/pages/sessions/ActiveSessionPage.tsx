@@ -143,27 +143,44 @@ export function ActiveSessionPage() {
       const fullWhatWasWorked = `${areasString}${form.what_was_worked}`.trim()
 
       // 1. Insert session record
-      const { data: sessionData, error: sessionError } = await supabase
+      const sessionPayload: any = {
+        professional_id: profId,
+        child_id: child.id,
+        appointment_id: appointment?.id || null,
+        session_number: sessionNumber,
+        date: form.date,
+        start_time: form.start_time || null,
+        end_time: form.end_time || null,
+        objective: form.objective || null,
+        what_was_worked: fullWhatWasWorked || null,
+        activities: form.activities || null,
+        test_results: form.test_results || null,
+        professional_notes: form.professional_notes || null,
+        next_objectives: form.next_objectives || null,
+        status: "completed",
+      }
+
+      if (attachments.length > 0) {
+        sessionPayload.attachments = attachments
+      }
+
+      let { data: sessionData, error: sessionError } = await supabase
         .from("sessions")
-        .insert({
-          professional_id: profId,
-          child_id: child.id,
-          appointment_id: appointment?.id || null,
-          session_number: sessionNumber,
-          date: form.date,
-          start_time: form.start_time || null,
-          end_time: form.end_time || null,
-          objective: form.objective || null,
-          what_was_worked: fullWhatWasWorked || null,
-          activities: form.activities || null,
-          test_results: form.test_results || null,
-          professional_notes: form.professional_notes || null,
-          next_objectives: form.next_objectives || null,
-          attachments: attachments.length > 0 ? attachments : [],
-          status: "completed",
-        })
+        .insert(sessionPayload)
         .select()
         .single()
+
+      // Failsafe se a coluna attachments ainda não foi criada no banco
+      if (sessionError && sessionError.message?.toLowerCase().includes("attachments")) {
+        delete sessionPayload.attachments
+        const retry = await supabase
+          .from("sessions")
+          .insert(sessionPayload)
+          .select()
+          .single()
+        sessionData = retry.data
+        sessionError = retry.error
+      }
 
       if (sessionError) throw sessionError
 
