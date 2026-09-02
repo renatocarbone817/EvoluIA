@@ -19,6 +19,7 @@ import { ChildrenPage } from "@/pages/children/ChildrenPage"
 import { ChildProfilePage } from "@/pages/children/ChildProfilePage"
 import { AppointmentsPage } from "@/pages/appointments/AppointmentsPage"
 import { ActiveSessionPage } from "@/pages/sessions/ActiveSessionPage"
+import { ActiveInterventionSessionPage } from "@/pages/sessions/ActiveInterventionSessionPage"
 import { GuardiansPage } from "@/pages/guardians/GuardiansPage"
 import { FinancialPage } from "@/pages/financial/FinancialPage"
 import { ReportsPage } from "@/pages/reports/ReportsPage"
@@ -124,6 +125,8 @@ export function App() {
               <Route path="/criancas/:id" element={<ChildProfilePage />} />
               <Route path="/atendimento/:appointmentId" element={<ActiveSessionPage />} />
               <Route path="/atendimento/nova/:childId" element={<ActiveSessionPage />} />
+              <Route path="/atendimento/intervencao/:appointmentId" element={<ActiveInterventionSessionPage />} />
+              <Route path="/atendimento/intervencao/nova/:childId" element={<ActiveInterventionSessionPage />} />
               <Route path="/responsaveis" element={<GuardiansPage />} />
               <Route path="/financeiro" element={<FinancialPage />} />
               <Route path="/relatorios" element={<ReportsPage />} />

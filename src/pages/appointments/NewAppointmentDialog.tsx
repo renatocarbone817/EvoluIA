@@ -515,7 +515,8 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
                   onChange={(e) => setForm({ ...form, type: e.target.value })}
                   className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
                 >
-                  <option value="Sessão Psicopedagógica">Sessão Psicopedagógica</option>
+                  <option value="Sessão Psicopedagógica">Sessão Psicopedagógica (Avaliação)</option>
+                  <option value="Aula de Intervenção">Aula de Intervenção (Tratamento)</option>
                   <option value="Entrevista Inicial">Entrevista Inicial (com os Pais)</option>
                   <option value="Avaliação com a Criança">Avaliação com a Criança</option>
                   <option value="Devolutiva com Pais">Devolutiva com Pais</option>

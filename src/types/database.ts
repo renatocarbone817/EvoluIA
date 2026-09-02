@@ -108,6 +108,21 @@ export interface Database {
         Insert: Omit<SessionGoal, 'id' | 'created_at'>
         Update: Partial<Omit<SessionGoal, 'id' | 'created_at'>>
       }
+      intervention_areas: {
+        Row: InterventionArea
+        Insert: Omit<InterventionArea, 'id' | 'created_at'>
+        Update: Partial<Omit<InterventionArea, 'id' | 'created_at'>>
+      }
+      intervention_sessions: {
+        Row: InterventionSession
+        Insert: Omit<InterventionSession, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<InterventionSession, 'id' | 'created_at'>>
+      }
+      intervention_session_areas: {
+        Row: InterventionSessionArea
+        Insert: Omit<InterventionSessionArea, 'id' | 'created_at'>
+        Update: Partial<Omit<InterventionSessionArea, 'id' | 'created_at'>>
+      }
     }
   }
 }
@@ -451,3 +466,39 @@ export interface SessionGoal {
   goal_id: string
   created_at: string
 }
+
+export interface InterventionArea {
+  id: string
+  professional_id: string
+  child_id: string
+  area: string
+  created_at: string
+}
+
+export interface InterventionSession {
+  id: string
+  professional_id: string
+  child_id: string
+  appointment_id: string | null
+  session_number: number | null
+  date: string
+  start_time: string | null
+  end_time: string | null
+  behavior: string | null
+  general_notes: string | null
+  family_recommendation: string | null
+  next_session_plan: string | null
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+export interface InterventionSessionArea {
+  id: string
+  session_id: string
+  area: string
+  what_was_worked: string | null
+  child_response: string | null
+  created_at: string
+}
+

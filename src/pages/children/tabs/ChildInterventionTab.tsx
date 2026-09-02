@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   Brain,
   Target,
@@ -15,6 +16,12 @@ import {
   CalendarCheck,
   Users,
   BookOpen,
+  Play,
+  CheckSquare,
+  Square,
+  FileText,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
@@ -78,10 +85,12 @@ export function ChildInterventionTab({
   const isReportCompleted = child.status === "report_completed"
   const isClosed = child.status === "closed"
 
-  // ─── State ────────────────────────────────────────────────
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [goals, setGoals] = useState<InterventionGoal[]>([])
   const [orientations, setOrientations] = useState<InterventionOrientation[]>([])
+  const [configuredAreas, setConfiguredAreas] = useState<string[]>([])
+  const [interventionSessions, setInterventionSessions] = useState<any[]>([])
   const [sessionCount, setSessionCount] = useState(0)
   const [nextSession, setNextSession] = useState<{ date: string; time: string } | null>(null)
   const [areaFilter, setAreaFilter] = useState<string | null>(null)
@@ -171,14 +180,30 @@ export function ChildInterventionTab({
       .order("created_at", { ascending: true })
     setOrientations((orientData || []) as InterventionOrientation[])
 
-    // 3. Session count
-    const { count } = await supabase
+    // 3. Configured intervention areas
+    const { data: areasData } = await supabase
+      .from("intervention_areas")
+      .select("area")
+      .eq("child_id", child.id)
+    setConfiguredAreas((areasData || []).map((a: any) => a.area))
+
+    // 4. Completed intervention sessions
+    const { data: intervSessionsData } = await supabase
+      .from("intervention_sessions")
+      .select("*, intervention_session_areas(*)")
+      .eq("child_id", child.id)
+      .order("date", { ascending: false })
+    setInterventionSessions(intervSessionsData || [])
+
+    // 5. Total session count (evaluation + intervention)
+    const { count: evalCount } = await supabase
       .from("sessions")
       .select("id", { count: "exact", head: true })
       .eq("child_id", child.id)
-    setSessionCount(count || 0)
+    const totalCount = (evalCount || 0) + (intervSessionsData?.length || 0)
+    setSessionCount(totalCount)
 
-    // 4. Next appointment
+    // 6. Next appointment
     const { data: nextAppt } = await supabase
       .from("appointments")
       .select("start_time")
@@ -201,6 +226,36 @@ export function ChildInterventionTab({
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  async function handleToggleConfiguredArea(areaName: string) {
+    if (!profId) return
+    const isConfigured = configuredAreas.includes(areaName)
+    try {
+      if (isConfigured) {
+        const { error } = await supabase
+          .from("intervention_areas")
+          .delete()
+          .eq("child_id", child.id)
+          .eq("area", areaName)
+        if (error) throw error
+        setConfiguredAreas((prev) => prev.filter((a) => a !== areaName))
+        toast.success(`Área "${areaName}" desativada para as aulas.`)
+      } else {
+        const { error } = await supabase
+          .from("intervention_areas")
+          .insert({
+            professional_id: profId,
+            child_id: child.id,
+            area: areaName,
+          })
+        if (error) throw error
+        setConfiguredAreas((prev) => [...prev, areaName])
+        toast.success(`Área "${areaName}" ativada para as aulas de intervenção!`)
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar área.")
+    }
+  }
 
   // ─── Goal CRUD ────────────────────────────────────────────
   async function handleSaveGoal(e: React.FormEvent) {
@@ -466,6 +521,13 @@ export function ChildInterventionTab({
             </h2>
           </div>
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <button
+              onClick={() => navigate(`/atendimento/intervencao/nova/${child.id}`)}
+              className="h-10 px-4 rounded-2xl bg-white text-[#7C3AED] font-black text-xs flex items-center gap-1.5 shadow-md hover:bg-[#EDE9FE] active:scale-95 transition-all cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-[#7C3AED]" />
+              ▶ Iniciar Aula de Intervenção
+            </button>
             <button
               onClick={() => { resetGoalForm(); setEditingGoal(null); setShowAddGoalModal(true) }}
               className="h-10 px-4 rounded-2xl bg-white text-[#EA580C] font-black text-xs flex items-center gap-1.5 shadow-md hover:bg-[#FFF7ED] active:scale-95 transition-all cursor-pointer"
@@ -737,44 +799,82 @@ export function ChildInterventionTab({
         </div>
       </div>
 
-      {/* ── 3. MAPA DE DESENVOLVIMENTO ───────────────────────── */}
+      {/* ── 3. MAPA DE DESENVOLVIMENTO & CONFIGURAÇÃO DAS AULAS ── */}
       <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-sm space-y-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center">
-            <Brain className="w-4 h-4" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center shrink-0">
+              <Brain className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-[#0D2329]">
+                Áreas de Intervenção & Mapa de Habilidades
+              </h3>
+              <p className="text-xs font-semibold text-[#6B7C83]">
+                Defina quais áreas trabalhar nesta criança. As áreas com <strong>[Na Aula]</strong> geram os campos na aula de intervenção.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-base font-black text-[#0D2329]">Mapa de Desenvolvimento</h3>
-            <p className="text-xs font-semibold text-[#6B7C83]">
-              Clique em uma área para filtrar as metas relacionadas.
-            </p>
+          <div className="text-xs font-bold text-[#7C3AED] bg-[#EDE9FE] px-3 py-1.5 rounded-2xl border border-[#DDD6FE] self-start sm:self-auto">
+            {configuredAreas.length} {configuredAreas.length === 1 ? "área ativa para aulas" : "áreas ativas para aulas"}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {SKILL_AREAS.map((area) => {
             const areaGoals = goals.filter((g) => g.area === area.name)
             const areaAchieved = areaGoals.filter((g) => g.status === "achieved").length
             const areaInProgress = areaGoals.filter((g) => g.status === "in_progress").length
             const isFiltered = areaFilter === area.name
+            const isConfigured = configuredAreas.includes(area.name)
 
             return (
-              <button
+              <div
                 key={area.name}
-                type="button"
                 onClick={() => setAreaFilter(isFiltered ? null : area.name)}
-                className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 ${
                   isFiltered
                     ? "border-[#EA580C] ring-2 ring-[#EA580C]/20 " + area.color
-                    : area.color + " hover:opacity-80"
+                    : area.color + " hover:border-[#EA580C]/40"
                 }`}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-base">{area.icon}</span>
-                  <span className="text-xs font-black leading-tight">{area.name}</span>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xl">{area.icon}</span>
+                    <span className="text-xs font-black leading-tight text-[#0D2329]">
+                      {area.name}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleToggleConfiguredArea(area.name)
+                    }}
+                    title={isConfigured ? "Clique para desativar dos campos de aula" : "Clique para ativar nos campos de aula"}
+                    className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer shrink-0 border ${
+                      isConfigured
+                        ? "bg-[#10B981] text-white border-[#059669] shadow-xs"
+                        : "bg-white/80 text-[#6B7C83] border-[#D8E5E7] hover:bg-white hover:text-[#0D2329]"
+                    }`}
+                  >
+                    {isConfigured ? (
+                      <>
+                        <CheckSquare className="w-3 h-3 stroke-[3]" />
+                        <span>Na Aula</span>
+                      </>
+                    ) : (
+                      <>
+                        <Square className="w-3 h-3" />
+                        <span>+ Ativar</span>
+                      </>
+                    )}
+                  </button>
                 </div>
+
                 {areaGoals.length === 0 ? (
-                  <p className="text-[10px] font-semibold opacity-60">Nenhuma meta cadastrada</p>
+                  <p className="text-[10px] font-semibold opacity-60">Nenhuma meta cadastrada · Clique no card para filtrar</p>
                 ) : (
                   <p className="text-[10px] font-semibold opacity-80">
                     {areaInProgress > 0 && `${areaInProgress} em andamento`}
@@ -783,7 +883,7 @@ export function ChildInterventionTab({
                     {areaInProgress === 0 && areaAchieved === 0 && `${areaGoals.length} não iniciada${areaGoals.length !== 1 ? "s" : ""}`}
                   </p>
                 )}
-              </button>
+              </div>
             )
           })}
         </div>
@@ -889,6 +989,134 @@ export function ChildInterventionTab({
             )}
           </div>
         </div>
+      </div>
+
+      {/* ── 5. HISTÓRICO DE AULAS DE INTERVENÇÃO ───────────── */}
+      <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-sm space-y-5">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-[#0D2329]">
+                Histórico de Aulas de Intervenção ({interventionSessions.length})
+              </h3>
+              <p className="text-xs font-semibold text-[#6B7C83]">
+                Atendimentos realizados com registros específicos de cada habilidade trabalhada.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => navigate(`/atendimento/intervencao/nova/${child.id}`)}
+            className="h-9 px-4 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5 stroke-[3]" />
+            + Nova Aula de Intervenção
+          </button>
+        </div>
+
+        {interventionSessions.length === 0 ? (
+          <div className="p-8 rounded-2xl border-2 border-dashed border-[#D8E5E7] bg-[#F7FAFA] text-center space-y-2">
+            <p className="text-xs font-bold text-[#0D2329]">
+              Nenhuma aula de intervenção registrada ainda para {childName}.
+            </p>
+            <p className="text-[11px] text-[#6B7C83]">
+              Ao iniciar um atendimento desta fase, todas as notas de jogos, respostas da criança e comportamento ficarão organizados aqui.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {interventionSessions.map((session, index) => {
+              const sessionNum = session.session_number || interventionSessions.length - index
+              const areas = session.intervention_session_areas || []
+
+              return (
+                <div
+                  key={session.id}
+                  className="p-5 rounded-2xl border-2 border-[#EEF5F6] hover:border-[#7C3AED]/30 bg-white transition-all shadow-2xs space-y-3"
+                >
+                  {/* Session Header */}
+                  <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-[#F0F5F6]">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-[#EDE9FE] text-[#7C3AED] border border-[#DDD6FE]">
+                        Aula #{sessionNum}
+                      </span>
+                      <span className="text-xs font-bold text-[#0D2329]">
+                        {formatDate(session.date)}
+                      </span>
+                      {session.start_time && (
+                        <span className="text-xs font-medium text-[#6B7C83]">
+                          às {session.start_time}
+                        </span>
+                      )}
+                    </div>
+
+                    {session.behavior && (
+                      <span className="text-xs font-bold px-3 py-1 rounded-xl bg-[#F7FAFA] border border-[#E2ECEE] text-[#4B5563]">
+                        {session.behavior}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Areas worked */}
+                  {areas.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider">
+                        Habilidades Trabalhadas:
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {areas.map((a: any) => (
+                          <div
+                            key={a.id || a.area}
+                            className="p-3 rounded-xl bg-[#F8FAFB] border border-[#E2ECEE] text-xs space-y-1.5"
+                          >
+                            <span className="font-black text-[#0D2329] block">
+                              📌 {a.area}
+                            </span>
+                            {a.what_was_worked && (
+                              <p className="text-[#4B5563]">
+                                <strong className="text-[#0D2329]">Trabalhado:</strong> {a.what_was_worked}
+                              </p>
+                            )}
+                            {a.child_response && (
+                              <p className="text-[#0369A1]">
+                                <strong className="text-[#0369A1]">Resposta:</strong> {a.child_response}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* General notes or recommendation */}
+                  {(session.general_notes || session.family_recommendation || session.next_session_plan) && (
+                    <div className="pt-2 border-t border-[#F0F5F6] flex flex-col gap-1.5 text-xs text-[#4B5563]">
+                      {session.general_notes && (
+                        <p>
+                          <strong className="text-[#0D2329]">Observações:</strong> {session.general_notes}
+                        </p>
+                      )}
+                      {session.family_recommendation && (
+                        <p className="text-[#B8871E] font-medium bg-[#FEF8EC] p-2.5 rounded-xl border border-[#FDE68A]">
+                          <strong>Recado para a Família:</strong> {session.family_recommendation}
+                        </p>
+                      )}
+                      {session.next_session_plan && (
+                        <p className="text-[#6B7C83] italic">
+                          <strong>Próxima Aula:</strong> {session.next_session_plan}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
 

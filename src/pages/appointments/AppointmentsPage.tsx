@@ -269,8 +269,11 @@ export function AppointmentsPage() {
     } else if (typeLower.includes("devolutiva") && appt.child_id) {
       // Devolutiva -> abre a aba de Relatórios da Criança
       navigate(`/criancas/${appt.child_id}?tab=relatorios`)
+    } else if (typeLower.includes("interven") && appt.child_id) {
+      // Aula de Intervenção -> abre o Atendimento de Intervenção
+      navigate(`/atendimento/intervencao/${appt.id}`)
     } else {
-      // Sessão Psicopedagógica / Intervenção / Aula -> abre o Atendimento Clínico
+      // Sessão Psicopedagógica / Avaliação -> abre o Atendimento Clínico
       navigate(`/atendimento/${appt.id}`)
     }
   }
