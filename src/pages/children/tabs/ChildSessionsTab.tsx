@@ -17,6 +17,8 @@ import {
   CheckCircle2,
   Target,
   Sparkles,
+  ExternalLink,
+  ImageIcon,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent } from "@/components/ui/Card"
@@ -38,9 +40,12 @@ interface SessionWithDocs extends Session {
 
 export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) {
   const navigate = useNavigate()
+  const [activeCategory, setActiveCategory] = useState<"avaliacao" | "intervencao">("avaliacao")
   const [sessions, setSessions] = useState<SessionWithDocs[]>([])
+  const [interventionSessions, setInterventionSessions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [intervSearch, setIntervSearch] = useState("")
   const [selectedSession, setSelectedSession] = useState<SessionWithDocs | null>(null)
 
   // Edit session state
@@ -65,14 +70,27 @@ export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) 
 
   async function loadSessions() {
     setLoading(true)
-    const { data } = await supabase
-      .from("sessions")
-      .select("*, session_documents(*)")
-      .eq("child_id", childId)
-      .order("session_number", { ascending: false })
+    try {
+      const [{ data: evalData }, { data: intervData }] = await Promise.all([
+        supabase
+          .from("sessions")
+          .select("*, session_documents(*)")
+          .eq("child_id", childId)
+          .order("session_number", { ascending: false }),
+        supabase
+          .from("intervention_sessions")
+          .select("*, intervention_session_areas(*)")
+          .eq("child_id", childId)
+          .order("date", { ascending: false }),
+      ])
 
-    setSessions((data || []) as SessionWithDocs[])
-    setLoading(false)
+      setSessions((evalData || []) as SessionWithDocs[])
+      setInterventionSessions(intervData || [])
+    } catch (err) {
+      console.error("Erro ao carregar sessões:", err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   function handleStartEdit(session: SessionWithDocs, e?: React.MouseEvent) {
@@ -152,9 +170,64 @@ export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) 
     return text.includes(search.toLowerCase())
   })
 
+  const filteredInterventions = interventionSessions.filter((s) => {
+    const areasText = (s.intervention_session_areas || [])
+      .map((a: any) => `${a.area} ${a.what_was_worked || ""} ${a.child_response || ""}`)
+      .join(" ")
+    const text = `${s.behavior || ""} ${s.general_notes || ""} ${s.family_recommendation || ""} ${s.next_session_plan || ""} ${areasText}`.toLowerCase()
+    return text.includes(intervSearch.toLowerCase())
+  })
+
   return (
     <div className="space-y-6">
-      {/* Action Header */}
+      {/* Selector de Categoria: Avaliação vs Intervenção */}
+      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-[#EEF5F6] border-2 border-[#D8E5E7] w-fit flex-wrap">
+        <button
+          type="button"
+          onClick={() => setActiveCategory("avaliacao")}
+          className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+            activeCategory === "avaliacao"
+              ? "bg-white text-[#7C3AED] shadow-sm border border-[#DDD6FE]"
+              : "text-[#6B7C83] hover:text-[#0D2329]"
+          }`}
+        >
+          <span>📋 Sessões de Avaliação</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              activeCategory === "avaliacao"
+                ? "bg-[#EDE9FE] text-[#7C3AED]"
+                : "bg-white text-[#6B7C83]"
+            }`}
+          >
+            {sessions.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveCategory("intervencao")}
+          className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+            activeCategory === "intervencao"
+              ? "bg-white text-[#7C3AED] shadow-sm border border-[#DDD6FE]"
+              : "text-[#6B7C83] hover:text-[#0D2329]"
+          }`}
+        >
+          <span>🎯 Aulas de Intervenção</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              activeCategory === "intervencao"
+                ? "bg-[#EDE9FE] text-[#7C3AED]"
+                : "bg-white text-[#6B7C83]"
+            }`}
+          >
+            {interventionSessions.length}
+          </span>
+        </button>
+      </div>
+
+      {activeCategory === "avaliacao" ? (
+        <>
+          {/* Action Header Avaliação */ }
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8CAAB1]" />
@@ -310,6 +383,210 @@ export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) 
               </Card>
             )
           })}
+        </div>
+      )}
+        </>
+      ) : (
+        /* ═════════════════════════════════════════════════════════════
+           VISÃO DE INTERVENÇÃO PSICOPEDAGÓGICA (AULAS PRÁTICAS)
+           ═════════════════════════════════════════════════════════════ */
+        <div className="space-y-4">
+          {/* Action Header Intervenção */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8CAAB1]" />
+              <input
+                type="text"
+                placeholder="Buscar nas anotações das aulas..."
+                value={intervSearch}
+                onChange={(e) => setIntervSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED] transition-all shadow-2xs placeholder:text-[#8CAAB1]"
+              />
+            </div>
+            <button
+              onClick={() => navigate(`/atendimento/intervencao/nova/${childId}`)}
+              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Nova Aula de Intervenção</span>
+            </button>
+          </div>
+
+          {/* Intervention List */}
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-28 bg-[#F1F5F9] animate-pulse rounded-2xl border-2 border-[#D8E5E7]" />
+              ))}
+            </div>
+          ) : filteredInterventions.length === 0 ? (
+            <div className="p-8 sm:p-12 rounded-3xl bg-white border-2 border-dashed border-[#D8E5E7] text-center space-y-4 shadow-xs">
+              <div className="w-16 h-16 rounded-3xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] flex items-center justify-center mx-auto shadow-xs">
+                <Sparkles className="w-8 h-8" />
+              </div>
+
+              <div className="space-y-1.5 max-w-md mx-auto">
+                <h3 className="text-lg font-black text-[#0D2329]">
+                  {intervSearch ? "Nenhuma aula encontrada" : "Nenhuma aula de intervenção registrada"}
+                </h3>
+                <p className="text-xs font-semibold text-[#6B7C83] leading-relaxed">
+                  {intervSearch
+                    ? "Tente buscar por outras palavras-chave ou habilidades."
+                    : `Registre a primeira aula prática de estimulação para ${childName || "este paciente"}.`}
+                </p>
+              </div>
+
+              {!intervSearch && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/atendimento/intervencao/nova/${childId}`)}
+                    className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white text-xs font-black inline-flex items-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4 stroke-[3]" />
+                    <span>+ Iniciar Primeira Aula de Intervenção</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3.5">
+              {filteredInterventions.map((session, index) => {
+                const sessionNum = session.session_number || filteredInterventions.length - index
+                const areas = session.intervention_session_areas || []
+                const attachmentsList = Array.isArray(session.attachments)
+                  ? session.attachments
+                  : []
+
+                return (
+                  <div
+                    key={session.id}
+                    className="p-5 rounded-3xl border-2 border-[#D8E5E7] hover:border-[#7C3AED]/40 bg-white transition-all shadow-sm space-y-3.5"
+                  >
+                    {/* Header da Aula */}
+                    <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-[#EEF5F6]">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className="px-3 py-1 rounded-full text-xs font-black bg-[#EDE9FE] text-[#7C3AED] border border-[#DDD6FE]">
+                          Aula #{sessionNum}
+                        </span>
+                        <span className="text-xs font-bold text-[#0D2329]">
+                          {formatDate(session.date)}
+                        </span>
+                        {session.start_time && (
+                          <span className="text-xs font-medium text-[#6B7C83]">
+                            às {session.start_time.substring(0, 5)}
+                          </span>
+                        )}
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0]">
+                          ✓ Realizada
+                        </span>
+                      </div>
+
+                      {session.behavior && (
+                        <span className="text-xs font-bold px-3 py-1 rounded-xl bg-[#F8FAFB] border border-[#E2ECEE] text-[#4B5563]">
+                          {session.behavior}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Habilidades Trabalhadas */}
+                    {areas.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider">
+                          Habilidades Trabalhadas:
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {areas.map((a: any) => (
+                            <div
+                              key={a.id || a.area}
+                              className="p-3 rounded-2xl bg-[#F8FAFB] border border-[#E2ECEE] text-xs space-y-1.5"
+                            >
+                              <span className="font-black text-[#0D2329] block">
+                                📌 {a.area}
+                              </span>
+                              {a.what_was_worked && (
+                                <p className="text-[#4B5563]">
+                                  <strong className="text-[#0D2329]">Trabalhado:</strong> {a.what_was_worked}
+                                </p>
+                              )}
+                              {a.child_response && (
+                                <p className="text-[#0369A1]">
+                                  <strong className="text-[#0369A1]">Resposta:</strong> {a.child_response}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Observações Gerais / Recado Família / Próxima Aula */}
+                    {(session.general_notes || session.family_recommendation || session.next_session_plan) && (
+                      <div className="pt-2 border-t border-[#F0F5F6] flex flex-col gap-2 text-xs text-[#4B5563]">
+                        {session.general_notes && (
+                          <p>
+                            <strong className="text-[#0D2329]">Observações Gerais:</strong> {session.general_notes}
+                          </p>
+                        )}
+                        {session.family_recommendation && (
+                          <div className="p-3 rounded-2xl bg-[#FEF8EC] border border-[#FDE68A] text-[#B8871E] font-medium space-y-0.5">
+                            <strong className="block text-xs font-black">Recado para a Família:</strong>
+                            <p>{session.family_recommendation}</p>
+                          </div>
+                        )}
+                        {session.next_session_plan && (
+                          <p className="text-[#6B7C83] italic">
+                            <strong>Planejamento Próxima Aula:</strong> {session.next_session_plan}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Fotos e Anexos da Aula */}
+                    {attachmentsList.length > 0 && (
+                      <div className="pt-2 border-t border-[#F0F5F6] space-y-2">
+                        <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider flex items-center gap-1.5">
+                          <span>📸 Fotos & Anexos da Atividade ({attachmentsList.length}):</span>
+                        </p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {attachmentsList.map((att: any, attIdx: number) => {
+                            const isImg =
+                              att.file_type &&
+                              ["png", "jpg", "jpeg", "webp", "gif"].includes(
+                                att.file_type.toLowerCase()
+                              )
+                            return (
+                              <a
+                                key={att.id || attIdx}
+                                href={att.file_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="group flex items-center gap-2 p-1.5 pr-3 rounded-xl bg-[#F8FAFB] hover:bg-[#EDE9FE] border border-[#D8E5E7] hover:border-[#7C3AED] transition-all text-xs font-bold text-[#0D2329]"
+                              >
+                                {isImg ? (
+                                  <img
+                                    src={att.file_url}
+                                    alt={att.file_name}
+                                    className="w-8 h-8 rounded-lg object-cover border border-[#D8E5E7]"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-lg bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center text-[10px] font-black">
+                                    PDF
+                                  </div>
+                                )}
+                                <span className="truncate max-w-[160px]">{att.file_name}</span>
+                                <ExternalLink className="w-3 h-3 text-[#8CAAB1] group-hover:text-[#7C3AED]" />
+                              </a>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 
