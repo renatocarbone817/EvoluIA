@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import {
   Plus,
@@ -88,6 +88,15 @@ export function ChildrenPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("todos")
+  const statusFilterRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+
+  useEffect(() => {
+    const el = statusFilterRefs.current[statusFilter]
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+    }
+  }, [statusFilter])
+
   const [viewType, setViewType] = useState<ViewType>("cards")
   const [showNewDialog, setShowNewDialog] = useState(
     searchParams.get("novo") === "true" || searchParams.get("nova") === "true" || searchParams.get("new") === "true"
@@ -479,7 +488,7 @@ export function ChildrenPage() {
         </div>
 
         {/* Filter Chips (Modern Smooth Pills Bar with high contrast) */}
-        <div className="overflow-x-auto -mx-1 px-1 scrollbar-none pt-2 border-t border-slate-100">
+        <div className="overflow-x-auto -mx-1 px-1 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden scroll-smooth pt-2 border-t border-slate-100">
           <div className="flex items-center gap-1.5 p-1.5 bg-[#DCE8EB] rounded-full sm:rounded-2xl border-2 border-white shadow-inner w-max">
             {[
               { id: "todos", label: "Todos", shortLabel: "Todos", count: children.length },
@@ -494,8 +503,14 @@ export function ChildrenPage() {
               return (
                 <button
                   key={f.id}
+                  ref={(el) => {
+                    statusFilterRefs.current[f.id] = el
+                  }}
                   type="button"
-                  onClick={() => setStatusFilter(f.id as StatusFilterType)}
+                  onClick={() => {
+                    setStatusFilter(f.id as StatusFilterType)
+                    statusFilterRefs.current[f.id]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+                  }}
                   className={`px-3.5 py-1.5 sm:py-2 rounded-full sm:rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shrink-0 active:scale-95 cursor-pointer ${
                     isSelected
                       ? "bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white shadow-md scale-[1.02]"

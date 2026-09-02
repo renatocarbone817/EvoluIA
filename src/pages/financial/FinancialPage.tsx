@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   DollarSign,
@@ -107,6 +107,15 @@ export function FinancialPage() {
 
   // Table Filter Pills
   const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense" | "pending" | "paid">("all")
+  const typeFilterRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+
+  useEffect(() => {
+    const el = typeFilterRefs.current[typeFilter]
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+    }
+  }, [typeFilter])
+
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
 
   // Modal states
@@ -1414,7 +1423,7 @@ export function FinancialPage() {
         </div>
 
         {/* ROW 2: SINGLE SCROLLABLE CHIP ROW FOR TYPES */}
-        <div className="overflow-x-auto -mx-1 px-1 scrollbar-none pb-1">
+        <div className="overflow-x-auto -mx-1 px-1 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden scroll-smooth pb-1">
           <div className="flex items-center gap-1.5 p-1 bg-[#F8FAFB] rounded-full sm:rounded-2xl border-2 border-[#D8E5E7] w-max">
             {[
               { id: "all", label: "Todos", count: filterCounts.total },
@@ -1427,9 +1436,15 @@ export function FinancialPage() {
               return (
                 <button
                   key={f.id}
+                  ref={(el) => {
+                    typeFilterRefs.current[f.id] = el
+                  }}
                   type="button"
-                  onClick={() => setTypeFilter(f.id as any)}
-                  className={`px-3.5 py-1.5 sm:py-2 rounded-full sm:rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shrink-0 active:scale-95 ${
+                  onClick={() => {
+                    setTypeFilter(f.id as any)
+                    typeFilterRefs.current[f.id]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+                  }}
+                  className={`px-3.5 py-1.5 sm:py-2 rounded-full sm:rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shrink-0 active:scale-95 cursor-pointer ${
                     isSelected
                       ? "bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white shadow-md"
                       : "text-[#4F6C74] hover:text-[#0D2329] hover:bg-white bg-transparent"

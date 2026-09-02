@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import {
   format,
@@ -124,6 +124,24 @@ export function AppointmentsPage() {
   const [blocking, setBlocking] = useState(false)
 
   const profId = professional?.id || user?.id
+
+  const statusFilterRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const mobileDaysRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+
+  useEffect(() => {
+    const el = statusFilterRefs.current[statusFilter]
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+    }
+  }, [statusFilter])
+
+  useEffect(() => {
+    const dayKey = format(currentDate, "yyyy-MM-dd")
+    const el = mobileDaysRefs.current[dayKey]
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+    }
+  }, [currentDate])
 
   useEffect(() => {
     function handleResize() {
@@ -628,7 +646,7 @@ export function AppointmentsPage() {
           ========================================================================= */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 w-full max-w-full">
         {/* Status Filter Horizontal Sliding Chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none -mx-1 px-1 w-full sm:w-auto">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden scroll-smooth -mx-1 px-1 w-full sm:w-auto">
           {[
             { id: "todos", label: "Todos", count: appointments.length },
             { id: "agendados", label: "Agendados", count: appointments.filter((a) => a.status === "scheduled" || a.status === "confirmed" || a.status === "in_progress").length, dot: "bg-[#7C3AED]" },
@@ -637,8 +655,12 @@ export function AppointmentsPage() {
           ].map((f) => (
             <button
               key={f.id}
-              onClick={() => setStatusFilter(f.id as StatusFilter)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 shrink-0 active:scale-95 ${
+              ref={(el) => { statusFilterRefs.current[f.id] = el }}
+              onClick={() => {
+                setStatusFilter(f.id as StatusFilter)
+                statusFilterRefs.current[f.id]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+              }}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 shrink-0 active:scale-95 cursor-pointer ${
                 statusFilter === f.id
                   ? "bg-[#7C3AED] text-white shadow-md"
                   : "bg-white text-[#6B7C83] border border-[#D8E5E7] hover:bg-[#F7FAFA]"
@@ -685,11 +707,12 @@ export function AppointmentsPage() {
           ───────────────────────────────────────────────────────────── */}
       <div className="block lg:hidden space-y-4">
         {/* Week Days Strip Selector */}
-        <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-3 shadow-sm">
-          <div className="grid grid-cols-7 gap-1 text-center">
+        <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-2.5 shadow-sm overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden scroll-smooth">
+          <div className="grid grid-cols-7 gap-1 text-center min-w-[320px]">
             {weekDays.map((day) => {
               const isSelected = isSameDay(day, currentDate)
               const isToday = isSameDay(day, new Date())
+              const dayKey = format(day, "yyyy-MM-dd")
               const dayApptsCount = appointments.filter((a) => {
                 const aDate = new Date(a.start_time)
                 return isSameDay(aDate, day)
@@ -698,9 +721,13 @@ export function AppointmentsPage() {
               return (
                 <button
                   key={day.toISOString()}
+                  ref={(el) => { mobileDaysRefs.current[dayKey] = el }}
                   type="button"
-                  onClick={() => setCurrentDate(day)}
-                  className={`py-2 px-0.5 rounded-2xl border-2 transition-all flex flex-col items-center justify-center relative active:scale-95 ${
+                  onClick={() => {
+                    setCurrentDate(day)
+                    mobileDaysRefs.current[dayKey]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+                  }}
+                  className={`py-2 px-0.5 rounded-2xl border-2 transition-all flex flex-col items-center justify-center relative active:scale-95 cursor-pointer ${
                     isSelected
                       ? "bg-[#7C3AED] text-white border-[#6D28D9] shadow-md font-black"
                       : isToday

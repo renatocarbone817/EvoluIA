@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import {
   FileText,
@@ -43,6 +43,14 @@ export function ReportsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [filterType, setFilterType] = useState<ReportFilterType>("todos")
+  const filterRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+
+  useEffect(() => {
+    const el = filterRefs.current[filterType]
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+    }
+  }, [filterType])
   const [showNewReportModal, setShowNewReportModal] = useState(searchParams.get("novo") === "true")
   const [selectedChildIdForNew, setSelectedChildIdForNew] = useState("")
   const [creatingReport, setCreatingReport] = useState(false)
@@ -274,7 +282,7 @@ export function ReportsPage() {
           </div>
 
           {/* Filter Chips (Modern Pills Style) */}
-          <div className="overflow-x-auto -mx-1 px-1 scrollbar-none">
+          <div className="overflow-x-auto -mx-1 px-1 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden scroll-smooth">
             <div className="flex items-center gap-1.5 p-1 bg-[#F8FAFB] rounded-full sm:rounded-2xl border-2 border-[#D8E5E7] w-max sm:w-auto">
               {[
                 { id: "todos", label: "Todos", count: totalReports },
@@ -285,9 +293,15 @@ export function ReportsPage() {
                 return (
                   <button
                     key={f.id}
+                    ref={(el) => {
+                      filterRefs.current[f.id] = el
+                    }}
                     type="button"
-                    onClick={() => setFilterType(f.id as ReportFilterType)}
-                    className={`px-3.5 py-1.5 sm:py-2 rounded-full sm:rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 active:scale-95 ${
+                    onClick={() => {
+                      setFilterType(f.id as ReportFilterType)
+                      filterRefs.current[f.id]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+                    }}
+                    className={`px-3.5 py-1.5 sm:py-2 rounded-full sm:rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0 active:scale-95 cursor-pointer ${
                       isSelected
                         ? "bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white shadow-md"
                         : "text-[#4F6C74] hover:text-[#0D2329] hover:bg-white bg-transparent"
