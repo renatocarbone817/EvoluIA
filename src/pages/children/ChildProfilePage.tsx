@@ -348,7 +348,7 @@ export function ChildProfilePage() {
           </div>
 
           {/* Center: Compact Mini Stage Squares (Etapa 1, 2, 3, 4) */}
-          <div className="shrink-0 flex items-center justify-start xl:justify-center overflow-x-auto py-0.5">
+          <div className="shrink-0 flex items-center justify-start xl:justify-center [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <ChildClinicalStageTracker
               child={child}
               onReloadChild={loadChild}

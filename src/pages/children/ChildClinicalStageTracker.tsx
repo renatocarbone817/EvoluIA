@@ -91,7 +91,7 @@ export function ChildClinicalStageTracker({
   }
 
   return (
-    <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto max-w-full scrollbar-none py-0.5">
+    <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
       {STAGES.map((stage) => {
         const isCurrent = stage.id === currentStageIndex
         const isPassed = stage.id < currentStageIndex
