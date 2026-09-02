@@ -302,11 +302,11 @@ export function ChildProfilePage() {
     <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6 animate-in fade-in max-w-full overflow-x-hidden">
       {/* 1. TOP HERO HEADER (Larger Photo, Top-Right Edit Button, No Back Button, Clean Alignment) */}
       <div className="bg-white p-4 sm:p-6 rounded-3xl border-2 border-[#D8E5E7] shadow-sm space-y-4">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
           {/* Left: Avatar + Info */}
-          <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
-            {/* Avatar (Larger) */}
-            <div className="w-20 h-20 sm:w-24 sm:h-24 min-w-[80px] min-h-[80px] max-w-[80px] max-h-[80px] sm:max-w-[96px] sm:max-h-[96px] rounded-3xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] font-black text-2xl sm:text-3xl flex items-center justify-center shadow-md overflow-hidden shrink-0">
+          <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+            {/* Avatar */}
+            <div className="w-16 h-16 sm:w-20 sm:h-20 min-w-[64px] min-h-[64px] max-w-[64px] max-h-[64px] sm:max-w-[80px] sm:max-h-[80px] rounded-3xl bg-[#EDE9FE] border-2 border-[#DDD6FE] text-[#7C3AED] font-black text-xl sm:text-2xl flex items-center justify-center shadow-md overflow-hidden shrink-0">
               {child.photo_url ? (
                 <img src={child.photo_url} alt={child.full_name} className="w-full h-full object-cover" />
               ) : (
@@ -315,9 +315,9 @@ export function ChildProfilePage() {
             </div>
 
             {/* Name, Status & Tags */}
-            <div className="space-y-1.5 min-w-0 flex-1">
+            <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-lg sm:text-2xl font-black text-[#0D2329] tracking-tight truncate leading-tight">
+                <h1 className="text-base sm:text-xl font-black text-[#0D2329] tracking-tight truncate leading-tight">
                   {child.full_name}
                 </h1>
                 <Badge statusKey={child.status} type="child" />
@@ -347,12 +347,32 @@ export function ChildProfilePage() {
             </div>
           </div>
 
-          {/* Right Top Actions (Edit Button on Top Right + Iniciar Sessão) */}
-          <div className="flex items-center gap-2 shrink-0 self-start">
+          {/* Center: Compact Mini Stage Squares (Etapa 1, 2, 3, 4) */}
+          <div className="shrink-0 flex items-center justify-start xl:justify-center overflow-x-auto py-0.5">
+            <ChildClinicalStageTracker
+              child={child}
+              onReloadChild={loadChild}
+              onNavigateTab={(tab) => setActiveTab(tab as Tab)}
+            />
+          </div>
+
+          {/* Right Top Actions */}
+          <div className="flex items-center gap-2 shrink-0 self-end xl:self-center">
+            {child.status === "report_completed" && (
+              <button
+                onClick={() => setActiveTab("intervencao")}
+                className="h-9 sm:h-10 px-3 sm:px-4 rounded-2xl bg-gradient-to-r from-[#EA580C] to-[#F97316] hover:from-[#C2410C] hover:to-[#EA580C] text-white text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                title="Iniciar Intervenção Psicopedagógica"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-white" />
+                <span>🚀 Iniciar Intervenção</span>
+              </button>
+            )}
+
             {nextAppointment && (
               <button
                 onClick={handleStartSession}
-                className="h-9 sm:h-10 px-3 sm:px-4 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                className="h-9 sm:h-10 px-3 sm:px-4 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span className="hidden sm:inline">Iniciar Sessão</span>
@@ -361,7 +381,7 @@ export function ChildProfilePage() {
 
             <button
               onClick={() => setShowEditDialog(true)}
-              className="h-9 sm:h-10 px-3.5 sm:px-4 rounded-2xl bg-[#F7FAFA] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] border-2 border-[#D8E5E7] text-xs font-black flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
+              className="h-9 sm:h-10 px-3.5 sm:px-4 rounded-2xl bg-[#F7FAFA] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] border-2 border-[#D8E5E7] text-xs font-black flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer"
               title="Editar dados da criança"
             >
               <Edit className="w-3.5 h-3.5" />
@@ -392,13 +412,6 @@ export function ChildProfilePage() {
           })}
         </div>
       </div>
-
-      {/* 2.5. CLINICAL STAGES TRACKER */}
-      <ChildClinicalStageTracker
-        child={child}
-        onReloadChild={loadChild}
-        onNavigateTab={(tab) => setActiveTab(tab as Tab)}
-      />
 
       {/* 3. TAB CONTENT */}
       <div className="space-y-6">
