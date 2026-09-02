@@ -53,12 +53,19 @@ export function SessionAttachmentsManager({
   const [uploadChannelId, setUploadChannelId] = useState<string>("")
   const [copiedLink, setCopiedLink] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [receivedFromPhone, setReceivedFromPhone] = useState<AttachmentItem[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const attachmentsRef = useRef(attachments)
+
+  useEffect(() => {
+    attachmentsRef.current = attachments
+  }, [attachments])
 
   // Gera um uploadId único sempre que abrir o modal de QR code
   const openQrModal = () => {
     const newId = `${childId.substring(0, 8)}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`
     setUploadChannelId(newId)
+    setReceivedFromPhone([])
     setShowQrModal(true)
   }
 
@@ -72,21 +79,22 @@ export function SessionAttachmentsManager({
       .on("broadcast", { event: "photo_uploaded" }, (payload) => {
         if (payload?.payload?.attachment) {
           const newAtt: AttachmentItem = payload.payload.attachment
-          onChange([...attachments, newAtt])
-          toast.success("Foto recebida do celular com sucesso! 📸✨")
-          setShowQrModal(false)
+          setReceivedFromPhone((prev) => [...prev, newAtt])
+          onChange([...attachmentsRef.current, newAtt])
+          toast.success("Foto recebida do celular! 📸✨")
+          // Mantém o modal aberto para permitir fotografar a folha 2, folha 3, etc.
         }
       })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          console.log("Aguardando foto pelo canal:", uploadChannelId)
+          console.log("Aguardando fotos pelo canal:", uploadChannelId)
         }
       })
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [showQrModal, uploadChannelId, attachments, onChange])
+  }, [showQrModal, uploadChannelId, onChange])
 
   // Upload direto pelo computador / navegador
   async function handleDirectUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -349,17 +357,57 @@ export function SessionAttachmentsManager({
               />
             </div>
 
-            <div className="space-y-2 pt-1">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FEF8EC] border border-[#FDE68A] text-[#B8871E] text-xs font-bold animate-pulse">
-                <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
-                Aguardando envio do celular...
-              </div>
+            <div className="space-y-3 pt-1">
+              {/* Fotos recebidas do celular nesta sessão de QR Code */}
+              {receivedFromPhone.length > 0 ? (
+                <div className="p-3.5 bg-[#E8F8F5] border-2 border-[#A7F3D0] rounded-2xl space-y-2 text-left animate-in fade-in">
+                  <div className="flex items-center justify-between text-xs font-black text-[#065F46]">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
+                      <span>{receivedFromPhone.length} foto(s) recebida(s) do celular!</span>
+                    </span>
+                    <span className="text-[10px] font-bold text-[#059669] bg-white px-2 py-0.5 rounded-full border border-[#A7F3D0]">
+                      Pode fotografar mais
+                    </span>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto py-1">
+                    {receivedFromPhone.map((p, idx) => (
+                      <img
+                        key={p.id || idx}
+                        src={p.file_url}
+                        alt={p.file_name}
+                        className="w-12 h-12 rounded-xl object-cover border border-[#A7F3D0] shrink-0"
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FEF8EC] border border-[#FDE68A] text-[#B8871E] text-xs font-bold animate-pulse">
+                  <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
+                  Aguardando envio do celular...
+                </div>
+              )}
 
-              <div className="pt-2">
+              <div className="pt-2 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowQrModal(false)}
+                  className="w-full h-11 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white font-black text-xs shadow-md active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {receivedFromPhone.length > 0 ? (
+                    <>
+                      <Check className="w-4 h-4 stroke-[3]" />
+                      <span>Concluir e Fechar ({receivedFromPhone.length} fotos recebidas)</span>
+                    </>
+                  ) : (
+                    <span>Fechar Janela</span>
+                  )}
+                </button>
+
                 <button
                   type="button"
                   onClick={handleCopyLink}
-                  className="text-xs font-bold text-[#7C3AED] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-bold text-[#7C3AED] hover:underline inline-flex items-center justify-center gap-1 cursor-pointer pt-1"
                 >
                   {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedLink ? "Link copiado!" : "Copiar link de captura"}</span>
