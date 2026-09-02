@@ -44,14 +44,40 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
   async function loadData() {
     setLoading(true)
     try {
-      // 1. Carregar relatórios
+      // 1. Carregar relatórios clínicos
       const { data: repData } = await supabase
         .from("reports")
         .select("*")
         .eq("child_id", child.id)
         .order("created_at", { ascending: false })
 
-      setReports(repData || [])
+      // Limpar e ignorar rascunhos fantasmas vazios (criados por uploads antigos sem conteúdo real de IA)
+      const validReports = (repData || []).filter((r: any) => {
+        if (!r.content || typeof r.content !== "object") return false
+        const keys = Object.keys(r.content)
+        if (keys.length === 0) return false
+        return Boolean(
+          r.content.anamneseAxes ||
+          r.content.synthesis ||
+          r.content.patientData ||
+          r.content.diagnosticHypothesis ||
+          r.content.selectedInstruments ||
+          r.content.clinicalObservation ||
+          r.content.introduction ||
+          r.content.development ||
+          r.content.conclusion
+        )
+      })
+
+      // Se houver rascunhos 100% vazios antigos, limpa silenciosamente no banco
+      const emptyReports = (repData || []).filter((r: any) => !validReports.includes(r))
+      if (emptyReports.length > 0) {
+        emptyReports.forEach((er: any) => {
+          supabase.from("reports").delete().eq("id", er.id).then()
+        })
+      }
+
+      setReports(validReports)
 
       // 2. Carregar documentos de laudo final anexados
       const { data: docData } = await supabase
@@ -103,8 +129,8 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
 
       if (dbError) throw dbError
 
-      // 3. Atualiza o status do relatório para 'final' e da criança para 'report_completed'
-      if (activeReport) {
+      // 3. Se houver rascunho de IA real, marca como 'final'. Se NÃO houver, NÃO cria registro vazio na tabela reports!
+      if (hasRealAiDraft && activeReport) {
         await supabase
           .from("reports")
           .update({
@@ -112,16 +138,6 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
             updated_at: new Date().toISOString(),
           })
           .eq("id", activeReport.id)
-      } else {
-        await supabase
-          .from("reports")
-          .insert({
-            professional_id: profId,
-            child_id: child.id,
-            title: `Laudo de Avaliação Psicopedagógica - ${child.full_name}`,
-            status: "final",
-            content: {},
-          })
       }
 
       await supabase
@@ -151,16 +167,21 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
       setFinalDocuments(remaining)
 
       if (remaining.length === 0) {
-        if (activeReport) {
+        if (hasRealAiDraft && activeReport) {
           await supabase
             .from("reports")
             .update({ status: "draft", updated_at: new Date().toISOString() })
             .eq("id", activeReport.id)
+          await supabase
+            .from("children")
+            .update({ status: "report_in_progress" })
+            .eq("id", child.id)
+        } else {
+          await supabase
+            .from("children")
+            .update({ status: "in_progress" })
+            .eq("id", child.id)
         }
-        await supabase
-          .from("children")
-          .update({ status: "report_in_progress" })
-          .eq("id", child.id)
       }
 
       toast.success("Documento removido com sucesso!")
@@ -174,7 +195,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
   // Alternar status do relatório (Em Elaboração <-> Finalizado)
   async function handleToggleStatus(newStatus: "draft" | "final") {
     try {
-      if (activeReport) {
+      if (hasRealAiDraft && activeReport) {
         await supabase
           .from("reports")
           .update({
@@ -223,10 +244,28 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
   }
 
   const activeReport = reports[0] || null
+  const contentObj = (activeReport?.content || {}) as any
+  const hasRealAiDraft = Boolean(
+    activeReport &&
+    activeReport.content &&
+    typeof activeReport.content === "object" &&
+    Object.keys(activeReport.content).length > 0 &&
+    (
+      contentObj.anamneseAxes ||
+      contentObj.synthesis ||
+      contentObj.patientData ||
+      contentObj.diagnosticHypothesis ||
+      contentObj.selectedInstruments ||
+      contentObj.clinicalObservation ||
+      contentObj.introduction ||
+      contentObj.development ||
+      contentObj.conclusion
+    )
+  )
+
   const isCompleted =
     finalDocuments.length > 0 ||
-    activeReport?.status === "final" ||
-    activeReport?.status === "completed" ||
+    (hasRealAiDraft && (activeReport?.status === "final" || activeReport?.status === "completed")) ||
     child.status === "report_completed"
 
   if (loading) {
@@ -265,8 +304,8 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
         onChange={handleUploadFinalDoc}
       />
 
-      {/* CENÁRIO 1: A CRIANÇA NÃO POSSUI NENHUM RELATÓRIO NEM DOCUMENTO ANEXADO */}
-      {!activeReport && finalDocuments.length === 0 ? (
+      {/* CENÁRIO 1: A CRIANÇA NÃO POSSUI NENHUM RASCUNHO REAL DE IA NEM DOCUMENTO ANEXADO */}
+      {!hasRealAiDraft && finalDocuments.length === 0 ? (
         <div className="space-y-4 animate-in fade-in">
           <div className="text-center space-y-1 max-w-lg mx-auto pb-2">
             <h3 className="text-lg sm:text-xl font-black text-[#0D2329]">
@@ -491,7 +530,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
           {/* =========================================================================
               SEÇÃO 2: CARD DO LAUDO EDITÁVEL NO SISTEMA (GERADOR COM IA)
               ========================================================================= */}
-          {activeReport ? (
+          {hasRealAiDraft && activeReport ? (
             <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-[#D8E5E7] shadow-sm space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#EEF5F6] pb-5">
                 <div className="flex items-start gap-4">

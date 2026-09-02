@@ -72,7 +72,12 @@ export function ReportsPage() {
         .in("professional_id", getAccessibleProfessionalIds(professional, profId))
         .order("created_at", { ascending: false })
 
-      setReports((data || []) as ReportWithChild[])
+      const validReports = ((data || []) as ReportWithChild[]).filter((r) => {
+        if (!r.content || typeof r.content !== "object") return false
+        return Object.keys(r.content).length > 0
+      })
+
+      setReports(validReports)
     } finally {
       setLoading(false)
     }
