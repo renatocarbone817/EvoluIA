@@ -184,7 +184,12 @@ export function AppointmentsPage() {
       let startStr = ""
       let endStr = ""
 
-      if (viewMode === "dia" || viewMode === "celular") {
+      if (viewMode === "celular") {
+        const start = subDays(startOfMonth(currentDate), 7)
+        const end = addDays(endOfMonth(currentDate), 21)
+        startStr = format(start, "yyyy-MM-dd'T'00:00:00")
+        endStr = format(end, "yyyy-MM-dd'T'23:59:59")
+      } else if (viewMode === "dia") {
         const dayStr = format(currentDate, "yyyy-MM-dd")
         startStr = `${dayStr}T00:00:00`
         endStr = `${dayStr}T23:59:59`
@@ -360,6 +365,14 @@ export function AppointmentsPage() {
       end: endOfWeek(currentDate, { weekStartsOn: 1 }),
     })
   }, [currentDate])
+
+  // Continuous Rolling Days for Mobile Strip (starts 7 days before current month to 21 days after)
+  const mobileStripDays = useMemo(() => {
+    const monthStart = startOfMonth(currentDate)
+    const start = subDays(monthStart, 7)
+    const end = addDays(endOfMonth(currentDate), 21)
+    return eachDayOfInterval({ start, end })
+  }, [currentDate.getFullYear(), currentDate.getMonth()])
 
   // Filtered Appointments
   const filteredAppointments = useMemo(() => {
@@ -706,10 +719,10 @@ export function AppointmentsPage() {
           A. MOBILE NATIVE VIEW (EXCLUSIVELY FOR MOBILE / TABLET < lg)
           ───────────────────────────────────────────────────────────── */}
       <div className="block lg:hidden space-y-4">
-        {/* Week Days Strip Selector */}
+        {/* Continuous Rolling Days Strip Selector */}
         <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-2.5 shadow-sm overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden scroll-smooth">
-          <div className="grid grid-cols-7 gap-1 text-center min-w-[320px]">
-            {weekDays.map((day) => {
+          <div className="flex items-center gap-1.5 min-w-max">
+            {mobileStripDays.map((day) => {
               const isSelected = isSameDay(day, currentDate)
               const isToday = isSameDay(day, new Date())
               const dayKey = format(day, "yyyy-MM-dd")
@@ -727,12 +740,12 @@ export function AppointmentsPage() {
                     setCurrentDate(day)
                     mobileDaysRefs.current[dayKey]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
                   }}
-                  className={`py-2 px-0.5 rounded-2xl border-2 transition-all flex flex-col items-center justify-center relative active:scale-95 cursor-pointer ${
+                  className={`w-[50px] sm:w-[56px] py-2 px-0.5 rounded-2xl border-2 transition-all flex flex-col items-center justify-center relative shrink-0 active:scale-95 cursor-pointer ${
                     isSelected
-                      ? "bg-[#7C3AED] text-white border-[#6D28D9] shadow-md font-black"
+                      ? "bg-[#7C3AED] text-white border-[#6D28D9] shadow-md font-black scale-100"
                       : isToday
-                      ? "bg-[#EDE9FE] border-[#C4B5FD] text-[#7C3AED] font-bold"
-                      : "border-transparent hover:bg-[#F7FAFA] text-[#6B7C83]"
+                      ? "bg-[#EDE9FE] border-[#C4B5FD] text-[#7C3AED] font-bold hover:bg-[#DDD6FE]"
+                      : "border-slate-100 bg-[#F8FAFB] hover:bg-[#EDE9FE] hover:border-[#DDD6FE] text-[#6B7C83]"
                   }`}
                 >
                   <p className={`text-[10px] uppercase font-black ${isSelected ? "text-white/80" : ""}`}>
@@ -741,8 +754,10 @@ export function AppointmentsPage() {
                   <p className="text-sm font-black mt-0.5">{format(day, "dd")}</p>
 
                   {/* Dot indicator if has appointments */}
-                  {dayApptsCount > 0 && (
+                  {dayApptsCount > 0 ? (
                     <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${isSelected ? "bg-white" : "bg-[#7C3AED]"}`} />
+                  ) : (
+                    <span className="w-1.5 h-1.5 mt-0.5 opacity-0" />
                   )}
                 </button>
               )
