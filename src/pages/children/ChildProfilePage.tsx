@@ -117,7 +117,7 @@ export function ChildProfilePage() {
   async function loadChild() {
     if (!child) setLoading(true)
     try {
-      const [childRes, guardianRes, apptRes, sessionRes] = await Promise.all([
+      const [childRes, guardianRes, apptRes, sessionRes, reportsRes, docsRes] = await Promise.all([
         supabase.from("children").select("*").eq("id", id).single(),
         supabase
           .from("guardian_children")
@@ -136,8 +136,66 @@ export function ChildProfilePage() {
           .select("id")
           .eq("child_id", id)
           .eq("status", "completed"),
+        supabase
+          .from("reports")
+          .select("id, status")
+          .eq("child_id", id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("documents")
+          .select("id")
+          .eq("child_id", id)
+          .eq("category", "relatorios"),
       ])
-      setChild(childRes.data)
+
+      const childData = childRes.data
+      if (childData) {
+        const reportsList = reportsRes.data || []
+        const docsList = docsRes.data || []
+        const hasFinal = Boolean(
+          reportsList.some((r: any) => r.status === "final" || r.status === "completed") ||
+          docsList.length > 0
+        )
+        const hasDraft = Boolean(
+          reportsList.some((r: any) => r.status === "draft" || r.status === "in_progress")
+        )
+
+        let effectiveStatus = childData.status
+        if (
+          childData.status === "in_intervention" ||
+          childData.status === "intervention_in_progress" ||
+          childData.status === "closed" ||
+          childData.status === "paused" ||
+          childData.status === "archived"
+        ) {
+          effectiveStatus = childData.status
+        } else if (hasFinal || childData.status === "report_completed") {
+          effectiveStatus = "report_completed"
+        } else if (childData.status === "report_in_progress" || hasDraft) {
+          effectiveStatus = "report_in_progress"
+        } else if (childData.status === "initial_assessment") {
+          effectiveStatus = "initial_assessment"
+        } else {
+          effectiveStatus = childData.status || "in_progress"
+        }
+
+        // Sincroniza a coluna no banco caso esteja desatualizada
+        if (childData.status !== effectiveStatus) {
+          supabase
+            .from("children")
+            .update({ status: effectiveStatus, updated_at: new Date().toISOString() })
+            .eq("id", childData.id)
+            .then()
+        }
+
+        setChild({
+          ...childData,
+          status: effectiveStatus,
+        })
+      } else {
+        setChild(null)
+      }
+
       setGuardians((guardianRes.data || []).map((gc: any) => gc.guardian).filter(Boolean))
       setNextAppointment(apptRes.data?.[0] || null)
       setSessionCount(sessionRes.data?.length || 0)
