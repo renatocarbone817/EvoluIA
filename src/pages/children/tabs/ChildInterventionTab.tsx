@@ -511,61 +511,75 @@ export function ChildInterventionTab({
 
       {/* ── 1. CABEÇALHO / BANNER DE STATUS ─────────────────── */}
       {isInterventionActive ? (
-        <div className="bg-gradient-to-r from-[#EA580C] via-[#F97316] to-[#FB923C] rounded-3xl p-6 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1.5 flex-1">
-            <span className="px-3.5 py-1 rounded-full bg-white/20 text-white font-black text-xs backdrop-blur-xs inline-flex items-center gap-1.5 shadow-2xs">
-              🟠 Fase Ativa: Intervenção Psicopedagógica
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-3 py-1 rounded-full bg-[#EDE9FE] text-[#7C3AED] border border-[#DDD6FE] font-black text-xs inline-flex items-center gap-1.5 shadow-2xs">
+                <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
+                Fase Ativa: Intervenção Psicopedagógica
+              </span>
+              <span className="text-xs font-bold text-[#6B7C83]">
+                {childName}
+              </span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-[#0D2329] tracking-tight">
               Plano de Intervenção e Estimulação
             </h2>
+            <p className="text-xs font-semibold text-[#6B7C83] max-w-2xl">
+              Gerencie as habilidades trabalhadas, acompanhe as metas e registre as aulas de intervenção.
+            </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
             <button
               onClick={() => navigate(`/atendimento/intervencao/nova/${child.id}`)}
-              className="h-10 px-4 rounded-2xl bg-white text-[#7C3AED] font-black text-xs flex items-center gap-1.5 shadow-md hover:bg-[#EDE9FE] active:scale-95 transition-all cursor-pointer"
+              className="h-10 px-5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white font-black text-xs flex items-center gap-2 shadow-sm hover:shadow-md active:scale-95 transition-all cursor-pointer"
             >
-              <Sparkles className="w-4 h-4 text-[#7C3AED]" />
-              ▶ Iniciar Aula de Intervenção
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Iniciar Aula de Intervenção</span>
             </button>
+
             <button
               onClick={() => { resetGoalForm(); setEditingGoal(null); setShowAddGoalModal(true) }}
-              className="h-10 px-4 rounded-2xl bg-white text-[#EA580C] font-black text-xs flex items-center gap-1.5 shadow-md hover:bg-[#FFF7ED] active:scale-95 transition-all cursor-pointer"
+              className="h-10 px-4 rounded-2xl bg-[#F7FAFA] hover:bg-[#EEF5F6] border-2 border-[#D8E5E7] text-[#0D2329] font-black text-xs flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
             >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              + Nova Meta
+              <Plus className="w-4 h-4 text-[#7C3AED] stroke-[3]" />
+              <span>Nova Meta</span>
             </button>
+
             <button
               onClick={() => setShowCloseModal(true)}
-              className="h-10 px-3.5 rounded-2xl bg-white/20 hover:bg-white/30 text-white font-black text-xs border border-white/30 flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+              className="h-10 px-3.5 rounded-2xl bg-white hover:bg-red-50 text-[#6B7C83] hover:text-red-600 font-bold text-xs border-2 border-[#D8E5E7] hover:border-red-200 flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
             >
-              Encerrar Acompanhamento
+              Encerrar
             </button>
           </div>
         </div>
       ) : isReportCompleted ? (
-        <div className="bg-gradient-to-r from-[#065F46] via-[#10B981] to-[#059669] rounded-3xl p-6 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1.5 flex-1">
-            <span className="px-3.5 py-1 rounded-full bg-white/20 text-white font-black text-xs inline-flex items-center gap-1.5 shadow-2xs">
-              🟢 Relatório Finalizado
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-3 py-1 rounded-full bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0] font-black text-xs inline-flex items-center gap-1.5 shadow-2xs">
+                🟢 Relatório Finalizado
+              </span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-[#0D2329] tracking-tight">
               Avaliação Concluída — Pronto para Intervenção
             </h2>
-            <p className="text-xs sm:text-sm font-medium text-white/90 max-w-2xl">
+            <p className="text-xs sm:text-sm font-medium text-[#6B7C83] max-w-2xl">
               O laudo foi finalizado. Inicie a etapa de intervenção para começar o trabalho de estimulação e acompanhamento.
             </p>
           </div>
           <button
             onClick={() => setShowStartModal(true)}
-            className="h-12 px-6 rounded-2xl bg-white text-[#065F46] hover:bg-[#E8F8F5] font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg active:scale-95 transition-all shrink-0 cursor-pointer"
+            className="h-11 px-6 rounded-2xl bg-gradient-to-r from-[#059669] to-[#047857] hover:from-[#047857] hover:to-[#065F46] text-white font-black text-xs sm:text-sm flex items-center gap-2 shadow-md active:scale-95 transition-all shrink-0 cursor-pointer"
           >
-            <Sparkles className="w-4 h-4 text-[#F59E0B]" />
-            🚀 Iniciar Intervenção
+            <Sparkles className="w-4 h-4 text-[#FDE68A]" />
+            <span>Iniciar Intervenção</span>
           </button>
         </div>
       ) : isClosed ? (
-        <div className="bg-white border-2 border-[#D8E5E7] rounded-3xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-white border-2 border-[#D8E5E7] rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <span className="px-3 py-1 rounded-full bg-[#F8FAFB] text-[#6B7C83] border border-[#D8E5E7] font-black text-xs">
               ⚪ Acompanhamento Encerrado
@@ -587,12 +601,14 @@ export function ChildInterventionTab({
           </button>
         </div>
       ) : (
-        <div className="bg-[#FEF8EC] border-2 border-[#FDE68A] rounded-3xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <span className="px-3 py-1 rounded-full bg-white text-[#B8871E] border border-[#FDE68A] font-black text-xs">
-              ℹ️ Paciente em Fase de Avaliação
-            </span>
-            <h3 className="text-lg font-black text-[#0D2329] pt-1">
+        <div className="bg-white border-2 border-[#D8E5E7] rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full bg-[#FEF8EC] text-[#B8871E] border border-[#FDE68A] font-black text-xs">
+                ℹ️ Paciente em Fase de Avaliação
+              </span>
+            </div>
+            <h3 className="text-lg font-black text-[#0D2329]">
               Etapa de Intervenção Psicopedagógica
             </h3>
             <p className="text-xs font-semibold text-[#6B7C83]">
@@ -601,9 +617,9 @@ export function ChildInterventionTab({
           </div>
           <button
             onClick={() => setShowStartModal(true)}
-            className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#EA580C] to-[#F97316] text-white font-black text-xs flex items-center gap-1.5 shadow-md hover:from-[#C2410C] hover:to-[#EA580C] transition-all shrink-0 cursor-pointer"
+            className="px-5 py-2.5 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-black text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all shrink-0 cursor-pointer"
           >
-            🚀 Iniciar Intervenção
+            <span>Iniciar Intervenção</span>
           </button>
         </div>
       )}
