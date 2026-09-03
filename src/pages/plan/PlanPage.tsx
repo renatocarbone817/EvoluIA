@@ -190,7 +190,7 @@ export function PlanPage() {
                 <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
                   {details.planConfig.name}
                 </h2>
-                <p className="text-sm font-semibold text-[#94A3B8] mt-1">
+                <p className="text-sm font-medium text-white mt-1">
                   {details.planConfig.description}
                 </p>
               </div>
@@ -199,7 +199,7 @@ export function PlanPage() {
                 <span className="text-3xl sm:text-4xl font-black text-[#10B981]">
                   {details.planConfig.formattedPrice}
                 </span>
-                <span className="text-xs font-bold text-[#94A3B8]">/mês</span>
+                <span className="text-xs font-bold text-white/80">/mês</span>
               </div>
 
               {details.isTrial && (
