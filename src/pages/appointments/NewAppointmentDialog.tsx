@@ -413,7 +413,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-5xl w-[96vw] lg:w-[1140px] p-0 flex flex-col max-h-[95vh] overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
+      <DialogContent className="max-w-5xl w-[96vw] lg:w-[1160px] h-[92vh] max-h-[95vh] p-0 flex flex-col overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
         {/* HEADER */}
         <DialogHeader className="p-5 sm:p-6 pb-4 border-b border-[#EEF5F6] flex items-center justify-between gap-3 shrink-0 bg-white">
           <div className="flex items-center gap-3">
@@ -431,8 +431,8 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
           </div>
         </DialogHeader>
 
-        {/* BODY (2 COLUNAS AMPLAS, LIMPAS E SEM APERTO) */}
-        <DialogBody className="p-6 sm:p-8 space-y-6 flex-1 overflow-y-auto min-h-0 [scrollbar-width:thin]">
+        {/* BODY (ALTO, COMPRIDO E SEM BARRAS DE ROLAGEM QUE ATRAPALHAM) */}
+        <DialogBody className="p-6 sm:p-8 space-y-6 flex-1 overflow-y-auto min-h-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* =========================================================================
                 COLUNA 1 (ESQUERDA - 5 cols): IDENTIFICAÇÃO DO PACIENTE E TIPO
