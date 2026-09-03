@@ -833,13 +833,17 @@ export function LandingPage() {
                         </div>
                       </div>
 
-                      {/* Bottom Row: Preço Grande e /mês Junto na Mesma Linha com '12x de' se Anual */}
-                      <div className="flex items-baseline justify-center gap-1 pt-1">
-                        {billingPeriod === "yearly" && (
-                          <span className="text-xs font-bold text-slate-500 whitespace-nowrap">
+                      {/* 12x de encima do valor para centralização perfeita */}
+                      {billingPeriod === "yearly" && (
+                        <div className="text-center -mb-1 pt-0.5">
+                          <span className="text-[11px] font-black text-[#7C3AED] uppercase tracking-wider bg-purple-100/70 px-2.5 py-0.5 rounded-md border border-purple-200">
                             12x de
                           </span>
-                        )}
+                        </div>
+                      )}
+
+                      {/* Bottom Row: Preço Grande e /mês Junto na Mesma Linha - 100% Centralizado */}
+                      <div className="flex items-baseline justify-center gap-1 pt-1">
                         <span className="text-3xl sm:text-4xl font-black text-[#0F172A] tracking-tight whitespace-nowrap">
                           R$ {price.toFixed(2).replace(".", ",")}
                         </span>

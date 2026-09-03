@@ -399,13 +399,17 @@ export function PlanPage() {
                       </div>
                     </div>
 
-                    {/* Bottom Row: Preço Grande e /mês Junto na Mesma Linha */}
-                    <div className="flex items-baseline justify-center gap-1 pt-1">
-                      {billingPeriod === "yearly" && (
-                        <span className="text-xs font-bold text-[#6B7C83] whitespace-nowrap">
+                    {/* 12x de encima do valor para centralização perfeita */}
+                    {billingPeriod === "yearly" && (
+                      <div className="text-center -mb-1 pt-0.5">
+                        <span className="text-[11px] font-black text-[#7C3AED] uppercase tracking-wider bg-purple-50 px-2.5 py-0.5 rounded-md border border-purple-200">
                           12x de
                         </span>
-                      )}
+                      </div>
+                    )}
+
+                    {/* Bottom Row: Preço Grande e /mês Junto na Mesma Linha - 100% Centralizado */}
+                    <div className="flex items-baseline justify-center gap-1 pt-1">
                       <span className="text-3xl sm:text-4xl font-black text-[#0D2329] tracking-tight whitespace-nowrap">
                         {displayedPrice}
                       </span>
