@@ -386,9 +386,7 @@ export function PlanPage() {
                   <div className="p-3.5 rounded-2xl bg-[#F7FAFA] border-2 border-[#EEF5F6] space-y-2 shadow-2xs">
                     {/* Top Row: Investimento (ou 12x de) + Vagas Centralizados Juntos */}
                     <div className="flex items-center justify-center gap-2 flex-wrap">
-                      <span className={`text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-colors ${
-                        billingPeriod === "yearly" ? "text-[#7C3AED]" : "text-slate-500"
-                      }`}>
+                      <span className="text-[10px] font-black uppercase tracking-wider whitespace-nowrap text-[#7C3AED]">
                         {billingPeriod === "monthly" ? "Investimento" : "12x de"}
                       </span>
                       <div className="px-2 py-0.5 rounded-lg bg-purple-100 border border-purple-200 text-[#7C3AED] text-[10px] font-black flex items-center gap-1 shrink-0 whitespace-nowrap">
