@@ -103,6 +103,8 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
 
   // Mode: "existing" = select child from list | "new" = quick new assessment without friction
   const [mode, setMode] = useState<"existing" | "new">("existing")
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false)
+  const typeDropdownRef = useRef<HTMLDivElement>(null)
 
   // Recurrence controls
   const [isRecurring, setIsRecurring] = useState(false)
@@ -122,20 +124,41 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
     notes: "",
   })
 
+  // Fechar dropdown de tipo ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(e.target as Node)) {
+        setTypeDropdownOpen(false)
+      }
+    }
+    if (typeDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [typeDropdownOpen])
+
   useEffect(() => {
     if (open && (professional || user)) {
-      loadChildren()
       setConflictWarning(null)
       setIsRecurring(false)
       setDurationMonths(1)
+      setTypeDropdownOpen(false)
+      setMode(defaultChildId ? "existing" : "existing")
       setForm((prev) => ({
         ...prev,
         date: defaultDate || prev.date,
-        child_id: defaultChildId || prev.child_id,
-        type: mode === "new" ? "Entrevista Inicial" : "",
+        child_id: defaultChildId || "",
+        new_child_name: "",
+        new_guardian_name: "",
+        new_guardian_phone: "",
+        notes: "",
+        type: "",
       }))
+      loadChildren()
     }
-  }, [open, professional, user, defaultDate, defaultChildId, mode])
+  }, [open, professional, user, defaultDate, defaultChildId])
 
   // Sync selected day with initial date day of week
   useEffect(() => {
@@ -195,10 +218,10 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
       .eq("professional_id", profId)
       .order("full_name")
 
-    setChildren(data || [])
-    if (data && data.length > 0) {
-      setForm((f) => ({ ...f, child_id: data[0].id }))
-      setMode("existing")
+    const list = data || []
+    setChildren(list)
+    if (list.length > 0) {
+      setForm((f) => ({ ...f, child_id: f.child_id || list[0].id }))
     } else {
       setMode("new")
     }
@@ -533,60 +556,100 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
                 </div>
               )}
 
-              {/* Seletor Visual de Tipo de Atendimento */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
+              {/* Tipo de Atendimento: Dropdown de Clicar e Abrir a Lista */}
+              {mode === "new" ? (
+                <div className="space-y-1.5">
                   <label className="text-xs font-black text-[#0D2329]">
-                    Tipo de Atendimento *
+                    Tipo de Atendimento
                   </label>
-                  {!form.type ? (
-                    <span className="text-[10px] font-black text-[#EF4444] bg-[#FEF2F2] px-2 py-0.5 rounded-full border border-[#FECACA]">
-                      Selecione uma opção
+                  <div className="h-11 rounded-2xl border-2 border-[#BAE6FD] bg-[#F0F9FF] px-3.5 flex items-center justify-between text-xs font-black text-[#0284C7] shadow-2xs">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#0284C7]" />
+                      <span>Entrevista Inicial (com os Pais)</span>
+                    </div>
+                    <span className="text-[10px] bg-white px-2 py-0.5 rounded-md border border-[#BAE6FD] uppercase font-bold text-[#0284C7]">
+                      1ª Consulta
                     </span>
-                  ) : (
-                    <span className="text-[10px] font-black text-[#10B981] flex items-center gap-1">
-                      <Check className="w-3 h-3 stroke-[3]" /> Selecionado
-                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5 relative" ref={typeDropdownRef}>
+                  <label className="text-xs font-black text-[#0D2329] flex items-center justify-between">
+                    <span>Tipo de Atendimento *</span>
+                    {!form.type ? (
+                      <span className="text-[10px] font-black text-[#EF4444] bg-[#FEF2F2] px-2 py-0.5 rounded-full border border-[#FECACA]">
+                        Selecione
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-black text-[#10B981] flex items-center gap-1">
+                        <Check className="w-3 h-3 stroke-[3]" /> Selecionado
+                      </span>
+                    )}
+                  </label>
+
+                  {/* Botão Trigger que abre a lista */}
+                  <button
+                    type="button"
+                    onClick={() => setTypeDropdownOpen((prev) => !prev)}
+                    className={`w-full h-11 px-3.5 rounded-2xl border-2 transition-all flex items-center justify-between text-left cursor-pointer shadow-2xs ${
+                      !form.type
+                        ? "border-[#D8E5E7] bg-white text-[#8CAAB1] hover:border-[#7C3AED]"
+                        : `${selectedTypeObj ? selectedTypeObj.pillCls : "border-[#D8E5E7] bg-white text-[#0D2329]"}`
+                    }`}
+                  >
+                    {selectedTypeObj ? (
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${selectedTypeObj.dot}`} />
+                        <span className="text-xs font-black text-[#0D2329] truncate">
+                          {selectedTypeObj.label}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs font-bold text-[#8CAAB1]">
+                        Selecione o tipo de atendimento...
+                      </span>
+                    )}
+                    <ChevronDown
+                      className={`w-4 h-4 text-[#8CAAB1] transition-transform shrink-0 ml-1.5 ${
+                        typeDropdownOpen ? "rotate-180 text-[#7C3AED]" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {/* Menu Flutuante ao Clicar */}
+                  {typeDropdownOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white rounded-2xl border-2 border-[#D8E5E7] shadow-xl p-1.5 space-y-1 animate-in fade-in-50 zoom-in-95 duration-150 max-h-60 overflow-y-auto">
+                      {APPOINTMENT_TYPES.map((opt) => {
+                        const isSelected = form.type === opt.id || form.type.includes(opt.shortLabel)
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => {
+                              setForm({ ...form, type: opt.id })
+                              setTypeDropdownOpen(false)
+                            }}
+                            className={`w-full p-2.5 rounded-xl transition-all flex items-center justify-between text-left cursor-pointer ${
+                              isSelected
+                                ? `${opt.pillCls} font-black shadow-2xs`
+                                : `${opt.borderCls} text-[#0D2329] hover:bg-[#F8FAFB]`
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${opt.dot}`} />
+                              <div className="min-w-0">
+                                <p className="text-xs font-black leading-tight">{opt.label}</p>
+                                <p className="text-[10px] text-[#6B7C83] leading-tight mt-0.5">{opt.description}</p>
+                              </div>
+                            </div>
+                            {isSelected && <Check className="w-4 h-4 shrink-0 text-current ml-2 stroke-[3]" />}
+                          </button>
+                        )
+                      })}
+                    </div>
                   )}
                 </div>
-
-                <div className="space-y-2">
-                  {APPOINTMENT_TYPES.map((opt) => {
-                    const isSelected = form.type === opt.id || form.type.includes(opt.shortLabel)
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setForm({ ...form, type: opt.id })}
-                        className={`w-full p-3 rounded-2xl border-2 transition-all flex items-center justify-between text-left cursor-pointer active:scale-[0.99] ${
-                          isSelected
-                            ? `${opt.pillCls} border-current shadow-xs font-black`
-                            : "bg-white border-[#D8E5E7] text-[#0D2329] hover:border-[#CBD5E1] hover:bg-[#F8FAFB]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span
-                            className={`w-3 h-3 rounded-full shrink-0 ${opt.dot} ring-4 ${
-                              isSelected ? "ring-white" : "ring-slate-100"
-                            }`}
-                          />
-                          <div className="min-w-0">
-                            <p className="text-xs font-black leading-tight">{opt.label}</p>
-                            <p className="text-[10px] opacity-75 font-semibold leading-tight mt-0.5">
-                              {opt.description}
-                            </p>
-                          </div>
-                        </div>
-                        {isSelected && (
-                          <span className="w-5 h-5 rounded-full bg-white/90 border border-current flex items-center justify-center shrink-0 ml-2">
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          </span>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
+              )}
             </div>
 
             {/* =========================================================================
