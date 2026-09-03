@@ -339,11 +339,12 @@ export function PlanPage() {
             const isUpgrade = (details?.planConfig.maxProfessionals || 1) < plan.maxProfessionals
             const isDowngrade = (details?.planConfig.maxProfessionals || 1) > plan.maxProfessionals
 
-            // Preço com desconto anual se Anual estiver selecionado (10 meses divididos por 12)
+            // Preço com desconto anual se Anual estiver selecionado (10x o valor mensal = 2 meses grátis)
+            const annualTotalPrice = plan.priceMonthly * 10
             const displayedPrice =
               billingPeriod === "monthly"
                 ? plan.formattedPrice
-                : `R$ ${Math.round((plan.priceMonthly * 10) / 12).toFixed(2).replace(".", ",")}`
+                : `R$ ${annualTotalPrice.toFixed(2).replace(".", ",")}`
 
             // Validação de Downgrade
             const downgradeCheck = isDowngrade && details
@@ -398,15 +399,23 @@ export function PlanPage() {
                       </div>
                     </div>
 
-                    {/* Bottom Row: Preço Grande e /mês Junto na Mesma Linha */}
+                    {/* Bottom Row: Preço Grande e /mês ou /ano Junto na Mesma Linha */}
                     <div className="flex items-baseline justify-center gap-1 pt-1">
                       <span className="text-3xl sm:text-4xl font-black text-[#0D2329] tracking-tight whitespace-nowrap">
                         {displayedPrice}
                       </span>
                       <span className="text-xs font-bold text-[#6B7C83] whitespace-nowrap">
-                        /mês
+                        {billingPeriod === "monthly" ? "/mês" : "/ano"}
                       </span>
                     </div>
+
+                    {billingPeriod === "yearly" && (
+                      <div className="text-center pt-0.5">
+                        <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
+                          <span>🎁 10x de {plan.formattedPrice} (2 meses grátis)</span>
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Lista de Recursos */}
