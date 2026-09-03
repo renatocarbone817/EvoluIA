@@ -277,61 +277,63 @@ export function PlanPage() {
       )}
 
       {/* 3. SEÇÃO: ALTERAR MEU PLANO (TABELA DE COMPARAÇÃO & UPGRADE) */}
-      <div className="space-y-6">
-        <div className="space-y-1">
+      <div className="space-y-3">
+        {/* Frase explicativa centralizada no topo */}
+        <p className="text-center text-xs sm:text-sm font-medium text-[#6B7C83] px-4">
+          Escolha o plano ideal para o tamanho da sua clínica. O upgrade é processado com total segurança pela Hotmart e aplicado automaticamente ao seu acesso.
+        </p>
+
+        {/* Linha com 'Alterar Meu Plano' à esquerda e o Alternador à direita */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
           <div className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-[#7C3AED]" />
             <h2 className="text-xl sm:text-2xl font-black text-[#0D2329] tracking-tight">
               Alterar Meu Plano
             </h2>
           </div>
-          <p className="text-xs sm:text-sm font-medium text-[#6B7C83]">
-            Escolha o plano ideal para o tamanho da sua clínica. O upgrade é processado com total
-            segurança pela Hotmart e aplicado automaticamente ao seu acesso.
-          </p>
-        </div>
 
-        {/* Monthly / Yearly Toggle - Centralizado perfeitamente no meio acima dos 5 planos */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 pb-1">
-          <span className="text-xs font-bold text-[#6B7C83]">
-            👇 Clique no botão para alternar Mensal / Anual:
-          </span>
-          <div className="flex items-center gap-3 p-1.5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-xs">
-            <span
-              onClick={() => setBillingPeriod("monthly")}
-              className={`text-xs font-black px-2 cursor-pointer transition-colors ${
-                billingPeriod === "monthly" ? "text-[#0D2329]" : "text-[#8CAAB1]"
-              }`}
-            >
-              Mensal
+          {/* Monthly / Yearly Toggle */}
+          <div className="flex items-center gap-2.5 self-start sm:self-auto">
+            <span className="text-xs font-bold text-[#6B7C83] hidden md:inline">
+              👇 Clique no botão para alternar Mensal / Anual:
             </span>
-            <button
-              type="button"
-              onClick={() => setBillingPeriod(billingPeriod === "monthly" ? "yearly" : "monthly")}
-              className="w-14 h-7 bg-[#7C3AED] rounded-full p-1 transition-colors relative cursor-pointer shadow-xs"
-            >
-              <div
-                className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                  billingPeriod === "yearly" ? "translate-x-7" : "translate-x-0"
+            <div className="flex items-center gap-2.5 p-1.5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-xs">
+              <span
+                onClick={() => setBillingPeriod("monthly")}
+                className={`text-xs font-black px-2 cursor-pointer transition-colors ${
+                  billingPeriod === "monthly" ? "text-[#0D2329]" : "text-[#8CAAB1]"
                 }`}
-              />
-            </button>
-            <span
-              onClick={() => setBillingPeriod("yearly")}
-              className={`text-xs font-black flex items-center gap-1.5 px-2 cursor-pointer transition-colors ${
-                billingPeriod === "yearly" ? "text-[#0D2329]" : "text-[#8CAAB1]"
-              }`}
-            >
-              <span>Anual</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white shadow-2xs">
-                2 Meses Grátis 🎁
+              >
+                Mensal
               </span>
-            </span>
+              <button
+                type="button"
+                onClick={() => setBillingPeriod(billingPeriod === "monthly" ? "yearly" : "monthly")}
+                className="w-14 h-7 bg-[#7C3AED] rounded-full p-1 transition-colors relative cursor-pointer shadow-xs"
+              >
+                <div
+                  className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                    billingPeriod === "yearly" ? "translate-x-7" : "translate-x-0"
+                  }`}
+                />
+              </button>
+              <span
+                onClick={() => setBillingPeriod("yearly")}
+                className={`text-xs font-black flex items-center gap-1.5 px-2 cursor-pointer transition-colors ${
+                  billingPeriod === "yearly" ? "text-[#0D2329]" : "text-[#8CAAB1]"
+                }`}
+              >
+                <span>Anual</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white shadow-2xs">
+                  2 Meses Grátis 🎁
+                </span>
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Grid dos 5 Planos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-stretch pt-1">
           {PLANS_LIST.map((plan) => {
             const isCurrent = details?.planConfig.id === plan.id
             const isUpgrade = (details?.planConfig.maxProfessionals || 1) < plan.maxProfessionals
