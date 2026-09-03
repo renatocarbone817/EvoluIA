@@ -792,7 +792,7 @@ export function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-stretch">
             {PLANS_CONFIG.map((plan) => {
               const isPopular = plan.isPopular
-              const price = billingPeriod === "monthly" ? plan.priceMonthly : plan.priceMonthly * 10
+              const price = billingPeriod === "monthly" ? plan.priceMonthly : (plan.priceMonthly * 10) / 12
 
               return (
                 <div
@@ -833,20 +833,25 @@ export function LandingPage() {
                         </div>
                       </div>
 
-                      {/* Bottom Row: Preço Grande e /mês ou /ano Junto na Mesma Linha */}
+                      {/* Bottom Row: Preço Grande e /mês Junto na Mesma Linha com '12x de' se Anual */}
                       <div className="flex items-baseline justify-center gap-1 pt-1">
+                        {billingPeriod === "yearly" && (
+                          <span className="text-xs font-bold text-slate-500 whitespace-nowrap">
+                            12x de
+                          </span>
+                        )}
                         <span className="text-3xl sm:text-4xl font-black text-[#0F172A] tracking-tight whitespace-nowrap">
                           R$ {price.toFixed(2).replace(".", ",")}
                         </span>
                         <span className="text-xs font-bold text-slate-500 whitespace-nowrap">
-                          {billingPeriod === "monthly" ? "/mês" : "/ano"}
+                          /mês
                         </span>
                       </div>
 
                       {billingPeriod === "yearly" && (
                         <div className="text-center pt-0.5">
                           <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1">
-                            <span>🎁 10x de R$ {plan.priceMonthly.toFixed(2).replace(".", ",")} (2 meses grátis)</span>
+                            <span>🎁 2 meses grátis no plano anual</span>
                           </span>
                         </div>
                       )}
