@@ -60,6 +60,7 @@ import { formatTime, formatDate } from "@/lib/utils"
 import type { AppointmentWithChild, Child } from "@/types/database"
 import { NewAppointmentDialog } from "./NewAppointmentDialog"
 import { RecordAbsenceModal } from "./RecordAbsenceModal"
+import { getAppointmentStyle, getAppointmentCategory } from "@/lib/appointmentStyles"
 
 type ViewMode = "dia" | "semana" | "mes" | "celular"
 type StatusFilter = "todos" | "agendados" | "realizados" | "cancelados"
@@ -449,103 +450,21 @@ export function AppointmentsPage() {
   const weeklySummary = useMemo(() => {
     let sessions = 0
     let evaluations = 0
+    let interventions = 0
     let meetings = 0
     let devolutivas = 0
 
     appointments.forEach((a) => {
-      const typeLower = (a.type || "").toLowerCase()
-      const notesLower = (a.notes || "").toLowerCase()
-
-      if (typeLower.includes("avalia") || typeLower.includes("entrevista")) {
-        evaluations++
-      } else if (typeLower.includes("reuni") || typeLower.includes("estudo") || typeLower.includes("planeja") || notesLower.includes("bloqueio")) {
-        meetings++
-      } else if (typeLower.includes("devolutiva")) {
-        devolutivas++
-      } else {
-        sessions++
-      }
+      const cat = getAppointmentCategory(a.type, a.notes)
+      if (cat === "interview") evaluations++
+      else if (cat === "intervention") interventions++
+      else if (cat === "devolutiva") devolutivas++
+      else if (cat === "meeting") meetings++
+      else sessions++
     })
 
-    return { sessions, evaluations, meetings, devolutivas }
+    return { sessions, evaluations, interventions, meetings, devolutivas }
   }, [appointments])
-
-  // Helper for appointment category styling
-  function getAppointmentStyle(appt: AppointmentWithChild) {
-    if (appt.status === "done") {
-      return {
-        bg: "bg-[#E8F8F5] hover:bg-[#D1FAE5]",
-        border: "border-[#A7F3D0]",
-        text: "text-[#065F46]",
-        subtext: "text-[#059669]",
-        badgeBg: "bg-[#10B981] text-white",
-        dot: "bg-[#10B981]",
-        categoryName: "Concluído",
-      }
-    }
-
-    if (appt.status === "missed") {
-      return {
-        bg: "bg-[#FEF2F2] hover:bg-[#FEE2E2]",
-        border: "border-[#FECACA]",
-        text: "text-[#991B1B]",
-        subtext: "text-[#DC2626]",
-        badgeBg: "bg-[#EF4444] text-white",
-        dot: "bg-[#EF4444]",
-        categoryName: "Falta",
-      }
-    }
-
-    const typeLower = (appt.type || "").toLowerCase()
-    const notesLower = (appt.notes || "").toLowerCase()
-
-    if (typeLower.includes("avalia") || typeLower.includes("entrevista")) {
-      return {
-        bg: "bg-[#F3E8FF] hover:bg-[#E9D5FF]",
-        border: "border-[#DDD6FE]",
-        text: "text-[#6B21A8]",
-        subtext: "text-[#7C3AED]",
-        badgeBg: "bg-[#7C3AED] text-white",
-        dot: "bg-[#7C3AED]",
-        categoryName: "Avaliação",
-      }
-    }
-
-    if (typeLower.includes("reuni") || typeLower.includes("estudo") || typeLower.includes("planeja") || notesLower.includes("bloqueio")) {
-      return {
-        bg: "bg-[#E0F2FE] hover:bg-[#BAE6FD]",
-        border: "border-[#BAE6FD]",
-        text: "text-[#0369A1]",
-        subtext: "text-[#0284C7]",
-        badgeBg: "bg-[#0284C7] text-white",
-        dot: "bg-[#0284C7]",
-        categoryName: "Reunião / Estudo",
-      }
-    }
-
-    if (typeLower.includes("devolutiva")) {
-      return {
-        bg: "bg-[#FEF3C7] hover:bg-[#FDE68A]",
-        border: "border-[#FDE68A]",
-        text: "text-[#92400E]",
-        subtext: "text-[#D97706]",
-        badgeBg: "bg-[#D97706] text-white",
-        dot: "bg-[#D97706]",
-        categoryName: "Devolutiva",
-      }
-    }
-
-    // Default: Sessão de Intervenção
-    return {
-      bg: "bg-[#E8F8F5] hover:bg-[#D1FAE5]",
-      border: "border-[#A7F3D0]",
-      text: "text-[#065F46]",
-      subtext: "text-[#059669]",
-      badgeBg: "bg-[#10B981] text-white",
-      dot: "bg-[#10B981]",
-      categoryName: "Sessão de Intervenção",
-    }
-  }
 
   // WhatsApp Reminder Handler
   function handleSendWhatsApp(appt: AppointmentWithChild) {
@@ -819,7 +738,12 @@ export function AppointmentsPage() {
                       <ChildAvatar photoUrl={appt.child?.photo_url} name={displayName} size="md" />
                       <div className="min-w-0">
                         <h4 className="font-black text-sm text-[#0D2329] truncate">{displayName}</h4>
-                        <p className="text-xs font-semibold text-[#6B7C83] truncate">{appt.type}</p>
+                        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border ${style.pillCls}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+                            <span>{appt.type || style.categoryName}</span>
+                          </span>
+                        </div>
                       </div>
                     </div>
 
@@ -1156,9 +1080,12 @@ export function AppointmentsPage() {
                                           {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
                                         </span>
                                       </div>
-                                      <p className={`text-xs font-semibold ${style.subtext} truncate mt-0.5`}>
-                                        {appt.type}
-                                      </p>
+                                      <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border ${style.pillCls}`}>
+                                          <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+                                          <span>{appt.type || style.categoryName}</span>
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
 
@@ -1356,7 +1283,9 @@ export function AppointmentsPage() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-bold text-[#0D2329] truncate">{displayName}</p>
-                        <p className="text-[10px] text-[#6B7C83] truncate">{appt.type}</p>
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold border mt-0.5 ${style.pillCls}`}>
+                          {appt.type || style.categoryName}
+                        </span>
                       </div>
                       <button
                         type="button"

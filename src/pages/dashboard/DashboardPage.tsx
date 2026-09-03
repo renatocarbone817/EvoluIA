@@ -33,6 +33,7 @@ import { getAccessibleProfessionalIds } from "@/lib/teamAccess"
 import { ChildAvatar } from "@/components/ui/ChildAvatar"
 import { RecordAbsenceModal } from "@/pages/appointments/RecordAbsenceModal"
 import { AlertTriangle } from "lucide-react"
+import { getAppointmentStyle } from "@/lib/appointmentStyles"
 import toast from "react-hot-toast"
 
 interface TaskItem {
@@ -941,6 +942,8 @@ export function DashboardPage() {
                   const timeStr = format(startTime, "HH:mm")
                   const childName = appt.child?.full_name || appt.notes || "Paciente"
 
+                  const apptStyle = getAppointmentStyle(appt)
+
                   return (
                     <div
                       key={appt.id}
@@ -973,9 +976,12 @@ export function DashboardPage() {
                             <p className="text-xs sm:text-sm font-black text-[#0D2329] group-hover:text-[#7C3AED] transition-colors truncate leading-tight">
                               {childName}
                             </p>
-                            <p className="text-[11px] font-semibold text-[#6B7C83] truncate mt-0.5">
-                              {appt.type || "Sessão Psicopedagógica"}
-                            </p>
+                            <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black border ${apptStyle.pillCls}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${apptStyle.dot}`} />
+                                <span>{appt.type || apptStyle.categoryName}</span>
+                              </span>
+                            </div>
                           </div>
                         </div>
 
