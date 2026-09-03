@@ -47,6 +47,7 @@ export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) 
   const [search, setSearch] = useState("")
   const [intervSearch, setIntervSearch] = useState("")
   const [selectedSession, setSelectedSession] = useState<SessionWithDocs | null>(null)
+  const [selectedIntervention, setSelectedIntervention] = useState<any | null>(null)
 
   // Edit session state
   const [editingSession, setEditingSession] = useState<SessionWithDocs | null>(null)
@@ -162,6 +163,22 @@ export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) 
       loadSessions()
     } catch (err: any) {
       toast.error(err.message || "Erro ao excluir sessão")
+    }
+  }
+
+  async function handleDeleteInterventionSession(sessionId: string, sessionNumber?: number, e?: React.MouseEvent) {
+    if (e) e.stopPropagation()
+    if (!confirm(`Deseja realmente excluir a Aula #${sessionNumber || ""}? Esta ação não pode ser desfeita.`)) {
+      return
+    }
+    try {
+      const { error } = await supabase.from("intervention_sessions").delete().eq("id", sessionId)
+      if (error) throw error
+      toast.success("Aula de intervenção excluída com sucesso!")
+      setSelectedIntervention(null)
+      loadSessions()
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir aula de intervenção")
     }
   }
 
@@ -459,130 +476,86 @@ export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) 
                   : []
 
                 return (
-                  <div
+                  <Card
                     key={session.id}
-                    className="p-5 rounded-3xl border-2 border-[#D8E5E7] hover:border-[#7C3AED]/40 bg-white transition-all shadow-sm space-y-3.5"
+                    className="cursor-pointer transition-all hover:shadow-md rounded-3xl border-2 border-[#D8E5E7] bg-white hover:border-[#7C3AED] group"
+                    onClick={() => setSelectedIntervention(session)}
                   >
-                    {/* Header da Aula */}
-                    <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-[#EEF5F6]">
-                      <div className="flex items-center gap-2.5 flex-wrap">
-                        <span className="px-3 py-1 rounded-full text-xs font-black bg-[#EDE9FE] text-[#7C3AED] border border-[#DDD6FE]">
-                          Aula #{sessionNum}
-                        </span>
-                        <span className="text-xs font-bold text-[#0D2329]">
-                          {formatDate(session.date)}
-                        </span>
-                        {session.start_time && (
-                          <span className="text-xs font-medium text-[#6B7C83]">
-                            às {session.start_time.substring(0, 5)}
-                          </span>
-                        )}
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0]">
-                          ✓ Realizada
-                        </span>
-                      </div>
+                    <CardContent className="p-4 sm:p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="space-y-2 flex-1 min-w-0">
+                          {/* Linha superior: Aula #, Data, Hora, Badges */}
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <span className="font-black text-base text-[#0D2329]">
+                              Aula #{sessionNum}
+                            </span>
 
-                      {session.behavior && (
-                        <span className="text-xs font-bold px-3 py-1 rounded-xl bg-[#F8FAFB] border border-[#E2ECEE] text-[#4B5563]">
-                          {session.behavior}
-                        </span>
-                      )}
-                    </div>
+                            <span className="text-xs font-bold text-[#6B7C83]">
+                              {formatDate(session.date)}
+                            </span>
 
-                    {/* Habilidades Trabalhadas */}
-                    {areas.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider">
-                          Habilidades Trabalhadas:
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {areas.map((a: any) => (
-                            <div
-                              key={a.id || a.area}
-                              className="p-3 rounded-2xl bg-[#F8FAFB] border border-[#E2ECEE] text-xs space-y-1.5"
-                            >
-                              <span className="font-black text-[#0D2329] block">
-                                📌 {a.area}
+                            {session.start_time && (
+                              <span className="text-xs font-bold text-[#4F6C74] bg-[#EEF5F6] px-2 py-0.5 rounded-lg border border-[#D8E5E7]">
+                                {session.start_time.substring(0, 5)}
                               </span>
-                              {a.what_was_worked && (
-                                <p className="text-[#4B5563]">
-                                  <strong className="text-[#0D2329]">Trabalhado:</strong> {a.what_was_worked}
-                                </p>
-                              )}
-                              {a.child_response && (
-                                <p className="text-[#0369A1]">
-                                  <strong className="text-[#0369A1]">Resposta:</strong> {a.child_response}
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                            )}
 
-                    {/* Observações Gerais / Recado Família / Próxima Aula */}
-                    {(session.general_notes || session.family_recommendation || session.next_session_plan) && (
-                      <div className="pt-2 border-t border-[#F0F5F6] flex flex-col gap-2 text-xs text-[#4B5563]">
-                        {session.general_notes && (
-                          <p>
-                            <strong className="text-[#0D2329]">Observações Gerais:</strong> {session.general_notes}
-                          </p>
-                        )}
-                        {session.family_recommendation && (
-                          <div className="p-3 rounded-2xl bg-[#FEF8EC] border border-[#FDE68A] text-[#B8871E] font-medium space-y-0.5">
-                            <strong className="block text-xs font-black">Recado para a Família:</strong>
-                            <p>{session.family_recommendation}</p>
+                            <Badge variant="secondary" className="capitalize text-xs font-bold bg-[#EDE9FE] text-[#7C3AED] border-none">
+                              Finalizada
+                            </Badge>
+
+                            {session.behavior && (
+                              <span className="text-xs font-bold px-2.5 py-0.5 rounded-xl bg-[#F8FAFB] border border-[#E2ECEE] text-[#4B5563]">
+                                {session.behavior}
+                              </span>
+                            )}
+
+                            {attachmentsList.length > 0 && (
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-xl bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0] flex items-center gap-1">
+                                📸 {attachmentsList.length} {attachmentsList.length === 1 ? "foto" : "fotos"}
+                              </span>
+                            )}
                           </div>
-                        )}
-                        {session.next_session_plan && (
-                          <p className="text-[#6B7C83] italic">
-                            <strong>Planejamento Próxima Aula:</strong> {session.next_session_plan}
-                          </p>
-                        )}
-                      </div>
-                    )}
 
-                    {/* Fotos e Anexos da Aula */}
-                    {attachmentsList.length > 0 && (
-                      <div className="pt-2 border-t border-[#F0F5F6] space-y-2">
-                        <p className="text-[11px] font-black uppercase text-[#6B7C83] tracking-wider flex items-center gap-1.5">
-                          <span>📸 Fotos & Anexos da Atividade ({attachmentsList.length}):</span>
-                        </p>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {attachmentsList.map((att: any, attIdx: number) => {
-                            const isImg =
-                              att.file_type &&
-                              ["png", "jpg", "jpeg", "webp", "gif"].includes(
-                                att.file_type.toLowerCase()
-                              )
-                            return (
-                              <a
-                                key={att.id || attIdx}
-                                href={att.file_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="group flex items-center gap-2 p-1.5 pr-3 rounded-xl bg-[#F8FAFB] hover:bg-[#EDE9FE] border border-[#D8E5E7] hover:border-[#7C3AED] transition-all text-xs font-bold text-[#0D2329]"
-                              >
-                                {isImg ? (
-                                  <img
-                                    src={att.file_url}
-                                    alt={att.file_name}
-                                    className="w-8 h-8 rounded-lg object-cover border border-[#D8E5E7]"
-                                  />
-                                ) : (
-                                  <div className="w-8 h-8 rounded-lg bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center text-[10px] font-black">
-                                    PDF
-                                  </div>
-                                )}
-                                <span className="truncate max-w-[160px]">{att.file_name}</span>
-                                <ExternalLink className="w-3 h-3 text-[#8CAAB1] group-hover:text-[#7C3AED]" />
-                              </a>
-                            )
-                          })}
+                          {/* Habilidades Trabalhadas preview */}
+                          {areas.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                              {areas.map((a: any) => (
+                                <span
+                                  key={a.id || a.area}
+                                  className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0]"
+                                >
+                                  {a.area}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Observações ou recado preview */}
+                          {(session.general_notes || session.family_recommendation) && (
+                            <p className="text-xs text-[#6B7C83] line-clamp-1 font-medium">
+                              {session.family_recommendation
+                                ? `Família: ${session.family_recommendation}`
+                                : session.general_notes}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Ações / Chevron */}
+                        <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteInterventionSession(session.id, sessionNum, e)}
+                            className="p-2 rounded-xl text-[#8CAAB1] hover:text-[#EF4444] hover:bg-red-50 transition-all cursor-pointer"
+                            title="Excluir Aula"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                          <ChevronRight className="w-5 h-5 text-[#8CAAB1] group-hover:text-[#7C3AED] group-hover:translate-x-0.5 transition-all ml-1" />
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </CardContent>
+                  </Card>
                 )
               })}
             </div>
@@ -1001,6 +974,206 @@ export function ChildSessionsTab({ childId, childName }: ChildSessionsTabProps) 
                   <span>{savingEdit ? "Salvando..." : "Salvar Alterações"}</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          INTERVENTION SESSION DETAILS MODAL (Visualização Completa em Modal)
+          ========================================================================= */}
+      {selectedIntervention && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+          onClick={() => setSelectedIntervention(null)}
+        >
+          <div
+            className="bg-white rounded-3xl border-2 border-[#D8E5E7] max-w-2xl w-full max-h-[88vh] flex flex-col shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-5 sm:p-6 border-b-2 border-[#EEF5F6] flex items-center justify-between gap-3 bg-white">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] border-2 border-[#DDD6FE] flex items-center justify-center shrink-0 shadow-2xs">
+                  <Sparkles className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base sm:text-lg font-black text-[#0D2329] truncate">
+                      Aula #{selectedIntervention.session_number || "—"} — {childName}
+                    </h2>
+                    <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-[#E8F8F5] text-[#065F46] border border-[#A7F3D0]">
+                      ✓ Realizada
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-[#6B7C83] mt-0.5">
+                    {formatDate(selectedIntervention.date)}
+                    {selectedIntervention.start_time && ` às ${selectedIntervention.start_time.substring(0, 5)}`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedIntervention(null)}
+                  className="w-9 h-9 rounded-2xl bg-[#F8FAFB] hover:bg-[#EDE9FE] text-[#6B7C83] hover:text-[#7C3AED] transition-all flex items-center justify-center border border-[#D8E5E7] shrink-0 cursor-pointer"
+                  title="Fechar"
+                >
+                  <X className="w-4 h-4 stroke-[2.5]" />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Body with Clean Rounded Cards */}
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
+              {/* 1. Comportamento */}
+              {selectedIntervention.behavior && (
+                <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#EEF5F6] space-y-1.5">
+                  <h4 className="font-black text-xs text-[#0D2329] uppercase tracking-wide flex items-center gap-1.5">
+                    <span>🌟</span>
+                    <span>Comportamento Observado</span>
+                  </h4>
+                  <p className="text-xs sm:text-sm font-semibold text-[#2E4A52]">
+                    {selectedIntervention.behavior}
+                  </p>
+                </div>
+              )}
+
+              {/* 2. Habilidades Trabalhadas */}
+              {selectedIntervention.intervention_session_areas && selectedIntervention.intervention_session_areas.length > 0 && (
+                <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#EEF5F6] space-y-3">
+                  <h4 className="font-black text-xs text-[#0D2329] uppercase tracking-wide flex items-center gap-1.5">
+                    <span>🎯</span>
+                    <span>Habilidades Trabalhadas ({selectedIntervention.intervention_session_areas.length})</span>
+                  </h4>
+                  <div className="space-y-2.5">
+                    {selectedIntervention.intervention_session_areas.map((a: any) => (
+                      <div
+                        key={a.id || a.area}
+                        className="p-3.5 rounded-2xl bg-white border border-[#E2ECEE] text-xs space-y-1.5 shadow-2xs"
+                      >
+                        <span className="font-black text-[#0D2329] text-xs sm:text-sm block">
+                          📌 {a.area}
+                        </span>
+                        {a.what_was_worked && (
+                          <p className="text-[#4B5563]">
+                            <strong className="text-[#0D2329]">Trabalhado / Atividade:</strong> {a.what_was_worked}
+                          </p>
+                        )}
+                        {a.child_response && (
+                          <p className="text-[#0369A1]">
+                            <strong className="text-[#0369A1]">Resposta da Criança:</strong> {a.child_response}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Observações Profissionais Gerais */}
+              {selectedIntervention.general_notes && (
+                <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#EEF5F6] space-y-1.5">
+                  <h4 className="font-black text-xs text-[#0D2329] uppercase tracking-wide flex items-center gap-1.5">
+                    <span>📝</span>
+                    <span>Observações Profissionais Gerais</span>
+                  </h4>
+                  <p className="text-xs sm:text-sm font-medium text-[#2E4A52] leading-relaxed whitespace-pre-wrap">
+                    {selectedIntervention.general_notes}
+                  </p>
+                </div>
+              )}
+
+              {/* 4. Recado para a Família */}
+              {selectedIntervention.family_recommendation && (
+                <div className="p-4 rounded-2xl bg-[#FEF8EC] border-2 border-[#FDE68A] space-y-1.5">
+                  <h4 className="font-black text-xs text-[#B8871E] uppercase tracking-wide flex items-center gap-1.5">
+                    <span>🏠</span>
+                    <span>Orientações / Recado para a Família</span>
+                  </h4>
+                  <p className="text-xs sm:text-sm font-semibold text-[#854D0E] leading-relaxed whitespace-pre-wrap">
+                    {selectedIntervention.family_recommendation}
+                  </p>
+                </div>
+              )}
+
+              {/* 5. Planejamento Próxima Aula */}
+              {selectedIntervention.next_session_plan && (
+                <div className="p-4 rounded-2xl bg-[#F0FDF4] border border-[#BBF7D0] space-y-1.5">
+                  <h4 className="font-black text-xs text-[#166534] uppercase tracking-wide flex items-center gap-1.5">
+                    <span>📅</span>
+                    <span>Planejamento para a Próxima Aula</span>
+                  </h4>
+                  <p className="text-xs sm:text-sm font-medium text-[#166534] leading-relaxed">
+                    {selectedIntervention.next_session_plan}
+                  </p>
+                </div>
+              )}
+
+              {/* 6. Fotos e Anexos */}
+              {Array.isArray(selectedIntervention.attachments) && selectedIntervention.attachments.length > 0 && (
+                <div className="p-4 rounded-2xl bg-[#F8FAFB] border border-[#EEF5F6] space-y-2.5">
+                  <h4 className="font-black text-xs text-[#0D2329] uppercase tracking-wide flex items-center gap-1.5">
+                    <span>📸</span>
+                    <span>Fotos & Documentos da Atividade ({selectedIntervention.attachments.length})</span>
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                    {selectedIntervention.attachments.map((att: any, attIdx: number) => {
+                      const isImg =
+                        att.file_type &&
+                        ["png", "jpg", "jpeg", "webp", "gif"].includes(att.file_type.toLowerCase())
+                      return (
+                        <a
+                          key={att.id || attIdx}
+                          href={att.file_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="group relative rounded-2xl border border-[#D8E5E7] hover:border-[#7C3AED] bg-white overflow-hidden p-2 flex flex-col items-center gap-1.5 text-center transition-all shadow-2xs"
+                        >
+                          {isImg ? (
+                            <div className="w-full h-24 rounded-xl overflow-hidden bg-[#F1F5F9] flex items-center justify-center">
+                              <img
+                                src={att.file_url}
+                                alt={att.file_name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-full h-24 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex flex-col items-center justify-center gap-1">
+                              <FileText className="w-8 h-8" />
+                              <span className="text-[10px] font-black uppercase">PDF</span>
+                            </div>
+                          )}
+                          <span className="text-[11px] font-bold text-[#0D2329] truncate w-full" title={att.file_name}>
+                            {att.file_name}
+                          </span>
+                        </a>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 sm:p-5 border-t-2 border-[#EEF5F6] bg-[#F8FAFB] flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={(e) => handleDeleteInterventionSession(selectedIntervention.id, selectedIntervention.session_number, e)}
+                className="px-4 py-2.5 rounded-2xl text-xs font-black text-[#EF4444] hover:bg-red-50 transition-all flex items-center gap-1.5 cursor-pointer border border-transparent hover:border-red-200"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Excluir Aula</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedIntervention(null)}
+                className="px-6 py-2.5 rounded-2xl bg-white border-2 border-[#D8E5E7] hover:bg-[#EEF5F6] text-xs font-black text-[#0D2329] transition-all cursor-pointer shadow-2xs"
+              >
+                Fechar
+              </button>
             </div>
           </div>
         </div>
