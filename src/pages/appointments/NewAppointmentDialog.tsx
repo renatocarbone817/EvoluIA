@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import {
   addDays,
   format,
@@ -23,6 +23,8 @@ import {
   CalendarDays,
   CheckCircle2,
   Loader2,
+  ChevronDown,
+  Check,
 } from "lucide-react"
 import toast from "react-hot-toast"
 import type { Child } from "@/types/database"
@@ -44,6 +46,54 @@ const WEEK_DAYS = [
   { id: 6, label: "Sáb", name: "Sábado" },
 ]
 
+export const APPOINTMENT_TYPES = [
+  {
+    id: "Entrevista Inicial",
+    label: "Entrevista Inicial (com os Pais)",
+    shortLabel: "Entrevista Inicial",
+    dot: "bg-[#0284C7]",
+    pillCls: "bg-[#E0F2FE] text-[#0284C7] border-[#BAE6FD]",
+    borderCls: "hover:border-[#BAE6FD] hover:bg-[#F0F9FF]",
+    description: "Anamnese e primeiro contato com a família",
+  },
+  {
+    id: "Aula de Intervenção",
+    label: "Aula de Intervenção (Tratamento)",
+    shortLabel: "Aula de Intervenção",
+    dot: "bg-[#EA580C]",
+    pillCls: "bg-[#FFEDD5] text-[#EA580C] border-[#FED7AA]",
+    borderCls: "hover:border-[#FED7AA] hover:bg-[#FFF7ED]",
+    description: "Trabalho prático das 6 habilidades cognitivas",
+  },
+  {
+    id: "Sessão Psicopedagógica",
+    label: "Sessão Psicopedagógica (Avaliação)",
+    shortLabel: "Sessão Psicopedagógica",
+    dot: "bg-[#7C3AED]",
+    pillCls: "bg-[#EDE9FE] text-[#7C3AED] border-[#DDD6FE]",
+    borderCls: "hover:border-[#DDD6FE] hover:bg-[#FAF5FF]",
+    description: "Aplicação de testes e observação clínica",
+  },
+  {
+    id: "Devolutiva",
+    label: "Devolutiva (com os Pais)",
+    shortLabel: "Devolutiva",
+    dot: "bg-[#10B981]",
+    pillCls: "bg-[#DCFCE7] text-[#15803D] border-[#BBF7D0]",
+    borderCls: "hover:border-[#BBF7D0] hover:bg-[#F0FDF4]",
+    description: "Apresentação e entrega dos resultados / laudo",
+  },
+  {
+    id: "Reunião Escolar",
+    label: "Reunião Escolar / Estudo de Caso",
+    shortLabel: "Reunião Escolar",
+    dot: "bg-[#64748B]",
+    pillCls: "bg-[#F1F5F9] text-[#475569] border-[#CBD5E1]",
+    borderCls: "hover:border-[#CBD5E1] hover:bg-[#F8FAFC]",
+    description: "Alinhamento com professores ou equipe externa",
+  },
+]
+
 export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, defaultChildId }: NewAppointmentDialogProps) {
   const { user, professional } = useAuthStore()
   const [children, setChildren] = useState<Child[]>([])
@@ -52,6 +102,8 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
 
   // Mode: "existing" = select child from list | "new" = quick new assessment without friction
   const [mode, setMode] = useState<"existing" | "new">("existing")
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false)
+  const typeDropdownRef = useRef<HTMLDivElement>(null)
 
   // Recurrence controls
   const [isRecurring, setIsRecurring] = useState(false)
@@ -66,10 +118,24 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
     date: defaultDate || new Date().toISOString().split("T")[0],
     start_time: "14:00",
     duration_minutes: "60",
-    type: "Sessão Psicopedagógica",
+    type: "", // Não vem selecionado por padrão para obrigar o usuário a escolher!
     status: "scheduled",
     notes: "",
   })
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(e.target as Node)) {
+        setTypeDropdownOpen(false)
+      }
+    }
+    if (typeDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [typeDropdownOpen])
 
   useEffect(() => {
     if (open && (professional || user)) {
@@ -77,14 +143,15 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
       setConflictWarning(null)
       setIsRecurring(false)
       setDurationMonths(1)
-      if (defaultDate) {
-        setForm((prev) => ({ ...prev, date: defaultDate }))
-      }
-      if (defaultChildId) {
-        setForm((prev) => ({ ...prev, child_id: defaultChildId }))
-      }
+      setTypeDropdownOpen(false)
+      setForm((prev) => ({
+        ...prev,
+        date: defaultDate || prev.date,
+        child_id: defaultChildId || prev.child_id,
+        type: mode === "new" ? "Entrevista Inicial" : "",
+      }))
     }
-  }, [open, professional, user, defaultDate, defaultChildId])
+  }, [open, professional, user, defaultDate, defaultChildId, mode])
 
   // Sync selected day with initial date day of week
   useEffect(() => {
@@ -203,6 +270,11 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
 
     if (mode === "existing" && !targetChildId) {
       toast.error("Selecione um paciente cadastrado ou clique em '+ Nova Entrevista'.")
+      return
+    }
+
+    if (mode === "existing" && !form.type) {
+      toast.error("Por favor, selecione o Tipo de Atendimento.")
       return
     }
 
@@ -328,6 +400,10 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
     return `${selectedDays.length}x por semana (${dayNames}) durante ${durText} • Total de ${scheduledDates.length} sessões`
   }, [isRecurring, selectedDays, durationMonths, scheduledDates])
 
+  const selectedTypeObj = APPOINTMENT_TYPES.find(
+    (opt) => opt.id === form.type || opt.shortLabel === form.type
+  )
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg w-[95vw] sm:w-full p-0 flex flex-col max-h-[85vh] sm:max-h-[88vh] overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
@@ -352,7 +428,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
               type="button"
               onClick={() => {
                 setMode("existing")
-                setForm((f) => ({ ...f, type: "Sessão Psicopedagógica" }))
+                setForm((f) => ({ ...f, type: "" }))
               }}
               className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
                 mode === "existing"
@@ -500,29 +576,88 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
                 <label className="text-xs font-black text-[#0D2329]">
                   Tipo de Atendimento
                 </label>
-                <div className="h-10 rounded-2xl border-2 border-[#DDD6FE] bg-[#EDE9FE] px-3.5 flex items-center justify-between text-xs font-black text-[#7C3AED]">
-                  <span>Entrevista Inicial</span>
-                  <span className="text-[10px] bg-white px-2 py-0.5 rounded-md border border-[#DDD6FE] uppercase">
+                <div className="h-10 rounded-2xl border-2 border-[#BAE6FD] bg-[#F0F9FF] px-3.5 flex items-center justify-between text-xs font-black text-[#0284C7]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#0284C7]" />
+                    <span>Entrevista Inicial</span>
+                  </div>
+                  <span className="text-[10px] bg-white px-2 py-0.5 rounded-md border border-[#BAE6FD] uppercase font-bold text-[#0284C7]">
                     1ª Consulta
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="space-y-1">
-                <label className="text-xs font-black text-[#0D2329]">Tipo de Atendimento</label>
-                <select
-                  value={form.type}
-                  onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  className="w-full p-2.5 rounded-2xl border-2 border-[#D8E5E7] bg-white text-xs font-bold text-[#0D2329] focus:outline-none focus:border-[#7C3AED]"
+              <div className="space-y-1 relative" ref={typeDropdownRef}>
+                <label className="text-xs font-black text-[#0D2329] flex items-center justify-between">
+                  <span>Tipo de Atendimento *</span>
+                  {!form.type && (
+                    <span className="text-[10px] font-black text-[#EF4444] bg-[#FEF2F2] px-2 py-0.5 rounded-full border border-[#FECACA]">
+                      Selecione
+                    </span>
+                  )}
+                </label>
+
+                {/* Custom Trigger */}
+                <button
+                  type="button"
+                  onClick={() => setTypeDropdownOpen((prev) => !prev)}
+                  className={`w-full h-10 px-3.5 rounded-2xl border-2 transition-all flex items-center justify-between text-left cursor-pointer shadow-2xs ${
+                    !form.type
+                      ? "border-[#D8E5E7] bg-white text-[#8CAAB1] hover:border-[#7C3AED]"
+                      : "border-[#D8E5E7] bg-white text-[#0D2329] hover:border-[#7C3AED]"
+                  }`}
                 >
-                  <option value="Sessão Psicopedagógica">Sessão Psicopedagógica (Avaliação)</option>
-                  <option value="Aula de Intervenção">Aula de Intervenção (Tratamento)</option>
-                  <option value="Entrevista Inicial">Entrevista Inicial (com os Pais)</option>
-                  <option value="Avaliação com a Criança">Avaliação com a Criança</option>
-                  <option value="Devolutiva com Pais">Devolutiva com Pais</option>
-                  <option value="Reunião Escolar">Reunião Escolar</option>
-                  <option value="Outro">Outro</option>
-                </select>
+                  {selectedTypeObj ? (
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${selectedTypeObj.dot}`} />
+                      <span className="text-xs font-black text-[#0D2329] truncate">
+                        {selectedTypeObj.label}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-xs font-bold text-[#8CAAB1]">
+                      Selecione o tipo de atendimento...
+                    </span>
+                  )}
+                  <ChevronDown
+                    className={`w-4 h-4 text-[#8CAAB1] transition-transform shrink-0 ml-1.5 ${
+                      typeDropdownOpen ? "rotate-180 text-[#7C3AED]" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Custom Dropdown Menu with colored dots */}
+                {typeDropdownOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white rounded-2xl border-2 border-[#D8E5E7] shadow-xl p-1.5 space-y-1 animate-in fade-in-50 zoom-in-95 duration-150 max-h-60 overflow-y-auto">
+                    {APPOINTMENT_TYPES.map((opt) => {
+                      const isSelected = form.type === opt.id || form.type.includes(opt.shortLabel)
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            setForm({ ...form, type: opt.id })
+                            setTypeDropdownOpen(false)
+                          }}
+                          className={`w-full p-2.5 rounded-xl transition-all flex items-center justify-between text-left cursor-pointer ${
+                            isSelected
+                              ? `${opt.pillCls} font-black shadow-2xs`
+                              : `${opt.borderCls} text-[#0D2329] hover:bg-[#F8FAFB]`
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${opt.dot}`} />
+                            <div className="min-w-0">
+                              <p className="text-xs font-black leading-tight">{opt.label}</p>
+                              <p className="text-[10px] text-[#6B7C83] leading-tight mt-0.5">{opt.description}</p>
+                            </div>
+                          </div>
+                          {isSelected && <Check className="w-4 h-4 shrink-0 text-current ml-2 stroke-[3]" />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
