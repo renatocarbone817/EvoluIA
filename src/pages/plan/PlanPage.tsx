@@ -384,10 +384,12 @@ export function PlanPage() {
 
                   {/* Preço Bem Distribuído & Centralizado */}
                   <div className="p-3.5 rounded-2xl bg-[#F7FAFA] border-2 border-[#EEF5F6] space-y-2 shadow-2xs">
-                    {/* Top Row: Investimento + Vagas Centralizados Juntos */}
+                    {/* Top Row: Investimento (ou 12x de) + Vagas Centralizados Juntos */}
                     <div className="flex items-center justify-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                        Investimento
+                      <span className={`text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-colors ${
+                        billingPeriod === "yearly" ? "text-[#7C3AED]" : "text-slate-500"
+                      }`}>
+                        {billingPeriod === "monthly" ? "Investimento" : "12x de"}
                       </span>
                       <div className="px-2 py-0.5 rounded-lg bg-purple-100 border border-purple-200 text-[#7C3AED] text-[10px] font-black flex items-center gap-1 shrink-0 whitespace-nowrap">
                         <Users className="w-3 h-3 shrink-0" />
@@ -399,16 +401,7 @@ export function PlanPage() {
                       </div>
                     </div>
 
-                    {/* 12x de encima do valor para centralização perfeita */}
-                    {billingPeriod === "yearly" && (
-                      <div className="text-center -mb-1 pt-0.5">
-                        <span className="text-[11px] font-black text-[#7C3AED] uppercase tracking-wider bg-purple-50 px-2.5 py-0.5 rounded-md border border-purple-200">
-                          12x de
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Bottom Row: Preço Grande e /mês Junto na Mesma Linha - 100% Centralizado */}
+                    {/* Bottom Row: Preço Grande e /mês Junto na Mesma Linha - Posição 100% Fixa e Idêntica */}
                     <div className="flex items-baseline justify-center gap-1 pt-1">
                       <span className="text-3xl sm:text-4xl font-black text-[#0D2329] tracking-tight whitespace-nowrap">
                         {displayedPrice}
@@ -417,14 +410,6 @@ export function PlanPage() {
                         /mês
                       </span>
                     </div>
-
-                    {billingPeriod === "yearly" && (
-                      <div className="text-center pt-0.5">
-                        <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
-                          <span>🎁 2 meses grátis no plano anual</span>
-                        </span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Lista de Recursos */}
