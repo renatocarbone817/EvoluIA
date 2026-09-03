@@ -190,12 +190,12 @@ export function PlanPage() {
                 <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
                   {details.planConfig.name}
                 </h2>
-                <p
+                <div
                   className="text-sm font-semibold text-white mt-1"
                   style={{ color: "#ffffff" }}
                 >
                   {details.planConfig.description}
-                </p>
+                </div>
               </div>
 
               <div className="flex items-baseline gap-2 pt-1">
@@ -280,58 +280,56 @@ export function PlanPage() {
       )}
 
       {/* 3. SEÇÃO: ALTERAR MEU PLANO (TABELA DE COMPARAÇÃO & UPGRADE) */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {/* Frase explicativa centralizada no topo */}
         <p className="text-center text-xs sm:text-sm font-medium text-[#6B7C83] px-4">
           Escolha o plano ideal para o tamanho da sua clínica. O upgrade é processado com total segurança pela Hotmart e aplicado automaticamente ao seu acesso.
         </p>
 
-        {/* Linha com 'Alterar Meu Plano' à esquerda e o Alternador 100% CENTRALIZADO */}
-        <div className="relative flex flex-col sm:flex-row items-center justify-center gap-3 pt-1 min-h-[44px]">
-          <div className="sm:absolute sm:left-0 flex items-center gap-2">
-            <Zap className="w-5 h-5 text-[#7C3AED]" />
-            <h2 className="text-xl sm:text-2xl font-black text-[#0D2329] tracking-tight">
-              Alterar Meu Plano
-            </h2>
-          </div>
+        {/* Título da Seção */}
+        <div className="flex items-center gap-2">
+          <Zap className="w-5 h-5 text-[#7C3AED]" />
+          <h2 className="text-xl sm:text-2xl font-black text-[#0D2329] tracking-tight">
+            Alterar Meu Plano
+          </h2>
+        </div>
 
-          {/* Monthly / Yearly Toggle - 100% CENTRALIZADO NA PÁGINA */}
-          <div className="flex items-center gap-2.5">
-            <span className="text-xs font-bold text-[#6B7C83] hidden md:inline">
-              👇 Clique no botão para alternar Mensal / Anual:
+        {/* Monthly / Yearly Toggle - 100% CENTRALIZADO */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 py-1">
+          <span className="text-xs font-bold text-[#6B7C83]">
+            👇 Clique no botão para alternar Mensal / Anual:
+          </span>
+          <div className="flex items-center gap-2.5 p-1.5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-xs">
+            <span
+              onClick={() => setBillingPeriod("monthly")}
+              className={`text-xs font-black px-2 cursor-pointer transition-colors ${
+                billingPeriod === "monthly" ? "text-[#0D2329]" : "text-[#8CAAB1]"
+              }`}
+            >
+              Mensal
             </span>
-            <div className="flex items-center gap-2.5 p-1.5 rounded-2xl bg-white border-2 border-[#D8E5E7] shadow-xs">
-              <span
-                onClick={() => setBillingPeriod("monthly")}
-                className={`text-xs font-black px-2 cursor-pointer transition-colors ${
-                  billingPeriod === "monthly" ? "text-[#0D2329]" : "text-[#8CAAB1]"
+            <button
+              type="button"
+              onClick={() => setBillingPeriod(billingPeriod === "monthly" ? "yearly" : "monthly")}
+              className="w-14 h-7 bg-[#7C3AED] rounded-full p-1 transition-colors relative cursor-pointer shadow-xs"
+            >
+              <div
+                className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                  billingPeriod === "yearly" ? "translate-x-7" : "translate-x-0"
                 }`}
-              >
-                Mensal
+              />
+            </button>
+            <span
+              onClick={() => setBillingPeriod("yearly")}
+              className={`text-xs font-black flex items-center gap-1.5 px-2 cursor-pointer transition-colors ${
+                billingPeriod === "yearly" ? "text-[#0D2329]" : "text-[#8CAAB1]"
+              }`}
+            >
+              <span>Anual</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white shadow-2xs">
+                2 Meses Grátis 🎁
               </span>
-              <button
-                type="button"
-                onClick={() => setBillingPeriod(billingPeriod === "monthly" ? "yearly" : "monthly")}
-                className="w-14 h-7 bg-[#7C3AED] rounded-full p-1 transition-colors relative cursor-pointer shadow-xs"
-              >
-                <div
-                  className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                    billingPeriod === "yearly" ? "translate-x-7" : "translate-x-0"
-                  }`}
-                />
-              </button>
-              <span
-                onClick={() => setBillingPeriod("yearly")}
-                className={`text-xs font-black flex items-center gap-1.5 px-2 cursor-pointer transition-colors ${
-                  billingPeriod === "yearly" ? "text-[#0D2329]" : "text-[#8CAAB1]"
-                }`}
-              >
-                <span>Anual</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white shadow-2xs">
-                  2 Meses Grátis 🎁
-                </span>
-              </span>
-            </div>
+            </span>
           </div>
         </div>
 

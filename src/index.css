@@ -69,7 +69,6 @@
   /* Subtítulos de páginas escuros, nítidos e de alta legibilidade exclusivamente no conteúdo */
   main h1 + p,
   main h1 ~ p,
-  main h2 + p,
   .page-subtitle {
     color: #081B20 !important;
     font-weight: 700 !important;
