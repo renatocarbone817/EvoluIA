@@ -413,7 +413,7 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-4xl w-[96vw] lg:w-[940px] p-0 flex flex-col max-h-[92vh] overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
+      <DialogContent className="max-w-5xl w-[96vw] lg:w-[1140px] p-0 flex flex-col max-h-[95vh] overflow-hidden rounded-3xl border-2 border-[#D8E5E7] bg-white shadow-2xl">
         {/* HEADER */}
         <DialogHeader className="p-5 sm:p-6 pb-4 border-b border-[#EEF5F6] flex items-center justify-between gap-3 shrink-0 bg-white">
           <div className="flex items-center gap-3">
@@ -431,9 +431,9 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
           </div>
         </DialogHeader>
 
-        {/* BODY (2 COLUNAS LARGAS E ESPAÇOSAS) */}
-        <DialogBody className="p-5 sm:p-7 space-y-6 flex-1 overflow-y-auto min-h-0">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
+        {/* BODY (2 COLUNAS AMPLAS, LIMPAS E SEM APERTO) */}
+        <DialogBody className="p-6 sm:p-8 space-y-6 flex-1 overflow-y-auto min-h-0 [scrollbar-width:thin]">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* =========================================================================
                 COLUNA 1 (ESQUERDA - 5 cols): IDENTIFICAÇÃO DO PACIENTE E TIPO
                 ========================================================================= */}
@@ -616,9 +616,9 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
                     />
                   </button>
 
-                  {/* Menu Flutuante ao Clicar */}
+                  {/* Menu Flutuante ao Clicar - Menorzinho, Compacto e Sem Barras de Rolagem */}
                   {typeDropdownOpen && (
-                    <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white rounded-2xl border-2 border-[#D8E5E7] shadow-xl p-1.5 space-y-1 animate-in fade-in-50 zoom-in-95 duration-150 max-h-60 overflow-y-auto">
+                    <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white rounded-2xl border-2 border-[#D8E5E7] shadow-xl p-1.5 space-y-0.5 animate-in fade-in-50 zoom-in-95 duration-150">
                       {APPOINTMENT_TYPES.map((opt) => {
                         const isSelected = form.type === opt.id || form.type.includes(opt.shortLabel)
                         return (
@@ -629,18 +629,15 @@ export function NewAppointmentDialog({ open, onClose, onSuccess, defaultDate, de
                               setForm({ ...form, type: opt.id })
                               setTypeDropdownOpen(false)
                             }}
-                            className={`w-full p-2.5 rounded-xl transition-all flex items-center justify-between text-left cursor-pointer ${
+                            className={`w-full px-3.5 py-2.5 rounded-xl transition-all flex items-center justify-between text-left cursor-pointer ${
                               isSelected
                                 ? `${opt.pillCls} font-black shadow-2xs`
-                                : `${opt.borderCls} text-[#0D2329] hover:bg-[#F8FAFB]`
+                                : "text-[#0D2329] hover:bg-[#F8FAFB]"
                             }`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
                               <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${opt.dot}`} />
-                              <div className="min-w-0">
-                                <p className="text-xs font-black leading-tight">{opt.label}</p>
-                                <p className="text-[10px] text-[#6B7C83] leading-tight mt-0.5">{opt.description}</p>
-                              </div>
+                              <span className="text-xs font-black truncate">{opt.label}</span>
                             </div>
                             {isSelected && <Check className="w-4 h-4 shrink-0 text-current ml-2 stroke-[3]" />}
                           </button>
