@@ -190,7 +190,10 @@ export function PlanPage() {
                 <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
                   {details.planConfig.name}
                 </h2>
-                <p className="text-sm font-medium text-white mt-1">
+                <p
+                  className="text-sm font-semibold text-white mt-1"
+                  style={{ color: "#ffffff" }}
+                >
                   {details.planConfig.description}
                 </p>
               </div>
@@ -199,7 +202,7 @@ export function PlanPage() {
                 <span className="text-3xl sm:text-4xl font-black text-[#10B981]">
                   {details.planConfig.formattedPrice}
                 </span>
-                <span className="text-xs font-bold text-white/80">/mês</span>
+                <span className="text-xs font-bold text-white/90" style={{ color: "rgba(255, 255, 255, 0.9)" }}>/mês</span>
               </div>
 
               {details.isTrial && (
@@ -283,17 +286,17 @@ export function PlanPage() {
           Escolha o plano ideal para o tamanho da sua clínica. O upgrade é processado com total segurança pela Hotmart e aplicado automaticamente ao seu acesso.
         </p>
 
-        {/* Linha com 'Alterar Meu Plano' à esquerda e o Alternador à direita */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-          <div className="flex items-center gap-2">
+        {/* Linha com 'Alterar Meu Plano' à esquerda e o Alternador 100% CENTRALIZADO */}
+        <div className="relative flex flex-col sm:flex-row items-center justify-center gap-3 pt-1 min-h-[44px]">
+          <div className="sm:absolute sm:left-0 flex items-center gap-2">
             <Zap className="w-5 h-5 text-[#7C3AED]" />
             <h2 className="text-xl sm:text-2xl font-black text-[#0D2329] tracking-tight">
               Alterar Meu Plano
             </h2>
           </div>
 
-          {/* Monthly / Yearly Toggle */}
-          <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          {/* Monthly / Yearly Toggle - 100% CENTRALIZADO NA PÁGINA */}
+          <div className="flex items-center gap-2.5">
             <span className="text-xs font-bold text-[#6B7C83] hidden md:inline">
               👇 Clique no botão para alternar Mensal / Anual:
             </span>
