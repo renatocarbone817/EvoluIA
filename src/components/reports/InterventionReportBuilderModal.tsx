@@ -47,6 +47,7 @@ interface InterventionReportBuilderModalProps {
   isOpen: boolean
   onClose: () => void
   child: Child
+  reportId?: string
   onSaved?: () => void
 }
 
@@ -90,6 +91,7 @@ export function InterventionReportBuilderModal({
   isOpen,
   onClose,
   child,
+  reportId,
   onSaved,
 }: InterventionReportBuilderModalProps) {
   const { professional, user } = useAuthStore()
@@ -98,6 +100,7 @@ export function InterventionReportBuilderModal({
   const [generatingDocx, setGeneratingDocx] = useState(false)
   const [generatingAI, setGeneratingAI] = useState(false)
   const [goalType, setGoalType] = useState<"alta" | "continuidade">("alta")
+  const [currentReportId, setCurrentReportId] = useState<string | undefined>(reportId)
   const [interventionSessions, setInterventionSessions] = useState<any[]>([])
   const [interventionGoals, setInterventionGoals] = useState<any[]>([])
 
@@ -280,6 +283,92 @@ export function InterventionReportBuilderModal({
     }
     loadSessionsAndGuardians()
   }, [child.id, startDate, endDate])
+
+  // Carregar dados salvos caso esteja editando um relatório existente
+  useEffect(() => {
+    async function loadReportById() {
+      if (!reportId) {
+        setCurrentReportId(undefined)
+        return
+      }
+      setCurrentReportId(reportId)
+      try {
+        const { data: rep } = await supabase
+          .from("reports")
+          .select("*")
+          .eq("id", reportId)
+          .single()
+
+        if (rep && rep.content) {
+          const c = rep.content as any
+          if (c.patient) {
+            if (c.patient.previousDiagnosis) setPreviousDiagnosis(c.patient.previousDiagnosis)
+            if (c.patient.motherName) setMotherName(c.patient.motherName)
+            if (c.patient.fatherName) setFatherName(c.patient.fatherName)
+            if (c.patient.schoolName) setSchoolName(c.patient.schoolName)
+          }
+          if (rep.period_start) setStartDate(rep.period_start)
+          if (rep.period_end) setEndDate(rep.period_end)
+          if (c.clinical) {
+            if (c.clinical.reassessmentReason) setReassessmentReason(c.clinical.reassessmentReason)
+            if (c.clinical.briefHistory) setBriefHistory(c.clinical.briefHistory)
+            if (c.clinical.clinicalConclusion || c.clinical.conclusion) {
+              setClinicalConclusion(c.clinical.clinicalConclusion || c.clinical.conclusion)
+            }
+            const schoolRecs = c.clinical.recommendationsSchool || c.clinical.schoolRecommendations
+            if (schoolRecs) {
+              setRecsSchool(Array.isArray(schoolRecs) ? schoolRecs.join("\n") : schoolRecs)
+            }
+            const familyRecs = c.clinical.recommendationsFamily || c.clinical.familyRecommendations
+            if (familyRecs) {
+              setRecsFamily(Array.isArray(familyRecs) ? familyRecs.join("\n") : familyRecs)
+            }
+            if (c.clinical.usedInstruments) setUsedInstruments(c.clinical.usedInstruments)
+
+            // Testes padronizados dentro de clinical
+            if (c.clinical.trilhas) setTrilhas((prev) => ({ ...prev, ...c.clinical.trilhas }))
+            if (c.clinical.spanDigitos) setSpanDigitos((prev) => ({ ...prev, ...c.clinical.spanDigitos }))
+            if (c.clinical.tin) setTin((prev) => ({ ...prev, ...c.clinical.tin }))
+            if (c.clinical.phonologicalDiscrimination) {
+              setDiscriminacao((prev) => ({ ...prev, ...c.clinical.phonologicalDiscrimination }))
+            }
+            if (c.clinical.audibilizacao) setAudibilizacao((prev) => ({ ...prev, ...c.clinical.audibilizacao }))
+            if (c.clinical.popTT) setPopTT((prev) => ({ ...prev, ...c.clinical.popTT }))
+            if (c.clinical.arithmetic) setArithmetic((prev) => ({ ...prev, ...c.clinical.arithmetic }))
+
+            // Preditores de leitura e escrita (Semáforo)
+            const preds = c.clinical.readingWritingPredictors || c.predictors
+            if (preds) {
+              if (preds.alphabet) setAlphabetList(preds.alphabet)
+              if (preds.phonologicalAwareness || preds.phonological) {
+                setPhonologicalList(preds.phonologicalAwareness || preds.phonological)
+              }
+              if (preds.reading) setReadingList(preds.reading)
+              if (preds.writing) setWritingList(preds.writing)
+            }
+          }
+          if (c.tests) {
+            if (c.tests.trilhas) setTrilhas((prev) => ({ ...prev, ...c.tests.trilhas }))
+            if (c.tests.spanDigitos) setSpanDigitos((prev) => ({ ...prev, ...c.tests.spanDigitos }))
+            if (c.tests.tin) setTin((prev) => ({ ...prev, ...c.tests.tin }))
+            if (c.tests.discriminacao) setDiscriminacao((prev) => ({ ...prev, ...c.tests.discriminacao }))
+            if (c.tests.audibilizacao) setAudibilizacao((prev) => ({ ...prev, ...c.tests.audibilizacao }))
+            if (c.tests.popTT) setPopTT((prev) => ({ ...prev, ...c.tests.popTT }))
+            if (c.tests.arithmetic) setArithmetic((prev) => ({ ...prev, ...c.tests.arithmetic }))
+          }
+          if (c.predictors) {
+            if (c.predictors.alphabet) setAlphabetList(c.predictors.alphabet)
+            if (c.predictors.phonological) setPhonologicalList(c.predictors.phonological)
+            if (c.predictors.reading) setReadingList(c.predictors.reading)
+            if (c.predictors.writing) setWritingList(c.predictors.writing)
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao carregar relatório:", err)
+      }
+    }
+    loadReportById()
+  }, [reportId])
 
   // Gerar Parecer Clínico com IA Gemini
   async function handleGenerateWithAi() {
@@ -542,19 +631,39 @@ export function InterventionReportBuilderModal({
       const profId = professional?.id || user?.id
       const title = `Reavaliação Pós-Intervenção (${periodLabel})`
 
-      const { error } = await supabase.from("reports").insert({
-        professional_id: profId,
-        child_id: child.id,
-        title,
-        period_start: startDate,
-        period_end: endDate,
-        status: "final",
-        content: compiledReportData as any,
-      })
+      if (currentReportId) {
+        const { error } = await supabase
+          .from("reports")
+          .update({
+            title,
+            period_start: startDate,
+            period_end: endDate,
+            content: compiledReportData as any,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", currentReportId)
 
-      if (error) throw error
+        if (error) throw error
+      } else {
+        const { data: inserted, error } = await supabase
+          .from("reports")
+          .insert({
+            professional_id: profId,
+            child_id: child.id,
+            title,
+            period_start: startDate,
+            period_end: endDate,
+            status: "final",
+            content: compiledReportData as any,
+          })
+          .select()
+          .single()
 
-      toast.success("Relatório salvo no prontuário!", { id: toastId })
+        if (error) throw error
+        if (inserted) setCurrentReportId(inserted.id)
+      }
+
+      toast.success("Relatório salvo no prontuário com sucesso!", { id: toastId })
       if (onSaved) onSaved()
       onClose()
     } catch (err: any) {

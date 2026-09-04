@@ -20,6 +20,7 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
+  Download,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/authStore"
@@ -39,6 +40,10 @@ import {
   DialogBody,
 } from "@/components/ui/Dialog"
 import { InterventionReportBuilderModal } from "@/components/reports/InterventionReportBuilderModal"
+import {
+  buildInterventionDocxReport,
+  downloadInterventionDocxReport,
+} from "@/lib/interventionDocxGenerator"
 
 interface ChildInterventionTabProps {
   child: Child
@@ -96,6 +101,8 @@ export function ChildInterventionTab({
   const [showCloseModal, setShowCloseModal] = useState(false)
   const [showAddGoalModal, setShowAddGoalModal] = useState(false)
   const [showInterventionReportModal, setShowInterventionReportModal] = useState(false)
+  const [selectedReportId, setSelectedReportId] = useState<string | undefined>(undefined)
+  const [interventionReports, setInterventionReports] = useState<any[]>([])
   const [editingGoal, setEditingGoal] = useState<InterventionGoal | null>(null)
 
   // Close form state
@@ -202,11 +209,41 @@ export function ChildInterventionTab({
     } else {
       setNextSession(null)
     }
+
+    // 7. Relatórios de Reavaliação Pós-Intervenção
+    try {
+      const { data: repData } = await supabase
+        .from("reports")
+        .select("*")
+        .eq("child_id", child.id)
+        .order("created_at", { ascending: false })
+
+      const reassess = (repData || []).filter((r: any) => {
+        const c = r.content || {}
+        return Boolean(c.predictors || (c.patient && c.clinical && c.tests))
+      })
+      setInterventionReports(reassess)
+    } catch {
+      // Ignora erro silenciosamente
+    }
   }, [child.id, profId])
 
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  async function handleDeleteReassessmentReport(repId: string) {
+    if (!confirm("Deseja realmente remover este relatório de reavaliação do prontuário?")) return
+    try {
+      const { error } = await supabase.from("reports").delete().eq("id", repId)
+      if (error) throw error
+      toast.success("Relatório de reavaliação excluído com sucesso!")
+      await loadData()
+      if (onReloadChild) onReloadChild()
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao excluir relatório.")
+    }
+  }
 
   async function handleToggleConfiguredArea(areaName: string) {
     if (!profId) return
@@ -456,12 +493,19 @@ export function ChildInterventionTab({
 
           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
             <button
-              onClick={() => setShowInterventionReportModal(true)}
+              onClick={() => {
+                setSelectedReportId(interventionReports[0]?.id)
+                setShowInterventionReportModal(true)
+              }}
               className="h-10 px-4 rounded-2xl bg-[#E0F2FE] hover:bg-[#BAE6FD] border-2 border-[#7DD3FC] text-[#0284C7] font-black text-xs flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-2xs"
               title="Gerar Relatório de Reavaliação Pós-Intervenção com Semáforo"
             >
               <FileText className="w-4 h-4 stroke-[2.5]" />
-              <span>Relatório de Reavaliação</span>
+              <span>
+                {interventionReports.length > 0
+                  ? `Relatório de Reavaliação (${interventionReports.length})`
+                  : "Relatório de Reavaliação"}
+              </span>
             </button>
 
             <button
@@ -526,7 +570,10 @@ export function ChildInterventionTab({
           </div>
           <div className="flex items-center gap-2.5 flex-wrap shrink-0">
             <button
-              onClick={() => setShowInterventionReportModal(true)}
+              onClick={() => {
+                setSelectedReportId(interventionReports[0]?.id)
+                setShowInterventionReportModal(true)
+              }}
               className="px-4 py-2.5 rounded-2xl bg-[#E0F2FE] hover:bg-[#BAE6FD] border border-[#7DD3FC] text-[#0284C7] font-black text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
             >
               <FileText className="w-3.5 h-3.5" />
@@ -847,6 +894,145 @@ export function ChildInterventionTab({
           </div>
         </div>
       </div>
+
+      {/* ── SEÇÃO: RELATÓRIOS DE REAVALIAÇÃO PÓS-INTERVENÇÃO ── */}
+      {interventionReports.length > 0 ? (
+        <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#EEF5F6] pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#E0F2FE] border border-[#7DD3FC] text-[#0284C7] flex items-center justify-center font-black shrink-0 shadow-2xs">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-[#0D2329]">
+                  Relatórios de Reavaliação Psicopedagógica ({interventionReports.length})
+                </h3>
+                <p className="text-xs font-semibold text-[#6B7C83]">
+                  Documentos evolutivos de 11 páginas com Semáforo de Desempenho e parecer com IA salvos no prontuário.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedReportId(undefined)
+                setShowInterventionReportModal(true)
+              }}
+              className="px-4 py-2.5 rounded-2xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer shrink-0"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Novo Relatório de Reavaliação</span>
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {interventionReports.map((rep) => {
+              const c = (rep.content || {}) as any
+              const diag = c.patient?.previousDiagnosis || "TDAH"
+              const period = rep.title || `Reavaliação (${formatDate(rep.created_at)})`
+
+              return (
+                <div
+                  key={rep.id}
+                  className="p-4 sm:p-5 rounded-2xl bg-[#F8FAFB] border-2 border-[#D8E5E7] hover:border-[#0284C7] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 rounded-2xl bg-[#E0F2FE] border border-[#BAE6FD] text-[#0284C7] flex items-center justify-center font-black shrink-0 shadow-2xs">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-xs sm:text-sm font-black text-[#0D2329] truncate">
+                          {period}
+                        </p>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#DCFCE7] text-[#15803D] border border-[#BBF7D0]">
+                          ✓ 11 Páginas • Salvo no Prontuário
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-semibold text-[#6B7C83] flex items-center gap-2 flex-wrap">
+                        <span>Diagnóstico Base: <strong>{diag}</strong></span>
+                        <span>•</span>
+                        <span>Criado em: <strong>{formatDate(rep.created_at)}</strong></span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto flex-wrap">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const toastId = toast.loading("Gerando arquivo Word (.docx)...")
+                        try {
+                          const doc = await buildInterventionDocxReport(rep.content as any)
+                          const filename = `Reavaliacao_${child.full_name.replace(/\s+/g, "_")}.docx`
+                          await downloadInterventionDocxReport(doc, filename)
+                          toast.success("Relatório baixado em Word!", { id: toastId })
+                        } catch (e: any) {
+                          toast.error("Erro ao baixar documento: " + (e?.message || ""), { id: toastId })
+                        }
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-white hover:bg-[#F0FDF4] text-[#15803D] border border-[#BBF7D0] hover:border-[#16A34A] text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+                      title="Baixar em Word (.docx)"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Baixar Word (.docx)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedReportId(rep.id)
+                        setShowInterventionReportModal(true)
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-white hover:bg-[#F0F9FF] text-[#0284C7] border border-[#BAE6FD] hover:border-[#0284C7] text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+                      title="Editar este relatório"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      <span>Editar</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteReassessmentReport(rep.id)}
+                      className="p-2 rounded-xl text-[#9CA3AF] hover:text-[#DC2626] hover:bg-[#FEF2F2] border border-transparent hover:border-[#FECACA] transition-all cursor-pointer"
+                      title="Excluir este relatório"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gradient-to-r from-[#F0F9FF] to-[#E0F2FE] border-2 border-[#BAE6FD] rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#0284C7]/10 text-[#0284C7] font-black text-[11px] inline-flex items-center gap-1">
+              <FileText className="w-3.5 h-3.5" />
+              Documentação Clínica Oficial
+            </span>
+            <h4 className="text-base font-black text-[#0369A1]">
+              Relatório de Reavaliação Psicopedagógica (Pós-Intervenção)
+            </h4>
+            <p className="text-xs font-semibold text-[#6B7C83] max-w-2xl">
+              Gere o documento oficial de 11 páginas com Semáforo de Alfabetização, tabelas de testes (Trilhas, Span de Dígitos, TIN, Audibilização) e Parecer Evolutivo formulado com IA.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedReportId(undefined)
+              setShowInterventionReportModal(true)
+            }}
+            className="px-5 py-3 rounded-2xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-black flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
+          >
+            <FileText className="w-4 h-4" />
+            <span>Criar Relatório de Reavaliação</span>
+          </button>
+        </div>
+      )}
 
       {/* ── 3. HISTÓRICO DE AULAS DE INTERVENÇÃO ───────────── */}
       <div className="bg-white rounded-3xl border-2 border-[#D8E5E7] p-6 shadow-sm space-y-5">
@@ -1250,7 +1436,11 @@ export function ChildInterventionTab({
       {/* Assistente de Relatório de Reavaliação Pós-Intervenção */}
       <InterventionReportBuilderModal
         isOpen={showInterventionReportModal}
-        onClose={() => setShowInterventionReportModal(false)}
+        reportId={selectedReportId}
+        onClose={() => {
+          setShowInterventionReportModal(false)
+          setSelectedReportId(undefined)
+        }}
         child={child}
         onSaved={() => {
           loadData()
