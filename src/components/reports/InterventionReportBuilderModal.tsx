@@ -41,6 +41,7 @@ import {
   type PredictorItem,
   type RatingLevel,
 } from "@/lib/interventionDocxGenerator"
+import { generateInterventionReportAi } from "@/lib/interventionAiService"
 
 interface InterventionReportBuilderModalProps {
   isOpen: boolean
@@ -95,6 +96,10 @@ export function InterventionReportBuilderModal({
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1)
   const [loading, setLoading] = useState(false)
   const [generatingDocx, setGeneratingDocx] = useState(false)
+  const [generatingAI, setGeneratingAI] = useState(false)
+  const [goalType, setGoalType] = useState<"alta" | "continuidade">("alta")
+  const [interventionSessions, setInterventionSessions] = useState<any[]>([])
+  const [interventionGoals, setInterventionGoals] = useState<any[]>([])
 
   // Step 1: Período & Identificação
   const todayISO = new Date().toISOString().split("T")[0]
@@ -251,20 +256,150 @@ export function InterventionReportBuilderModal({
 
       try {
         if (startDate && endDate) {
-          const { count } = await supabase
+          const { data: sessData, count } = await supabase
             .from("intervention_sessions")
-            .select("id", { count: "exact", head: true })
+            .select("*, intervention_session_areas(*)", { count: "exact" })
             .eq("child_id", child.id)
             .gte("date", startDate)
             .lte("date", endDate)
+            .order("date", { ascending: true })
+
           setSessionCount(count || 0)
+          if (sessData) setInterventionSessions(sessData)
         }
+
+        const { data: goalsData } = await supabase
+          .from("intervention_goals")
+          .select("*")
+          .eq("child_id", child.id)
+
+        if (goalsData) setInterventionGoals(goalsData)
       } catch (err) {
         console.error("Erro ao carregar sessões no período:", err)
       }
     }
     loadSessionsAndGuardians()
   }, [child.id, startDate, endDate])
+
+  // Gerar Parecer Clínico com IA Gemini
+  async function handleGenerateWithAi() {
+    setGeneratingAI(true)
+    const toastId = toast.loading("🤖 IA analisando sessões e gerando parecer evolutivo...")
+
+    try {
+      // 1. Resumo das metas
+      const goalsSummary =
+        interventionGoals.length > 0
+          ? interventionGoals
+              .map(
+                (g) =>
+                  `• ${g.title} (${g.area || "Geral"}): status ${
+                    g.status === "achieved"
+                      ? "CONCLUÍDA / ALCANÇADA"
+                      : g.status === "in_progress"
+                      ? "EM ANDAMENTO"
+                      : "PLANEJADA"
+                  }`
+              )
+              .join("\n")
+          : "Metas de intervenção voltadas a funções executivas, atenção sustentada, controle inibitório e alfabetização."
+
+      // 2. Resumo das sessões
+      const sessionsSummary =
+        interventionSessions.length > 0
+          ? interventionSessions
+              .slice(-12)
+              .map((s, idx) => {
+                const areas = (s.intervention_session_areas || [])
+                  .map((a: any) => `${a.area}: ${a.what_was_worked || ""}`)
+                  .filter(Boolean)
+                  .join(" | ")
+                return `Sessão ${s.session_number || idx + 1} (${s.date}): Comportamento: ${
+                  s.behavior || "Colaborativo"
+                }. ${areas ? `Atividades: ${areas}.` : ""} ${s.general_notes ? `Notas: ${s.general_notes}` : ""}`
+              })
+              .join("\n")
+          : `Total de ${sessionCount} sessões de intervenção realizadas com foco em estimulação neuropsicopedagógica e jogos estruturados.`
+
+      // 3. Resumo do Semáforo
+      const alphabetBom = alphabetList.filter((i) => i.rating === "bom").length
+      const alphabetTotal = alphabetList.length
+      const phonologicalBom = phonologicalList.filter((i) => i.rating === "bom").length
+      const phonologicalTotal = phonologicalList.length
+      const readingBom = readingList.filter((i) => i.rating === "bom").length
+      const readingTotal = readingList.length
+      const writingBom = writingList.filter((i) => i.rating === "bom").length
+      const writingTotal = writingList.length
+
+      const semaforoData = {
+        alphabetSummary: `${alphabetBom} de ${alphabetTotal} habilidades em nível BOM (Verde)`,
+        phonologicalSummary: `${phonologicalBom} de ${phonologicalTotal} habilidades em nível BOM (Verde)`,
+        readingSummary: `${readingBom} de ${readingTotal} habilidades em nível BOM (Verde)`,
+        writingSummary: `${writingBom} de ${writingTotal} habilidades em nível BOM (Verde)`,
+      }
+
+      // 4. Testes Data
+      const testsData = {
+        trilhas: {
+          tempoA: trilhas.rawA ? `${trilhas.rawA} erros/tempo` : undefined,
+          escoreA: trilhas.classA || undefined,
+          percentilA: trilhas.percentilA || undefined,
+          tempoB: trilhas.rawB ? `${trilhas.rawB} erros/tempo` : undefined,
+          escoreB: trilhas.classB || undefined,
+          percentilB: trilhas.percentilB || undefined,
+        },
+        spanDigitos: {
+          direta: `${spanDigitos.directScore} (${spanDigitos.directClass})`,
+          indireta: `${spanDigitos.inverseScore} (${spanDigitos.inverseClass})`,
+        },
+        tin: {
+          acertos: tin.score || undefined,
+          tempo: `${tin.percentil} percentil - ${tin.classification}`,
+        },
+        audibilizacao: {
+          escore: audibilizacao.totalScore || undefined,
+          classificacao: audibilizacao.totalClass || undefined,
+        },
+        popTt: {
+          escore: popTT.praxiaFina || undefined,
+          percentil: popTT.praxiaGlobal || undefined,
+          classificacao: popTT.observation || undefined,
+        },
+        aritmetica: {
+          total: arithmetic.points || undefined,
+          percentil: arithmetic.score || undefined,
+          classificacao: arithmetic.classification || undefined,
+        },
+      }
+
+      const res = await generateInterventionReportAi({
+        childName: child.full_name,
+        childAge: calculateDetailedAge(child.birth_date),
+        schoolName: schoolName || child.school || undefined,
+        grade: child.grade || undefined,
+        previousDiagnosis: previousDiagnosis,
+        interventionPeriod: periodLabel,
+        sessionCount: sessionCount,
+        goalType: goalType,
+        goalsSummary,
+        sessionsSummary,
+        semaforoData,
+        testsData,
+      })
+
+      setBriefHistory(res.briefHistory)
+      setClinicalConclusion(res.clinicalConclusion)
+      setRecsSchool(res.recsSchool)
+      setRecsFamily(res.recsFamily)
+
+      toast.success("✨ Parecer e Conclusão gerados com sucesso pela IA!", { id: toastId })
+    } catch (err: any) {
+      console.error("Erro na geração com IA:", err)
+      toast.error(err?.message || "Erro ao conectar com a IA. Verifique as configurações.", { id: toastId })
+    } finally {
+      setGeneratingAI(false)
+    }
+  }
 
   // Atalho de período formatado para o box
   const periodLabel = useMemo(() => {
@@ -1092,16 +1227,83 @@ export function InterventionReportBuilderModal({
               ========================================================================= */}
           {activeStep === 4 && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              <div className="p-4 rounded-2xl bg-[#EDE9FE]/50 border-2 border-[#DDD6FE] flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <Sparkles className="w-5 h-5 text-[#7C3AED]" />
-                  <div>
-                    <p className="text-xs font-black text-[#7C3AED] uppercase tracking-wide">
-                      Redação Clínica & Recomendações
+              {/* ASSISTENTE CLÍNICO DE IA GEMINI */}
+              <div className="p-5 rounded-3xl bg-gradient-to-br from-[#FAF5FF] via-[#F3E8FF] to-[#EDE9FE] border-2 border-[#DDD6FE] shadow-sm space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#7C3AED] to-[#9333EA] text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-sm sm:text-base font-black text-[#581C87]">
+                          Assistente Clínico IA (Gemini)
+                        </h4>
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#7C3AED] text-white text-[10px] font-black uppercase tracking-wider">
+                          Auto-Análise das Sessões
+                        </span>
+                      </div>
+                      <p className="text-xs font-semibold text-[#6B7280] leading-relaxed">
+                        A IA analisa as sessões de intervenção reais ({sessionCount} registradas), as metas trabalhadas e o Semáforo de Desempenho para redigir o parecer completo com linguagem humanizada.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Botão de Ação */}
+                  <button
+                    type="button"
+                    disabled={generatingAI}
+                    onClick={handleGenerateWithAi}
+                    className="h-11 px-5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white font-black text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                  >
+                    {generatingAI ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-[#FDE68A]" />
+                        <span>Redigindo Parecer com IA...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 text-[#FDE68A]" />
+                        <span>✨ Redigir Parecer com IA</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Seletor de Parecer Final: Alta vs Continuidade */}
+                <div className="pt-3 border-t border-[#E9D5FF] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-black text-[#581C87] uppercase tracking-wider">
+                      Parecer e Encaminhamento da Reavaliação:
+                    </span>
+                    <p className="text-[11px] text-[#6B7280] font-medium">
+                      Defina o direcionamento clínico desejado para o fechamento do relatório:
                     </p>
-                    <p className="text-[11px] text-[#6B7C83]">
-                      Revise os pareceres abaixo. Você pode editar qualquer palavra antes de baixar no Word.
-                    </p>
+                  </div>
+
+                  <div className="inline-flex rounded-2xl p-1 bg-white border-2 border-[#DDD6FE] shadow-2xs shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setGoalType("alta")}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                        goalType === "alta"
+                          ? "bg-[#10B981] text-white shadow-xs"
+                          : "text-[#6B7280] hover:text-[#0D2329]"
+                      }`}
+                    >
+                      <span>🟢 Indicar Alta da Intervenção</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGoalType("continuidade")}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                        goalType === "continuidade"
+                          ? "bg-[#0284C7] text-white shadow-xs"
+                          : "text-[#6B7280] hover:text-[#0D2329]"
+                      }`}
+                    >
+                      <span>🔵 Indicar Continuidade</span>
+                    </button>
                   </div>
                 </div>
               </div>
