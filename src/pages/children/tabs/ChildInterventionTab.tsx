@@ -38,6 +38,7 @@ import {
   DialogFooter,
   DialogBody,
 } from "@/components/ui/Dialog"
+import { InterventionReportBuilderModal } from "@/components/reports/InterventionReportBuilderModal"
 
 interface ChildInterventionTabProps {
   child: Child
@@ -94,6 +95,7 @@ export function ChildInterventionTab({
   const [showStartModal, setShowStartModal] = useState(false)
   const [showCloseModal, setShowCloseModal] = useState(false)
   const [showAddGoalModal, setShowAddGoalModal] = useState(false)
+  const [showInterventionReportModal, setShowInterventionReportModal] = useState(false)
   const [editingGoal, setEditingGoal] = useState<InterventionGoal | null>(null)
 
   // Close form state
@@ -454,6 +456,15 @@ export function ChildInterventionTab({
 
           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
             <button
+              onClick={() => setShowInterventionReportModal(true)}
+              className="h-10 px-4 rounded-2xl bg-[#E0F2FE] hover:bg-[#BAE6FD] border-2 border-[#7DD3FC] text-[#0284C7] font-black text-xs flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-2xs"
+              title="Gerar Relatório de Reavaliação Pós-Intervenção com Semáforo"
+            >
+              <FileText className="w-4 h-4 stroke-[2.5]" />
+              <span>Relatório de Reavaliação</span>
+            </button>
+
+            <button
               onClick={() => navigate(`/atendimento/intervencao/nova/${child.id}`)}
               className="h-10 px-5 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white font-black text-xs flex items-center gap-2 shadow-sm hover:shadow-md active:scale-95 transition-all cursor-pointer"
             >
@@ -513,14 +524,23 @@ export function ChildInterventionTab({
               Todos os registros permanecem arquivados com segurança.
             </p>
           </div>
-          <button
-            onClick={handleReopenIntervention}
-            disabled={loading}
-            className="px-4 py-2.5 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] font-black text-xs flex items-center gap-1.5 transition-all shadow-xs shrink-0 cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reabrir Acompanhamento
-          </button>
+          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+            <button
+              onClick={() => setShowInterventionReportModal(true)}
+              className="px-4 py-2.5 rounded-2xl bg-[#E0F2FE] hover:bg-[#BAE6FD] border border-[#7DD3FC] text-[#0284C7] font-black text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              Relatório de Reavaliação
+            </button>
+            <button
+              onClick={handleReopenIntervention}
+              disabled={loading}
+              className="px-4 py-2.5 rounded-2xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] font-black text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reabrir Acompanhamento
+            </button>
+          </div>
         </div>
       ) : (
         <div className="bg-white border-2 border-[#D8E5E7] rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1226,6 +1246,17 @@ export function ChildInterventionTab({
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Assistente de Relatório de Reavaliação Pós-Intervenção */}
+      <InterventionReportBuilderModal
+        isOpen={showInterventionReportModal}
+        onClose={() => setShowInterventionReportModal(false)}
+        child={child}
+        onSaved={() => {
+          loadData()
+          if (onReloadChild) onReloadChild()
+        }}
+      />
 
     </div>
   )

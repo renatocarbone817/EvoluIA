@@ -18,6 +18,7 @@ import { formatDate } from "@/lib/utils"
 import toast from "react-hot-toast"
 import type { Report, Child, Document } from "@/types/database"
 import { ClinicalReportBuilderModal } from "@/components/reports/ClinicalReportBuilderModal"
+import { InterventionReportBuilderModal } from "@/components/reports/InterventionReportBuilderModal"
 
 interface ChildReportsTabProps {
   child: Child
@@ -31,6 +32,7 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
   const [loading, setLoading] = useState(true)
   const [uploadingDoc, setUploadingDoc] = useState(false)
   const [showClinicalModal, setShowClinicalModal] = useState(false)
+  const [showInterventionModal, setShowInterventionModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deletingReport, setDeletingReport] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -376,6 +378,36 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
               </div>
             </div>
           </div>
+
+          {/* BANNER REAVALIAÇÃO PÓS-INTERVENÇÃO */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-[#F0F9FF] to-[#E0F2FE] border-2 border-[#7DD3FC] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-white border border-[#BAE6FD] text-[#0284C7] flex items-center justify-center font-black shrink-0 shadow-xs">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#0284C7] text-white text-[10px] font-black tracking-wide uppercase">
+                    NOVO • 11 Páginas
+                  </span>
+                  <h4 className="text-sm sm:text-base font-black text-[#0C4A6E]">
+                    Relatório de Reavaliação Psicopedagógica (Pós-Intervenção)
+                  </h4>
+                </div>
+                <p className="text-xs font-medium text-[#0369A1]">
+                  Gere o relatório evolutivo com tabelas dos testes (Trilhas, Span, Audibilização) e o Semáforo Colorido de Alfabetização.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowInterventionModal(true)}
+              className="px-5 py-3 rounded-2xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-black flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Abrir Assistente de Reavaliação</span>
+            </button>
+          </div>
         </div>
       ) : (
         /* CENÁRIO 2: RELATÓRIO JÁ CADASTRADO OU ARQUIVO ANEXADO */
@@ -618,6 +650,36 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
               </button>
             </div>
           )}
+
+          {/* BANNER REAVALIAÇÃO PÓS-INTERVENÇÃO */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-[#F0F9FF] to-[#E0F2FE] border-2 border-[#7DD3FC] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-white border border-[#BAE6FD] text-[#0284C7] flex items-center justify-center font-black shrink-0 shadow-xs">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#0284C7] text-white text-[10px] font-black tracking-wide uppercase">
+                    NOVO • 11 Páginas
+                  </span>
+                  <h4 className="text-sm sm:text-base font-black text-[#0C4A6E]">
+                    Relatório de Reavaliação Psicopedagógica (Pós-Intervenção)
+                  </h4>
+                </div>
+                <p className="text-xs font-medium text-[#0369A1]">
+                  Gere o relatório evolutivo com tabelas dos testes (Trilhas, Span, Audibilização) e o Semáforo Colorido de Alfabetização.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowInterventionModal(true)}
+              className="px-5 py-3 rounded-2xl bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-black flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Abrir Assistente de Reavaliação</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -660,6 +722,17 @@ export function ChildReportsTab({ child, onReloadChild }: ChildReportsTabProps) 
           </div>
         </div>
       )}
+
+      {/* Assistente de Relatório de Reavaliação Pós-Intervenção */}
+      <InterventionReportBuilderModal
+        isOpen={showInterventionModal}
+        onClose={() => setShowInterventionModal(false)}
+        child={child}
+        onSaved={() => {
+          loadData()
+          if (onReloadChild) onReloadChild()
+        }}
+      />
     </div>
   )
 }
