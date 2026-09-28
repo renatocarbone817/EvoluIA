@@ -165,7 +165,82 @@ interface GoogleMapsModalProps {
   onImported: (importedCount: number) => void
 }
 
-// Leads de exemplo para teste instantâneo em São José do Rio Preto se não tiver chave na hora
+// Leads de exemplo em Votuporanga e Rio Preto para teste instantâneo
+const DEMO_VOTUPORANGA_LEADS: GooglePlaceResult[] = [
+  {
+    id: "votu_1",
+    nome: "Dra. Rosemary Morais - M&M Clínica Integrada",
+    telefone: "(17) 99732-4386",
+    whatsapp: "(17) 99732-4386",
+    endereco: "Rua Ponta Porã, 3190 – Bairro San Remo, Votuporanga - SP",
+    cidade: "Votuporanga",
+    estado: "SP",
+    site: null,
+    rating: 5.0,
+    userRatingCount: 16,
+  },
+  {
+    id: "votu_2",
+    nome: "Adriana Ricci - Neuropsicopedagoga",
+    telefone: "(17) 99736-0906",
+    whatsapp: "(17) 99736-0906",
+    endereco: "Votuporanga - SP (Atendimento Clínico e Domiciliar)",
+    cidade: "Votuporanga",
+    estado: "SP",
+    site: null,
+    rating: 4.9,
+    userRatingCount: 11,
+  },
+  {
+    id: "votu_3",
+    nome: "Mônica Sartori Tavares da Silva - Psicopedagogia",
+    telefone: "(17) 99751-3269",
+    whatsapp: "(17) 99751-3269",
+    endereco: "Rua Minas Gerais, 3419, Votuporanga - SP",
+    cidade: "Votuporanga",
+    estado: "SP",
+    site: null,
+    rating: 5.0,
+    userRatingCount: 8,
+  },
+  {
+    id: "votu_4",
+    nome: "Centro Especializado de Desenvolvimento Infantil",
+    telefone: "(17) 99243-1833",
+    whatsapp: "(17) 99243-1833",
+    endereco: "Rua Tibagi, 2906 – Vila Nova, Votuporanga - SP",
+    cidade: "Votuporanga",
+    estado: "SP",
+    site: null,
+    rating: 4.8,
+    userRatingCount: 24,
+  },
+  {
+    id: "votu_5",
+    nome: "Núcleo de Psicologia, Neuropsicologia e Reabilitação",
+    telefone: "(17) 99636-0544",
+    whatsapp: "(17) 99636-0544",
+    endereco: "Rua Tibagi, 3072 – Patrimônio Novo, Votuporanga - SP",
+    cidade: "Votuporanga",
+    estado: "SP",
+    site: null,
+    rating: 4.9,
+    userRatingCount: 19,
+  },
+  {
+    id: "votu_6",
+    nome: "Ariadne Ribeiro Mariotti - Psicopedagoga",
+    telefone: "(17) 99745-8331",
+    whatsapp: "(17) 99745-8331",
+    endereco: "Votuporanga - SP",
+    cidade: "Votuporanga",
+    estado: "SP",
+    site: null,
+    rating: 4.7,
+    userRatingCount: 6,
+  }
+]
+
 const DEMO_RIO_PRETO_LEADS: GooglePlaceResult[] = [
   {
     id: "demo_1",
@@ -202,30 +277,6 @@ const DEMO_RIO_PRETO_LEADS: GooglePlaceResult[] = [
     site: null,
     rating: 4.8,
     userRatingCount: 19,
-  },
-  {
-    id: "demo_4",
-    nome: "Consultório Neuropsicopedagógico Dra. Camila Silva",
-    telefone: "(17) 98122-3344",
-    whatsapp: "(17) 98122-3344",
-    endereco: "Av. Brigadeiro Faria Lima, 5500 - São Manoel, São José do Rio Preto - SP",
-    cidade: "São José do Rio Preto",
-    estado: "SP",
-    site: "https://instagram.com/dra.camilapsicopedagoga",
-    rating: 5.0,
-    userRatingCount: 8,
-  },
-  {
-    id: "demo_5",
-    nome: "Centro de Estimulação Cognitiva & Alfabetização",
-    telefone: "(17) 99233-7788",
-    whatsapp: "(17) 99233-7788",
-    endereco: "R. Independência, 1420 - Centro, São José do Rio Preto - SP",
-    cidade: "São José do Rio Preto",
-    estado: "SP",
-    site: null,
-    rating: 4.7,
-    userRatingCount: 11,
   }
 ]
 
@@ -448,10 +499,10 @@ function GoogleMapsModal({ existingLeads, onClose, onImported }: GoogleMapsModal
           <div className="flex items-center gap-1.5 flex-wrap text-xs">
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-wide mr-1">Atalhos:</span>
             {[
+              "Psicopedagoga em Votuporanga SP",
               "Psicopedagoga em São José do Rio Preto SP",
               "Psicopedagoga em Ribeirão Preto SP",
               "Psicopedagoga em Campinas SP",
-              "Clínica de Psicopedagogia SP",
             ].map((q) => (
               <button
                 key={q}
@@ -462,10 +513,13 @@ function GoogleMapsModal({ existingLeads, onClose, onImported }: GoogleMapsModal
               </button>
             ))}
             <button
-              onClick={handleLoadDemo}
-              className="text-[11px] font-black px-2.5 py-1 rounded-full bg-purple-50 text-[#7C3AED] border border-[#7C3AED]/30 hover:bg-purple-100 transition-colors ml-auto flex items-center gap-1"
+              onClick={() => {
+                setResults(DEMO_VOTUPORANGA_LEADS)
+                toast.success("7 psicopedagogas de Votuporanga carregadas!")
+              }}
+              className="text-[11px] font-black px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 transition-colors ml-auto flex items-center gap-1"
             >
-              <Sparkles className="w-3 h-3" /> Testar com dados de Rio Preto
+              <Sparkles className="w-3 h-3 text-emerald-600" /> Puxar Votuporanga SP
             </button>
           </div>
         </div>

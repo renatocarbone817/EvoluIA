@@ -44,14 +44,135 @@ export const STATUS_CONFIG: Record<
   sem_interesse: { label: "Sem interesse",  emoji: "🔴", color: "text-red-700",     bg: "bg-red-50 border-red-200" },
 }
 
+export const SEEDED_VOTUPORANGA_LEADS: Lead[] = [
+  {
+    id: "lead_votu_1",
+    professional_id: "00000000-0000-0000-0000-000000000001",
+    nome: "Dra. Rosemary Morais - M&M Clínica Integrada",
+    telefone: "(17) 99732-4386",
+    whatsapp: "(17) 99732-4386",
+    instagram: null,
+    site: null,
+    cidade: "Votuporanga",
+    estado: "SP",
+    endereco: "Rua Ponta Porã, 3190 – Bairro San Remo",
+    status: "novo",
+    observacao: "Psicóloga, Neuropsicóloga e Psicopedagoga Clínica (Especialista em TEA, ABA, Denver)",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "lead_votu_2",
+    professional_id: "00000000-0000-0000-0000-000000000001",
+    nome: "Adriana Ricci - Neuropsicopedagoga",
+    telefone: "(17) 99736-0906",
+    whatsapp: "(17) 99736-0906",
+    instagram: null,
+    site: null,
+    cidade: "Votuporanga",
+    estado: "SP",
+    endereco: "Votuporanga - SP (Atendimento Clínico e Domiciliar)",
+    status: "novo",
+    observacao: "Neuropsicopedagogia, ABA, AEE, Libras. Foco em TEA e dificuldades de aprendizagem.",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "lead_votu_3",
+    professional_id: "00000000-0000-0000-0000-000000000001",
+    nome: "Mônica Sartori Tavares da Silva - Psicopedagogia",
+    telefone: "(17) 99751-3269",
+    whatsapp: "(17) 99751-3269",
+    instagram: null,
+    site: null,
+    cidade: "Votuporanga",
+    estado: "SP",
+    endereco: "Rua Minas Gerais, 3419",
+    status: "novo",
+    observacao: "Psicopedagoga Clínica com consultório em Votuporanga",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "lead_votu_4",
+    professional_id: "00000000-0000-0000-0000-000000000001",
+    nome: "Centro Especializado de Desenvolvimento Infantil",
+    telefone: "(17) 99243-1833",
+    whatsapp: "(17) 99243-1833",
+    instagram: null,
+    site: null,
+    cidade: "Votuporanga",
+    estado: "SP",
+    endereco: "Rua Tibagi, 2906 – Vila Nova",
+    status: "novo",
+    observacao: "Clínica especializada em desenvolvimento infantil, psicologia e psicopedagogia",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "lead_votu_5",
+    professional_id: "00000000-0000-0000-0000-000000000001",
+    nome: "Núcleo de Psicologia, Neuropsicologia e Reabilitação",
+    telefone: "(17) 99636-0544",
+    whatsapp: "(17) 99636-0544",
+    instagram: null,
+    site: null,
+    cidade: "Votuporanga",
+    estado: "SP",
+    endereco: "Rua Tibagi, 3072 – Patrimônio Novo",
+    status: "novo",
+    observacao: "Núcleo de avaliação e intervenção neuropsicopedagógica e reabilitação",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "lead_votu_6",
+    professional_id: "00000000-0000-0000-0000-000000000001",
+    nome: "Ariadne Ribeiro Mariotti - Psicopedagoga",
+    telefone: "(17) 99745-8331",
+    whatsapp: "(17) 99745-8331",
+    instagram: null,
+    site: null,
+    cidade: "Votuporanga",
+    estado: "SP",
+    endereco: "Votuporanga - SP",
+    status: "novo",
+    observacao: "Psicopedagoga Clínica",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "lead_votu_7",
+    professional_id: "00000000-0000-0000-0000-000000000001",
+    nome: "Vanessa Ribeiro Rodrigues Dacal - Neuropsicopedagogia",
+    telefone: null,
+    whatsapp: null,
+    instagram: null,
+    site: "https://consultaspsi.com.br",
+    cidade: "Votuporanga",
+    estado: "SP",
+    endereco: "Votuporanga - SP",
+    status: "novo",
+    observacao: "Atendimento neuropsicopedagógico presencial e online em Votuporanga (TEA, TDAH)",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+]
+
 const LOCAL_STORAGE_KEY = "evoluia_leads_cache"
 
 function getLocalLeads(): Lead[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+    }
+    // Se o cache estiver vazio, inicia com os leads reais de Votuporanga
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(SEEDED_VOTUPORANGA_LEADS))
+    return SEEDED_VOTUPORANGA_LEADS
   } catch {
-    return []
+    return SEEDED_VOTUPORANGA_LEADS
   }
 }
 
