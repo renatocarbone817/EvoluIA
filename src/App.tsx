@@ -134,7 +134,6 @@ export function App() {
               <Route path="/financeiro" element={<FinancialPage />} />
               <Route path="/relatorios" element={<ReportsPage />} />
               <Route path="/biblioteca" element={<BibliotecaPage />} />
-              <Route path="/leads" element={<LeadsPage />} />
               <Route path="/meu-plano" element={<PlanPage />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
             </Route>
@@ -143,6 +142,9 @@ export function App() {
           {/* Super Admin / Painel do Dono (Rota Secreta com Login Exclusivo Próprio) */}
           <Route path="/admin" element={<SuperAdminPage />} />
           <Route path="/painel-dono" element={<SuperAdminPage />} />
+
+          {/* Painel de Leads & Prospecção (Rota Secreta — acesso exclusivo do time comercial) */}
+          <Route path="/leads" element={<LeadsPage />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

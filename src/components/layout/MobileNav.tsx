@@ -1,12 +1,12 @@
 import { NavLink } from "react-router-dom"
-import { LayoutDashboard, Calendar, Users, DollarSign, FileText, Target } from "lucide-react"
+import { LayoutDashboard, Calendar, Users, DollarSign, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Início" },
   { to: "/agenda", icon: Calendar, label: "Agenda" },
   { to: "/criancas", icon: Users, label: "Crianças" },
-  { to: "/leads", icon: Target, label: "Leads" },
+  { to: "/financeiro", icon: DollarSign, label: "Financeiro" },
   { to: "/relatorios", icon: FileText, label: "Relatórios" },
 ]
 

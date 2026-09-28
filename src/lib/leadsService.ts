@@ -44,6 +44,25 @@ export const STATUS_CONFIG: Record<
   sem_interesse: { label: "Sem interesse",  emoji: "🔴", color: "text-red-700",     bg: "bg-red-50 border-red-200" },
 }
 
+const LOCAL_STORAGE_KEY = "evoluia_leads_cache"
+
+function getLocalLeads(): Lead[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function saveLocalLeads(leads: Lead[]) {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(leads))
+  } catch (e) {
+    console.warn("Could not save leads to localStorage:", e)
+  }
+}
+
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 /** Normaliza telefone para comparação de deduplicação */
@@ -56,15 +75,13 @@ function normalizePhone(phone?: string | null): string {
 export function normalizeInstagram(raw?: string | null): string | null {
   if (!raw || !raw.trim()) return null
   const s = raw.trim()
-  // Se for URL: https://instagram.com/handle ou https://www.instagram.com/handle/
   const match = s.match(/instagram\.com\/([^/?#\s]+)/i)
   if (match) return match[1].replace(/\/$/, "")
-  // Se começar com @
   if (s.startsWith("@")) return s.slice(1).trim()
   return s
 }
 
-/** Formata número de telefone para link do WhatsApp (remove não-dígitos, adiciona +55 se necessário) */
+/** Formata número de telefone para link do WhatsApp */
 export function formatWhatsAppLink(phone?: string | null): string | null {
   if (!phone) return null
   const digits = phone.replace(/\D/g, "")
@@ -73,48 +90,103 @@ export function formatWhatsAppLink(phone?: string | null): string | null {
   return `https://wa.me/${number}`
 }
 
-// ─── CRUD ──────────────────────────────────────────────────────────────────────
+// ─── CRUD (Supabase com fallback LocalStorage transparente) ───────────────────
 
 export async function listLeads(professionalId: string): Promise<Lead[]> {
-  const { data, error } = await supabase
-    .from("leads")
-    .select("*")
-    .eq("professional_id", professionalId)
-    .order("created_at", { ascending: false })
+  try {
+    const { data, error } = await supabase
+      .from("leads")
+      .select("*")
+      .order("created_at", { ascending: false })
 
-  if (error) throw error
-  return (data ?? []) as Lead[]
+    if (error) throw error
+
+    if (data) {
+      saveLocalLeads(data as Lead[])
+      return data as Lead[]
+    }
+  } catch (err) {
+    console.warn("Supabase fetch leads failed, using local cache:", err)
+  }
+
+  return getLocalLeads()
 }
 
 export async function createLead(lead: LeadInsert): Promise<Lead> {
-  const { data, error } = await supabase
-    .from("leads")
-    .insert(lead)
-    .select()
-    .single()
+  const newLead: Lead = {
+    id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `lead_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    ...lead,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
 
-  if (error) throw error
-  return data as Lead
+  // Tentar salvar no Supabase
+  try {
+    const { data, error } = await supabase
+      .from("leads")
+      .insert(lead)
+      .select()
+      .single()
+
+    if (!error && data) {
+      const all = [data as Lead, ...getLocalLeads().filter((l) => l.id !== data.id)]
+      saveLocalLeads(all)
+      return data as Lead
+    }
+  } catch (err) {
+    console.warn("Supabase insert lead failed, saving locally:", err)
+  }
+
+  // Fallback local
+  const current = getLocalLeads()
+  saveLocalLeads([newLead, ...current])
+  return newLead
 }
 
 export async function updateLead(id: string, updates: LeadUpdate): Promise<Lead> {
-  const { data, error } = await supabase
-    .from("leads")
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .select()
-    .single()
+  let updatedRecord: Lead | null = null
 
-  if (error) throw error
-  return data as Lead
+  try {
+    const { data, error } = await supabase
+      .from("leads")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single()
+
+    if (!error && data) {
+      updatedRecord = data as Lead
+    }
+  } catch (err) {
+    console.warn("Supabase update lead failed, updating locally:", err)
+  }
+
+  const current = getLocalLeads()
+  const next = current.map((l) => {
+    if (l.id === id) {
+      return updatedRecord || { ...l, ...updates, updated_at: new Date().toISOString() }
+    }
+    return l
+  })
+  saveLocalLeads(next)
+
+  const found = next.find((l) => l.id === id)
+  if (!found) throw new Error("Lead não encontrado")
+  return found
 }
 
 export async function deleteLead(id: string): Promise<void> {
-  const { error } = await supabase.from("leads").delete().eq("id", id)
-  if (error) throw error
+  try {
+    await supabase.from("leads").delete().eq("id", id)
+  } catch (err) {
+    console.warn("Supabase delete lead failed, deleting locally:", err)
+  }
+
+  const current = getLocalLeads()
+  saveLocalLeads(current.filter((l) => l.id !== id))
 }
 
-// ─── Importação CSV ────────────────────────────────────────────────────────────
+// ─── Importação CSV Flexível ───────────────────────────────────────────────────
 
 export interface ImportResult {
   imported: number
@@ -123,30 +195,44 @@ export interface ImportResult {
   total: number
 }
 
+/** Detecta delimitador (, ou ; ou \t) */
+function detectDelimiter(firstLine: string): string {
+  const semicolons = (firstLine.match(/;/g) || []).length
+  const commas = (firstLine.match(/,/g) || []).length
+  const tabs = (firstLine.match(/\t/g) || []).length
+
+  if (semicolons > commas && semicolons > tabs) return ";"
+  if (tabs > commas && tabs > semicolons) return "\t"
+  return ","
+}
+
 /**
- * Parse CSV simples (suporta campos com vírgula entre aspas)
+ * Parse CSV flexível com detecção automática de delimitador (, ; \t)
  */
 function parseCSV(text: string): Record<string, string>[] {
   const lines = text.split(/\r?\n/).filter((l) => l.trim())
   if (lines.length < 2) return []
 
+  const delimiter = detectDelimiter(lines[0])
+
   const headers = lines[0]
-    .split(",")
+    .split(delimiter)
     .map((h) => h.trim().replace(/^"|"$/g, "").toLowerCase())
 
   return lines.slice(1).map((line) => {
-    // Handle quoted fields
     const values: string[] = []
     let current = ""
     let inQuotes = false
+
     for (let i = 0; i < line.length; i++) {
-      if (line[i] === '"') {
+      const char = line[i]
+      if (char === '"') {
         inQuotes = !inQuotes
-      } else if (line[i] === "," && !inQuotes) {
+      } else if (char === delimiter && !inQuotes) {
         values.push(current.trim())
         current = ""
       } else {
-        current += line[i]
+        current += char
       }
     }
     values.push(current.trim())
@@ -166,7 +252,6 @@ export async function importLeadsFromCSV(
   const rows = parseCSV(csvText)
   const result: ImportResult = { imported: 0, duplicates: 0, errors: 0, total: rows.length }
 
-  // Carregar leads existentes para deduplicação
   const existingLeads = await listLeads(professionalId)
   const existingPhones = new Set(
     existingLeads
@@ -181,25 +266,80 @@ export async function importLeadsFromCSV(
 
   for (const row of rows) {
     try {
-      const nome = row["nome"] || row["name"] || row["razao_social"] || row["empresa"] || ""
-      if (!nome) { result.errors++; continue }
+      // Suporte a formatos do Google Maps Scraper Kit (title, phone, full_address, website, etc.)
+      const nome =
+        row["nome"] ||
+        row["name"] ||
+        row["title"] ||
+        row["empresa"] ||
+        row["business_name"] ||
+        row["place_name"] ||
+        row["razao_social"] ||
+        ""
 
-      const telefone = row["telefone"] || row["phone"] || row["tel"] || null
-      const whatsapp = row["whatsapp"] || row["zap"] || telefone || null
-      const instagram = normalizeInstagram(row["instagram"] || null)
-      const site = row["site"] || row["website"] || row["url"] || null
-      const cidade = row["cidade"] || row["city"] || null
-      const estado = row["estado"] || row["state"] || row["uf"] || null
-      const endereco = row["endereco"] || row["endereço"] || row["address"] || null
+      if (!nome) {
+        result.errors++
+        continue
+      }
 
-      // Verificar duplicata por telefone
+      const telefone =
+        row["telefone"] ||
+        row["phone"] ||
+        row["phone_number"] ||
+        row["tel"] ||
+        row["celular"] ||
+        row["phone_1"] ||
+        null
+
+      const whatsapp =
+        row["whatsapp"] ||
+        row["zap"] ||
+        row["wa"] ||
+        telefone ||
+        null
+
+      const instagram = normalizeInstagram(
+        row["instagram"] || row["insta"] || row["ig"] || row["social_instagram"] || null
+      )
+
+      const site =
+        row["site"] ||
+        row["website"] ||
+        row["url"] ||
+        row["link"] ||
+        row["web"] ||
+        null
+
+      const cidade =
+        row["cidade"] ||
+        row["city"] ||
+        row["municipio"] ||
+        row["município"] ||
+        null
+
+      const estado =
+        row["estado"] ||
+        row["state"] ||
+        row["uf"] ||
+        null
+
+      const endereco =
+        row["endereco"] ||
+        row["endereço"] ||
+        row["address"] ||
+        row["full_address"] ||
+        row["street"] ||
+        row["logradouro"] ||
+        null
+
+      // Deduplicação por telefone
       const phoneNorm = normalizePhone(telefone || whatsapp)
       if (phoneNorm && existingPhones.has(phoneNorm)) {
         result.duplicates++
         continue
       }
 
-      // Verificar duplicata por nome+endereço/site (quando sem telefone)
+      // Deduplicação por nome + endereço/site
       if (!phoneNorm) {
         const nameAddrKey = `${nome.toLowerCase()}|${(endereco || "").toLowerCase()}|${(site || "").toLowerCase()}`
         if (existingNameAddr.has(nameAddrKey)) {
@@ -224,7 +364,6 @@ export async function importLeadsFromCSV(
 
       await createLead(newLead)
 
-      // Adicionar ao set para não duplicar dentro do mesmo CSV
       if (phoneNorm) existingPhones.add(phoneNorm)
       const nameAddrKey = `${nome.toLowerCase()}|${(endereco || "").toLowerCase()}|${(site || "").toLowerCase()}`
       existingNameAddr.add(nameAddrKey)
