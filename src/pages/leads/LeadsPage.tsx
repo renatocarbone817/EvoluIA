@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useMemo } from "react"
 import {
   Search, Upload, Plus, MessageCircle, Link2, ChevronDown,
   X, Loader2, Filter, Trash2, Check, MapPin, Globe, Phone,
-  TrendingUp, Users, Zap, Star, Lock, LogOut, Target
+  TrendingUp, Users, Zap, Star, Lock, LogOut, Target, Map,
+  Sparkles, Key, ExternalLink, RefreshCw
 } from "lucide-react"
 import { toast } from "react-hot-toast"
 import {
@@ -11,12 +12,16 @@ import {
   STATUS_CONFIG,
   type Lead, type LeadStatus, type LeadInsert
 } from "@/lib/leadsService"
+import {
+  searchGooglePlaces, getStoredGoogleKey, saveStoredGoogleKey,
+  type GooglePlaceResult
+} from "@/lib/googlePlacesService"
 
 // ─── Credenciais de acesso do painel de leads ──────────────────────────────────
-// Altere aqui para definir o login do seu sobrinho
 const LEADS_EMAIL = "leads@evoluia.com.br"
 const LEADS_PASS  = "EvoluIA@Leads2025"
 const SESSION_KEY = "evoluia_leads_session"
+const LEADS_OWNER_ID = "00000000-0000-0000-0000-000000000001"
 
 function checkLeadsSession(): boolean {
   try {
@@ -50,7 +55,7 @@ function LeadsLoginScreen({ onSuccess }: { onSuccess: () => void }) {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 500)) // pequeno delay para segurança
+    await new Promise((r) => setTimeout(r, 400))
 
     if (
       email.trim().toLowerCase() === LEADS_EMAIL.toLowerCase() &&
@@ -67,7 +72,6 @@ function LeadsLoginScreen({ onSuccess }: { onSuccess: () => void }) {
   return (
     <div className="min-h-screen bg-[#0D2329] flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-14 h-14 rounded-3xl bg-gradient-to-tr from-[#6366F1] to-[#7C3AED] flex items-center justify-center shadow-[0_0_30px_rgba(124,58,237,0.5)] mb-4">
             <Target className="w-7 h-7 text-white" />
@@ -78,11 +82,10 @@ function LeadsLoginScreen({ onSuccess }: { onSuccess: () => void }) {
           <p className="text-xs font-bold text-[#7EA2AA] mt-1">Painel de Leads & Prospecção</p>
         </div>
 
-        {/* Card de login */}
         <div className="bg-[#132830] border border-[#193F4A] rounded-3xl p-6 shadow-2xl">
           <div className="flex items-center gap-2 mb-5">
             <Lock className="w-4 h-4 text-[#A855F7]" />
-            <h2 className="text-sm font-black text-white">Acesso Restrito</h2>
+            <h2 className="text-sm font-black text-white">Acesso Comercial</h2>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -137,13 +140,9 @@ function LeadsLoginScreen({ onSuccess }: { onSuccess: () => void }) {
   )
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
+// ─── Status config ─────────────────────────────────────────────────────────────
 
 const ALL_STATUSES = Object.entries(STATUS_CONFIG) as [LeadStatus, typeof STATUS_CONFIG[LeadStatus]][]
-
-// ID fixo do "dono" para os leads — os leads ficam todos vinculados a este professional_id
-// Substitua pelo UUID real da conta da Priscila depois de criar a tabela
-const LEADS_OWNER_ID = "00000000-0000-0000-0000-000000000001"
 
 function StatusBadge({ status, small }: { status: LeadStatus; small?: boolean }) {
   const cfg = STATUS_CONFIG[status]
@@ -158,7 +157,462 @@ function StatusBadge({ status, small }: { status: LeadStatus; small?: boolean })
   )
 }
 
-// ─── Modal: Editar / Novo Lead ─────────────────────────────────────────────────
+// ─── Modal: Busca Direta no Google Maps ─────────────────────────────────────────
+
+interface GoogleMapsModalProps {
+  existingLeads: Lead[]
+  onClose: () => void
+  onImported: (importedCount: number) => void
+}
+
+// Leads de exemplo para teste instantâneo em São José do Rio Preto se não tiver chave na hora
+const DEMO_RIO_PRETO_LEADS: GooglePlaceResult[] = [
+  {
+    id: "demo_1",
+    nome: "Espaço Integrar - Psicopedagogia e Neuroaprendizagem",
+    telefone: "(17) 99781-2244",
+    whatsapp: "(17) 99781-2244",
+    endereco: "Av. Alberto Andaló, 3450 - Centro, São José do Rio Preto - SP",
+    cidade: "São José do Rio Preto",
+    estado: "SP",
+    site: "https://espacointegrarped.com.br",
+    rating: 5.0,
+    userRatingCount: 14,
+  },
+  {
+    id: "demo_2",
+    nome: "Clínica Crescer - Psicopedagogia Clínica & TDAH",
+    telefone: "(17) 99144-8833",
+    whatsapp: "(17) 99144-8833",
+    endereco: "R. Bernardino de Campos, 2810 - Redentora, São José do Rio Preto - SP",
+    cidade: "São José do Rio Preto",
+    estado: "SP",
+    site: "https://clinicacrescer.com.br",
+    rating: 4.9,
+    userRatingCount: 22,
+  },
+  {
+    id: "demo_3",
+    nome: "Instituto Aprender Mais - Apoio Psicopedagógico",
+    telefone: "(17) 99655-1122",
+    whatsapp: "(17) 99655-1122",
+    endereco: "R. XV de Novembro, 3120 - Vila Redentora, São José do Rio Preto - SP",
+    cidade: "São José do Rio Preto",
+    estado: "SP",
+    site: null,
+    rating: 4.8,
+    userRatingCount: 19,
+  },
+  {
+    id: "demo_4",
+    nome: "Consultório Neuropsicopedagógico Dra. Camila Silva",
+    telefone: "(17) 98122-3344",
+    whatsapp: "(17) 98122-3344",
+    endereco: "Av. Brigadeiro Faria Lima, 5500 - São Manoel, São José do Rio Preto - SP",
+    cidade: "São José do Rio Preto",
+    estado: "SP",
+    site: "https://instagram.com/dra.camilapsicopedagoga",
+    rating: 5.0,
+    userRatingCount: 8,
+  },
+  {
+    id: "demo_5",
+    nome: "Centro de Estimulação Cognitiva & Alfabetização",
+    telefone: "(17) 99233-7788",
+    whatsapp: "(17) 99233-7788",
+    endereco: "R. Independência, 1420 - Centro, São José do Rio Preto - SP",
+    cidade: "São José do Rio Preto",
+    estado: "SP",
+    site: null,
+    rating: 4.7,
+    userRatingCount: 11,
+  }
+]
+
+function GoogleMapsModal({ existingLeads, onClose, onImported }: GoogleMapsModalProps) {
+  const [query, setQuery] = useState("psicopedagoga em são josé do rio preto sp")
+  const [apiKey, setApiKey] = useState(getStoredGoogleKey)
+  const [showConfig, setShowConfig] = useState(!apiKey)
+  const [loading, setLoading] = useState(false)
+  const [results, setResults] = useState<GooglePlaceResult[]>([])
+  const [importingAll, setImportingAll] = useState(false)
+  const [importedIds, setImportedIds] = useState<Set<string>>(new Set())
+
+  // Mapear telefones e nomes já cadastrados para indicar duplicatas
+  const existingPhones = useMemo(() => {
+    return new Set(
+      existingLeads
+        .map((l) => (l.whatsapp || l.telefone || "").replace(/\D/g, ""))
+        .filter(Boolean)
+    )
+  }, [existingLeads])
+
+  const existingNames = useMemo(() => {
+    return new Set(existingLeads.map((l) => l.nome.toLowerCase().trim()))
+  }, [existingLeads])
+
+  function isPlaceAlreadySaved(place: GooglePlaceResult): boolean {
+    const rawP = (place.whatsapp || place.telefone || "").replace(/\D/g, "")
+    if (rawP && existingPhones.has(rawP)) return true
+    if (existingNames.has(place.nome.toLowerCase().trim())) return true
+    return false
+  }
+
+  async function handleSearch() {
+    if (!query.trim()) {
+      toast.error("Digite o termo de busca (ex: psicopedagoga em rio preto sp)")
+      return
+    }
+
+    if (!apiKey.trim()) {
+      setShowConfig(true)
+      toast.error("Informe a chave da Google Places API ou teste com os dados de demonstração abaixo")
+      return
+    }
+
+    setLoading(true)
+    try {
+      saveStoredGoogleKey(apiKey)
+      const data = await searchGooglePlaces(query, apiKey)
+      setResults(data)
+      if (data.length === 0) {
+        toast("Nenhum estabelecimento encontrado com este termo.")
+      } else {
+        toast.success(`${data.length} psicopedagogas encontradas no Google Maps!`)
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Erro na busca do Google Places")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleLoadDemo() {
+    setResults(DEMO_RIO_PRETO_LEADS)
+    toast.success("5 leads de exemplo em Rio Preto carregados!")
+  }
+
+  async function importSinglePlace(place: GooglePlaceResult) {
+    try {
+      const newLead: LeadInsert = {
+        professional_id: LEADS_OWNER_ID,
+        nome: place.nome,
+        telefone: place.telefone || null,
+        whatsapp: place.whatsapp || place.telefone || null,
+        site: place.site || null,
+        cidade: place.cidade || null,
+        estado: place.estado || null,
+        endereco: place.endereco || null,
+        status: "novo",
+        observacao: place.rating ? `Google Maps ⭐ ${place.rating} (${place.userRatingCount || 0} avaliações)` : "Importado via Google Maps",
+      }
+
+      await createLead(newLead)
+      setImportedIds((prev) => new Set([...prev, place.id]))
+      toast.success(`"${place.nome}" importado!`)
+      onImported(1)
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao importar lead")
+    }
+  }
+
+  async function handleImportAll() {
+    const toImport = results.filter((p) => !isPlaceAlreadySaved(p) && !importedIds.has(p.id))
+    if (toImport.length === 0) {
+      toast("Todos os leads da lista já foram importados!")
+      return
+    }
+
+    setImportingAll(true)
+    let count = 0
+    try {
+      for (const place of toImport) {
+        const newLead: LeadInsert = {
+          professional_id: LEADS_OWNER_ID,
+          nome: place.nome,
+          telefone: place.telefone || null,
+          whatsapp: place.whatsapp || place.telefone || null,
+          site: place.site || null,
+          cidade: place.cidade || null,
+          estado: place.estado || null,
+          endereco: place.endereco || null,
+          status: "novo",
+          observacao: place.rating ? `Google Maps ⭐ ${place.rating} (${place.userRatingCount || 0} avaliações)` : "Importado via Google Maps",
+        }
+        await createLead(newLead)
+        count++
+        setImportedIds((prev) => new Set([...prev, place.id]))
+      }
+      toast.success(`🎉 ${count} leads importados com sucesso!`)
+      onImported(count)
+    } catch (e: any) {
+      toast.error("Erro durante a importação em lote")
+    } finally {
+      setImportingAll(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden border border-gray-100">
+        
+        {/* Cabeçalho */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-[#0D2329] text-white">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#34A853] to-[#4285F4] flex items-center justify-center">
+              <Map className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h2 className="text-sm font-black flex items-center gap-1.5">
+                Buscador Google Maps <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-bold">API Oficial</span>
+              </h2>
+              <p className="text-[10px] text-[#A6C5CC]">Pesquise clínicas e psicopedagogas por cidade em tempo real</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowConfig(!showConfig)}
+              className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white"
+              title="Configurar chave da Google Places API"
+            >
+              <Key className="w-4 h-4" />
+            </button>
+            <button onClick={onClose} className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Configuração da Chave da API */}
+        {showConfig && (
+          <div className="px-6 py-4 bg-amber-50/80 border-b border-amber-200/60 text-amber-950 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black flex items-center gap-1.5 text-amber-900">
+                <Key className="w-3.5 h-3.5" /> Chave Google Places API
+              </span>
+              <a
+                href="https://console.cloud.google.com/google/maps-apis/credentials"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline flex items-center gap-1"
+              >
+                Gerar chave no Google Cloud (US$ 200/mês grátis) <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                placeholder="Cole sua chave aqui (AIzaSy...)"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                className="flex-1 bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+              />
+              <button
+                onClick={() => {
+                  saveStoredGoogleKey(apiKey)
+                  setShowConfig(false)
+                  toast.success("Chave salva!")
+                }}
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-black"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Barra de Pesquisa */}
+        <div className="p-5 border-b border-gray-100 bg-gray-50/50 space-y-3">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30 focus:border-[#7C3AED] shadow-xs"
+                placeholder="Ex: psicopedagoga em são josé do rio preto sp"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSearch() }}
+              />
+            </div>
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              className="px-5 py-2.5 rounded-2xl text-xs font-black bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center gap-2 shadow-md shadow-[#7C3AED]/20"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              Buscar
+            </button>
+          </div>
+
+          {/* Sugestões rápidas de pesquisa */}
+          <div className="flex items-center gap-1.5 flex-wrap text-xs">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-wide mr-1">Atalhos:</span>
+            {[
+              "Psicopedagoga em São José do Rio Preto SP",
+              "Psicopedagoga em Ribeirão Preto SP",
+              "Psicopedagoga em Campinas SP",
+              "Clínica de Psicopedagogia SP",
+            ].map((q) => (
+              <button
+                key={q}
+                onClick={() => setQuery(q)}
+                className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-white border border-gray-200 hover:border-[#7C3AED] hover:text-[#7C3AED] transition-colors"
+              >
+                {q.replace("Psicopedagoga em ", "")}
+              </button>
+            ))}
+            <button
+              onClick={handleLoadDemo}
+              className="text-[11px] font-black px-2.5 py-1 rounded-full bg-purple-50 text-[#7C3AED] border border-[#7C3AED]/30 hover:bg-purple-100 transition-colors ml-auto flex items-center gap-1"
+            >
+              <Sparkles className="w-3 h-3" /> Testar com dados de Rio Preto
+            </button>
+          </div>
+        </div>
+
+        {/* Resultados da busca */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-3">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-[#7C3AED]" />
+              <p className="text-sm font-bold text-gray-600">Consultando o Google Maps em tempo real...</p>
+              <p className="text-xs text-gray-400">Buscando clínicas, telefones e endereços</p>
+            </div>
+          ) : results.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-3 text-center">
+              <div className="w-16 h-16 rounded-3xl bg-blue-50 flex items-center justify-center text-3xl">
+                🗺️
+              </div>
+              <h3 className="font-black text-gray-700 text-sm">Pesquise psicopedagogas no Google Maps</h3>
+              <p className="text-xs text-gray-400 max-w-sm">
+                Digite a cidade no campo acima ou clique em "Testar com dados de Rio Preto" para visualizar a lista imediatamente.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                <span className="text-xs font-black text-gray-700">
+                  {results.length} resultados encontrados
+                </span>
+                <button
+                  onClick={handleImportAll}
+                  disabled={importingAll}
+                  className="px-4 py-1.5 rounded-xl text-xs font-black bg-green-600 hover:bg-green-700 text-white flex items-center gap-1.5 shadow-sm transition-colors disabled:opacity-60"
+                >
+                  {importingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                  Importar Todos para Leads
+                </button>
+              </div>
+
+              <div className="grid gap-2.5">
+                {results.map((place) => {
+                  const alreadySaved = isPlaceAlreadySaved(place) || importedIds.has(place.id)
+                  const waLink = formatWhatsAppLink(place.whatsapp || place.telefone)
+
+                  return (
+                    <div
+                      key={place.id}
+                      className={`p-3.5 rounded-2xl border transition-all flex items-start justify-between gap-3 ${
+                        alreadySaved
+                          ? "bg-gray-50 border-gray-200 opacity-75"
+                          : "bg-white border-gray-200 hover:border-[#7C3AED]/40 hover:shadow-xs"
+                      }`}
+                    >
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm font-black text-[#0D2329] truncate" title={place.nome}>
+                            {place.nome}
+                          </h4>
+                          {place.rating && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                              ⭐ {place.rating} ({place.userRatingCount || 0})
+                            </span>
+                          )}
+                          {alreadySaved && (
+                            <span className="text-[10px] font-bold text-gray-500 bg-gray-200/80 px-2 py-0.5 rounded-full">
+                              Já Cadastrado
+                            </span>
+                          )}
+                        </div>
+
+                        {place.endereco && (
+                          <p className="text-xs text-gray-500 flex items-center gap-1 truncate" title={place.endereco}>
+                            <MapPin className="w-3 h-3 shrink-0 text-gray-400" />
+                            {place.endereco}
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-3 pt-1 flex-wrap">
+                          {place.telefone ? (
+                            <span className="text-xs font-bold text-gray-700 flex items-center gap-1">
+                              <Phone className="w-3 h-3 text-green-600" /> {place.telefone}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">Sem telefone público</span>
+                          )}
+
+                          {place.site && (
+                            <a
+                              href={place.site}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-blue-600 hover:underline flex items-center gap-1 truncate max-w-[200px]"
+                            >
+                              <Globe className="w-3 h-3" /> {place.site.replace(/^https?:\/\//, "")}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Botão de Ação */}
+                      <div className="shrink-0 flex flex-col gap-1 items-end">
+                        {alreadySaved ? (
+                          <span className="text-xs font-bold text-green-600 flex items-center gap-1 px-3 py-1.5 bg-green-50 rounded-xl border border-green-200">
+                            <Check className="w-3.5 h-3.5" /> Salvo
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => importSinglePlace(place)}
+                            className="text-xs font-black px-3 py-1.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white flex items-center gap-1 shadow-xs transition-colors"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Importar
+                          </button>
+                        )}
+                        {waLink && (
+                          <a
+                            href={waLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[10px] font-bold text-green-700 hover:underline flex items-center gap-1 mt-0.5"
+                          >
+                            <MessageCircle className="w-3 h-3" /> Testar Zap
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Rodapé */}
+        <div className="px-6 py-3.5 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-xs text-gray-500">
+          <span>Google Places API · Dados em tempo real</span>
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 rounded-xl font-bold border border-gray-200 text-gray-600 hover:bg-white transition-colors"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Modal: Editar / Novo Lead Manual ──────────────────────────────────────────
 
 interface LeadModalProps {
   lead?: Lead | null
@@ -464,7 +918,7 @@ function LeadRow({
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 px-2.5 py-1 rounded-full transition-colors whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-50 hover:bg-green-100 border border-green-200 px-2.5 py-1 rounded-full transition-colors whitespace-nowrap shadow-2xs"
             >
               <MessageCircle className="w-3.5 h-3.5 shrink-0" />
               Abrir WhatsApp
@@ -583,9 +1037,10 @@ function LeadRow({
 // ─── Painel principal (após login) ─────────────────────────────────────────────
 
 function LeadsDashboard({ onLogout }: { onLogout: () => void }) {
-  const [leads, setLeads]         = useState<Lead[]>([])
-  const [loading, setLoading]     = useState(true)
-  const [modalLead, setModalLead] = useState<Lead | null | undefined>(undefined)
+  const [leads, setLeads]               = useState<Lead[]>([])
+  const [loading, setLoading]           = useState(true)
+  const [modalLead, setModalLead]       = useState<Lead | null | undefined>(undefined)
+  const [showMapsModal, setShowMapsModal] = useState(false)
 
   const [search,       setSearch]       = useState("")
   const [filterStatus, setFilterStatus] = useState<LeadStatus | "">("")
@@ -595,12 +1050,20 @@ function LeadsDashboard({ onLogout }: { onLogout: () => void }) {
   const fileRef   = useRef<HTMLInputElement>(null)
   const [importing, setImporting] = useState(false)
 
-  useEffect(() => {
+  async function loadLeads() {
     setLoading(true)
-    listLeads(LEADS_OWNER_ID)
-      .then(setLeads)
-      .catch(() => toast.error("Erro ao carregar leads"))
-      .finally(() => setLoading(false))
+    try {
+      const data = await listLeads(LEADS_OWNER_ID)
+      setLeads(data)
+    } catch {
+      toast.error("Erro ao carregar leads")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadLeads()
   }, [])
 
   const stats = useMemo(() => ({
@@ -663,11 +1126,10 @@ function LeadsDashboard({ onLogout }: { onLogout: () => void }) {
     try {
       const text = await file.text()
       const result = await importLeadsFromCSV(text, LEADS_OWNER_ID)
-      const fresh = await listLeads(LEADS_OWNER_ID)
-      setLeads(fresh)
+      await loadLeads()
       toast.success(
-        `✅ ${result.imported} importados · ${result.duplicates} duplicatas · ${result.errors} erros`,
-        { duration: 6000 }
+        `✅ ${result.imported} importados · ${result.duplicates} duplicatas ignoradas`,
+        { duration: 5000 }
       )
     } catch (e: any) {
       toast.error(e?.message || "Erro ao importar CSV")
@@ -680,50 +1142,82 @@ function LeadsDashboard({ onLogout }: { onLogout: () => void }) {
 
   return (
     <div className="min-h-screen bg-[#F4F7F8]">
-      {/* Header fixo */}
-      <div className="bg-[#0D2329] border-b border-[#193F4A] px-4 sm:px-6 py-3 flex items-center justify-between">
+      {/* Header fixo do Portal Comercial */}
+      <div className="bg-[#0D2329] border-b border-[#193F4A] px-4 sm:px-6 py-3 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#6366F1] to-[#7C3AED] flex items-center justify-center">
-            <Target className="w-4 h-4 text-white" />
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#6366F1] to-[#7C3AED] flex items-center justify-center shadow-[0_0_15px_rgba(124,58,237,0.3)]">
+            <Target className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-sm font-black text-white">
-              Evolu<span className="text-[#A855F7]">IA</span> · Leads
+            <h1 className="text-sm font-black text-white flex items-center gap-1.5">
+              Evolu<span className="text-[#A855F7]">IA</span> · Prospecção
             </h1>
-            <p className="text-[10px] text-[#7EA2AA] font-bold">Painel de Prospecção</p>
+            <p className="text-[10px] text-[#7EA2AA] font-bold">Portal Comercial de Leads</p>
           </div>
         </div>
-        <button
-          onClick={onLogout}
-          className="flex items-center gap-1.5 text-xs font-bold text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 px-3 py-1.5 rounded-xl transition-colors"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          Sair
-        </button>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => loadLeads()}
+            title="Atualizar lista"
+            className="p-2 rounded-xl text-[#7EA2AA] hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-1.5 text-xs font-bold text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 px-3 py-1.5 rounded-xl transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Sair
+          </button>
+        </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-        {/* Ações */}
-        <div className="flex items-center justify-end gap-2 flex-wrap">
-          <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleCSV} />
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={importing}
-            className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold border border-[#7C3AED]/30 text-[#7C3AED] bg-[#7C3AED]/5 hover:bg-[#7C3AED]/10 transition-colors disabled:opacity-60"
-          >
-            {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            Importar CSV
-          </button>
-          <button
-            onClick={() => setModalLead(null)}
-            className="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-black bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white hover:opacity-90 shadow-lg shadow-[#7C3AED]/25"
-          >
-            <Plus className="w-4 h-4" />
-            Novo Lead
-          </button>
+        
+        {/* Barra de Ações Rápidas */}
+        <div className="flex items-center justify-between gap-3 flex-wrap bg-white p-3.5 rounded-3xl border border-gray-100 shadow-xs">
+          <div>
+            <h2 className="text-sm font-black text-[#0D2329] flex items-center gap-2">
+              🎯 Gestão de Leads
+            </h2>
+            <p className="text-xs text-gray-500">Busque novas psicopedagogas no Google Maps ou importe contatos</p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* BOTÃO GOOGLE MAPS EM DESTAQUE */}
+            <button
+              onClick={() => setShowMapsModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black bg-gradient-to-r from-[#10B981] to-[#059669] text-white hover:opacity-95 shadow-md shadow-emerald-500/20 transition-all active:scale-98"
+            >
+              <Map className="w-4 h-4" />
+              Buscar no Google Maps
+            </button>
+
+            {/* Importar CSV */}
+            <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleCSV} />
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={importing}
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl text-xs font-bold border border-gray-200 text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors disabled:opacity-60"
+            >
+              {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              Importar CSV
+            </button>
+
+            {/* Novo Lead Manual */}
+            <button
+              onClick={() => setModalLead(null)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white hover:opacity-90 shadow-md shadow-[#7C3AED]/25 transition-all active:scale-98"
+            >
+              <Plus className="w-4 h-4" />
+              Novo Lead
+            </button>
+          </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats rápidos */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
             { label: "Total",      value: stats.total,      emoji: "📊", color: "text-gray-700",   bg: "bg-white" },
@@ -732,7 +1226,7 @@ function LeadsDashboard({ onLogout }: { onLogout: () => void }) {
             { label: "Testando",   value: stats.testando,   emoji: "🟠", color: "text-orange-600", bg: "bg-orange-50" },
             { label: "Clientes",   value: stats.clientes,   emoji: "🟢", color: "text-green-600",  bg: "bg-green-50" },
           ].map(({ label, value, emoji, color, bg }) => (
-            <div key={label} className={`${bg} rounded-2xl border border-gray-100 shadow-sm px-4 py-3`}>
+            <div key={label} className={`${bg} rounded-2xl border border-gray-100 shadow-xs px-4 py-3`}>
               <p className={`text-2xl font-black ${color}`}>{value}</p>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{emoji} {label}</p>
             </div>
@@ -740,7 +1234,7 @@ function LeadsDashboard({ onLogout }: { onLogout: () => void }) {
         </div>
 
         {/* Filtros */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex flex-wrap gap-3 items-center">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xs px-4 py-3 flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -794,8 +1288,8 @@ function LeadsDashboard({ onLogout }: { onLogout: () => void }) {
           )}
         </div>
 
-        {/* Tabela */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {/* Tabela de Leads */}
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-xs overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-16 text-gray-400">
               <Loader2 className="w-6 h-6 animate-spin mr-2" />
@@ -805,14 +1299,16 @@ function LeadsDashboard({ onLogout }: { onLogout: () => void }) {
             <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
               {leads.length === 0 ? (
                 <>
-                  <div className="text-4xl">🎯</div>
-                  <p className="font-black text-gray-500">Nenhum lead ainda</p>
-                  <p className="text-xs">Importe um CSV do Google Maps ou adicione manualmente</p>
+                  <div className="text-4xl">🗺️</div>
+                  <p className="font-black text-gray-600 text-sm">Nenhum lead na sua lista ainda</p>
+                  <p className="text-xs text-gray-400 max-w-sm text-center">
+                    Clique no botão verde abaixo para buscar psicopedagogas no Google Maps e adicioná-las com 1 clique!
+                  </p>
                   <button
-                    onClick={() => setModalLead(null)}
-                    className="mt-2 flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-black bg-gradient-to-r from-[#6366F1] to-[#7C3AED] text-white"
+                    onClick={() => setShowMapsModal(true)}
+                    className="mt-2 flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black bg-gradient-to-r from-[#10B981] to-[#059669] text-white hover:opacity-95 shadow-md"
                   >
-                    <Plus className="w-4 h-4" /> Adicionar primeiro lead
+                    <Map className="w-4 h-4" /> Buscar no Google Maps
                   </button>
                 </>
               ) : (
@@ -827,8 +1323,8 @@ function LeadsDashboard({ onLogout }: { onLogout: () => void }) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/70">
-                    <th className="px-4 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wide">Lead</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wide">Contato</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wide">Lead / Clínica</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wide">Ação Rápida WhatsApp</th>
                     <th className="px-4 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wide">Status</th>
                     <th className="px-4 py-3 text-left text-[11px] font-black text-gray-400 uppercase tracking-wide">Observação</th>
                     <th className="px-4 py-3 text-right text-[11px] font-black text-gray-400 uppercase tracking-wide">Data</th>
@@ -848,14 +1344,26 @@ function LeadsDashboard({ onLogout }: { onLogout: () => void }) {
               </table>
               <div className="px-4 py-3 border-t border-gray-100 text-xs text-gray-400 font-bold text-right">
                 {filtered.length === leads.length
-                  ? `${leads.length} leads`
-                  : `${filtered.length} de ${leads.length} leads`}
+                  ? `${leads.length} leads no total`
+                  : `${filtered.length} de ${leads.length} leads filtrados`}
               </div>
             </div>
           )}
         </div>
       </div>
 
+      {/* Modal de Busca no Google Maps */}
+      {showMapsModal && (
+        <GoogleMapsModal
+          existingLeads={leads}
+          onClose={() => setShowMapsModal(false)}
+          onImported={async () => {
+            await loadLeads()
+          }}
+        />
+      )}
+
+      {/* Modal de Criação / Edição Manual */}
       {modalLead !== undefined && (
         <LeadModal
           lead={modalLead}
@@ -867,7 +1375,7 @@ function LeadsDashboard({ onLogout }: { onLogout: () => void }) {
   )
 }
 
-// ─── Componente principal exportado ───────────────────────────────────────────
+// ─── Componente Principal Exportado ───────────────────────────────────────────
 
 export function LeadsPage() {
   const [hasAccess, setHasAccess] = useState<boolean>(() => checkLeadsSession())
