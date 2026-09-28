@@ -779,8 +779,8 @@ export function InterventionReportBuilderModal({
           </div>
         </DialogHeader>
 
-        {/* CORPO MODAL (ALTO, COMPRIDO E SEM SCROLLBAR LATERAL) */}
-        <DialogBody className="p-6 sm:p-8 space-y-6 flex-1 overflow-y-auto min-h-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* CORPO MODAL COM SCROLLBAR VISÍVEL */}
+        <DialogBody className="p-6 sm:p-8 space-y-6 flex-1 overflow-y-auto min-h-0">
           {/* =========================================================================
               ETAPA 1: PERÍODO & IDENTIFICAÇÃO DO PACIENTE
               ========================================================================= */}
