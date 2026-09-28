@@ -206,6 +206,37 @@ export function InterventionReportBuilderModal({
     observation: "Arthur está dentro do esperado para sua idade e série.",
   })
 
+  // Testes Adicionais / Personalizados pela Psicopedagoga
+  interface CustomTestItem {
+    id: string
+    name: string
+    score: string
+    classification: string
+    observation: string
+  }
+  const [customTests, setCustomTests] = useState<CustomTestItem[]>([])
+
+  function handleAddCustomTest() {
+    const newTest: CustomTestItem = {
+      id: `custom-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      name: "",
+      score: "",
+      classification: "",
+      observation: "",
+    }
+    setCustomTests((prev) => [...prev, newTest])
+  }
+
+  function handleUpdateCustomTest(id: string, field: keyof CustomTestItem, val: string) {
+    setCustomTests((prev) =>
+      prev.map((ct) => (ct.id === id ? { ...ct, [field]: val } : ct))
+    )
+  }
+
+  function handleRemoveCustomTest(id: string) {
+    setCustomTests((prev) => prev.filter((ct) => ct.id !== id))
+  }
+
   // Step 3: O Semáforo de Preditoras de Leitura e Escrita
   const [alphabetList, setAlphabetList] = useState<PredictorItem[]>(DEFAULT_PREDICTORS_ALPHABET)
   const [phonologicalList, setPhonologicalList] = useState<PredictorItem[]>(DEFAULT_PREDICTORS_PHONOLOGICAL)
@@ -335,6 +366,20 @@ export function InterventionReportBuilderModal({
             if (c.clinical.audibilizacao) setAudibilizacao((prev) => ({ ...prev, ...c.clinical.audibilizacao }))
             if (c.clinical.popTT) setPopTT((prev) => ({ ...prev, ...c.clinical.popTT }))
             if (c.clinical.arithmetic) setArithmetic((prev) => ({ ...prev, ...c.clinical.arithmetic }))
+
+            // Testes Adicionais / Personalizados
+            const savedCustom = c.clinical.customTests || c.customTests
+            if (savedCustom && Array.isArray(savedCustom)) {
+              setCustomTests(
+                savedCustom.map((ct: any) => ({
+                  id: ct.id || `custom-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                  name: ct.name || "",
+                  score: ct.score || "",
+                  classification: ct.classification || "",
+                  observation: ct.observation || "",
+                }))
+              )
+            }
 
             // Preditores de leitura e escrita (Semáforo)
             const preds = c.clinical.readingWritingPredictors || c.predictors
@@ -570,6 +615,7 @@ export function InterventionReportBuilderModal({
         audibilizacao: audibilizacao.enabled ? audibilizacao : undefined,
         popTT: popTT.enabled ? popTT : undefined,
         arithmetic: arithmetic.enabled ? arithmetic : undefined,
+        customTests: customTests.filter((ct) => ct.name.trim().length > 0),
         readingWritingPredictors: {
           alphabet: alphabetList,
           phonologicalAwareness: phonologicalList,
@@ -597,6 +643,7 @@ export function InterventionReportBuilderModal({
     audibilizacao,
     popTT,
     arithmetic,
+    customTests,
     alphabetList,
     phonologicalList,
     readingList,
@@ -1079,6 +1126,353 @@ export function InterventionReportBuilderModal({
                     </div>
                   )}
                 </div>
+
+                {/* 5. Teste de Discriminação Fonológica */}
+                <div className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-[#0D2329] flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={discriminacao.enabled}
+                        onChange={(e) => setDiscriminacao({ ...discriminacao, enabled: e.target.checked })}
+                        className="w-4 h-4 rounded text-[#7C3AED] accent-[#7C3AED]"
+                      />
+                      <span>5. Teste de Discriminação Fonológica (Seabra / Capovilla)</span>
+                    </label>
+                  </div>
+                  {discriminacao.enabled && (
+                    <div className="space-y-2 pt-2 border-t border-[#EEF5F6]">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Pontuação Padrão</label>
+                          <input
+                            type="text"
+                            value={discriminacao.score}
+                            onChange={(e) => setDiscriminacao({ ...discriminacao, score: e.target.value })}
+                            className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Classificação</label>
+                          <input
+                            type="text"
+                            value={discriminacao.classification}
+                            onChange={(e) => setDiscriminacao({ ...discriminacao, classification: e.target.value })}
+                            className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-[#6B7C83]">Observação</label>
+                        <input
+                          type="text"
+                          value={discriminacao.observation}
+                          onChange={(e) => setDiscriminacao({ ...discriminacao, observation: e.target.value })}
+                          className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-medium text-[#475569]"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 6. Avaliação da Audibilização */}
+                <div className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-[#0D2329] flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={audibilizacao.enabled}
+                        onChange={(e) => setAudibilizacao({ ...audibilizacao, enabled: e.target.checked })}
+                        className="w-4 h-4 rounded text-[#7C3AED] accent-[#7C3AED]"
+                      />
+                      <span>6. Avaliação da Audibilização (Memória e Sons)</span>
+                    </label>
+                  </div>
+                  {audibilizacao.enabled && (
+                    <div className="space-y-2 pt-2 border-t border-[#EEF5F6]">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Parte 1 - Discriminação (Score / Classe)</label>
+                          <div className="flex gap-1">
+                            <input
+                              type="text"
+                              placeholder="Score"
+                              value={audibilizacao.part1Score}
+                              onChange={(e) => setAudibilizacao({ ...audibilizacao, part1Score: e.target.value })}
+                              className="w-1/2 p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Classe"
+                              value={audibilizacao.part1Class}
+                              onChange={(e) => setAudibilizacao({ ...audibilizacao, part1Class: e.target.value })}
+                              className="w-1/2 p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Parte 2 - Memória (Score / Classe)</label>
+                          <div className="flex gap-1">
+                            <input
+                              type="text"
+                              placeholder="Score"
+                              value={audibilizacao.part2Score}
+                              onChange={(e) => setAudibilizacao({ ...audibilizacao, part2Score: e.target.value })}
+                              className="w-1/2 p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Classe"
+                              value={audibilizacao.part2Class}
+                              onChange={(e) => setAudibilizacao({ ...audibilizacao, part2Class: e.target.value })}
+                              className="w-1/2 p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Memória Figuras (Score / Classe)</label>
+                          <div className="flex gap-1">
+                            <input
+                              type="text"
+                              placeholder="Score"
+                              value={audibilizacao.figuresScore}
+                              onChange={(e) => setAudibilizacao({ ...audibilizacao, figuresScore: e.target.value })}
+                              className="w-1/2 p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Classe"
+                              value={audibilizacao.figuresClass}
+                              onChange={(e) => setAudibilizacao({ ...audibilizacao, figuresClass: e.target.value })}
+                              className="w-1/2 p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Total Geral (Score / Classe)</label>
+                          <div className="flex gap-1">
+                            <input
+                              type="text"
+                              placeholder="Total"
+                              value={audibilizacao.totalScore}
+                              onChange={(e) => setAudibilizacao({ ...audibilizacao, totalScore: e.target.value })}
+                              className="w-1/2 p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Classe"
+                              value={audibilizacao.totalClass}
+                              onChange={(e) => setAudibilizacao({ ...audibilizacao, totalClass: e.target.value })}
+                              className="w-1/2 p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-[#6B7C83]">Observação</label>
+                        <input
+                          type="text"
+                          value={audibilizacao.observation}
+                          onChange={(e) => setAudibilizacao({ ...audibilizacao, observation: e.target.value })}
+                          className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-medium text-[#475569]"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 7. POP-TT - Protocolo de Observação Psicomotora */}
+                <div className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-[#F7FAFA] space-y-3 md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-[#0D2329] flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={popTT.enabled}
+                        onChange={(e) => setPopTT({ ...popTT, enabled: e.target.checked })}
+                        className="w-4 h-4 rounded text-[#7C3AED] accent-[#7C3AED]"
+                      />
+                      <span>7. Protocolo de Observação Psicomotora (POP-TT)</span>
+                    </label>
+                  </div>
+                  {popTT.enabled && (
+                    <div className="space-y-3 pt-2 border-t border-[#EEF5F6]">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Cenestésica (Corpo)</label>
+                          <input
+                            type="text"
+                            value={popTT.cenestesica}
+                            onChange={(e) => setPopTT({ ...popTT, cenestesica: e.target.value })}
+                            className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Lateralidade</label>
+                          <input
+                            type="text"
+                            value={popTT.lateralidade}
+                            onChange={(e) => setPopTT({ ...popTT, lateralidade: e.target.value })}
+                            className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Proprioceptiva</label>
+                          <input
+                            type="text"
+                            value={popTT.proprioceptiva}
+                            onChange={(e) => setPopTT({ ...popTT, proprioceptiva: e.target.value })}
+                            className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Imitação de Gestos</label>
+                          <input
+                            type="text"
+                            value={popTT.imitacaoGestos}
+                            onChange={(e) => setPopTT({ ...popTT, imitacaoGestos: e.target.value })}
+                            className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Traços no Ar</label>
+                          <input
+                            type="text"
+                            value={popTT.tracosAr}
+                            onChange={(e) => setPopTT({ ...popTT, tracosAr: e.target.value })}
+                            className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Praxia Global</label>
+                          <input
+                            type="text"
+                            value={popTT.praxiaGlobal}
+                            onChange={(e) => setPopTT({ ...popTT, praxiaGlobal: e.target.value })}
+                            className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Praxia Fina</label>
+                          <input
+                            type="text"
+                            value={popTT.praxiaFina}
+                            onChange={(e) => setPopTT({ ...popTT, praxiaFina: e.target.value })}
+                            className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Tesoura (Coordenação)</label>
+                          <input
+                            type="text"
+                            value={popTT.coordenacaoTesoura}
+                            onChange={(e) => setPopTT({ ...popTT, coordenacaoTesoura: e.target.value })}
+                            className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-[#6B7C83]">Observação Psicomotora</label>
+                        <input
+                          type="text"
+                          value={popTT.observation}
+                          onChange={(e) => setPopTT({ ...popTT, observation: e.target.value })}
+                          className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-medium text-[#475569]"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Seção de Testes Personalizados / Instrumentos Adicionais */}
+              <div className="pt-5 border-t-2 border-dashed border-[#D8E5E7] space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-xs font-black text-[#0D2329] uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
+                      Outros Instrumentos / Testes Personalizados ({customTests.length})
+                    </h4>
+                    <p className="text-[11px] text-[#6B7C83]">
+                      Deseja incluir outro teste normativo ou qualitativo? (Ex: TDE-II, PROLEC, CONFIAS, Raven...).
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddCustomTest}
+                    className="px-3.5 py-2 rounded-xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#7C3AED] text-xs font-black flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-2xs self-start sm:self-auto"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>+ Adicionar Outro Teste</span>
+                  </button>
+                </div>
+
+                {customTests.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {customTests.map((ct, idx) => (
+                      <div key={ct.id} className="p-4 rounded-2xl border-2 border-[#D8E5E7] bg-white space-y-3 shadow-2xs relative">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black text-[#7C3AED]">
+                            Teste Adicional #{idx + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCustomTest(ct.id)}
+                            className="text-[#9CA3AF] hover:text-[#DC2626] p-1 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                            title="Remover teste"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-[#6B7C83]">Nome do Instrumento / Teste *</label>
+                            <input
+                              type="text"
+                              placeholder="Ex: TDE-II (Teste de Desempenho Escolar)"
+                              value={ct.name}
+                              onChange={(e) => handleUpdateCustomTest(ct.id, "name", e.target.value)}
+                              className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-[#F8FAFB] text-xs font-bold text-[#0D2329]"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-[#6B7C83]">Pontos / Escore</label>
+                              <input
+                                type="text"
+                                placeholder="Ex: 112 pontos"
+                                value={ct.score}
+                                onChange={(e) => handleUpdateCustomTest(ct.id, "score", e.target.value)}
+                                className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-[#6B7C83]">Classificação</label>
+                              <input
+                                type="text"
+                                placeholder="Ex: Dentro da média"
+                                value={ct.classification}
+                                onChange={(e) => handleUpdateCustomTest(ct.id, "classification", e.target.value)}
+                                className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-[#6B7C83]">Observação Clínica / Síntese</label>
+                            <input
+                              type="text"
+                              placeholder="Ex: Apresentou boa retenção e avanço significativo."
+                              value={ct.observation}
+                              onChange={(e) => handleUpdateCustomTest(ct.id, "observation", e.target.value)}
+                              className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-medium text-[#475569]"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

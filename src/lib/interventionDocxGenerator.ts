@@ -116,6 +116,13 @@ export interface InterventionReportData {
       classification: string
       observation: string
     }
+    customTests?: Array<{
+      id?: string
+      name: string
+      score?: string
+      classification?: string
+      observation?: string
+    }>
     readingWritingPredictors: {
       alphabet: PredictorItem[]
       phonologicalAwareness: PredictorItem[]
@@ -822,7 +829,12 @@ export async function buildInterventionDocxReport(data: InterventionReportData):
 
           // SEÇÃO 3: INSTRUMENTOS E PROCEDIMENTOS
           createSectionHeader("Instrumentos e Procedimentos Utilizados na Reavaliação"),
-          ...data.clinical.usedInstruments.map((inst) =>
+          ...Array.from(
+            new Set([
+              ...data.clinical.usedInstruments,
+              ...(data.clinical.customTests?.map((ct) => ct.name).filter(Boolean) || []),
+            ])
+          ).map((inst) =>
             new Paragraph({
               spacing: { after: 60 },
               children: [
@@ -911,6 +923,17 @@ export async function buildInterventionDocxReport(data: InterventionReportData):
                 createLabeledP("Classificação:", data.clinical.arithmetic.classification),
                 createP(data.clinical.arithmetic.observation, { italic: true }),
               ]
+            : []),
+
+          // TESTES ADICIONAIS / PERSONALIZADOS
+          ...(data.clinical.customTests && data.clinical.customTests.length > 0
+            ? data.clinical.customTests.flatMap((ct) => [
+                createSubHeader(ct.name),
+                ...(ct.score ? [createLabeledP("Pontuação / Escore:", String(ct.score))] : []),
+                ...(ct.classification ? [createLabeledP("Classificação:", ct.classification)] : []),
+                ...(ct.observation ? [createP(ct.observation, { italic: true })] : []),
+                createP(""),
+              ])
             : []),
 
           // ASPECTOS PEDAGÓGICOS: LEITURA E ESCRITA (SEMÁFORO)
