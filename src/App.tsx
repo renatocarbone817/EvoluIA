@@ -27,6 +27,7 @@ import { SettingsPage } from "@/pages/settings/SettingsPage"
 import { PlanPage } from "@/pages/plan/PlanPage"
 import { PublicReceiptPage } from "@/pages/financial/PublicReceiptPage"
 import { BibliotecaPage } from "@/pages/biblioteca/BibliotecaPage"
+import { LeadsPage } from "@/pages/leads/LeadsPage"
 import { SuperAdminPage } from "@/pages/admin/SuperAdminPage"
 import { LandingPage } from "@/pages/landing/LandingPage"
 import { MobilePhotoCapturePage } from "@/pages/sessions/MobilePhotoCapturePage"
@@ -133,6 +134,7 @@ export function App() {
               <Route path="/financeiro" element={<FinancialPage />} />
               <Route path="/relatorios" element={<ReportsPage />} />
               <Route path="/biblioteca" element={<BibliotecaPage />} />
+              <Route path="/leads" element={<LeadsPage />} />
               <Route path="/meu-plano" element={<PlanPage />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
             </Route>

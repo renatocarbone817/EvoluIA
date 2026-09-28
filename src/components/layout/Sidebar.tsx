@@ -17,6 +17,7 @@ import {
   CreditCard,
   Sparkles,
   Crown,
+  Target,
 } from "lucide-react"
 import { cn, getInitials } from "@/lib/utils"
 import { useAuthStore } from "@/store/authStore"
@@ -33,6 +34,7 @@ const baseNavItems = [
   { to: "/financeiro", icon: DollarSign, label: "Financeiro & Cobrança" },
   { to: "/relatorios", icon: FileText, label: "Relatórios & Documentos" },
   { to: "/biblioteca", icon: BookOpen, label: "Biblioteca de Atividades" },
+  { to: "/leads", icon: Target, label: "Leads & Prospecção" },
   { to: "/configuracoes", icon: Settings, label: "Meu Perfil & Configurações" },
 ]
 
