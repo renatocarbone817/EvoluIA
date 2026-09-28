@@ -572,6 +572,65 @@ function createPopTtTable(p: NonNullable<InterventionReportData["clinical"]["pop
 }
 
 // ---------------------------------------------------------------------------
+// Tabela da Prova de Aritmética (Capovilla / Seabra)
+// ---------------------------------------------------------------------------
+
+function createArithmeticTable(a: NonNullable<InterventionReportData["clinical"]["arithmetic"]>) {
+  const border = { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" }
+  const borders = { top: border, bottom: border, left: border, right: border }
+
+  const headerCell = (text: string) =>
+    new TableCell({
+      borders,
+      shading: { fill: "F1F5F9", type: ShadingType.CLEAR },
+      margins: { top: 80, bottom: 80, left: 100, right: 100 },
+      children: [createP(text, { bold: true, size: 20, align: AlignmentType.CENTER, color: "0F172A" })],
+    })
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: [
+          headerCell("Instrumento / Subteste"),
+          headerCell("Pontos / Acertos"),
+          headerCell("Escore Padrão"),
+          headerCell("Classificação"),
+        ],
+      }),
+      new TableRow({
+        children: [
+          new TableCell({
+            borders,
+            margins: { top: 80, bottom: 80, left: 100, right: 100 },
+            verticalAlign: VerticalAlign.CENTER,
+            children: [createP("Prova de Aritmética (Capovilla / Seabra)", { bold: true, size: 20, color: "005B94" })],
+          }),
+          new TableCell({
+            borders,
+            margins: { top: 80, bottom: 80, left: 100, right: 100 },
+            verticalAlign: VerticalAlign.CENTER,
+            children: [createP(String(a.points ?? "—"), { align: AlignmentType.CENTER, size: 20, bold: true })],
+          }),
+          new TableCell({
+            borders,
+            margins: { top: 80, bottom: 80, left: 100, right: 100 },
+            verticalAlign: VerticalAlign.CENTER,
+            children: [createP(String(a.score ?? "—"), { align: AlignmentType.CENTER, size: 20, bold: true })],
+          }),
+          new TableCell({
+            borders,
+            margins: { top: 80, bottom: 80, left: 100, right: 100 },
+            verticalAlign: VerticalAlign.CENTER,
+            children: [createP(String(a.classification || "—"), { align: AlignmentType.CENTER, bold: true, size: 20, color: "005B94" })],
+          }),
+        ],
+      }),
+    ],
+  })
+}
+
+// ---------------------------------------------------------------------------
 // O SEMÁFORO DE LEITURA E ESCRITA (A Tabela Mágica de 3 Cores da Priscila!)
 // ---------------------------------------------------------------------------
 
@@ -853,82 +912,103 @@ export async function buildInterventionDocxReport(data: InterventionReportData):
           createSectionHeader("Análise Evolutiva dos Resultados"),
           createSubHeader("Aspectos Cognitivos e Funções Executivas"),
 
-          // TESTE TRILHAS
-          createSubHeader("Teste Trilhas A/B"),
-          createP(
-            "Avalia a velocidade da atenção, sequenciamento, flexibilidade mental, busca visual e função motora. O teste é dividido em partes A e B (tempo de execução, atenção sustentada e alternância cognitiva)."
-          ),
-          createCutoffTable(),
-          createP(""),
-          ...(data.clinical.trilhas ? [createTrilhasTable(data.clinical.trilhas), createP(data.clinical.trilhas.observation, { italic: true })] : []),
-
-          // SPAN DE DÍGITOS
-          createSubHeader("Tarefa Span de Dígitos (TSD)"),
-          createP(
-            "Avalia memória auditiva de curto prazo (ordem direta) e memória de trabalho auditiva (ordem inversa) com complexidade progressiva."
-          ),
-          ...(data.clinical.spanDigitos
-            ? [createSpanTable(data.clinical.spanDigitos), createP(data.clinical.spanDigitos.observation, { italic: true })]
+          // 1. TESTE TRILHAS A/B
+          ...(data.clinical.trilhas
+            ? [
+                createSubHeader("1. Teste Trilhas A/B (Montiel e Seabra)"),
+                createP(
+                  "Avalia a velocidade da atenção, sequenciamento, flexibilidade mental, busca visual e função motora. O teste é dividido em partes A e B (tempo de execução, atenção sustentada e alternância cognitiva)."
+                ),
+                createCutoffTable(),
+                createP(""),
+                createTrilhasTable(data.clinical.trilhas),
+                ...(data.clinical.trilhas.observation ? [createP(data.clinical.trilhas.observation, { italic: true })] : []),
+                createP(""),
+              ]
             : []),
 
-          // TESTE INFANTIL DE NOMEAÇÃO (TIN)
-          createSubHeader("TIN - Teste Infantil de Nomeação"),
-          createP(
-            "Avalia a habilidade de nomeação verbal diante de estímulos visuais, linguagem expressiva e acesso ao sistema de memória de longo prazo."
-          ),
+          // 2. SPAN DE DÍGITOS
+          ...(data.clinical.spanDigitos
+            ? [
+                createSubHeader("2. Tarefa Span de Dígitos (TSD)"),
+                createP(
+                  "Avalia memória auditiva de curto prazo (ordem direta) e memória de trabalho auditiva (ordem inversa) com complexidade progressiva."
+                ),
+                createSpanTable(data.clinical.spanDigitos),
+                ...(data.clinical.spanDigitos.observation ? [createP(data.clinical.spanDigitos.observation, { italic: true })] : []),
+                createP(""),
+              ]
+            : []),
+
+          // 3. TESTE INFANTIL DE NOMEAÇÃO (TIN)
           ...(data.clinical.tin
             ? [
+                createSubHeader("3. Teste Infantil de Nomeação - TIN (Seabra, Trevisan e Capovilla)"),
+                createP(
+                  "Avalia a habilidade de nomeação verbal diante de estímulos visuais, linguagem expressiva e acesso ao sistema de memória de longo prazo."
+                ),
                 createLabeledP("Pontuação Padrão:", String(data.clinical.tin.score)),
                 createLabeledP("Percentil / Classificação:", data.clinical.tin.classification),
-                createP(data.clinical.tin.observation, { italic: true }),
+                ...(data.clinical.tin.observation ? [createP(data.clinical.tin.observation, { italic: true })] : []),
+                createP(""),
               ]
             : []),
 
-          // DISCRIMINAÇÃO FONOLÓGICA
-          createSubHeader("Teste de Discriminação Fonológica"),
-          createP("Avalia a capacidade de distinguir auditivamente fonemas (sons da fala que diferenciam palavras)."),
-          ...(data.clinical.phonologicalDiscrimination
-            ? [
-                createLabeledP("Pontuação Padrão:", String(data.clinical.phonologicalDiscrimination.score)),
-                createLabeledP("Classificação:", data.clinical.phonologicalDiscrimination.classification),
-                createP(data.clinical.phonologicalDiscrimination.observation, { italic: true }),
-              ]
-            : []),
-
-          // TESTE DE AUDIBILIZAÇÃO
-          createSubHeader("Teste de Audibilização"),
-          createP("Sonda a capacidade de audibilização e memória auditiva em crianças em fase de aquisição da escrita."),
-          ...(data.clinical.audibilizacao
-            ? [
-                createAudibilizacaoTable(data.clinical.audibilizacao),
-                createP(data.clinical.audibilizacao.observation, { italic: true }),
-              ]
-            : []),
-
-          // PROTOCOLO DE OBSERVAÇÃO PSICOMOTORA (POP-TT)
-          createSubHeader("POP-TT - Protocolo de Observação Psicomotora"),
-          createP(
-            "Avalia relações entre aprendizagem, psicomotricidade e neurociências (esquema corporal, lateralidade, praxias)."
-          ),
-          ...(data.clinical.popTT ? [createPopTtTable(data.clinical.popTT), createP(data.clinical.popTT.observation, { italic: true })] : []),
-
-          // ASPECTOS DE ARITMÉTICA
-          createSubHeader("Aspectos de Aritmética (Prova de Aritmética)"),
-          createP(
-            "Observados: conhecimento numérico, sistema decimal, classificação, ordem, grandezas, cálculo mental, sentenças e resolução de problemas."
-          ),
+          // 4. PROVA DE ARITMÉTICA (CAPOVILLA / SEABRA)
           ...(data.clinical.arithmetic
             ? [
-                createLabeledP("Pontos / Escore:", `${data.clinical.arithmetic.points} pontos (score ${data.clinical.arithmetic.score})`),
-                createLabeledP("Classificação:", data.clinical.arithmetic.classification),
-                createP(data.clinical.arithmetic.observation, { italic: true }),
+                createSubHeader("4. Prova de Aritmética (Capovilla / Seabra)"),
+                createP(
+                  "Observados: conhecimento numérico, sistema decimal, classificação, ordem, grandezas, cálculo mental, sentenças e resolução de problemas."
+                ),
+                createArithmeticTable(data.clinical.arithmetic),
+                ...(data.clinical.arithmetic.observation ? [createP(data.clinical.arithmetic.observation, { italic: true })] : []),
+                createP(""),
+              ]
+            : []),
+
+          // 5. TESTE DE DISCRIMINAÇÃO FONOLÓGICA
+          ...(data.clinical.phonologicalDiscrimination
+            ? [
+                createSubHeader("5. Teste de Discriminação Fonológica (Seabra e Capovilla)"),
+                createP("Avalia a capacidade de distinguir auditivamente fonemas (sons da fala que diferenciam palavras)."),
+                createLabeledP("Pontuação Padrão:", String(data.clinical.phonologicalDiscrimination.score)),
+                createLabeledP("Classificação:", data.clinical.phonologicalDiscrimination.classification),
+                ...(data.clinical.phonologicalDiscrimination.observation
+                  ? [createP(data.clinical.phonologicalDiscrimination.observation, { italic: true })]
+                  : []),
+                createP(""),
+              ]
+            : []),
+
+          // 6. TESTE DE AUDIBILIZAÇÃO
+          ...(data.clinical.audibilizacao
+            ? [
+                createSubHeader("6. Avaliação da Audibilização"),
+                createP("Sonda a capacidade de audibilização e memória auditiva em crianças em fase de aquisição da escrita."),
+                createAudibilizacaoTable(data.clinical.audibilizacao),
+                ...(data.clinical.audibilizacao.observation ? [createP(data.clinical.audibilizacao.observation, { italic: true })] : []),
+                createP(""),
+              ]
+            : []),
+
+          // 7. PROTOCOLO DE OBSERVAÇÃO PSICOMOTORA (POP-TT)
+          ...(data.clinical.popTT
+            ? [
+                createSubHeader("7. Protocolo de Observação Psicomotora (POP-TT)"),
+                createP(
+                  "Avalia relações entre aprendizagem, psicomotricidade e neurociências (esquema corporal, lateralidade, praxias)."
+                ),
+                createPopTtTable(data.clinical.popTT),
+                ...(data.clinical.popTT.observation ? [createP(data.clinical.popTT.observation, { italic: true })] : []),
+                createP(""),
               ]
             : []),
 
           // TESTES ADICIONAIS / PERSONALIZADOS
           ...(data.clinical.customTests && data.clinical.customTests.length > 0
-            ? data.clinical.customTests.flatMap((ct) => [
-                createSubHeader(ct.name),
+            ? data.clinical.customTests.flatMap((ct, idx) => [
+                createSubHeader(`${8 + idx}. ${ct.name}`),
                 ...(ct.score ? [createLabeledP("Pontuação / Escore:", String(ct.score))] : []),
                 ...(ct.classification ? [createLabeledP("Classificação:", ct.classification)] : []),
                 ...(ct.observation ? [createP(ct.observation, { italic: true })] : []),

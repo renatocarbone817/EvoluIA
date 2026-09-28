@@ -203,7 +203,7 @@ export function InterventionReportBuilderModal({
     points: "15",
     score: "103",
     classification: "Média",
-    observation: "Arthur está dentro do esperado para sua idade e série.",
+    observation: "Dentro do esperado para sua faixa etária e nível de escolaridade.",
   })
 
   // Testes Adicionais / Personalizados pela Psicopedagoga
@@ -607,7 +607,17 @@ export function InterventionReportBuilderModal({
       clinical: {
         reassessmentReason,
         briefHistory,
-        usedInstruments,
+        usedInstruments: [
+          ...(trilhas.enabled ? ["TESTE DE TRILHAS A/B (Montiel e Seabra)"] : []),
+          ...(spanDigitos.enabled ? ["SPAN DE DÍGITOS (TSD)"] : []),
+          ...(tin.enabled ? ["TESTE INFANTIL DE NOMEAÇÃO - TIN (Seabra, Trevisan e Capovilla)"] : []),
+          ...(arithmetic.enabled ? ["PROVA DE ARITMÉTICA (Capovilla / Seabra)"] : []),
+          ...(discriminacao.enabled ? ["TESTE DE DISCRIMINAÇÃO FONOLÓGICA (Seabra e Capovilla)"] : []),
+          ...(audibilizacao.enabled ? ["TESTE DE AUDIBILIZAÇÃO"] : []),
+          ...(popTT.enabled ? ["PROTOCOLO DE OBSERVAÇÃO PSICOMOTORA – POP TT"] : []),
+          ...customTests.map((ct) => ct.name.trim()).filter(Boolean),
+          "OBSERVAÇÕES PSICOPEDAGÓGICAS / FAMILIAR / ESCOLAR",
+        ],
         trilhas: trilhas.enabled ? trilhas : undefined,
         spanDigitos: spanDigitos.enabled ? spanDigitos : undefined,
         tin: tin.enabled ? tin : undefined,
@@ -1094,33 +1104,46 @@ export function InterventionReportBuilderModal({
                     </label>
                   </div>
                   {arithmetic.enabled && (
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#EEF5F6]">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-[#6B7C83]">Pontos / Escore</label>
-                        <div className="flex gap-1">
+                    <div className="space-y-2 pt-2 border-t border-[#EEF5F6]">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Pontos / Escore</label>
+                          <div className="flex gap-1">
+                            <input
+                              type="text"
+                              placeholder="Pontos (ex: 15)"
+                              value={arithmetic.points}
+                              onChange={(e) => setArithmetic({ ...arithmetic, points: e.target.value })}
+                              className="w-1/2 p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Score (ex: 103)"
+                              value={arithmetic.score}
+                              onChange={(e) => setArithmetic({ ...arithmetic, score: e.target.value })}
+                              className="w-1/2 p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-[#6B7C83]">Classificação</label>
                           <input
                             type="text"
-                            placeholder="Pontos"
-                            value={arithmetic.points}
-                            onChange={(e) => setArithmetic({ ...arithmetic, points: e.target.value })}
-                            className="w-1/2 p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Score"
-                            value={arithmetic.score}
-                            onChange={(e) => setArithmetic({ ...arithmetic, score: e.target.value })}
-                            className="w-1/2 p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                            placeholder="Classificação (ex: Média)"
+                            value={arithmetic.classification}
+                            onChange={(e) => setArithmetic({ ...arithmetic, classification: e.target.value })}
+                            className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
                           />
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-[#6B7C83]">Classificação</label>
+                        <label className="text-[10px] font-bold text-[#6B7C83]">Observação / Parecer</label>
                         <input
                           type="text"
-                          value={arithmetic.classification}
-                          onChange={(e) => setArithmetic({ ...arithmetic, classification: e.target.value })}
-                          className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-bold"
+                          placeholder="Observação sobre o desempenho em aritmética..."
+                          value={arithmetic.observation}
+                          onChange={(e) => setArithmetic({ ...arithmetic, observation: e.target.value })}
+                          className="w-full p-2 rounded-xl border border-[#D8E5E7] bg-white text-xs font-medium text-[#475569]"
                         />
                       </div>
                     </div>
